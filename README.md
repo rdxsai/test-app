@@ -217,12 +217,9 @@ docker-compose restart backend
 - Backend connects to `chromadb:8000` (not `localhost:8000`)
 - Backend connects to `ollama:11434` (not `localhost:11434`)
 
-### Database Management
+### Database Backup
 
-**Database Location:**
-- Your SQLite database is stored in `./data/socratic_tutor.db`
-- This file is **included in the repository** with existing questions and data
-- Uses bind mount (not Docker volume) - safe from `docker-compose down -v`
+Your SQLite database is stored in `./data/socratic_tutor.db` on your host machine and is automatically safe from `docker-compose down -v`.
 
 **Create a backup:**
 ```bash

@@ -36,6 +36,47 @@
             border-left: 4px solid #198754;
         }
 
+        /* Enhanced Progress Bar Styles */
+        #similarityProgress {
+            border-left: 4px solid #0dcaf0;
+            background: linear-gradient(135deg, #e7f6fd 0%, #ffffff 100%);
+        }
+
+        #progressBar {
+            transition: width 0.4s ease-in-out;
+            background: linear-gradient(90deg, #0dcaf0 0%, #0aa2c0 100%) !important;
+        }
+
+        #progressStage {
+            font-weight: 600;
+            color: #055160;
+        }
+
+        #progressMessage {
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        #progressTip {
+            padding: 0.5rem;
+            background-color: rgba(13, 202, 240, 0.1);
+            border-radius: 4px;
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .progress-bar-animated {
+            animation: progress-bar-stripes 1s linear infinite, pulse 2s ease-in-out infinite;
+        }
+
         .loading-spinner {
             position: fixed;
             top: 50%;
@@ -156,17 +197,29 @@
                 </h5>
             </div>
             <div class="card-body">
-                <!-- Loading message for similarity computation -->
+                <!-- Enhanced Loading Progress for LLM Analysis -->
                 <div id="similarityProgress" class="alert alert-info mb-4" style="display: none;">
-                    <div class="d-flex align-items-center">
-                        <div class="spinner-border spinner-border-sm text-info me-3" role="status">
-                            <span class="visually-hidden">Loading...</span>
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <strong id="progressTitle">
+                                <i class="fas fa-brain"></i> <span id="progressStage">Initializing...</span>
+                            </strong>
+                            <span id="progressPercent" class="badge bg-primary">0%</span>
                         </div>
-                        <div>
-                            <strong><i class="fas fa-brain"></i> Computing similarity scores for all
-                                objectives...</strong>
-                            <p class="mb-0 mt-1 text-muted small">This may take a few seconds.</p>
+                        <div class="progress" style="height: 8px;">
+                            <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-info"
+                                 role="progressbar"
+                                 style="width: 0%"
+                                 aria-valuenow="0"
+                                 aria-valuemin="0"
+                                 aria-valuemax="100"></div>
                         </div>
+                    </div>
+                    <p id="progressMessage" class="mb-0 text-muted small">
+                        <i class="fas fa-info-circle"></i> Preparing to analyze objectives...
+                    </p>
+                    <div id="progressTip" class="mt-2 text-muted small" style="font-style: italic;">
+                        💡 <strong>Tip:</strong> The AI analyzes each objective's relevance to your question, considering concept alignment and educational value.
                     </div>
                 </div>
 
@@ -474,24 +527,100 @@
                 const btn = this;
                 const originalText = btn.innerHTML;
                 btn.disabled = true;
-                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Computing...';
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analyzing...';
 
                 const loadingDiv = document.getElementById('similarityProgress');
+                const progressBar = document.getElementById('progressBar');
+                const progressPercent = document.getElementById('progressPercent');
+                const progressStage = document.getElementById('progressStage');
+                const progressMessage = document.getElementById('progressMessage');
+                const progressTip = document.getElementById('progressTip');
+
+                // Progress stages with messages and tips
+                const stages = [
+                    {
+                        percent: 5,
+                        stage: 'Preparing Request',
+                        message: 'Gathering objectives from database...',
+                        tip: '💡 <strong>Did you know?</strong> The system can analyze up to 100+ objectives in one go!'
+                    },
+                    {
+                        percent: 15,
+                        stage: 'Connecting to AI',
+                        message: 'Establishing connection with GPT-4...',
+                        tip: '🤖 <strong>AI Power:</strong> Using advanced language models to understand semantic relationships.'
+                    },
+                    {
+                        percent: 30,
+                        stage: 'Analyzing Question',
+                        message: 'AI is reading and understanding your question...',
+                        tip: '📚 <strong>Deep Analysis:</strong> The AI considers concept alignment, not just keyword matching.'
+                    },
+                    {
+                        percent: 60,
+                        stage: 'Evaluating Objectives',
+                        message: 'Scoring each objective based on relevance...',
+                        tip: '🎯 <strong>Smart Scoring:</strong> Objectives are rated 0-100 based on how well they match your question.'
+                    },
+                    {
+                        percent: 85,
+                        stage: 'Processing Results',
+                        message: 'Sorting objectives by relevance score...',
+                        tip: '📊 <strong>Best First:</strong> Most relevant objectives will appear at the top!'
+                    },
+                    {
+                        percent: 95,
+                        stage: 'Finalizing',
+                        message: 'Preparing display with color-coded badges...',
+                        tip: '🎨 <strong>Color Guide:</strong> Green = Good match (≥60%), Yellow/Red = Weak match (<60%)'
+                    }
+                ];
+
+                // Function to update progress
+                function updateProgress(percent, stage, message, tip) {
+                    progressBar.style.width = `${percent}%`;
+                    progressBar.setAttribute('aria-valuenow', percent);
+                    progressPercent.textContent = `${percent}%`;
+                    progressStage.textContent = stage;
+                    progressMessage.innerHTML = `<i class="fas fa-cog fa-spin"></i> ${message}`;
+                    progressTip.innerHTML = tip;
+                }
+
+                // Simulate progress stages
+                async function animateProgress() {
+                    for (let i = 0; i < stages.length; i++) {
+                        const s = stages[i];
+                        updateProgress(s.percent, s.stage, s.message, s.tip);
+                        // Wait between stages (faster for early stages, slower for AI processing)
+                        const delay = i < 2 ? 300 : (i < 4 ? 800 : 500);
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                    }
+                }
 
                 try {
                     console.log('🧠 Fetching AI similarity scores...');
 
                     // Show loading message
                     loadingDiv.style.display = 'block';
+                    updateProgress(0, 'Initializing', 'Starting AI analysis...', '⏱️ <strong>Please wait:</strong> This typically takes 5-15 seconds depending on the number of objectives.');
 
-                    // Fetch AI suggestions
+                    // Start progress animation
+                    const progressAnimation = animateProgress();
+
+                    // Fetch AI suggestions (this is the actual API call)
                     const response = await fetch(`/questions/${questionId}/suggest-objectives`, {
                         method: 'POST'
                     });
 
+                    // Wait for progress animation to finish
+                    await progressAnimation;
+
                     if (!response.ok) {
                         throw new Error('Failed to fetch similarity scores');
                     }
+
+                    // Complete the progress bar
+                    updateProgress(100, 'Complete!', 'Successfully ranked all objectives!', '✅ <strong>Done!</strong> Scroll down to see your ranked objectives.');
 
                     const data = await response.json();
                     const suggestions = data.suggestions || [];
@@ -594,17 +723,44 @@
 
                     console.log('✅ Similarity scores displayed and sorted');
 
-                    // Hide loading message
-                    loadingDiv.style.display = 'none';
+                    // Wait a moment to show the completion message, then hide with fade effect
+                    setTimeout(() => {
+                        loadingDiv.style.transition = 'opacity 0.5s';
+                        loadingDiv.style.opacity = '0';
+                        setTimeout(() => {
+                            loadingDiv.style.display = 'none';
+                            loadingDiv.style.opacity = '1'; // Reset for next time
+                        }, 500);
+                    }, 1200); // Show "Complete!" message for 1.2 seconds
+
+                    // Smooth scroll to objectives list
+                    listDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
                     // Reset button
                     btn.disabled = false;
                     btn.innerHTML = originalText;
 
+                    // Show a success toast/notification (optional visual feedback)
+                    const objectiveCount = suggestions.length;
+                    const highScoreCount = suggestions.filter(s => s.score >= 60).length;
+                    console.log(`🎯 Found ${highScoreCount} highly relevant objectives out of ${objectiveCount} total`);
+
                 } catch (error) {
                     console.error('❌ Error computing similarity scores:', error);
-                    alert(`Failed to compute similarity scores: ${error.message}\n\nPlease try again.`);
-                    loadingDiv.style.display = 'none';
+
+                    // Update progress to show error
+                    updateProgress(0, 'Error', `Failed to analyze objectives: ${error.message}`, '❌ <strong>Error:</strong> Please try again or check your connection.');
+                    progressBar.classList.remove('bg-info');
+                    progressBar.classList.add('bg-danger');
+
+                    // Show error alert
+                    setTimeout(() => {
+                        alert(`Failed to compute similarity scores: ${error.message}\n\nPlease try again.`);
+                        loadingDiv.style.display = 'none';
+                        progressBar.classList.remove('bg-danger');
+                        progressBar.classList.add('bg-info');
+                    }, 1500);
+
                     btn.disabled = false;
                     btn.innerHTML = originalText;
                 }

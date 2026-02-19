@@ -83,6 +83,78 @@
             font-family: monospace;
             background-color: #eee;
         }
+
+        /* Feedback Generation Progress Modal Styles */
+        #feedbackProgressModal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 9999;
+            backdrop-filter: blur(3px);
+        }
+
+        #feedbackProgressModal.show {
+            display: flex !important;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        .feedback-progress-content {
+            background: white;
+            padding: 2.5rem;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            max-width: 600px;
+            width: 90%;
+            animation: slideUp 0.3s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        #feedbackProgressBar {
+            transition: width 0.5s ease-in-out;
+            background: linear-gradient(90deg, #ffc107 0%, #ff9800 100%) !important;
+        }
+
+        .feedback-progress-stage {
+            font-weight: 600;
+            color: #495057;
+            font-size: 1.1rem;
+        }
+
+        .feedback-progress-message {
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        .feedback-progress-tip {
+            padding: 0.75rem;
+            background-color: rgba(255, 193, 7, 0.1);
+            border-radius: 6px;
+            border-left: 4px solid #ffc107;
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        .feedback-progress-icon {
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(1.05); }
+        }
     </style>
 </head>
 
@@ -96,6 +168,50 @@
             </div>
             <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"
                 aria-label="Close"></button>
+        </div>
+    </div>
+
+    <!-- Feedback Generation Progress Modal -->
+    <div id="feedbackProgressModal">
+        <div class="feedback-progress-content">
+            <div class="text-center mb-4">
+                <i class="fas fa-brain fa-3x text-warning feedback-progress-icon"></i>
+                <h4 class="mt-3 mb-0">Generating AI Feedback</h4>
+            </div>
+
+            <div class="mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <strong class="feedback-progress-stage">
+                        <i class="fas fa-cog fa-spin me-2"></i>
+                        <span id="feedbackProgressStage">Initializing...</span>
+                    </strong>
+                    <span id="feedbackProgressPercent" class="badge bg-warning text-dark">0%</span>
+                </div>
+                <div class="progress" style="height: 12px;">
+                    <div id="feedbackProgressBar"
+                         class="progress-bar progress-bar-striped progress-bar-animated"
+                         role="progressbar"
+                         style="width: 0%"
+                         aria-valuenow="0"
+                         aria-valuemin="0"
+                         aria-valuemax="100"></div>
+                </div>
+            </div>
+
+            <p id="feedbackProgressMessage" class="mb-3 text-muted feedback-progress-message">
+                <i class="fas fa-info-circle"></i> Preparing to generate feedback...
+            </p>
+
+            <div id="feedbackProgressTip" class="feedback-progress-tip text-muted small">
+                <strong>💡 What's happening:</strong> The AI is analyzing your question and generating personalized feedback for each answer option.
+            </div>
+
+            <div class="text-center mt-4">
+                <div class="spinner-border text-warning" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="text-muted small mt-2 mb-0">Please wait, do not close this page...</p>
+            </div>
         </div>
     </div>
 
@@ -359,14 +475,94 @@
                     const originalText = btn.innerHTML;
                     btn.disabled = true;
                     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
-                    showToast('Generating AI feedback...', 'bg-info');
+
+                    // Get modal elements
+                    const modal = document.getElementById('feedbackProgressModal');
+                    const progressBar = document.getElementById('feedbackProgressBar');
+                    const progressPercent = document.getElementById('feedbackProgressPercent');
+                    const progressStage = document.getElementById('feedbackProgressStage');
+                    const progressMessage = document.getElementById('feedbackProgressMessage');
+                    const progressTip = document.getElementById('feedbackProgressTip');
+
+                    // Progress stages
+                    const stages = [
+                        {
+                            percent: 10,
+                            stage: 'Saving Changes',
+                            message: 'Auto-saving your current edits...',
+                            tip: '<strong>📝 Step 1:</strong> Ensuring all your changes are saved before generating feedback.'
+                        },
+                        {
+                            percent: 25,
+                            stage: 'Preparing Request',
+                            message: 'Gathering question and answer data...',
+                            tip: '<strong>📦 Step 2:</strong> Collecting all answer options that need feedback generation.'
+                        },
+                        {
+                            percent: 40,
+                            stage: 'Connecting to AI',
+                            message: 'Establishing connection with GPT-4...',
+                            tip: '<strong>🤖 Step 3:</strong> Connecting to Azure OpenAI for intelligent feedback generation.'
+                        },
+                        {
+                            percent: 70,
+                            stage: 'Analyzing & Writing',
+                            message: 'AI is crafting detailed feedback for each answer...',
+                            tip: '<strong>✍️ Step 4:</strong> GPT is writing Socratic questions and explanations tailored to each option.'
+                        },
+                        {
+                            percent: 90,
+                            stage: 'Saving Feedback',
+                            message: 'Storing generated feedback in database...',
+                            tip: '<strong>💾 Step 5:</strong> Persisting all the AI-generated feedback for your review.'
+                        },
+                        {
+                            percent: 100,
+                            stage: 'Complete!',
+                            message: 'All feedback generated successfully!',
+                            tip: '<strong>✅ Done!</strong> Reloading page to show your new feedback...'
+                        }
+                    ];
+
+                    // Function to update progress
+                    function updateProgress(percent, stage, message, tip) {
+                        progressBar.style.width = `${percent}%`;
+                        progressBar.setAttribute('aria-valuenow', percent);
+                        progressPercent.textContent = `${percent}%`;
+                        progressStage.textContent = stage;
+                        progressMessage.innerHTML = `<i class="fas fa-cog fa-spin"></i> ${message}`;
+                        progressTip.innerHTML = tip;
+                    }
+
+                    // Animate through progress stages
+                    async function animateProgress() {
+                        for (let i = 0; i < stages.length - 1; i++) { // -1 because we'll manually set 100% at the end
+                            const s = stages[i];
+                            updateProgress(s.percent, s.stage, s.message, s.tip);
+                            // Variable delays: faster at start, slower during AI processing
+                            const delay = i < 2 ? 400 : (i < 4 ? 1000 : 600);
+                            await new Promise(resolve => setTimeout(resolve, delay));
+                        }
+                    }
 
                     try {
+                        // Show modal and block interactions
+                        modal.classList.add('show');
+                        updateProgress(0, 'Initializing', 'Starting feedback generation...', '<strong>⏱️ Please wait:</strong> This process takes 10-20 seconds depending on the number of answers.');
+
+                        // Start progress animation
+                        const progressAnimation = animateProgress();
+
+                        // Auto-save first
                         await autoSave(true);
 
+                        // Make API call to generate feedback
                         const response = await fetch(`/questions/${questionId}/generate-feedback`, {
                             method: 'POST'
                         });
+
+                        // Wait for animation to finish
+                        await progressAnimation;
 
                         const result = await response.json();
 
@@ -374,15 +570,32 @@
                             throw new Error(result.detail || 'Failed to generate feedback');
                         }
 
-                        showToast('AI feedback generated successfully. Reloading page...', 'bg-success');
+                        // Show completion
+                        const finalStage = stages[stages.length - 1];
+                        updateProgress(finalStage.percent, finalStage.stage, finalStage.message, finalStage.tip);
+                        progressBar.classList.remove('progress-bar-animated');
+
+                        // Wait a moment to show completion, then reload
                         setTimeout(() => {
                             window.location.reload();
                         }, 1500);
 
                     } catch (error) {
-                        console.error('Error generating feedback:', error);
-                        showToast(error.message, 'bg-danger');
-                    } finally {
+                        console.error('❌ Error generating feedback:', error);
+
+                        // Show error in modal
+                        updateProgress(0, 'Error', `Failed: ${error.message}`, '<strong>❌ Error:</strong> Please try again or check your connection.');
+                        progressBar.classList.remove('bg-warning');
+                        progressBar.classList.add('bg-danger');
+
+                        // Hide modal after showing error
+                        setTimeout(() => {
+                            modal.classList.remove('show');
+                            progressBar.classList.remove('bg-danger');
+                            progressBar.classList.add('bg-warning');
+                            showToast(error.message, 'bg-danger');
+                        }, 2500);
+
                         btn.disabled = false;
                         btn.innerHTML = originalText;
                     }
