@@ -522,8 +522,8 @@
                 await saveObjectives();
             });
 
-            // Check Similarity Score button handler
-            document.getElementById('checkSimilarityBtn').addEventListener('click', async function () {
+            // Check Similarity Score button handler — uses SSE
+            document.getElementById('checkSimilarityBtn').addEventListener('click', function () {
                 const btn = this;
                 const originalText = btn.innerHTML;
                 btn.disabled = true;
@@ -536,47 +536,6 @@
                 const progressMessage = document.getElementById('progressMessage');
                 const progressTip = document.getElementById('progressTip');
 
-                // Progress stages with messages and tips
-                const stages = [
-                    {
-                        percent: 5,
-                        stage: 'Preparing Request',
-                        message: 'Gathering objectives from database...',
-                        tip: '💡 <strong>Did you know?</strong> The system can analyze up to 100+ objectives in one go!'
-                    },
-                    {
-                        percent: 15,
-                        stage: 'Connecting to AI',
-                        message: 'Establishing connection with GPT-4...',
-                        tip: '🤖 <strong>AI Power:</strong> Using advanced language models to understand semantic relationships.'
-                    },
-                    {
-                        percent: 30,
-                        stage: 'Analyzing Question',
-                        message: 'AI is reading and understanding your question...',
-                        tip: '📚 <strong>Deep Analysis:</strong> The AI considers concept alignment, not just keyword matching.'
-                    },
-                    {
-                        percent: 60,
-                        stage: 'Evaluating Objectives',
-                        message: 'Scoring each objective based on relevance...',
-                        tip: '🎯 <strong>Smart Scoring:</strong> Objectives are rated 0-100 based on how well they match your question.'
-                    },
-                    {
-                        percent: 85,
-                        stage: 'Processing Results',
-                        message: 'Sorting objectives by relevance score...',
-                        tip: '📊 <strong>Best First:</strong> Most relevant objectives will appear at the top!'
-                    },
-                    {
-                        percent: 95,
-                        stage: 'Finalizing',
-                        message: 'Preparing display with color-coded badges...',
-                        tip: '🎨 <strong>Color Guide:</strong> Green = Good match (≥60%), Yellow/Red = Weak match (<60%)'
-                    }
-                ];
-
-                // Function to update progress
                 function updateProgress(percent, stage, message, tip) {
                     progressBar.style.width = `${percent}%`;
                     progressBar.setAttribute('aria-valuenow', percent);
@@ -586,45 +545,31 @@
                     progressTip.innerHTML = tip;
                 }
 
-                // Simulate progress stages
-                async function animateProgress() {
-                    for (let i = 0; i < stages.length; i++) {
-                        const s = stages[i];
-                        updateProgress(s.percent, s.stage, s.message, s.tip);
-                        // Wait between stages (faster for early stages, slower for AI processing)
-                        const delay = i < 2 ? 300 : (i < 4 ? 800 : 500);
-                        await new Promise(resolve => setTimeout(resolve, delay));
-                    }
-                }
+                console.log('Opening SSE stream for objective similarity...');
+                loadingDiv.style.display = 'block';
+                updateProgress(0, 'Initializing', 'Starting AI analysis...', '<strong>Please wait:</strong> This typically takes 5-15 seconds depending on the number of objectives.');
 
-                try {
-                    console.log('🧠 Fetching AI similarity scores...');
+                const evtSource = new EventSource(`/questions/${questionId}/suggest-objectives-stream`);
 
-                    // Show loading message
-                    loadingDiv.style.display = 'block';
-                    updateProgress(0, 'Initializing', 'Starting AI analysis...', '⏱️ <strong>Please wait:</strong> This typically takes 5-15 seconds depending on the number of objectives.');
+                evtSource.addEventListener('phase', function (e) {
+                    const d = JSON.parse(e.data);
+                    const tipMap = {
+                        'loading_question': '<strong>Step 1:</strong> Reading question from database.',
+                        'loading_objectives': '<strong>Step 2:</strong> Loading all learning objectives.',
+                        'objectives_loaded': `<strong>Step 3:</strong> ${d.total_objectives || 'All'} objectives ready for AI analysis.`,
+                        'analyzing': '<strong>AI Analysis:</strong> GPT is evaluating each objective for relevance. This is the longest step.',
+                    };
+                    updateProgress(d.percent, d.message, d.message, tipMap[d.stage] || '');
+                });
 
-                    // Start progress animation
-                    const progressAnimation = animateProgress();
+                evtSource.addEventListener('all_done', function (e) {
+                    evtSource.close();
+                    const d = JSON.parse(e.data);
+                    const suggestions = d.suggestions || [];
 
-                    // Fetch AI suggestions (this is the actual API call)
-                    const response = await fetch(`/questions/${questionId}/suggest-objectives`, {
-                        method: 'POST'
-                    });
+                    updateProgress(100, 'Complete!', 'Successfully ranked all objectives!', `<strong>Done!</strong> Found ${d.high_score_count} highly relevant objective(s) out of ${d.total} total.`);
 
-                    // Wait for progress animation to finish
-                    await progressAnimation;
-
-                    if (!response.ok) {
-                        throw new Error('Failed to fetch similarity scores');
-                    }
-
-                    // Complete the progress bar
-                    updateProgress(100, 'Complete!', 'Successfully ranked all objectives!', '✅ <strong>Done!</strong> Scroll down to see your ranked objectives.');
-
-                    const data = await response.json();
-                    const suggestions = data.suggestions || [];
-                    console.log('✅ Received similarity scores:', suggestions);
+                    console.log('Received similarity scores:', suggestions.length);
 
                     // Create score map
                     const scoreMap = new Map(suggestions.map(s => [s.id, s.score]));
@@ -644,20 +589,15 @@
                                 existingBadge.remove();
                             }
 
-                            // Get score (default to 0 if not found)
                             const score = scoreMap.get(objectiveId) || 0;
-
-                            // ALL objectives get a badge now
                             const isHighScore = score >= 60;
                             const isChecked = checkbox.checked;
 
-                            // Determine badge color based on score and checked state
                             let badgeColor, badgeIcon;
                             if (isHighScore) {
                                 badgeColor = 'success';
                                 badgeIcon = 'check-circle';
                             } else {
-                                // Low score: yellow if unchecked, red if checked
                                 badgeColor = isChecked ? 'danger' : 'warning';
                                 badgeIcon = 'exclamation-circle';
                             }
@@ -665,33 +605,26 @@
                             const badge = document.createElement('span');
                             badge.className = `badge bg-${badgeColor} ms-3 flex-shrink-0 similarity-badge`;
                             badge.innerHTML = `<i class="fas fa-${badgeIcon}"></i> ${score}% match`;
-                            badge.setAttribute('data-score', score); // Store score for later reference
+                            badge.setAttribute('data-score', score);
 
-                            // Insert badge
                             const flexDiv = itemDiv.querySelector('.d-flex');
                             if (flexDiv) {
                                 flexDiv.appendChild(badge);
                             }
 
-                            // Update item styling for high scores
                             if (isHighScore) {
                                 itemDiv.classList.add('border-success');
                                 itemDiv.style.borderLeftWidth = '4px';
                             } else {
-                                // Remove green border if it was there before
                                 itemDiv.classList.remove('border-success');
                                 itemDiv.style.borderLeftWidth = '';
                             }
 
-                            // Add event listener to checkbox to update badge color on toggle
                             checkbox.addEventListener('change', function () {
                                 const badge = this.closest('.objective-item').querySelector('.similarity-badge');
                                 if (badge) {
                                     const score = parseInt(badge.getAttribute('data-score'));
-                                    const isHighScore = score >= 60;
-
-                                    if (!isHighScore) {
-                                        // Low score: toggle between yellow (unchecked) and red (checked)
+                                    if (score < 60) {
                                         if (this.checked) {
                                             badge.classList.remove('bg-warning');
                                             badge.classList.add('bg-danger');
@@ -715,55 +648,64 @@
 
                     objectivesWithScores.sort((a, b) => b.score - a.score);
 
-                    // Re-append in sorted order
                     listDiv.innerHTML = '';
                     objectivesWithScores.forEach(({ itemDiv }) => {
                         listDiv.appendChild(itemDiv);
                     });
 
-                    console.log('✅ Similarity scores displayed and sorted');
+                    console.log('Similarity scores displayed and sorted');
 
-                    // Wait a moment to show the completion message, then hide with fade effect
                     setTimeout(() => {
                         loadingDiv.style.transition = 'opacity 0.5s';
                         loadingDiv.style.opacity = '0';
                         setTimeout(() => {
                             loadingDiv.style.display = 'none';
-                            loadingDiv.style.opacity = '1'; // Reset for next time
+                            loadingDiv.style.opacity = '1';
                         }, 500);
-                    }, 1200); // Show "Complete!" message for 1.2 seconds
+                    }, 1200);
 
-                    // Smooth scroll to objectives list
                     listDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
-                    // Reset button
                     btn.disabled = false;
                     btn.innerHTML = originalText;
+                });
 
-                    // Show a success toast/notification (optional visual feedback)
-                    const objectiveCount = suggestions.length;
-                    const highScoreCount = suggestions.filter(s => s.score >= 60).length;
-                    console.log(`🎯 Found ${highScoreCount} highly relevant objectives out of ${objectiveCount} total`);
+                evtSource.addEventListener('fatal_error', function (e) {
+                    evtSource.close();
+                    const d = JSON.parse(e.data);
+                    console.error('Fatal error in objectives stream:', d.message);
 
-                } catch (error) {
-                    console.error('❌ Error computing similarity scores:', error);
-
-                    // Update progress to show error
-                    updateProgress(0, 'Error', `Failed to analyze objectives: ${error.message}`, '❌ <strong>Error:</strong> Please try again or check your connection.');
+                    updateProgress(0, 'Error', `Failed: ${d.message}`, '<strong>Error:</strong> Please try again or check your connection.');
                     progressBar.classList.remove('bg-info');
                     progressBar.classList.add('bg-danger');
 
-                    // Show error alert
                     setTimeout(() => {
-                        alert(`Failed to compute similarity scores: ${error.message}\n\nPlease try again.`);
                         loadingDiv.style.display = 'none';
                         progressBar.classList.remove('bg-danger');
                         progressBar.classList.add('bg-info');
-                    }, 1500);
+                    }, 2500);
 
                     btn.disabled = false;
                     btn.innerHTML = originalText;
-                }
+                });
+
+                evtSource.onerror = function () {
+                    evtSource.close();
+                    console.error('SSE connection error during objective analysis');
+
+                    updateProgress(0, 'Connection Error', 'Lost connection to server.', '<strong>Error:</strong> The connection was interrupted. Please try again.');
+                    progressBar.classList.remove('bg-info');
+                    progressBar.classList.add('bg-danger');
+
+                    setTimeout(() => {
+                        loadingDiv.style.display = 'none';
+                        progressBar.classList.remove('bg-danger');
+                        progressBar.classList.add('bg-info');
+                    }, 2500);
+
+                    btn.disabled = false;
+                    btn.innerHTML = originalText;
+                };
             });
 
             // Delete Question button handler

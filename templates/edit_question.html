@@ -469,7 +469,7 @@
                     window.location.href = `/questions/${questionId}/associate-objectives`;
                 });
 
-                // Generate Feedback Button (for existing questions only)
+                // Generate Feedback Button (for existing questions only) — uses SSE
                 document.getElementById('generateAllUnapprovedBtn').addEventListener('click', async () => {
                     const btn = document.getElementById('generateAllUnapprovedBtn');
                     const originalText = btn.innerHTML;
@@ -484,47 +484,6 @@
                     const progressMessage = document.getElementById('feedbackProgressMessage');
                     const progressTip = document.getElementById('feedbackProgressTip');
 
-                    // Progress stages
-                    const stages = [
-                        {
-                            percent: 10,
-                            stage: 'Saving Changes',
-                            message: 'Auto-saving your current edits...',
-                            tip: '<strong>📝 Step 1:</strong> Ensuring all your changes are saved before generating feedback.'
-                        },
-                        {
-                            percent: 25,
-                            stage: 'Preparing Request',
-                            message: 'Gathering question and answer data...',
-                            tip: '<strong>📦 Step 2:</strong> Collecting all answer options that need feedback generation.'
-                        },
-                        {
-                            percent: 40,
-                            stage: 'Connecting to AI',
-                            message: 'Establishing connection with GPT-4...',
-                            tip: '<strong>🤖 Step 3:</strong> Connecting to Azure OpenAI for intelligent feedback generation.'
-                        },
-                        {
-                            percent: 70,
-                            stage: 'Analyzing & Writing',
-                            message: 'AI is crafting detailed feedback for each answer...',
-                            tip: '<strong>✍️ Step 4:</strong> GPT is writing Socratic questions and explanations tailored to each option.'
-                        },
-                        {
-                            percent: 90,
-                            stage: 'Saving Feedback',
-                            message: 'Storing generated feedback in database...',
-                            tip: '<strong>💾 Step 5:</strong> Persisting all the AI-generated feedback for your review.'
-                        },
-                        {
-                            percent: 100,
-                            stage: 'Complete!',
-                            message: 'All feedback generated successfully!',
-                            tip: '<strong>✅ Done!</strong> Reloading page to show your new feedback...'
-                        }
-                    ];
-
-                    // Function to update progress
                     function updateProgress(percent, stage, message, tip) {
                         progressBar.style.width = `${percent}%`;
                         progressBar.setAttribute('aria-valuenow', percent);
@@ -534,71 +493,114 @@
                         progressTip.innerHTML = tip;
                     }
 
-                    // Animate through progress stages
-                    async function animateProgress() {
-                        for (let i = 0; i < stages.length - 1; i++) { // -1 because we'll manually set 100% at the end
-                            const s = stages[i];
-                            updateProgress(s.percent, s.stage, s.message, s.tip);
-                            // Variable delays: faster at start, slower during AI processing
-                            const delay = i < 2 ? 400 : (i < 4 ? 1000 : 600);
-                            await new Promise(resolve => setTimeout(resolve, delay));
-                        }
-                    }
+                    // Show modal and auto-save first
+                    modal.classList.add('show');
+                    updateProgress(5, 'Saving Changes', 'Auto-saving your current edits...', '<strong>Step 1:</strong> Ensuring all your changes are saved before generating feedback.');
 
                     try {
-                        // Show modal and block interactions
-                        modal.classList.add('show');
-                        updateProgress(0, 'Initializing', 'Starting feedback generation...', '<strong>⏱️ Please wait:</strong> This process takes 10-20 seconds depending on the number of answers.');
-
-                        // Start progress animation
-                        const progressAnimation = animateProgress();
-
-                        // Auto-save first
                         await autoSave(true);
+                    } catch (e) {
+                        // Continue even if auto-save fails
+                        console.warn('Auto-save before feedback generation failed:', e);
+                    }
 
-                        // Make API call to generate feedback
-                        const response = await fetch(`/questions/${questionId}/generate-feedback`, {
-                            method: 'POST'
-                        });
+                    updateProgress(10, 'Connecting', 'Opening real-time stream to AI service...', '<strong>Step 2:</strong> Establishing connection for live progress updates.');
 
-                        // Wait for animation to finish
-                        await progressAnimation;
+                    // Open SSE stream
+                    const evtSource = new EventSource(`/questions/${questionId}/generate-feedback-stream`);
+                    let total = 0;
 
-                        const result = await response.json();
+                    evtSource.addEventListener('stream_start', function (e) {
+                        const d = JSON.parse(e.data);
+                        total = d.total;
+                        updateProgress(15, 'Starting', `Found ${total} answer(s) to process...`, `<strong>Processing:</strong> The AI will generate feedback for ${total} unapproved answer(s).`);
+                    });
 
-                        if (!response.ok) {
-                            throw new Error(result.detail || 'Failed to generate feedback');
-                        }
+                    evtSource.addEventListener('answer_start', function (e) {
+                        const d = JSON.parse(e.data);
+                        const basePercent = 15 + ((d.index - 1) / total) * 75;
+                        const preview = d.answer_text_preview || '...';
+                        const type = d.is_correct ? 'correct' : 'incorrect';
+                        updateProgress(
+                            Math.round(basePercent),
+                            `Processing Answer ${d.index} of ${total}`,
+                            `Generating ${type} feedback: "${preview.substring(0, 50)}..."`,
+                            `<strong>Answer ${d.index}/${total}:</strong> AI is crafting ${d.is_correct ? 'a detailed explanation' : 'Socratic questions'} for this ${type} answer.`
+                        );
+                    });
 
-                        // Show completion
-                        const finalStage = stages[stages.length - 1];
-                        updateProgress(finalStage.percent, finalStage.stage, finalStage.message, finalStage.tip);
+                    evtSource.addEventListener('answer_complete', function (e) {
+                        const d = JSON.parse(e.data);
+                        const pct = 15 + (d.index / total) * 75;
+                        updateProgress(
+                            Math.round(pct),
+                            `Completed Answer ${d.index} of ${total}`,
+                            `Feedback saved for answer ${d.index}.`,
+                            `<strong>Done ${d.index}/${total}:</strong> Feedback has been saved to the database.`
+                        );
+                    });
+
+                    evtSource.addEventListener('answer_error', function (e) {
+                        const d = JSON.parse(e.data);
+                        console.warn(`Error on answer ${d.index}/${total}:`, d.error);
+                        const pct = 15 + (d.index / total) * 75;
+                        updateProgress(
+                            Math.round(pct),
+                            `Warning: Answer ${d.index} of ${total}`,
+                            `Failed to generate feedback for answer ${d.index}: ${d.error}`,
+                            `<strong>Warning:</strong> Skipping this answer and continuing with the rest.`
+                        );
+                    });
+
+                    evtSource.addEventListener('all_done', function (e) {
+                        evtSource.close();
+                        const d = JSON.parse(e.data);
+                        updateProgress(100, 'Complete!', d.message, `<strong>Done!</strong> Generated feedback for ${d.processed} of ${d.total} answer(s). Reloading page...`);
                         progressBar.classList.remove('progress-bar-animated');
 
-                        // Wait a moment to show completion, then reload
                         setTimeout(() => {
                             window.location.reload();
                         }, 1500);
+                    });
 
-                    } catch (error) {
-                        console.error('❌ Error generating feedback:', error);
+                    evtSource.addEventListener('fatal_error', function (e) {
+                        evtSource.close();
+                        const d = JSON.parse(e.data);
+                        console.error('Fatal error in feedback stream:', d.message);
 
-                        // Show error in modal
-                        updateProgress(0, 'Error', `Failed: ${error.message}`, '<strong>❌ Error:</strong> Please try again or check your connection.');
+                        updateProgress(0, 'Error', `Failed: ${d.message}`, '<strong>Error:</strong> Please try again or check your connection.');
                         progressBar.classList.remove('bg-warning');
                         progressBar.classList.add('bg-danger');
 
-                        // Hide modal after showing error
                         setTimeout(() => {
                             modal.classList.remove('show');
                             progressBar.classList.remove('bg-danger');
                             progressBar.classList.add('bg-warning');
-                            showToast(error.message, 'bg-danger');
+                            showToast(d.message, 'bg-danger');
                         }, 2500);
 
                         btn.disabled = false;
                         btn.innerHTML = originalText;
-                    }
+                    });
+
+                    evtSource.onerror = function () {
+                        evtSource.close();
+                        console.error('SSE connection error during feedback generation');
+
+                        updateProgress(0, 'Connection Error', 'Lost connection to server.', '<strong>Error:</strong> The connection was interrupted. Please try again.');
+                        progressBar.classList.remove('bg-warning');
+                        progressBar.classList.add('bg-danger');
+
+                        setTimeout(() => {
+                            modal.classList.remove('show');
+                            progressBar.classList.remove('bg-danger');
+                            progressBar.classList.add('bg-warning');
+                            showToast('Connection lost during feedback generation.', 'bg-danger');
+                        }, 2500);
+
+                        btn.disabled = false;
+                        btn.innerHTML = originalText;
+                    };
                 });
             }
 
@@ -797,7 +799,6 @@
                 // Objectives are now managed through associate page, no auto-save needed
             });
 
-            // Update Preview Function
             // Update Preview Function
             function updateQuestionPreview() {
                 const questionPreviewElement = document.getElementById('questionTextPreview');
