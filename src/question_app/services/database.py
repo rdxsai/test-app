@@ -1,40 +1,87 @@
 """
 Database Manager
-Handles all SQLite database operations for the Socratic Tutor.
-Manages schema and CRUD operations for all data models.
---- THIS IS THE FULLY UPDATED VERSION ---
+Handles all PostgreSQL database operations for the Socratic Tutor.
+Uses psycopg2 with connection pooling and pgvector for embeddings.
 """
-import sqlite3
-import json
-import logging 
-import uuid 
+import logging
+import uuid
 from contextlib import contextmanager
 from datetime import datetime
-from typing import List, Dict, Optional, Any, Tuple
+from typing import List, Dict, Optional, Any
 
-# --- Corrected Application Imports ---
+import psycopg2
+import psycopg2.extras
+from psycopg2.pool import ThreadedConnectionPool
+from psycopg2.extras import Json
+
 from ..models import QuestionUpdate
 from ..models.tutor import (
     StudentProfile, KnowledgeLevel, SessionPhase,
-    LearningObjective, Question, Answer
 )
+
+from ..core.config import config
 
 logger = logging.getLogger(__name__)
 
+
+def get_database_manager():
+    """Creates and returns a DatabaseManager using config.postgres_dsn."""
+    return DatabaseManager(dsn=config.postgres_dsn, schema=config.DB_SCHEMA)
+
+
 class DatabaseManager:
-    def __init__(self, db_path: str = "data/socratic_tutor.db"):
-        self.db_path = db_path
-        logger.info(f"Initializing Database Manager for: {db_path}")
-        self._init_database() 
+    def __init__(self, dsn: str, min_conn: int = 2, max_conn: int = 10, schema: str = "prod"):
+        self.dsn = dsn
+        self.schema = schema
+        logger.info(f"Initializing PostgreSQL Database Manager (schema={schema})")
+        self._pool = ThreadedConnectionPool(min_conn, max_conn, dsn)
+        self._init_database()
+
+    @contextmanager
+    def get_connection(self, use_row_factory: bool = True):
+        """
+        Provides a database connection from the pool.
+        Uses RealDictCursor by default for dict-like access.
+        Sets search_path to the configured schema so all queries
+        resolve to the correct namespace.
+        """
+        conn = self._pool.getconn()
+        try:
+            if use_row_factory:
+                conn.cursor_factory = psycopg2.extras.RealDictCursor
+            else:
+                conn.cursor_factory = psycopg2.extensions.cursor
+            cur = conn.cursor()
+            cur.execute(f"SET search_path TO {self.schema}, public;")
+            cur.close()
+            yield conn
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            self._pool.putconn(conn)
+
+    def close(self):
+        if self._pool:
+            self._pool.closeall()
 
     def _init_database(self):
         """
-        Initializes all 5 tables in the database.
+        Initializes all tables in PostgreSQL with proper types.
+        Creates the schema if it doesn't exist, then sets search_path
+        so all CREATE TABLE statements land in the correct schema.
         """
-        with self.get_connection(use_row_factory=False) as conn: 
+        with self.get_connection(use_row_factory=False) as conn:
             cursor = conn.cursor()
-            
-            # 1. Student Profiles Table (Unchanged)
+
+            # Enable pgvector extension (lives in public schema)
+            cursor.execute("CREATE EXTENSION IF NOT EXISTS vector;")
+
+            # Create the target schema and set search_path
+            cursor.execute(f"CREATE SCHEMA IF NOT EXISTS {self.schema};")
+            cursor.execute(f"SET search_path TO {self.schema}, public;")
+
+            # 1. Student Profiles Table
             cursor.execute(
                 """
                 CREATE TABLE IF NOT EXISTS student_profiles (
@@ -43,10 +90,10 @@ class DatabaseManager:
                     current_topic TEXT,
                     knowledge_level TEXT,
                     session_phase TEXT,
-                    understanding_progression TEXT,
-                    misconceptions TEXT,
-                    strengths TEXT,
-                    warning_signs TEXT,
+                    understanding_progression JSONB DEFAULT '[]'::jsonb,
+                    misconceptions JSONB DEFAULT '[]'::jsonb,
+                    strengths JSONB DEFAULT '[]'::jsonb,
+                    warning_signs JSONB DEFAULT '[]'::jsonb,
                     consecutive_correct INTEGER DEFAULT 0,
                     engagement_level TEXT DEFAULT 'high',
                     last_solid_understanding TEXT,
@@ -56,25 +103,21 @@ class DatabaseManager:
                 )
             """
             )
-            
-            # --- === THIS IS THE FIX YOU ASKED ABOUT === ---
-            # 2. Learning Objective Table (Updated)
+
+            # 2. Learning Objective Table
             cursor.execute(
                 """
                 CREATE TABLE IF NOT EXISTS learning_objective (
                     id TEXT PRIMARY KEY,
                     text TEXT NOT NULL UNIQUE,
                     created_at TEXT,
-                    
-                    -- These columns are new, for your objectives.html UI --
                     blooms_level TEXT DEFAULT 'understand',
                     priority TEXT DEFAULT 'medium'
                 )
             """
             )
-            # --- === END OF FIX === ---
-            
-            # 3. Question Table (Unchanged)
+
+            # 3. Question Table
             cursor.execute(
                 """
                 CREATE TABLE IF NOT EXISTS question (
@@ -84,21 +127,23 @@ class DatabaseManager:
                 )
             """
             )
-            # 4. Answer Table (Unchanged)
+
+            # 4. Answer Table
             cursor.execute(
                 """
                 CREATE TABLE IF NOT EXISTS answer (
                     id TEXT PRIMARY KEY,
                     question_id TEXT NOT NULL,
                     text TEXT NOT NULL,
-                    is_correct BOOLEAN NOT NULL DEFAULT 0,
+                    is_correct BOOLEAN NOT NULL DEFAULT FALSE,
                     feedback_text TEXT,
-                    feedback_approved BOOLEAN NOT NULL DEFAULT 0,
+                    feedback_approved BOOLEAN NOT NULL DEFAULT FALSE,
                     FOREIGN KEY (question_id) REFERENCES question (id) ON DELETE CASCADE
                 )
             """
             )
-            # 5. Association Table (Unchanged)
+
+            # 5. Association Table
             cursor.execute(
                 """
                 CREATE TABLE IF NOT EXISTS question_objective_association (
@@ -111,37 +156,64 @@ class DatabaseManager:
                 )
             """
             )
-            conn.commit()
-            logger.info("Database tables initialized successfully.")
 
-    @contextmanager
-    def get_connection(self, use_row_factory: bool = True):
-        """
-        Provides a database connection.
-        Uses sqlite3.Row factory by default for dict-like access.
-        """
-        conn = sqlite3.connect(self.db_path)
-        try:
-            conn.execute("PRAGMA foreign_keys = ON;")
-            if use_row_factory:
-                conn.row_factory = sqlite3.Row 
-            yield conn
-        finally:
-            conn.close()
+            # 6. Question Embeddings Table (pgvector)
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS question_embeddings (
+                    id TEXT PRIMARY KEY,
+                    question_id TEXT NOT NULL REFERENCES question(id) ON DELETE CASCADE,
+                    chunk_type TEXT NOT NULL,
+                    answer_index INTEGER,
+                    is_correct BOOLEAN,
+                    topic TEXT DEFAULT 'Web Accessibility',
+                    tags TEXT DEFAULT '',
+                    question_type TEXT DEFAULT 'multiple_choice_question',
+                    learning_objective TEXT DEFAULT '',
+                    content TEXT NOT NULL,
+                    embedding vector(768) NOT NULL,
+                    created_at TIMESTAMPTZ DEFAULT NOW()
+                )
+            """
+            )
+
+            # IVFFlat index for approximate nearest neighbor search
+            # Only create if table has rows (IVFFlat requires data)
+            cursor.execute(
+                f"""
+                DO $$
+                BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM pg_indexes
+                        WHERE schemaname = '{self.schema}'
+                          AND indexname = 'idx_question_embeddings_cosine'
+                    ) THEN
+                        IF (SELECT COUNT(*) FROM question_embeddings) > 0 THEN
+                            CREATE INDEX idx_question_embeddings_cosine
+                            ON question_embeddings USING ivfflat (embedding vector_cosine_ops)
+                            WITH (lists = 100);
+                        END IF;
+                    END IF;
+                END $$;
+            """
+            )
+
+            conn.commit()
+            logger.info("PostgreSQL database tables initialized successfully.")
 
     # --- Question & Answer CRUD ---
 
-    def get_answers_for_questions(self, question_id:str) -> List[Dict]:
-        """ Gets all answers for a given question ID. """
+    def get_answers_for_questions(self, question_id: str) -> List[Dict]:
+        """Gets all answers for a given question ID."""
         with self.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT * FROM answer WHERE question_id = ? ORDER BY id",
+                "SELECT * FROM answer WHERE question_id = %s ORDER BY id",
                 (question_id,)
             )
             return [dict(row) for row in cursor.fetchall()]
-    
-    def load_question_details(self,question_id:str) -> Optional[Dict[str , Any]]:
+
+    def load_question_details(self, question_id: str) -> Optional[Dict[str, Any]]:
         """
         Loads a single question, its answers, and its associated
         objective IDs. Returns a dictionary.
@@ -149,37 +221,33 @@ class DatabaseManager:
         try:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute("SELECT * FROM question WHERE id = ?" , (question_id,))
-                question_row = cursor.fetchone() 
+                cursor.execute("SELECT * FROM question WHERE id = %s", (question_id,))
+                question_row = cursor.fetchone()
                 if not question_row:
                     return None
-                
-                question = dict(question_row) 
+
+                question = dict(question_row)
                 question['answers'] = self.get_answers_for_questions(question_id)
 
                 cursor.execute(
-                    "SELECT objective_id FROM question_objective_association WHERE question_id = ?",
+                    "SELECT objective_id FROM question_objective_association WHERE question_id = %s",
                     (question_id,)
                 )
                 objective_rows = cursor.fetchall()
                 question['objective_ids'] = [row['objective_id'] for row in objective_rows]
                 return question
         except Exception as e:
-            logger.error(f"Error loading question details for {question_id} : {e}" , exc_info=True)
+            logger.error(f"Error loading question details for {question_id}: {e}", exc_info=True)
             return None
-    
-    # --- === THIS IS THE UPDATED `list_all_questions` === ---
-    # (Fulfills Req 2.10 for the ⚠️ icon on the home page)
+
     def list_all_questions(self) -> List[Dict]:
         """
         Fetches all questions from the database for the home page.
-        
-        This query joins with the association table to get a *count*
-        of how many objectives are linked to each question.
+        Joins with association table for objective count.
         """
         logger.info("Fetching all questions from database for home page...")
         try:
-            with self.get_connection() as conn: # This will use the row_factory
+            with self.get_connection() as conn:
                 cursor = conn.cursor()
                 query = """
                     SELECT
@@ -203,23 +271,23 @@ class DatabaseManager:
         except Exception as e:
             logger.error(f"Error listing all questions: {e}", exc_info=True)
             return []
-    
-    def update_question_and_answers(self, question_id:str , data:QuestionUpdate) -> bool:
-        """ Updates a question and its answers from the Pydantic model. """
+
+    def update_question_and_answers(self, question_id: str, data: QuestionUpdate) -> bool:
+        """Updates a question and its answers from the Pydantic model."""
         try:
-            with self.get_connection(use_row_factory=False) as conn: 
+            with self.get_connection(use_row_factory=False) as conn:
                 cursor = conn.cursor()
                 cursor.execute(
-                    "UPDATE question SET question_text = ? WHERE id = ?",
-                    (data.question_text , question_id)
+                    "UPDATE question SET question_text = %s WHERE id = %s",
+                    (data.question_text, question_id)
                 )
 
                 for answer in data.answers:
                     cursor.execute(
                         """
-                        UPDATE answer 
-                        SET text = ?, is_correct = ?, feedback_text = ?, feedback_approved = ?
-                        WHERE id = ? AND question_id = ?
+                        UPDATE answer
+                        SET text = %s, is_correct = %s, feedback_text = %s, feedback_approved = %s
+                        WHERE id = %s AND question_id = %s
                         """,
                         (
                             answer.text,
@@ -230,70 +298,66 @@ class DatabaseManager:
                             question_id
                         )
                     )
-                
+
                 cursor.execute(
-                    "DELETE FROM question_objective_association WHERE question_id = ?",
+                    "DELETE FROM question_objective_association WHERE question_id = %s",
                     (question_id,)
                 )
                 if data.objective_ids:
                     for obj_id in data.objective_ids:
                         if obj_id:
                             cursor.execute(
-                                "INSERT INTO question_objective_association (id, question_id, objective_id) VALUES (?, ?, ?)",
-                                (str(uuid.uuid4()) , question_id , obj_id)
+                                "INSERT INTO question_objective_association (id, question_id, objective_id) VALUES (%s, %s, %s)",
+                                (str(uuid.uuid4()), question_id, obj_id)
                             )
                 conn.commit()
                 return True
         except Exception as e:
-            logger.error(f"Error updating question {question_id} : {e}" , exc_info=True)
-            return False
-    
-    def update_answer_feedback(self, answer_id:str , feedback_text:str) -> bool:
-        """ (Req 4) Updates ONLY the feedback for a single answer. """
-        try:
-            with self.get_connection(use_row_factory=False) as conn: 
-                cursor = conn.cursor()
-                cursor.execute(
-                    "UPDATE answer SET feedback_text = ? WHERE id = ?",
-                    (feedback_text , answer_id)
-                )
-                conn.commit()
-                return True
-        except Exception as e:
-            logger.error(f"Error updating feedback for answer {answer_id}: {e}" , exc_info =True)
+            logger.error(f"Error updating question {question_id}: {e}", exc_info=True)
             return False
 
-    def delete_question(self, question_id:str) -> bool:
-        """ Deletes a question. ON DELETE CASCADE will handle answers/associations. """
+    def update_answer_feedback(self, answer_id: str, feedback_text: str) -> bool:
+        """Updates ONLY the feedback for a single answer."""
         try:
             with self.get_connection(use_row_factory=False) as conn:
                 cursor = conn.cursor()
                 cursor.execute(
-                    "DELETE FROM question WHERE id = ?" , (question_id,)
+                    "UPDATE answer SET feedback_text = %s WHERE id = %s",
+                    (feedback_text, answer_id)
+                )
+                conn.commit()
+                return True
+        except Exception as e:
+            logger.error(f"Error updating feedback for answer {answer_id}: {e}", exc_info=True)
+            return False
+
+    def delete_question(self, question_id: str) -> bool:
+        """Deletes a question. ON DELETE CASCADE handles answers/associations."""
+        try:
+            with self.get_connection(use_row_factory=False) as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    "DELETE FROM question WHERE id = %s", (question_id,)
                 )
                 conn.commit()
                 return cursor.rowcount > 0
         except Exception as e:
-            logger.error(f"Error deleting question {question_id} : {e}" , exc_info=True)
+            logger.error(f"Error deleting question {question_id}: {e}", exc_info=True)
             return False
 
-    # --- === NEW Learning Objective CRUD Methods === ---
-    # (These are all the new functions for Phase 1)
+    # --- Learning Objective CRUD ---
 
     def list_all_objectives(self) -> List[Dict]:
-        """ Gets all objectives for dropdowns (a simple list). """
+        """Gets all objectives for dropdowns."""
         with self.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-               "SELECT id, text FROM learning_objective ORDER BY text" 
+                "SELECT id, text FROM learning_objective ORDER BY text"
             )
             return [dict(row) for row in cursor.fetchall()]
 
     def list_all_objectives_with_counts(self) -> List[Dict]:
-        """
-        Fetches all objectives and counts their associated questions.
-        (Fulfills Req 2.11 for the ⚠️ icon on the objectives page)
-        """
+        """Fetches all objectives and counts their associated questions."""
         logger.info("Fetching all objectives with question counts...")
         try:
             with self.get_connection() as conn:
@@ -334,12 +398,11 @@ class DatabaseManager:
                 cursor.execute(
                     """
                     INSERT INTO learning_objective (id, text, created_at, blooms_level, priority)
-                    VALUES (?, ?, ?, ?, ?)
+                    VALUES (%s, %s, %s, %s, %s)
                     """,
                     (new_id, text, created_at, blooms_level, priority)
                 )
                 conn.commit()
-                # Return a dict that matches the structure from list_all_objectives_with_counts
                 return {
                     "id": new_id, "text": text, "created_at": created_at,
                     "blooms_level": blooms_level, "priority": priority, "question_count": 0
@@ -353,7 +416,7 @@ class DatabaseManager:
         try:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute("SELECT * FROM learning_objective WHERE id = ?", (obj_id,))
+                cursor.execute("SELECT * FROM learning_objective WHERE id = %s", (obj_id,))
                 row = cursor.fetchone()
                 return dict(row) if row else None
         except Exception as e:
@@ -368,8 +431,8 @@ class DatabaseManager:
                 cursor.execute(
                     """
                     UPDATE learning_objective
-                    SET text = ?, blooms_level = ?, priority = ?
-                    WHERE id = ?
+                    SET text = %s, blooms_level = %s, priority = %s
+                    WHERE id = %s
                     """,
                     (text, blooms_level, priority, obj_id)
                 )
@@ -380,11 +443,11 @@ class DatabaseManager:
             return False
 
     def delete_objective(self, obj_id: str) -> bool:
-        """Deletes an objective. ON DELETE CASCADE will handle associations."""
+        """Deletes an objective. ON DELETE CASCADE handles associations."""
         try:
             with self.get_connection(use_row_factory=False) as conn:
                 cursor = conn.cursor()
-                cursor.execute("DELETE FROM learning_objective WHERE id = ?", (obj_id,))
+                cursor.execute("DELETE FROM learning_objective WHERE id = %s", (obj_id,))
                 conn.commit()
                 return cursor.rowcount > 0
         except Exception as e:
@@ -392,37 +455,34 @@ class DatabaseManager:
             return False
 
     def create_question_from_ai(self, question_data: Dict, objective_id: str) -> str:
-        """Saves an AI-generated question and its answers to the DB. (Req 7.4)"""
+        """Saves an AI-generated question and its answers to the DB."""
         try:
             with self.get_connection(use_row_factory=False) as conn:
                 cursor = conn.cursor()
-                
-                # 1. Create the Question
+
                 new_q_id = str(uuid.uuid4())
                 created_at = datetime.now().isoformat()
                 cursor.execute(
-                    "INSERT INTO question (id, question_text, created_at) VALUES (?, ?, ?)",
+                    "INSERT INTO question (id, question_text, created_at) VALUES (%s, %s, %s)",
                     (new_q_id, question_data['question_text'], created_at)
                 )
-                
-                # 2. Create the Answers
+
                 for ans in question_data['answers']:
                     new_a_id = str(uuid.uuid4())
                     cursor.execute(
                         """
                         INSERT INTO answer (id, question_id, text, is_correct, feedback_text, feedback_approved)
-                        VALUES (?, ?, ?, ?, ?, ?)
+                        VALUES (%s, %s, %s, %s, %s, %s)
                         """,
                         (new_a_id, new_q_id, ans['text'], ans['is_correct'], "Generated by AI.", False)
                     )
-                
-                # 3. Create the Association
+
                 new_assoc_id = str(uuid.uuid4())
                 cursor.execute(
-                    "INSERT INTO question_objective_association (id, question_id, objective_id) VALUES (?, ?, ?)",
+                    "INSERT INTO question_objective_association (id, question_id, objective_id) VALUES (%s, %s, %s)",
                     (new_assoc_id, new_q_id, objective_id)
                 )
-                
+
                 conn.commit()
                 logger.info(f"AI-generated question {new_q_id} saved and linked to objective {objective_id}")
                 return new_q_id
@@ -430,13 +490,14 @@ class DatabaseManager:
             logger.error(f"Error saving AI-generated question: {e}", exc_info=True)
             raise
 
-    # --- Student Profile Methods (Unchanged) ---
+    # --- Student Profile Methods ---
+
     def load_student_profile(self, student_id: str) -> Optional[StudentProfile]:
         try:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute(
-                    "SELECT * FROM student_profiles WHERE id = ?", (student_id,)
+                    "SELECT * FROM student_profiles WHERE id = %s", (student_id,)
                 )
                 row = cursor.fetchone()
                 if row:
@@ -446,10 +507,10 @@ class DatabaseManager:
                         current_topic=row["current_topic"],
                         knowledge_level=KnowledgeLevel(row["knowledge_level"]),
                         session_phase=SessionPhase(row["session_phase"]),
-                        understanding_progression=json.loads(row["understanding_progression"] or "[]"),
-                        misconceptions=json.loads(row["misconceptions"] or "[]"),
-                        strengths=json.loads(row["strengths"] or "[]"),
-                        warning_signs=json.loads(row["warning_signs"] or "[]"),
+                        understanding_progression=row["understanding_progression"] or [],
+                        misconceptions=row["misconceptions"] or [],
+                        strengths=row["strengths"] or [],
+                        warning_signs=row["warning_signs"] or [],
                         consecutive_correct=row["consecutive_correct"],
                         engagement_level=row["engagement_level"],
                         last_solid_understanding=row["last_solid_understanding"],
@@ -461,7 +522,7 @@ class DatabaseManager:
         except Exception as e:
             logger.error(f"Error loading student profile {student_id}: {e}", exc_info=True)
             return None
-    
+
     def save_student_profile(self, profile: StudentProfile) -> bool:
         try:
             profile.updated_at = datetime.now().isoformat()
@@ -469,12 +530,27 @@ class DatabaseManager:
                 cursor = conn.cursor()
                 cursor.execute(
                     """
-                    INSERT OR REPLACE INTO student_profiles 
+                    INSERT INTO student_profiles
                     (id, name, current_topic, knowledge_level, session_phase,
                      understanding_progression, misconceptions, strengths, warning_signs,
                      consecutive_correct, engagement_level, last_solid_understanding,
                      total_sessions, created_at, updated_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    ON CONFLICT (id) DO UPDATE SET
+                        name = EXCLUDED.name,
+                        current_topic = EXCLUDED.current_topic,
+                        knowledge_level = EXCLUDED.knowledge_level,
+                        session_phase = EXCLUDED.session_phase,
+                        understanding_progression = EXCLUDED.understanding_progression,
+                        misconceptions = EXCLUDED.misconceptions,
+                        strengths = EXCLUDED.strengths,
+                        warning_signs = EXCLUDED.warning_signs,
+                        consecutive_correct = EXCLUDED.consecutive_correct,
+                        engagement_level = EXCLUDED.engagement_level,
+                        last_solid_understanding = EXCLUDED.last_solid_understanding,
+                        total_sessions = EXCLUDED.total_sessions,
+                        created_at = EXCLUDED.created_at,
+                        updated_at = EXCLUDED.updated_at
                 """,
                     (
                         profile.id,
@@ -482,10 +558,10 @@ class DatabaseManager:
                         profile.current_topic,
                         profile.knowledge_level.value,
                         profile.session_phase.value,
-                        json.dumps(profile.understanding_progression),
-                        json.dumps(profile.misconceptions),
-                        json.dumps(profile.strengths),
-                        json.dumps(profile.warning_signs),
+                        Json(profile.understanding_progression),
+                        Json(profile.misconceptions),
+                        Json(profile.strengths),
+                        Json(profile.warning_signs),
                         profile.consecutive_correct,
                         profile.engagement_level,
                         profile.last_solid_understanding,
@@ -506,9 +582,9 @@ class DatabaseManager:
                 cursor = conn.cursor()
                 cursor.execute(
                     """
-                    SELECT id, name, current_topic, knowledge_level, session_phase, 
-                           total_sessions, updated_at 
-                    FROM student_profiles 
+                    SELECT id, name, current_topic, knowledge_level, session_phase,
+                           total_sessions, updated_at
+                    FROM student_profiles
                     ORDER BY updated_at DESC
                 """
                 )
@@ -516,3 +592,51 @@ class DatabaseManager:
         except Exception as e:
             logger.error(f"Error listing students: {e}", exc_info=True)
             return []
+
+    def create_question_with_answers(self, data) -> str:
+        """Creates a new question with answers and objective associations."""
+        new_question_id = str(uuid.uuid4())
+        created_at = datetime.now().isoformat()
+        with self.get_connection(use_row_factory=False) as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "INSERT INTO question (id, question_text, created_at) VALUES (%s, %s, %s)",
+                (new_question_id, data.question_text, created_at)
+            )
+            for answer in data.answers:
+                if answer.text.strip():
+                    cursor.execute(
+                        """INSERT INTO answer (id, question_id, text, is_correct, feedback_text, feedback_approved)
+                        VALUES (%s, %s, %s, %s, %s, %s)""",
+                        (str(uuid.uuid4()), new_question_id, answer.text, answer.is_correct, '', False)
+                    )
+            if data.objective_ids:
+                for obj_id in data.objective_ids:
+                    if obj_id:
+                        cursor.execute(
+                            "INSERT INTO question_objective_association (id, question_id, objective_id) VALUES (%s, %s, %s)",
+                            (str(uuid.uuid4()), new_question_id, obj_id)
+                        )
+            conn.commit()
+        return new_question_id
+
+    def replace_question_objectives(self, question_id: str, objective_ids: List[str]) -> bool:
+        """Replaces all objective associations for a question."""
+        try:
+            with self.get_connection(use_row_factory=False) as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    "DELETE FROM question_objective_association WHERE question_id = %s",
+                    (question_id,)
+                )
+                for obj_id in objective_ids:
+                    if obj_id:
+                        cursor.execute(
+                            "INSERT INTO question_objective_association (id, question_id, objective_id) VALUES (%s, %s, %s)",
+                            (str(uuid.uuid4()), question_id, obj_id)
+                        )
+                conn.commit()
+                return True
+        except Exception as e:
+            logger.error(f"Error replacing objectives for question {question_id}: {e}", exc_info=True)
+            return False

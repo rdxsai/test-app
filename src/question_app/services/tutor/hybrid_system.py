@@ -16,18 +16,17 @@ from typing import Any, Dict, List, Optional
 from dotenv import load_dotenv
 
 from .interfaces import VectorStoreInterface
-from question_app.api.vector_store import ChromaVectorStoreService
 
 load_dotenv()
 
 from .simple_system import (
     AzureAPIMClient,
-    DatabaseManager,
     KnowledgeLevel,
     SessionPhase,
     SocraticTutoringEngine,
     StudentProfile,
 )
+from question_app.services.database import get_database_manager
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -394,9 +393,8 @@ class CodeAnalyzerAgent(SocraticAgent):
 MIN_COSINE_SIMILARITY = 0.7
 class HybridCrewAISocraticSystem:
     def __init__(
-        self, azure_config: Dict[str, str], vector_store_service : VectorStoreInterface ,db_path: str = "socratic_tutor.db"
+        self, azure_config: Dict[str, str], vector_store_service : VectorStoreInterface, db_manager=None
     ):
-        # (This method is unchanged)
         self.client = AzureAPIMClient(
             endpoint=azure_config["endpoint"],
             deployment=azure_config["deployment_name"],
@@ -405,11 +403,10 @@ class HybridCrewAISocraticSystem:
 
         )
         self.vector_store = vector_store_service
-        self.db = DatabaseManager(db_path)
+        self.db = db_manager or get_database_manager()
         self.memory_file = "conversation_memory.json"
         self.conversation_memory : Dict[str, List[Dict[str , str]]] = {}
         self._load_conversation_memory()
-        self.db_path = db_path
         self.coordinator_agent = CoordinatorAgent(self.client)
         self.response_analyst = ResponseAnalystAgent(self.client)
         self.progress_tracker = ProgressTrackerAgent(self.client)

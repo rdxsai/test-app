@@ -9,7 +9,6 @@ It reads your 'objectives.md' file, parses the Bloom's verbs
 with the full, rich data.
 """
 
-import sqlite3
 import re
 import uuid
 from datetime import datetime
@@ -24,16 +23,12 @@ sys.path.append(PROJECT_ROOT)
 # --- === END OF FIX === ---
 
 try:
-    from src.question_app.services.database import DatabaseManager
+    from src.question_app.services.database import get_database_manager
 except ImportError as e:
     print(f"ImportError: {e}")
-    print("Failed to import DatabaseManager. Make sure you are in the 'questionapp' root folder.")
+    print("Failed to import database module. Make sure you are in the 'questionapp' root folder.")
     print("Run as: poetry run python scripts/seed_objectives.py")
     sys.exit(1)
-
-# --- CONFIGURATION ---
-# These paths are relative to the project root
-DB_PATH = os.path.join("data", "socratic_tutor.db")
 OBJECTIVES_DOC = "objectives.md" # The .md file in your project root
 
 # (The rest of the file is the same as I sent before)
@@ -57,11 +52,11 @@ def get_blooms_level(verb: str) -> str:
     return BLOOM_MAP.get(verb.lower(), "understand")
 
 def seed_database():
-    print(f"--- Starting Objective Seeder for '{DB_PATH}' ---")
-    
+    print(f"--- Starting Objective Seeder ---")
+
     # This will create the DB file and all tables if they don't exist
     try:
-        db = DatabaseManager(db_path=DB_PATH)
+        db = get_database_manager()
         print("DatabaseManager initialized, tables ensured.")
     except Exception as e:
         print(f"Failed to initialize DatabaseManager: {e}")
@@ -99,6 +94,8 @@ def seed_database():
         print("No objectives found. Exiting.")
         return
 
+    ph = "%s"
+
     try:
         with db.get_connection(use_row_factory=False) as conn:
             cursor = conn.cursor()
@@ -107,18 +104,18 @@ def seed_database():
 
             for obj in objectives_found:
                 cursor.execute(
-                    """
+                    f"""
                     INSERT INTO learning_objective (id, text, created_at, blooms_level, priority)
-                    VALUES (?, ?, ?, ?, ?)
+                    VALUES ({ph}, {ph}, {ph}, {ph}, {ph})
                     """,
                     (obj['id'], obj['text'], obj['created_at'], obj['blooms_level'], obj['priority'])
                 )
-            
+
             conn.commit()
-        
+
         print(f"Successfully inserted {len(objectives_found)} new objectives.")
         print("--- Objective Seeding Complete! ---")
-        
+
     except Exception as e:
         print(f"\nDATABASE ERROR: {e}")
 

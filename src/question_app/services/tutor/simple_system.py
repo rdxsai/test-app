@@ -12,13 +12,13 @@ for the Hybrid CrewAI system and can be used independently for basic tutoring.
 - Student profile management and tracking
 - Socratic tutoring sessions with AI responses
 - Progress tracking and analytics
-- SQLite database for persistent storage
+- PostgreSQL database for persistent storage
 - Knowledge level assessment and progression
 
 **Architecture:**
 - **AzureAPIMClient**: Direct Azure OpenAI API client
 - **SocraticTutoringEngine**: Core tutoring logic and session management
-- **DatabaseManager**: SQLite database operations and schema management
+- **DatabaseManager**: PostgreSQL database operations and schema management
 - **StudentProfile**: Data structure for student information and progress
 
 **Environment Variables:**
@@ -42,8 +42,8 @@ for the Hybrid CrewAI system and can be used independently for basic tutoring.
 :version: 1.0.0
 :license: MIT
 """
-from ..database import DatabaseManager
 from ...models.tutor import StudentProfile, KnowledgeLevel, SessionPhase
+from question_app.services.database import get_database_manager
 
 
 
@@ -51,7 +51,6 @@ from ...models.tutor import StudentProfile, KnowledgeLevel, SessionPhase
 import json
 import logging
 import os
-import sqlite3
 import uuid
 from contextlib import contextmanager
 from dataclasses import asdict, dataclass, field
@@ -458,13 +457,13 @@ class SimpleSocraticSystem:
     - Student profile management and tracking
     - Socratic tutoring sessions with AI responses
     - Progress tracking and analytics
-    - SQLite database for persistent storage
+    - PostgreSQL database for persistent storage
     - Knowledge level assessment and progression
 
     **Architecture:**
     - **AzureAPIMClient**: Direct Azure OpenAI API client
     - **SocraticTutoringEngine**: Core tutoring logic and session management
-    - **DatabaseManager**: SQLite database operations and schema management
+    - **DatabaseManager**: PostgreSQL database operations and schema management
     - **StudentProfile**: Data structure for student information and progress
 
     **Environment Variables:**
@@ -495,7 +494,7 @@ class SimpleSocraticSystem:
     """
 
     def __init__(
-        self, azure_config: Dict[str, str], db_path: str = "socratic_tutor.db"
+        self, azure_config: Dict[str, str]
     ):
         """
         Initialize the Simple Socratic System.
@@ -511,8 +510,6 @@ class SimpleSocraticSystem:
                 - deployment_name (str): Model deployment name
                 - api_key (str): Azure API Management subscription key
                 - api_version (str, optional): API version (default: 2024-02-15-preview)
-            db_path (str, optional): Path to SQLite database file
-                (default: "socratic_tutor.db")
 
         Raises:
             KeyError: If required Azure configuration keys are missing
@@ -541,8 +538,7 @@ class SimpleSocraticSystem:
         )
 
         # Initialize database
-        self.db = DatabaseManager(db_path)
-        self.db_path = db_path
+        self.db = get_database_manager()
 
         # Initialize tutoring engine
         self.engine = SocraticTutoringEngine(self.client)

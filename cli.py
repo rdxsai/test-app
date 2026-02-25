@@ -1,10 +1,8 @@
 import asyncio
 import os
 
-from _pytest.runner import TResult 
-from question_app.api import vector_store
 from question_app.core import config
-from question_app.api.vector_store import ChromaVectorStoreService
+from question_app.api.pg_vector_store import VectorStoreService
 from question_app.services.tutor.hybrid_system import HybridCrewAISocraticSystem
 
 
@@ -13,7 +11,7 @@ def run_cli():
     print("Initializing the Grounded Socratic Tutor CLI...")
     #1. Create an instance of our vector store service
 
-    vector_service = ChromaVectorStoreService()
+    vector_service = VectorStoreService()
     azure_config = {
         "api_key" : config.AZURE_OPENAI_SUBSCRIPTION_KEY,
         "endpoint" : config.AZURE_OPENAI_ENDPOINT,
@@ -21,11 +19,9 @@ def run_cli():
         "api_version" : config.AZURE_OPENAI_API_VERSION
     }
 
-    cli_db_path = os.path.join("data" , "socratic_tutor_db")
     tutor_system = HybridCrewAISocraticSystem(
         azure_config=azure_config,
         vector_store_service=vector_service,
-        db_path = cli_db_path
     )
     print("System initialized sucessfully")
     interactive_main_menu(tutor_system)

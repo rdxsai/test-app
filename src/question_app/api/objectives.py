@@ -11,7 +11,7 @@ from pydantic import BaseModel, ValidationError # Import ValidationError
 from typing import List
 
 from ..core import get_logger, config
-from ..services.database import DatabaseManager
+from ..services.database import get_database_manager
 from ..services.ai_service import AIGeneratorService
 
 from ..models.objective import (
@@ -25,7 +25,7 @@ logger = get_logger(__name__)
 router = APIRouter(prefix="/objectives", tags=["objectives"])
 templates = Jinja2Templates(directory="templates")
 
-db = DatabaseManager(config.db_path)
+db = get_database_manager()
 ai_generator = AIGeneratorService()
 
 @router.get("/", response_class=HTMLResponse)

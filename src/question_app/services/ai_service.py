@@ -14,7 +14,7 @@ import numpy as np
 import asyncio 
 
 from ..core import config, get_logger
-from ..services.database import DatabaseManager
+from ..services.database import get_database_manager
 from ..utils.file_utils import load_feedback_prompt_from_json
 
 logger = get_logger(__name__)
@@ -70,7 +70,7 @@ class AIGeneratorService:
             "Content-Type": "application/json",
             "Ocp-Apim-Subscription-Key": config.AZURE_OPENAI_SUBSCRIPTION_KEY,
         }
-        self.db = DatabaseManager(config.db_path)
+        self.db = get_database_manager()
         logger.info("AIGeneratorService initialized.")
         logger.info(f"Target URL: {self.api_url[:50]}...") 
 

@@ -7,7 +7,6 @@ Run this script SECOND.
 
 import json
 import os
-import sqlite3
 import uuid
 import random
 from datetime import datetime
@@ -22,57 +21,59 @@ sys.path.append(PROJECT_ROOT)
 # --- === END OF FIX === ---
 
 try:
-    from src.question_app.services.database import DatabaseManager
+    from src.question_app.services.database import get_database_manager
 except ImportError as e:
     print(f"ImportError: {e}")
-    print("Failed to import DatabaseManager. Make sure you are in the 'questionapp' root folder.")
-    print("Run as: poetry run python scripts/seed_questions_and_aswers.py")
+    print("Failed to import database module. Make sure you are in the 'questionapp' root folder.")
+    print("Run as: poetry run python scripts/seed_Questions_and_Answers.py")
     sys.exit(1)
 
 print("--- Starting Question Seeder (No Associations) ---")
 
 # Define paths (relative to root)
-DB_PATH = "data/socratic_tutor.db"
 QUESTIONS_JSON = "data/quiz_questions.json"
 
 # Initialize the DB
-db = DatabaseManager(db_path=DB_PATH)
-print(f"Database initialized at {DB_PATH}")
+db = get_database_manager()
+print(f"Database initialized")
 
 # (The rest of your file is unchanged and correct)
 # Loading and inserting Questions (with Answers)
+# Detect placeholder style based on backend
+ph = "%s"
+
 print(f"Loading questions from {QUESTIONS_JSON}...")
 try:
     with open(QUESTIONS_JSON, 'r') as f:
         questions = json.load(f)
-    
+
     with db.get_connection(use_row_factory=False) as conn:
         cursor = conn.cursor()
 
         # Clear old question-related data
-        cursor.execute("DELETE FROM question;")
-        cursor.execute("DELETE FROM answer;")
         cursor.execute("DELETE FROM question_objective_association;")
+        cursor.execute("DELETE FROM answer;")
+        cursor.execute("DELETE FROM question;")
         print("Cleared old questions, answers, and associations.")
 
         for q in questions:
             q_id = str(uuid.uuid4())
             cursor.execute(
-                "INSERT INTO question (id, question_text, created_at) VALUES (?, ?, ?)",
+                f"INSERT INTO question (id, question_text, created_at) VALUES ({ph}, {ph}, {ph})",
                 (q_id, q['question_text'], datetime.now().isoformat())
             )
 
             for a in q.get('answers', []):
                 a_id = str(uuid.uuid4())
                 cursor.execute(
-                    """
+                    f"""
                     INSERT INTO answer
-                    (id, question_id, text, is_correct, feedback_text, feedback_approved) 
-                    VALUES (?, ?, ?, ?, ?, ?)
+                    (id, question_id, text, is_correct, feedback_text, feedback_approved)
+                    VALUES ({ph}, {ph}, {ph}, {ph}, {ph}, {ph})
                     """,
                     (a_id, q_id, a['text'], a['weight'] > 0, a.get('comments', ''), False)
                 )
-        
+
         conn.commit()
     print(f"Successfully inserted {len(questions)} questions and their answers.")
 except FileNotFoundError:

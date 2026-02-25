@@ -21,7 +21,7 @@ from ..utils import (
     save_welcome_message,
 )
 from ..services.tutor.hybrid_system import HybridCrewAISocraticSystem
-from ..api.vector_store import ChromaVectorStoreService
+from ..api.pg_vector_store import VectorStoreService
 
 
 logger = get_logger(__name__)
@@ -34,7 +34,7 @@ templates = Jinja2Templates(directory="templates")
 
 # --- === (This initialization is correct) === ---
 try:
-    vector_service = ChromaVectorStoreService()
+    vector_service = VectorStoreService()
     
     azure_config = {
         "api_key": config.AZURE_OPENAI_SUBSCRIPTION_KEY,
@@ -46,13 +46,11 @@ try:
     tutor_system = HybridCrewAISocraticSystem(
         azure_config=azure_config,
         vector_store_service=vector_service,
-        db_path=config.db_path 
     )
     logger.info("Chat API: HybridCrewAISocraticSystem initialized successfully.")
 
 except ValueError as e:
-    logger.critical(f"Failed to initialize ChromaDB client: {e}")
-    logger.critical("Please ensure the ChromaDB server is running. Try: 'chroma run'")
+    logger.critical(f"Failed to initialize vector store: {e}")
     tutor_system = None
 except Exception as e:
     logger.critical(f"Failed to initialize HybridCrewAISocraticSystem: {e}", exc_info=True)
@@ -85,7 +83,7 @@ async def handle_chat_message(chat_message : ChatMessage):
     """
     
     if not tutor_system:
-        logger.error("Tutor system is not initialized. ChromaDB might be offline.")
+        logger.error("Tutor system is not initialized. Check server logs.")
         raise HTTPException(status_code=503, detail="Tutor system is offline. Please check server logs.")
 
     try:

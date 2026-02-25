@@ -9,7 +9,7 @@ The application integrates with:
 - Canvas LMS API for fetching quiz questions
 - Azure OpenAI for AI-powered feedback generation
 - Ollama for local embedding generation
-- ChromaDB for vector storage and semantic search
+- PostgreSQL + pgvector for vector storage and semantic search
 - FastAPI for web API and frontend
 
 Key Features:
@@ -43,6 +43,7 @@ Recent Improvements (v0.3.0):
 """
 
 import uvicorn
+import markdown
 from fastapi import HTTPException, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
@@ -53,7 +54,7 @@ from .core import config, create_app, get_logger, get_templates, register_router
 
 
 #Import DB Manager
-from .services.database import DatabaseManager
+from .services.database import get_database_manager
 
 # TODO: Test fastapi_mpc https://github.com/tadata-org/fastapi_mcp
 # TODO: Offload vector store to S3 Vector Bucket
@@ -64,7 +65,7 @@ logger = get_logger(__name__)
 
 #Initialize DB
 logger.info(f"Initializing Database Manager for main app...")
-db = DatabaseManager(config.db_path)
+db = get_database_manager()
 
 # Create and configure the application
 app = create_app()
@@ -96,6 +97,15 @@ async def home(request: Request):
     try:
         questions = db.list_all_questions()
         templates = get_templates(app)
+
+        # Convert markdown in question_text to HTML for card preview
+        md = markdown.Markdown(extensions=['fenced_code', 'codehilite'])
+        for q in questions:
+            if q.get('question_text'):
+                q['question_text_html'] = md.convert(q['question_text'])
+                md.reset()
+            else:
+                q['question_text_html'] = ''
 
         return templates.TemplateResponse(
             "index.html",

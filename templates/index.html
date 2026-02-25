@@ -792,10 +792,7 @@
                     <!-- This click handler is now correct and uses the UUID -->
                     <div class="card-body" onclick="window.location.href='/questions/{{ question.id }}'">
                         <div class="question-text">
-                            <!-- --- FIX 2 --- -->
-                            <!-- Replaced 'question.question_text_html' with 'question.question_text' -->
-                            <!-- We also remove '| safe' as it's just text now -->
-                            {{ question.question_text }}
+                            {{ question.question_text_html | safe }}
                         </div>
                         <div class="mt-2">
                             <small class="text-muted">

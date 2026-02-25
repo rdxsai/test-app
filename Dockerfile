@@ -13,6 +13,7 @@ RUN apt-get update && apt-get install -y \
     curl \
     gcc \
     g++ \
+    libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Set environment variables
@@ -46,7 +47,7 @@ COPY . .
 # Install the project itself (now that code is copied)
 RUN poetry install --without dev
 
-# Create directory for SQLite database with proper permissions
+# Create directory for data files (quiz_questions.json, etc.)
 RUN mkdir -p /app/data && chmod 755 /app/data
 
 # Expose port 8080 (FastAPI default)

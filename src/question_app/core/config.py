@@ -49,11 +49,23 @@ class Config:
         self.APP_TITLE: str = "Canvas Quiz Manager"
         self.LOG_FILE: str = "canvas_app.log"
 
-        #ChromaDB Configuration
-        self.CHROMA_HOST : str = os.getenv("CHROMA_HOST" , "localhost")
-        self.CHROMA_PORT : int = int(os.getenv("CHROMA_PORT" , 8000))
+        # PostgreSQL Configuration
+        self.POSTGRES_HOST: str = os.getenv("POSTGRES_HOST", "localhost")
+        self.POSTGRES_PORT: int = int(os.getenv("POSTGRES_PORT", "5432"))
+        self.POSTGRES_DB: str = os.getenv("POSTGRES_DB", "socratic_tutor")
+        self.POSTGRES_USER: str = os.getenv("POSTGRES_USER", "app_user")
+        self.POSTGRES_PASSWORD: str = os.getenv("POSTGRES_PASSWORD", "changeme_dev")
 
-        self.db_path: str = os.path.join(BASE_DIR, "data" , "socratic_tutor.db")
+        # Schema isolation: "prod" for curated data, "dev" for test data
+        self.DB_SCHEMA: str = os.getenv("DB_SCHEMA", "prod")
+
+    @property
+    def postgres_dsn(self) -> str:
+        return (
+            f"host={self.POSTGRES_HOST} port={self.POSTGRES_PORT} "
+            f"dbname={self.POSTGRES_DB} user={self.POSTGRES_USER} "
+            f"password={self.POSTGRES_PASSWORD}"
+        )
 
 
 
