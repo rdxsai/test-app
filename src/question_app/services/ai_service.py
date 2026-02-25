@@ -14,6 +14,7 @@ import numpy as np
 import asyncio 
 
 from ..core import config, get_logger
+from fastapi import HTTPException
 from ..services.database import get_database_manager
 from ..utils.file_utils import load_feedback_prompt_from_json
 
@@ -76,44 +77,85 @@ class AIGeneratorService:
 
     # --- === THIS IS THE RESTORED, HIGH-QUALITY FUNCTION === ---
     async def generate_feedback_for_answer(self, question_text: str, answer_text: str, is_correct: bool) -> str:
-        
         logger.info(f"Generating feedback for answer: {answer_text[:30]}...")
+
+        # Attempt to load the full set of choices from the DB so the LLM
+        # can explain why each incorrect option is incorrect.
+        choices = []
+        try:
+            all_questions = self.db.list_all_questions()
+            question_id = None
+            for q in all_questions:
+                if q.get("question_text") == question_text:
+                    question_id = q.get("id")
+                    break
+            if not question_id:
+                for q in all_questions:
+                    if question_text.strip() and question_text.strip() in q.get("question_text", ""):
+                        question_id = q.get("id")
+                        break
+
+            if question_id:
+                details = self.db.load_question_details(question_id)
+                if details and details.get("answers"):
+                    choices = details["answers"]
+        except Exception as e:
+            logger.warning(f"Unable to load choices from DB for question lookup: {e}")
+
+        # Build choices text for the prompt
+        if choices:
+            choices_text = "\n".join([
+                f"- {c.get('text')}{' (correct)' if c.get('is_correct') else ''}" for c in choices
+            ])
+        else:
+            choices_text = "(No answer choices found in DB.)"
 
         if is_correct:
             system_prompt = load_feedback_prompt_from_json("feedback_correct")
             user_prompt = f"""
-            Question: "{question_text}"
-            Correct Answer : "{answer_text}"
+Question: "{question_text}"
+Correct Answer: "{answer_text}"
 
-            Generate the feedback:
-            """
-            max_tokens = 800  # Increased to accommodate detailed feedback without truncation
+Answer Choices:
+{choices_text}
+
+Please generate detailed feedback confirming the correct answer and specifically explain WHY each of the incorrect answers is incorrect. For each incorrect choice, provide a concise explanation referencing the concept tested by the question.
+"""
+            max_tokens = 800
         else:
             system_prompt = load_feedback_prompt_from_json("feedback_incorrect")
+            # For an incorrect selection, DO NOT ask the model to explain other
+            # incorrect options. Instead, prompt for Socratic guidance focused
+            # on the learner's chosen answer, nudging them toward the correct
+            # reasoning without revealing the correct answer or discussing
+            # other options.
             user_prompt = f"""
-            Question: "{question_text}"
-            Incorrect Answer Selected : "{answer_text}"
+Question: "{question_text}"
+Selected Answer: "{answer_text}"
 
-            Generate the feedback:
-            """
-            max_tokens = 800  # Increased to accommodate detailed Socratic questions without truncation
+Please generate Socratic-style feedback that:
+- Focuses only on the selected answer and the student's likely misconception.
+- Asks probing questions and provides hints that steer the learner toward the correct reasoning without stating the correct answer.
+- Do NOT evaluate or explain the other answer choices, and do NOT explicitly reveal which choice is correct.
+Keep the tone encouraging and concise.
+"""
+            max_tokens = 800
 
         payload = {
-            "messages" : [
-                {"role" : "system" , "content" : system_prompt},
-                {"role" : "user" , "content" : user_prompt},
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
             ],
-            "max_tokens" : max_tokens,
-            "temperature" : 0.6
+            "max_tokens": max_tokens,
+            "temperature": 0.6,
         }
-        
+
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.post(self.api_url, headers=self.headers, json=payload)
             response.raise_for_status()
-            
+
             json_response = response.json()
 
-            # (This is our new, correct error checking)
             if not json_response.get("choices"):
                 logger.warning(f"AI response had no choices: {json_response}")
                 raise Exception("AI returned an invalid response.")
@@ -121,7 +163,6 @@ class AIGeneratorService:
             choice = json_response["choices"][0]
             finish_reason = choice.get("finish_reason")
 
-            # Log finish reason for diagnostic purposes
             if finish_reason == "length":
                 logger.warning("⚠️ Feedback was truncated due to token limit! Consider increasing max_tokens further.")
             logger.info(f"Feedback generation completed. Finish reason: {finish_reason}")
@@ -581,3 +622,77 @@ Analyze each objective and provide relevance scores. Return the JSON response.""
         except Exception as e:
             logger.error(f"Error in suggest_objectives: {e}", exc_info=True)
             return []
+
+
+# --- Backwards-compatible helper expected by tests ---
+async def generate_feedback_with_ai(question_data: Dict, system_prompt: str) -> Dict:
+    """Compatibility wrapper used by older code/tests.
+
+    Returns a dict with keys: general_feedback, answer_feedback, token_usage
+    """
+    if not config.validate_azure_openai_config():
+        raise HTTPException(status_code=500, detail="Azure OpenAI configuration incomplete")
+
+    question_text = question_data.get("question_text") or question_data.get("text") or str(question_data.get("id", ""))
+    answers = question_data.get("answers", [])
+
+    # Build a simple user prompt including choices
+    if answers:
+        choices_text = "\n".join([f"Answer {i+1}: {a.get('text')}" for i, a in enumerate(answers)])
+    else:
+        choices_text = "(No choices provided)"
+
+    user_prompt = f"Question: {question_text}\n\nChoices:\n{choices_text}\n\nProvide clear feedback for the question and each answer option."
+
+    payload = {
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ],
+        "max_tokens": 800,
+        "temperature": 0.5,
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post(
+                f"{config.AZURE_OPENAI_ENDPOINT}/deployments/{config.AZURE_OPENAI_DEPLOYMENT_ID}/chat/completions?api-version={config.AZURE_OPENAI_API_VERSION}",
+                headers={"Content-Type": "application/json", "Ocp-Apim-Subscription-Key": config.AZURE_OPENAI_SUBSCRIPTION_KEY},
+                json=payload,
+            )
+
+            # If status code indicates failure, raise
+            if response.status_code >= 400:
+                raise HTTPException(status_code=502, detail=f"Failed to generate feedback: {response.text}")
+
+            json_response = response.json()
+            choice = None
+            if json_response.get("choices"):
+                choice = json_response["choices"][0]
+
+            content = None
+            if choice:
+                content = choice.get("message", {}).get("content")
+
+            general_feedback = content.strip() if content else ""
+
+            # Try to extract answer-level feedback lines
+            answer_feedback = []
+            if content:
+                for line in content.splitlines():
+                    line = line.strip()
+                    if line.lower().startswith("answer"):
+                        answer_feedback.append(line)
+
+            token_usage = json_response.get("usage", {}) if isinstance(json_response, dict) else {}
+
+            return {
+                "general_feedback": general_feedback,
+                "answer_feedback": answer_feedback,
+                "token_usage": token_usage,
+            }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error in generate_feedback_with_ai wrapper: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed to generate feedback: {e}")
