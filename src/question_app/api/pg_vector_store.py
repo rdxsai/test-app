@@ -3,6 +3,7 @@ Vector Store Service using PostgreSQL + pgvector.
 """
 
 import logging
+import uuid
 from typing import List, Dict, Any
 
 from pgvector.psycopg2 import register_vector
@@ -77,6 +78,59 @@ class VectorStoreService(VectorStoreInterface):
         except Exception as e:
             logger.error(f"pgvector search failed: {e}", exc_info=True)
             return []
+
+    async def embed_single_question(self, question_id: str) -> int:
+        """Generate and store embeddings for a single question + its answers.
+        Returns number of chunks embedded."""
+        q_detail = self.db.load_question_details(question_id)
+        if not q_detail:
+            logger.warning(f"Question {question_id} not found, skipping embedding.")
+            return 0
+
+        documents, metadatas, ids = create_comprehensive_chunks([q_detail])
+        if not documents:
+            logger.warning(f"No chunks created for question {question_id}.")
+            return 0
+
+        embeddings = await get_ollama_embeddings(documents)
+
+        with self.db.get_connection(use_row_factory=False) as conn:
+            register_vector(conn)
+            cursor = conn.cursor()
+
+            # Delete existing embeddings for this question (handles edit/re-embed)
+            cursor.execute(
+                "DELETE FROM question_embeddings WHERE question_id = %s",
+                (question_id,)
+            )
+
+            for doc, meta, emb, chunk_id in zip(documents, metadatas, embeddings, ids):
+                cursor.execute(
+                    """
+                    INSERT INTO question_embeddings
+                    (id, question_id, chunk_type, answer_index, is_correct,
+                     topic, tags, question_type, learning_objective, content, embedding)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::vector)
+                    """,
+                    (
+                        chunk_id,
+                        meta.get('question_id', ''),
+                        meta.get('chunk_type', 'question'),
+                        meta.get('answer_index'),
+                        meta.get('is_correct'),
+                        meta.get('topic', 'Web Accessibility'),
+                        meta.get('tags', ''),
+                        meta.get('question_type', 'multiple_choice_question'),
+                        meta.get('learning_objective', ''),
+                        doc,
+                        str(emb),
+                    )
+                )
+
+            conn.commit()
+
+        logger.info(f"Embedded {len(documents)} chunks for question {question_id}")
+        return len(documents)
 
     async def create_vector_store(self) -> Dict[str, Any]:
         """

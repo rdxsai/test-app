@@ -142,7 +142,7 @@ questionapp/
    ```bash
    # Copy the template
    cp .env.docker.template .env
-   
+
    # Edit .env and add your API credentials:
    # - AZURE_OPENAI_ENDPOINT
    # - AZURE_OPENAI_DEPLOYMENT_ID
@@ -156,21 +156,39 @@ questionapp/
 
 3. **Start all services:**
    ```bash
-   docker-compose up -d --build
+   docker compose up -d --build
    ```
-   
+
    This will:
    - Build the FastAPI backend with all dependencies
-   - Pull and start ChromaDB (vector database)
+   - Start PostgreSQL with pgvector (vector database)
    - Pull and start Ollama (downloads ~274MB embedding model)
-   - Load your existing database from `./data/socratic_tutor.db`
 
-4. **Access the application:**
+4. **Seed the database:**
+
+   The database starts empty. Follow these steps to populate it:
+
+   a. **Fetch questions from Canvas:** Open http://localhost:8080, select your course and quiz in the configuration panel, then click **Fetch Questions**. This pulls all questions from Canvas into the database with dedup support (safe to click multiple times).
+
+   b. **Import learning objectives and associations:**
+      ```bash
+      docker exec question-app-backend poetry run python scripts/import_objectives.py prod
+      ```
+      This reads `data/objectives_export.json` (included in the repo) and creates all learning objectives and links them to the fetched questions using stable Canvas IDs.
+
+   c. **Build the vector store (for RAG chat):** Click **More Options > Create Vector Store** in the UI header, or run:
+      ```bash
+      curl -X POST http://localhost:8080/vector-store/create
+      ```
+
+5. **Access the application:**
    - **Application:** http://localhost:8080
-   - ChromaDB: http://localhost:8000
+   - PostgreSQL: `localhost:5432` (user: `app_user`, db: `socratic_tutor`)
    - Ollama: http://localhost:11434
 
-**That's it!** Your application is ready with all existing questions and data.
+**That's it!** Your application is ready with all questions, objectives, and embeddings.
+
+> **Note on embeddings:** After the initial vector store build, embeddings are automatically generated when you create or edit questions. When you fetch new questions from Canvas, embeddings for any newly added questions are generated in the background with a progress indicator.
 
 ### Docker Commands Reference
 
@@ -209,37 +227,33 @@ docker-compose restart backend
 **Hot Reload Enabled:** Code changes in `src/`, `templates/`, and `static/` are automatically reflected without rebuilding.
 
 **Persistent Data:**
-- **SQLite database:** Stored in `./data/` on your host machine (bind mount) - survives `docker-compose down -v`
-- **ChromaDB vectors:** Stored in Docker volume `question-app-chroma-data`
+- **PostgreSQL database:** Stored in Docker volume `question-app-postgres-data` (questions, objectives, embeddings)
+- **JSON backups:** `./data/quiz_questions.json` and `./data/objectives_export.json` on your host machine
 - **Ollama models:** Stored in Docker volume `question-app-ollama-models`
 
 **Service Communication:** Services communicate using Docker DNS:
-- Backend connects to `chromadb:8000` (not `localhost:8000`)
+- Backend connects to `postgres:5432` (not `localhost:5432`)
 - Backend connects to `ollama:11434` (not `localhost:11434`)
 
-### Database Backup
+### Exporting & Sharing Data
 
-Your SQLite database is stored in `./data/socratic_tutor.db` on your host machine and is automatically safe from `docker-compose down -v`.
+Objectives and question associations are portable via JSON export/import:
 
-**Create a backup:**
+**Export (save your curated data):**
 ```bash
-# Automated backup script (recommended)
-./backup-database.sh
-
-# Manual backup
-cp data/socratic_tutor.db backups/backup-$(date +%Y%m%d).db
+docker exec question-app-backend poetry run python scripts/export_objectives.py prod
+# Creates data/objectives_export.json — commit this to share with others
 ```
 
-**Restore from backup:**
+**Import (on a fresh instance):**
 ```bash
-# Stop backend
-docker-compose stop backend
+# After fetching questions from Canvas:
+docker exec question-app-backend poetry run python scripts/import_objectives.py prod
+```
 
-# Restore database
-cp backups/socratic_tutor-TIMESTAMP.db data/socratic_tutor.db
-
-# Start backend
-docker-compose start backend
+**Database backup (full PostgreSQL dump):**
+```bash
+docker exec question-app-postgres pg_dump -U app_user socratic_tutor > backups/backup-$(date +%Y%m%d).sql
 ```
 
 ### Troubleshooting Docker Setup
@@ -261,23 +275,14 @@ docker-compose logs ollama
 docker-compose exec ollama ollama pull nomic-embed-text
 ```
 
-**Issue: Permission errors with SQLite**
-```bash
-# Fix permissions on host machine
-chmod 664 data/socratic_tutor.db
-
-# Or inside container
-docker-compose exec backend chmod 664 /app/data/socratic_tutor.db
-```
-
 **Issue: Services can't communicate**
 ```bash
 # Check network
 docker network inspect question-app-network
 
 # Verify service names resolve
-docker-compose exec backend ping chromadb
-docker-compose exec backend ping ollama
+docker compose exec backend ping postgres
+docker compose exec backend ping ollama
 ```
 
 **Clean slate (⚠️ deletes all data):**

@@ -10,6 +10,7 @@ This module contains all Canvas LMS integration endpoints including:
 
 import asyncio
 import html
+import json as json_module
 import random
 import re
 from typing import Any, Dict, List, Optional, Union
@@ -17,16 +18,26 @@ from ..utils.text_utils import clean_question_text
 
 import httpx
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from bs4 import BeautifulSoup, Comment
 
 from ..core import config, get_logger
+from ..services.database import get_database_manager
 
 # Configure logging
 logger = get_logger(__name__)
 
 # Create router
 router = APIRouter(prefix="/api", tags=["canvas"])
+
+# Database manager
+db = get_database_manager()
+
+
+def format_sse_event(event_type: str, data: dict) -> str:
+    """Format a dict as a Server-Sent Event string."""
+    return f"event: {event_type}\ndata: {json_module.dumps(data)}\n\n"
 
 
 class ConfigurationUpdate(BaseModel):
@@ -426,17 +437,91 @@ async def update_configuration(config_data: ConfigurationUpdate):
 
 @router.post("/fetch-questions")
 async def fetch_questions():
-    """Fetch questions from Canvas API"""
+    """Fetch questions from Canvas API, save JSON, and upsert into DB."""
     try:
         questions = await fetch_all_questions()
-        if save_questions(questions):
-            logger.info(f"Successfully saved {len(questions)} questions")
-            return {
-                "success": True,
-                "message": f"Fetched and saved {len(questions)} questions",
-            }
-        else:
-            raise HTTPException(status_code=500, detail="Failed to save questions")
+        save_questions(questions)  # Keep JSON backup
+
+        # Insert into DB with dedup
+        result = db.bulk_upsert_from_canvas(questions)
+        inserted = result["inserted"]
+        skipped = result["skipped"]
+        new_question_ids = result["new_question_ids"]
+
+        message = (
+            f"Fetched {len(questions)} questions from Canvas. "
+            f"{inserted} new added, {skipped} already existed."
+        )
+        logger.info(message)
+
+        return {
+            "success": True,
+            "message": message,
+            "new_question_ids": new_question_ids,
+            "inserted": inserted,
+            "skipped": skipped,
+        }
     except Exception as e:
         logger.error(f"Error fetching questions: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/embed-new-questions-stream")
+async def embed_new_questions_stream(question_ids: str):
+    """
+    SSE endpoint that generates embeddings for a list of question IDs.
+    Usage: GET /api/embed-new-questions-stream?question_ids=id1,id2,id3
+    """
+    ids = [qid.strip() for qid in question_ids.split(",") if qid.strip()]
+
+    async def event_generator():
+        from .pg_vector_store import VectorStoreService
+
+        try:
+            vector_service = VectorStoreService()
+            total = len(ids)
+
+            yield format_sse_event("embed_start", {"total": total})
+
+            total_embedded = 0
+            total_chunks = 0
+
+            for idx, qid in enumerate(ids, start=1):
+                try:
+                    chunks = await vector_service.embed_single_question(qid)
+                    total_chunks += chunks
+                    total_embedded += 1
+
+                    yield format_sse_event("embed_progress", {
+                        "question_id": qid,
+                        "chunks": chunks,
+                        "index": idx,
+                        "total": total,
+                    })
+                except Exception as e:
+                    logger.error(f"Error embedding question {qid}: {e}", exc_info=True)
+                    yield format_sse_event("embed_error", {
+                        "question_id": qid,
+                        "error": str(e),
+                        "index": idx,
+                        "total": total,
+                    })
+
+            yield format_sse_event("embed_done", {
+                "total_embedded": total_embedded,
+                "total_chunks": total_chunks,
+            })
+
+        except Exception as e:
+            logger.error(f"Fatal error in embed stream: {e}", exc_info=True)
+            yield format_sse_event("embed_error", {"error": str(e), "index": 0, "total": 0})
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )

@@ -29,6 +29,7 @@ from .text_utils import (
     clean_question_text,
     extract_topic_from_text,
     get_all_existing_tags,
+    html_to_markdown,
 )
 
 from .file_utils import (
@@ -56,4 +57,5 @@ __all__ = [
     "clean_answer_feedback",
     "get_all_existing_tags",
     "extract_topic_from_text",
+    "html_to_markdown",
 ]

@@ -379,15 +379,53 @@
                         const response = await fetch('/api/fetch-questions', { method: 'POST' });
                         const result = await response.json();
 
-                        if (response.ok) {
-                            showAlert('success', result.message);
-                            setTimeout(() => window.location.reload(), 1000);
-                        } else {
+                        if (!response.ok) {
                             showAlert('danger', result.detail || 'Failed to fetch questions');
+                            loading.style.display = 'none';
+                            fetchBtn.disabled = false;
+                            return;
+                        }
+
+                        showAlert('success', result.message);
+
+                        const newIds = result.new_question_ids || [];
+                        if (newIds.length > 0) {
+                            // Start SSE embedding stream
+                            showAlert('info', `Generating embeddings for ${newIds.length} new questions...`);
+                            const idsParam = newIds.join(',');
+                            const es = new EventSource(`/api/embed-new-questions-stream?question_ids=${encodeURIComponent(idsParam)}`);
+
+                            es.addEventListener('embed_progress', (e) => {
+                                const d = JSON.parse(e.data);
+                                const loadingText = document.querySelector('#loading p');
+                                if (loadingText) {
+                                    loadingText.textContent = `Generating embeddings: ${d.index}/${d.total}...`;
+                                }
+                            });
+
+                            es.addEventListener('embed_error', (e) => {
+                                const d = JSON.parse(e.data);
+                                console.error('Embed error:', d);
+                            });
+
+                            es.addEventListener('embed_done', (e) => {
+                                const d = JSON.parse(e.data);
+                                es.close();
+                                showAlert('success', `Embeddings generated: ${d.total_embedded} questions, ${d.total_chunks} chunks.`);
+                                setTimeout(() => window.location.reload(), 1000);
+                            });
+
+                            es.onerror = () => {
+                                es.close();
+                                showAlert('warning', 'Embedding stream ended. Reloading...');
+                                setTimeout(() => window.location.reload(), 1000);
+                            };
+                        } else {
+                            // No new questions, just reload
+                            setTimeout(() => window.location.reload(), 1000);
                         }
                     } catch (error) {
                         showAlert('danger', 'Error: ' + error.message);
-                    } finally {
                         loading.style.display = 'none';
                         fetchBtn.disabled = false;
                     }
@@ -809,8 +847,6 @@
 
             {% endif %}
         </div>
-    </div>
-    </div>
     </div>
 
     <!-- All Modals (System Prompt, Delete) are unchanged and correct -->

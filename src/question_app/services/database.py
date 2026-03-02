@@ -18,6 +18,7 @@ from ..models import QuestionUpdate
 from ..models.tutor import (
     StudentProfile, KnowledgeLevel, SessionPhase,
 )
+from ..utils.text_utils import html_to_markdown
 
 from ..core.config import config
 
@@ -176,6 +177,10 @@ class DatabaseManager:
                 )
             """
             )
+
+            # Add canvas_id columns for Canvas dedup (idempotent)
+            cursor.execute("ALTER TABLE question ADD COLUMN IF NOT EXISTS canvas_id INTEGER UNIQUE;")
+            cursor.execute("ALTER TABLE answer ADD COLUMN IF NOT EXISTS canvas_id INTEGER UNIQUE;")
 
             # IVFFlat index for approximate nearest neighbor search
             # Only create if table has rows (IVFFlat requires data)
@@ -640,3 +645,91 @@ class DatabaseManager:
         except Exception as e:
             logger.error(f"Error replacing objectives for question {question_id}: {e}", exc_info=True)
             return False
+
+    def bulk_upsert_from_canvas(self, canvas_questions: List[Dict]) -> Dict[str, Any]:
+        """
+        Insert Canvas questions into the DB with dedup by canvas_id.
+        Returns stats dict with inserted/skipped counts and new_question_ids.
+        """
+        inserted = 0
+        skipped = 0
+        total_answers_inserted = 0
+        new_question_ids = []
+
+        try:
+            with self.get_connection(use_row_factory=False) as conn:
+                cursor = conn.cursor()
+
+                # Fetch all existing canvas_ids in one query
+                cursor.execute("SELECT canvas_id FROM question WHERE canvas_id IS NOT NULL")
+                existing_canvas_ids = {row[0] for row in cursor.fetchall()}
+
+                for cq in canvas_questions:
+                    canvas_q_id = cq.get("id")
+                    if canvas_q_id is None:
+                        continue
+
+                    if canvas_q_id in existing_canvas_ids:
+                        skipped += 1
+                        continue
+
+                    # Clean the question text (already cleaned by fetch_all_questions,
+                    # but the raw question_text from Canvas JSON may still have HTML)
+                    question_text = cq.get("question_text", "")
+
+                    new_q_id = str(uuid.uuid4())
+                    created_at = datetime.now().isoformat()
+
+                    cursor.execute(
+                        """INSERT INTO question (id, question_text, created_at, canvas_id)
+                        VALUES (%s, %s, %s, %s)
+                        ON CONFLICT (canvas_id) DO NOTHING""",
+                        (new_q_id, question_text, created_at, canvas_q_id)
+                    )
+
+                    if cursor.rowcount == 0:
+                        # Race condition: another process inserted it
+                        skipped += 1
+                        continue
+
+                    # Insert answers
+                    for a in cq.get("answers", []):
+                        # Prefer html field with html_to_markdown conversion
+                        if a.get("html"):
+                            answer_text = html_to_markdown(a["html"])
+                        else:
+                            answer_text = a.get("text", "")
+
+                        is_correct = a.get("weight", 0) > 0
+                        canvas_a_id = a.get("id")
+
+                        new_a_id = str(uuid.uuid4())
+                        cursor.execute(
+                            """INSERT INTO answer (id, question_id, text, is_correct, feedback_text, feedback_approved, canvas_id)
+                            VALUES (%s, %s, %s, %s, %s, %s, %s)
+                            ON CONFLICT (canvas_id) DO NOTHING""",
+                            (new_a_id, new_q_id, answer_text, is_correct, "", False, canvas_a_id)
+                        )
+                        if cursor.rowcount > 0:
+                            total_answers_inserted += 1
+
+                    inserted += 1
+                    new_question_ids.append(new_q_id)
+                    existing_canvas_ids.add(canvas_q_id)
+
+                conn.commit()
+
+        except Exception as e:
+            logger.error(f"Error in bulk_upsert_from_canvas: {e}", exc_info=True)
+            raise
+
+        logger.info(
+            f"Canvas upsert: {inserted} inserted, {skipped} skipped, "
+            f"{total_answers_inserted} answers inserted"
+        )
+        return {
+            "inserted": inserted,
+            "skipped": skipped,
+            "total_answers_inserted": total_answers_inserted,
+            "new_question_ids": new_question_ids,
+        }

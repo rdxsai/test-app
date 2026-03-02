@@ -94,6 +94,15 @@ async def create_question(data: NewQuestion):
     try:
         new_question_id = db.create_question_with_answers(data)
 
+        # Auto-generate embeddings for the new question
+        try:
+            from .pg_vector_store import VectorStoreService
+            vector_service = VectorStoreService()
+            chunks = await vector_service.embed_single_question(new_question_id)
+            logger.info(f"Auto-embedded {chunks} chunks for new question {new_question_id}")
+        except Exception as embed_err:
+            logger.warning(f"Embedding generation failed for new question {new_question_id}: {embed_err}")
+
         logger.info(f"Successfully created question {new_question_id}")
         return {
             "success": True,
@@ -130,11 +139,24 @@ async def edit_question_page(request: Request, question_id: str):
         # The template 'edit_question.html' (your original one)
         # expects HTML-converted text. We must do that conversion here.
         
+        import re
         md = markdown.Markdown(extensions=['fenced_code', 'codehilite'])
+        SAFE_TAGS = {'p', 'br', 'strong', 'b', 'em', 'i', 'code', 'pre', 'span',
+                     'ul', 'ol', 'li', 'a', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+                     'blockquote', 'hr', 'div', 'table', 'thead', 'tbody', 'tr',
+                     'th', 'td', 'img', 'del', 's', 'sub', 'sup'}
+
+        def sanitize_html(html_str):
+            def replace_tag(m):
+                tag_name = m.group(1).strip().split()[0].lower().lstrip('/')
+                if tag_name in SAFE_TAGS:
+                    return m.group(0)
+                return m.group(0).replace('<', '&lt;').replace('>', '&gt;')
+            return re.sub(r'<(/?\s*[a-zA-Z][^>]*)>', replace_tag, html_str)
 
         # 1. Convert the main question text
         if question_data.get('question_text'):
-            question_data['question_text_html'] = md.convert(question_data['question_text'])
+            question_data['question_text_html'] = sanitize_html(md.convert(question_data['question_text']))
             md.reset()
         else:
             question_data['question_text_html'] = ''
@@ -142,7 +164,7 @@ async def edit_question_page(request: Request, question_id: str):
         # 2. Convert the text for each answer
         for answer in question_data.get('answers', []):
             if answer.get('text'):
-                answer['text_html'] = md.convert(answer['text'])
+                answer['text_html'] = sanitize_html(md.convert(answer['text']))
                 md.reset()
             else:
                 answer['text_html'] = ''
@@ -172,7 +194,16 @@ async def save_question(question_id: str, data: QuestionUpdate, background_tasks
         success = db.update_question_and_answers(question_id, data)
         if not success:
             raise HTTPException(status_code=404, detail="Question not found")
-        
+
+        # Regenerate embeddings for the edited question
+        try:
+            from .pg_vector_store import VectorStoreService
+            vector_service = VectorStoreService()
+            chunks = await vector_service.embed_single_question(question_id)
+            logger.info(f"Re-embedded {chunks} chunks for edited question {question_id}")
+        except Exception as embed_err:
+            logger.warning(f"Embedding regeneration failed for question {question_id}: {embed_err}")
+
         return {"success": True, "message": "Question updated successfully"}
     except Exception as e:
         logger.error(f"Error saving question {question_id}: {e}", exc_info=True)

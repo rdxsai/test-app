@@ -1,0 +1,2191 @@
+{
+    "objectives": [
+        {
+            "text": "Advise on ICT procurement standards such as EN 301 549",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Analyze design elements (e.g., headings, landmarks, color contrast) to determine their impact on diverse user groups' navigation and comprehension strategies.",
+            "blooms_level": "analyze",
+            "priority": "medium"
+        },
+        {
+            "text": "Analyze how consistent web design supports users with cognitive disabilities",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Analyze how design decisions impact accessibility for people with various disabilities",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Analyze how DOM content affects information available in the Accessibility Tree",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Analyze how focus order, event handling (onClick, onKeyDown, etc.), and ARIA states can either improve or harm the user experience for assistive technology.",
+            "blooms_level": "analyze",
+            "priority": "medium"
+        },
+        {
+            "text": "Analyze how JavaScript can improve or damage accessibility depending on its use",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Analyze how the accessibility tree is exposed to assistive technology and **verify** ARIA roles, states, and properties in different screen reader/browser combinations.",
+            "blooms_level": "analyze",
+            "priority": "medium"
+        },
+        {
+            "text": "Analyze the role of ARIA in enhancing assistive technology support for dynamic content",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Apply accessible procurement maturity models (PDAA, W3C maturity model)",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Apply ACT Rules in testing methodologies",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Apply appropriate ARIA roles to non-semantic elements to convey meaning",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Apply appropriate techniques to provide accessible names and descriptions to elements",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Apply aria-activedescendant property for managing focus within composite widgets",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Apply authoring practices for custom widgets including semantic structure and keyboard behavior",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Apply conventions for keyboard interaction within ARIA widgets",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Apply EN 301 549 Annex B to determine impact on different user groups",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Apply hybrid approaches (immediate remediation for critical issues, long-term rewrite planning)",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Apply keyboard conventions (tab, arrow keys, enter, space) appropriately for custom widgets",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Apply keyboard interaction conventions from the APG to custom widgets",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Apply proper ARIA roles, states, and properties when implementing custom controls",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Apply roving tabindex technique for managing focus within composite widgets",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Apply standard keystrokes for interaction with interactive elements in native HTML",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Apply standard keystrokes for native HTML interactive elements",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Apply techniques to notify screen readers of new content (e.g., focus management, aria-live, page title updates)",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Apply the 5 rules for using ARIA when creating custom widgets",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Apply the five rules for using ARIA correctly",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Apply the Plan-Create-Test cycle for accessibility integration",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Apply the WCAG-EM methodology's five main steps for website evaluation",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Apply the WCAG-EM methodology to define scope, explore site content, select a representative sample, and evaluate conformance thoroughly.",
+            "blooms_level": "apply",
+            "priority": "medium"
+        },
+        {
+            "text": "Apply user-centered design principles that consider diverse abilities and assistive technology users",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Apply W3C-recommended techniques (e.g., sufficient techniques, failure techniques) to specific WCAG success criteria in real coding scenarios.",
+            "blooms_level": "apply",
+            "priority": "medium"
+        },
+        {
+            "text": "Assess code complexity and maintainability when deciding on approach",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Assess consequences of different types of accessibility flaws",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Assess cost-benefit of remediation efforts",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Assess feasibility of particular solutions in different contexts",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Assess mobile interaction (touch gestures, orientation changes) to **ensure** elements remain accessible and do not require two-dimensional scrolling.",
+            "blooms_level": "evaluate",
+            "priority": "medium"
+        },
+        {
+            "text": "Assess the compatibility of a chosen technology stack (front-end framework, JS library) with major screen reader/browser pairs and **recommend** fallback or polyfill strategies.",
+            "blooms_level": "evaluate",
+            "priority": "medium"
+        },
+        {
+            "text": "Assess whether alternative input methods (switch control, voice input) can navigate and operate interactive elements effectively.",
+            "blooms_level": "evaluate",
+            "priority": "medium"
+        },
+        {
+            "text": "Audit existing systems as part of procurement process",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Categorize accessibility issues based on severity (blockers vs. minor nuisances) and **formulate** a remediation timeline that balances user impact and resource constraints.",
+            "blooms_level": "analyze",
+            "priority": "medium"
+        },
+        {
+            "text": "Categorize ARIA roles (Abstract, Widget, Document Structure, Landmark, Live Region, Window)",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Collaborate with design and development teams to **implement** new UI patterns or code libraries that systematically eliminate repeated accessibility faults.",
+            "blooms_level": "create",
+            "priority": "medium"
+        },
+        {
+            "text": "Combine automated and manual testing approaches effectively",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Communicate purpose, approach, and strategy for remediation clearly",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Compare and contrast the similarities and differences between WCAG and EN 301 549",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Compare keyboard-only navigation to screen reader navigation",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Compare native HTML controls' built-in accessibility features with custom (ARIA-based) components, highlighting pros and cons.",
+            "blooms_level": "analyze",
+            "priority": "medium"
+        },
+        {
+            "text": "Compare screen reader behavior and support across different platforms and devices",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Compare screen reader modes (browse/read mode, forms mode, application mode)",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Compare the accessibility implications of applying onClick() to native semantic elements versus non-semantic elements",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Compare the built-in accessibility features of native HTML elements to custom implementations",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Compare the scope of WCAG (2.0, 2.1, 2.2), ATAG 2.0, and EN 301 549, and **identify** how each set of requirements influences web accessibility design.",
+            "blooms_level": "analyze",
+            "priority": "medium"
+        },
+        {
+            "text": "Compare the strengths and limitations of automated tools, browser-based linters, spider tools, and bookmarklets for accessibility testing.",
+            "blooms_level": "analyze",
+            "priority": "medium"
+        },
+        {
+            "text": "Conduct accessibility testing using multiple assistive technologies and methods",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Conduct product testing during procurement",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Conduct screen reader testing to confirm that name, role, value, and state changes of interactive elements are conveyed properly.",
+            "blooms_level": "apply",
+            "priority": "medium"
+        },
+        {
+            "text": "Conduct task-based usability tests with native assistive technology users",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Configure ARIA live regions correctly so content is reliably announced across platforms",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Confirm that instructions are not based on sensory characteristics alone",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Consider accessibility performance during contract negotiations and renewals",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Consider available resources (time, budget, expertise) in approach selection",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Consider impact on interface when prioritizing remediation",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Construct a custom widget (e.g., a modal dialog or accordion) using the WAI-ARIA Authoring Practices, ensuring correct roles, states, and properties.",
+            "blooms_level": "create",
+            "priority": "medium"
+        },
+        {
+            "text": "Coordinate with product owners, designers, and developers to incorporate accessibility checks into acceptance criteria and \"definition of done.\"",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Create Accessibility Conformance Reports (ACRs)",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Define \"accessibility-supported\" technology according to WCAG conformance requirements",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Define accessible name and accessible description and explain how they differ",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Define and distinguish between \"assistive technology\" and \"adaptive strategies\"",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Demonstrate correct focus management using `aria-activedescendant` or roving `tabindex` in interactive widgets.",
+            "blooms_level": "apply",
+            "priority": "medium"
+        },
+        {
+            "text": "Demonstrate correct keyboard interaction models (e.g., tab vs. arrow keys) for composite components such as menus, tabs, and disclosure widgets.",
+            "blooms_level": "apply",
+            "priority": "medium"
+        },
+        {
+            "text": "Demonstrate how JavaScript event handlers can be made device-independent (e.g., supporting both pointer and keyboard input).",
+            "blooms_level": "apply",
+            "priority": "medium"
+        },
+        {
+            "text": "Demonstrate how to communicate high-impact barriers (e.g., no keyboard support, missing alt text on key images) to stakeholders and developers.",
+            "blooms_level": "apply",
+            "priority": "medium"
+        },
+        {
+            "text": "Demonstrate how to manage announcements of dynamic page updates (e.g., with `aria-live`) when navigation or content changes do not trigger a full page reload.",
+            "blooms_level": "apply",
+            "priority": "medium"
+        },
+        {
+            "text": "Demonstrate how to repurpose a non-semantic element into a fully accessible custom button or link using proper ARIA attributes, keyboard events, and visible focus.",
+            "blooms_level": "apply",
+            "priority": "medium"
+        },
+        {
+            "text": "Demonstrate how to use color-contrast analyzers, focus inspectors, or code validators to confirm partial compliance with WCAG criteria.",
+            "blooms_level": "apply",
+            "priority": "medium"
+        },
+        {
+            "text": "Demonstrate manual keyboard testing to detect missing focus indicators, incorrect tab order, or keyboard traps.",
+            "blooms_level": "apply",
+            "priority": "medium"
+        },
+        {
+            "text": "Demonstrate usage of at least two popular screen reader/browser combinations (e.g., NVDA + Firefox, VoiceOver + Safari) to confirm consistent user experience.",
+            "blooms_level": "apply",
+            "priority": "medium"
+        },
+        {
+            "text": "Demonstrate when and how to send focus to new content using JavaScript",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Describe assistive technologies used by people with reading difficulties (text-to-speech, reading software)",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Describe challenges faced by magnification users (orientation, focus tracking)",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Describe common navigation strategies used by screen reader users (e.g., headings, landmarks, element lists)",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Describe each team member's role in delivering accessible products",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Describe how screen readers use the Accessibility API to retrieve information",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Describe how the Accessibility API provides information to assistive technologies",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Describe how users with cognitive disabilities may use assistive technologies (screen readers, magnification, focus tools)",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Describe how voice recognition commands are often based on keyboard operations",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Describe input methods used by people with motor disabilities (keyboard, switches, voice, eye-tracking)",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Describe key strategies that users with blindness, low vision, motor disabilities, auditory disabilities, and cognitive/learning disabilities employ to interact with web content.",
+            "blooms_level": "remember",
+            "priority": "medium"
+        },
+        {
+            "text": "Describe strategies used by people with low vision (text enlargement, zoom, color changes, magnification)",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Describe the additional requirements in EN 301 549 beyond WCAG Success Criteria (38 additional requirements)",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Describe the diverse range of cognitive disabilities and their impact on web use",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Describe the impact of device-independent event handlers on accessibility",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Describe the importance of visible focus indicators for keyboard users",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Describe the limitations in WCAG (e.g., certain gaps for cognitive or motion-based issues) and **propose** best-practice enhancements.",
+            "blooms_level": "remember",
+            "priority": "medium"
+        },
+        {
+            "text": "Describe the meaning and intent of the two main sections of ATAG 2.0 (Part A: Accessible user interface; Part B: Supporting accessible content production)",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Describe the MouseGrid technique for users who cannot identify specific clickable elements",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Describe the risks associated with using polyfills for accessibility",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Describe the three types of techniques (Sufficient, Failure, Advisory) and the W3C vetting process for techniques",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Describe the WAI-ARIA 1.2 model of roles, states, and properties",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Determine budget and resources for accessibility implementation",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Determine if issues have high impact that prevents task completion (CAPTCHA without alternative, keyboard-inaccessible controls, hidden content)",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Determine when an inaccessible outcome results from design flaws versus poor technology support",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Determine when to use WAI-ARIA 1.2 versus standard HTML elements",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Determine when users need to be notified about passively loaded AJAX content",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Develop a procurement checklist incorporating EN 301 549 or WCAG references to ensure new products and services meet accessibility requirements.",
+            "blooms_level": "create",
+            "priority": "medium"
+        },
+        {
+            "text": "Develop suitable questions for tender documents and RFPs",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Differentiate between Agile and Waterfall project management methodologies regarding accessibility quality assurance",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Differentiate between fixing particular issues and complete page redesign",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Differentiate between normative and non-normative information in ATAG 2.0",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Differentiate between normative and non-normative information in WCAG 2.2",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Differentiate between normative and non-normative parts of WCAG, WAI-ARIA, and ATAG, and **justify** why that distinction matters for conformance.",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Distinguish between accessibility and user experience design disciplines",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Distinguish between accessibility issues found by automated tools versus those requiring manual testing",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Distinguish between ARIA states and properties and explain when values typically change",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Distinguish between automated accessibility practices in authoring tools and practices requiring author/user input",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Distinguish between critical issues and medium-impact issues",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Distinguish between design usability, accessibility, and conformance to specifications",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Distinguish between ideal/best solution and \"good enough\" solution based on project constraints",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Distinguish between normative and non-normative content in WCAG documentation",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Distinguish between \"quick fixes\" that resolve localized errors and \"redesign\" approaches that address deeper structural problems.",
+            "blooms_level": "analyze",
+            "priority": "medium"
+        },
+        {
+            "text": "Distinguish between screen reader bugs and actual accessibility issues",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Distinguish between semantic HTML controls (e.g., `<button>`, `<a>`) and generic elements (e.g., `<div>`) in terms of built-in accessibility.",
+            "blooms_level": "analyze",
+            "priority": "medium"
+        },
+        {
+            "text": "Distinguish between the \"Patterns\" and \"Practices\" sections of the APG",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Distinguish between the three conformance levels (A, AA, AAA) and identify the conformance level of each WCAG 2.2 success criterion",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Distinguish between true accessibility failures and poor design practices not covered in specifications",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Distinguish between VPAT formats (2.4 Rev 508, 2.4 Rev EU, 2.4 Rev WCAG, 2.4 INT)",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Distinguish between WCAG conformance failures and optional best practices",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Document accessibility goals and define conformance in \"Definition of done\"",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Document accessibility issues and provide remediation recommendations",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Engage appropriate stakeholders in implementation recommendations",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Ensure accessibility is systematically considered in purchasing decisions",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Ensure team members have access to accessibility expertise and training",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Establish a continuous testing process (automated + manual) that catches regressions after updates or new releases.",
+            "blooms_level": "create",
+            "priority": "medium"
+        },
+        {
+            "text": "Evaluate a website's accessibility across multiple devices (desktop, tablet, mobile) and assistive technologies.",
+            "blooms_level": "evaluate",
+            "priority": "medium"
+        },
+        {
+            "text": "Evaluate existing custom controls for missing or incorrect ARIA markup, and **recommend** solutions to align them with best practices.",
+            "blooms_level": "evaluate",
+            "priority": "medium"
+        },
+        {
+            "text": "Evaluate legal risk of identified issues",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Evaluate page titles for descriptive topic or purpose",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Evaluate quality of vendor-provided ACRs",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Evaluate severity and scope of defects to determine remediation vs. rewrite",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Evaluate tender responses, ACRs, and VPATs",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Evaluate that dynamic status messages are conveyed using live regions",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Evaluate that focus order is logical, intuitive, and predictable",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Evaluate the importance and urgency of dynamically loaded content to determine notification strategy",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Evaluate the power and limitations of automated accessibility authoring features",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Evaluate the user experience of a single-page application with typical assistive technologies and **propose** solutions for any discovered gaps.",
+            "blooms_level": "evaluate",
+            "priority": "medium"
+        },
+        {
+            "text": "Evaluate vendor Accessibility Conformance Reports (VPAT/ACR) to determine product compatibility with organizational accessibility standards.",
+            "blooms_level": "evaluate",
+            "priority": "medium"
+        },
+        {
+            "text": "Evaluate websites and applications for conformance to WCAG 2.2 Level AA",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Evaluate when a custom role overrides native semantics and understand the implications",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Evaluate when it's appropriate to implement workarounds for browser or assistive technology bugs",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Evaluate whether semantic markup conveys meaning appropriately (headings, lists, tables, paragraphs)",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Explain accessibility strategies for users with cognitive disabilities",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Explain how accessibility can be integrated into agile vs. waterfall lifecycles, focusing on early detection of issues.",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Explain how ACT Rules can guide consistent test procedures across multiple tools and testers.",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Explain how ARIA attributes are mapped to the operating system's accessibility API",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Explain how ATAG 2.0 applies to web content authoring tools",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Explain how content can be accessible but not usable for end-users",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Explain how keyboard support serves as a requirement for multiple types of assistive technologies",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Explain how magnification software works and its capabilities",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Explain how screen readers function and convert content to speech or braille",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Explain how semantic HTML elements have implicit ARIA semantics",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Explain how speech recognition software works for navigation and interaction",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Explain how text-to-speech software differs from full screen readers",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Explain how the Document Object Model (DOM) relates to the Accessibility Tree",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Explain how the interaction model differs for blind touchscreen users versus sighted touchscreen users",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Explain how touch interaction changes with a screen reader turned on (e.g., iOS VoiceOver gestures) and **demonstrate** design patterns to support these gestures.",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Explain how touch interactions change when screen readers are active (e.g., gesture-based navigation on mobile)",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Explain how users with low vision often combine magnification with screen reading",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Explain how WCAG is represented in EN 301 549",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Explain keyboard navigation strategies and why sequential navigation can be tedious",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Explain progressive enhancement and **outline** the implications of turning JavaScript off or using older browsers for accessibility.",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Explain the Accessible Name and Description Computation algorithm",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Explain the additive approach of WCAG versions and how WCAG 2.2 conforms to earlier versions",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Explain the advantages of using standard HTML controls over custom controls",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Explain the benefits of designing with accessibility in mind versus remediation",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Explain the benefits of providing content in multiple formats (text, images, audio)",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Explain the concept of conformance levels (A, AA, AAA) and **defend** the rationale for choosing a specific level in a project or legal context.",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Explain the concept of progressive enhancement and its importance for accessibility",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Explain the difference between WCAG 2.0, 2.1, and 2.2 Success Criteria",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Explain the five primary rules of ARIA usage (e.g., \"use native HTML first,\" \"do not change native semantics unless necessary\").",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Explain the importance of coding to standards rather than to quirks of specific technologies",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Explain the importance of large click targets and clear visual indicators for pointer users",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Explain the importance of semantic markup and structured content for this user group",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Explain the importance of visible focus indicators for users with low vision",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Explain the intent and scope of EN 301 549 requirements that extend beyond WCAG",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Explain the intent, requirements, and impact of each WCAG 2.2 principle, guideline, and success criterion",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Explain the pass/fail conformance model and its implications for accessibility testing",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Explain the purpose and impact of WAI-ARIA 1.2 on web accessibility",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Explain the purpose and limitations of ACT Rules",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Explain the purpose of ACRs and VPATs",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Explain the role of end users in assessing and validating remediation approaches",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Explain the structure of WCAG 2.2 by identifying the four principles (POUR), guidelines, and success criteria levels (A, AA, AAA).",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Explain the value of user testing with people with various disabilities",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Explain user expectations regarding focus movement in web applications",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Explain when to use role=\"application\" and why it should be used sparingly",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Explain why certain ARIA roles or HTML5 elements might not be fully supported across older browsers, and how to mitigate these gaps.",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Explain why focus order must be logical and intuitive for screen reader users",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Explain why new technologies may not be immediately accessibility-supported",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Focus remediation on key content, high-traffic pages, and essential tasks",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Foster long-term, sustainable accessibility improvements across supply chain",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Identify accessibility challenges unique to single-page applications (SPAs)",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Identify accessibility needs associated with different types of disabilities",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Identify accessibility techniques not yet documented in WCAG",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Identify and apply Sufficient Techniques, Failure Techniques, and Advisory Techniques for each success criterion",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Identify and explain the four POUR principles (Perceivable, Operable, Understandable, Robust) and their relationship to guidelines and success criteria",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Identify built-in and third-party assistive technologies for users with motor disabilities (Dragon, switch controls, eye-tracking)",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Identify built-in magnification features across different platforms",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Identify common pitfalls in dynamic content updates (e.g., partial page refreshes with AJAX) and **implement** focus management or live regions to keep screen reader users informed.",
+            "blooms_level": "remember",
+            "priority": "medium"
+        },
+        {
+            "text": "Identify common user needs for auditory disabilities (e.g., accurate captions, transcripts) and evaluate if they are met.",
+            "blooms_level": "remember",
+            "priority": "medium"
+        },
+        {
+            "text": "Identify CSS issues affecting assistive technology users",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Identify font and text presentation best practices for readability",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Identify groups of users with reading difficulties (ADHD, dyslexia, Irlen syndrome, memory loss)",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Identify how accessibility integrates into the entire product life cycle (concept, requirements, design, prototyping, development, QA, user testing, support, regression testing)",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Identify how assistive technologies (e.g., screen readers, magnifiers, voice input) interact with browsers and what \"accessibility-supported\" means under WCAG.",
+            "blooms_level": "remember",
+            "priority": "medium"
+        },
+        {
+            "text": "Identify how content reading order follows DOM order in screen readers",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Identify issues for methods, technologies, and strategies used by people with disabilities",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Identify low-effort repairs that can be addressed quickly",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Identify methods to notify screen readers that new content has been added dynamically (e.g., ARIA live regions, focus management)",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Identify most common screen readers and recommended browser combinations",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Identify potential cognitive barriers (e.g., complex language or form instructions) and **recommend** simpler language or multi-step guidance.",
+            "blooms_level": "remember",
+            "priority": "medium"
+        },
+        {
+            "text": "Identify potential issues arising from specific browser\u2013screen reader combinations (e.g., JAWS + Chrome vs. NVDA + Firefox).",
+            "blooms_level": "remember",
+            "priority": "medium"
+        },
+        {
+            "text": "Identify recommended screen reader and browser combinations",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Identify requirements beyond WCAG that are relevant for compliance with the Web Accessibility Directive 2016/2102",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Identify semantic structure requirements for ARIA roles, including required parent/child roles and required attributes",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Identify situations when custom controls are necessary or appropriate",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Identify sources that contribute to accessible names (e.g., aria-label, aria-labelledby, alt text, label elements)",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Identify that ACT Rules check for failures but passing does not guarantee full conformance",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Identify that automated tools cannot determine conformance alone",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Identify the five types of information provided by ARIA attributes (role, state, name, description, relationship)",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Identify the four Success Criteria required for non-interference conformance",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Identify the importance of plain language, simple layout, and predictable design",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Identify the limitations of the APG sample code (e.g., lack of comprehensive compatibility testing)",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Identify the needs of users with different types of disabilities as outlined in EN 301 549's Functional Performance statements",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Identify the range of motor disabilities and their impact on computer use",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Identify the types of technologies addressed by EN 301 549",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Identify when independent accessibility professionals should create ACRs",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Identify when it's appropriate to implement workarounds, compromises, or polyfills for assistive technology bugs",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Identify which Success Criteria apply to Level A, AA, and AAA conformance levels",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Implement accessibility in information architecture and user experience",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Implement accessible names and descriptions using `aria-label`, `aria-labelledby`, and `aria-describedby`, and **justify** which approach is most appropriate in a given scenario.",
+            "blooms_level": "apply",
+            "priority": "medium"
+        },
+        {
+            "text": "Implement alternative access plans for users when defects exist",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Implement appropriate notification methods when AJAX content loads as a result of user action",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Implement a vendor management process that includes accessibility roadmap reviews, defect remediation, and ongoing conformance monitoring.",
+            "blooms_level": "apply",
+            "priority": "medium"
+        },
+        {
+            "text": "Implement focus changes appropriately when new views or dialogs appear, ensuring screen-reader and keyboard-only users can track SPA updates.",
+            "blooms_level": "apply",
+            "priority": "medium"
+        },
+        {
+            "text": "Implement keyboard interaction models for ARIA custom widgets, including general patterns and widget-specific patterns",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Implement keyboard interaction models for custom ARIA widgets",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Implement proper focus management when JavaScript changes visual focus",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Implement techniques for providing accessible names and descriptions to custom widgets",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Include binding accessibility commitments in contracts",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Incorporate accessibility into procurement process from the beginning",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Integrate knowledge from multiple domains to create comprehensive accessible web solutions",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Interpret ACR conformance levels (Supports, Partially Supports, Does Not Support, Not Applicable)",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Interpret automated testing results and identify limitations",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Interpret automated test results to confirm valid failures, eliminate false positives, and plan follow-up manual checks.",
+            "blooms_level": "analyze",
+            "priority": "medium"
+        },
+        {
+            "text": "Interpret results of automatic testing and identify false positives and omissions",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Interpret the self-scoping (applicability) language used in EN 301 549",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Involve people with disabilities in requirements and early development stages",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Justify which issues must be addressed first by assessing legal risk, user impact, and overall usability.",
+            "blooms_level": "evaluate",
+            "priority": "medium"
+        },
+        {
+            "text": "List browser and operating system settings that support users with reading difficulties",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "List different types of assistive technologies and adaptive strategies used by people with disabilities",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "List the five WCAG conformance requirements that content must meet to achieve conformance",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "List the most commonly used screen readers (JAWS, NVDA, VoiceOver)",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "List types of software tools available (site-wide scanning, server-based analysis, unit testing, integration testing, browser developer tools, browser add-ons, simulators, guided manual testing)",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Manage vendors including defect remediation and accessibility roadmaps",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Map accessibility issues to specific WCAG Success Criteria accurately",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Map discovered accessibility barriers to the appropriate WCAG success criterion (or EN 301 549 clause) and **distinguish** conformance failures from best-practice gaps.",
+            "blooms_level": "analyze",
+            "priority": "medium"
+        },
+        {
+            "text": "Measure progress over time using maturity model frameworks",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Monitor vendor performance in defect management",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Navigate and utilize the ARIA Authoring Practice Guide (APG) to implement accessible custom widgets",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Navigate ARIA custom widgets using keyboard and screen readers",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Navigate content via landmarks and headings using screen readers",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Obtain roadmaps for addressing known accessibility issues from vendors",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Perform usability walk-throughs with simulated low-vision settings (zoom, high contrast) to find layout or text-flow issues.",
+            "blooms_level": "apply",
+            "priority": "medium"
+        },
+        {
+            "text": "Plan for future-proofing through comprehensive rewrites when appropriate",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Prioritize issues based on impact (high, medium, low) on users with disabilities",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Prioritize repeated issues that occur across templates, component libraries, or design systems",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Prioritize user experience in remediation decisions",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Propose ARIA-based or native HTML solutions for each conformance failure, **explaining** why a given fix is both accessible and feasible.",
+            "blooms_level": "create",
+            "priority": "medium"
+        },
+        {
+            "text": "Propose layout or structural revisions (e.g., skip links, consistent navigation) that accommodate multiple disability groups.",
+            "blooms_level": "create",
+            "priority": "medium"
+        },
+        {
+            "text": "Provide guidance on good governance practices for procurement",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Provide practical and simple hints for better web accessibility",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Recognize diversity among users with disabilities affects user experience",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Recognize limitations of personal assistive technology knowledge",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Recognize that automated tools can include false positives",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Recognize that multiple techniques can satisfy a Success Criterion",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Recognize that WCAG conformance is minimum requirement, not comprehensive usability guarantee",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Recognize the limitations of WCAG 2.2 (pseudomotion, color blindness, cognitive load, etc.)",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Recommend contract language that mandates the vendor to fix accessibility defects within specified timeframes and supply updated VPATs.",
+            "blooms_level": "evaluate",
+            "priority": "medium"
+        },
+        {
+            "text": "Recommend standard HTML controls whenever possible and **justify** the business and user benefits of reducing custom code for accessibility.",
+            "blooms_level": "evaluate",
+            "priority": "medium"
+        },
+        {
+            "text": "Recommend supplemental guidance beyond WCAG requirements for better usability",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Refer to WCAG Understanding texts, Techniques, and ARIA Authoring Practices Guidelines",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Respond to tender questions regarding accessibility",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Select appropriate testing tools for different stages of web development process",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Specify recommended browser and screen reader combinations for Windows, macOS, iOS, and Android platforms",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Suggest contract wording regarding accessibility",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Summarize the rationale for using the latest WCAG 2.2 and **evaluate** the impact of new success criteria (e.g., Focus Not Obscured) on website design.",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Test adequate spacing between touch targets",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Test ARIA constructs and components with screen readers",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Test for keyboard traps",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Test for no loss of functionality when zooming to 200%",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Test sufficient contrast (including text on gradients or images)",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Test sufficient contrast of non-text elements (icons, input field borders)",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Test that all functionality is operable via keyboard with no keyboard trap",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Test that audio can be turned off for voice control users",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Test that automatically playing audio can be turned off",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Test that automatic captioning errors are corrected",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Test that color alone is not used to convey information",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Test that content appearing on hover/focus can be dismissed, doesn't auto-close, and can be hovered over",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Test that content order presented to assistive technology is meaningful",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Test that device motion functionality has alternative UI controls",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Test that error messages are identifiable and described",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Test that error suggestions are provided",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Test that focus indicator is visible",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Test that focus order is logical, intuitive, and predictable",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Test that hidden content is appropriately hidden both visually and programmatically",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Test that interactive elements use native controls or proper ARIA markup",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Test that language changes are marked up accordingly",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Test that methods exist to bypass repeated content",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Test that motion activation can be disabled",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Test that multiple ways to locate pages are available",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Test that multipoint or path-based gestures can be operated with single pointer",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Test that multipoint or path-based gestures have single pointer alternatives",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Test that navigation mechanisms are positioned consistently",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Test that navigation mechanisms occur in same order across pages",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Test that no two-dimensional scrolling is necessary",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Test that no UI component causes unexpected context change on focus",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Test that page titles describe topic or purpose",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Test that role, name, and value of interactive components are available and updated correctly",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Test that scrolling or moving content can be stopped by the user",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Test that text alternatives for images are accurate and meaningful",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Test that text can be resized to 200%",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Test that the correct page language is set for proper screen reader pronunciation",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Test that titles, headings, and form labels are descriptive",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Test that users can stop animation or it stops automatically after 5 seconds",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Test web designs for accessibility across various platforms, browsers, and assistive technologies",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Understand different screen reader modes (browse mode, forms mode, application mode, VoiceOver rotor, TalkBack menu)",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Understand how ARIA live region properties affect the announcement of dynamic content to assistive technologies and determine their default behaviors.",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Understand how ARIA live region properties and values impact assistive technology behavior and user experience.",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Understand how focus order impacts accessibility and evaluate whether the focus sequence of interactive elements aligns with logical and intuitive navigation for all users.",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Understand how focus order impacts usability and accessibility, and evaluate whether the focus sequence aligns with a logical, meaningful, and user-friendly navigation experience.",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Understand the role and significance of international standards in promoting web accessibility and identify examples of such standards.",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Update page titles dynamically using JavaScript (document.title) in SPAs",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Use accessibility API viewers (Accessibility Viewer for Windows, XCode Accessibility Inspector for MacOS)",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Use ACR information to guide product reviews",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Use ARIA states and properties to provide information about element status to assistive technologies",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Use at least one site-wide scanning tool and one browser-based developer tool (e.g., Axe, WAVE, Lighthouse) to **detect** markup or ARIA errors.",
+            "blooms_level": "apply",
+            "priority": "medium"
+        },
+        {
+            "text": "Use browser developer tools and add-ons for accessibility testing",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Use browser's built-in Development Tools to inspect source code",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Use guided manual testing tools based on heuristics (Accessibility Insights, ARC Platform, Axe Auditor, JAWS Inspect)",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Use JavaScript to toggle ARIA state attributes to convey component state to assistive technologies",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Use magnifier or high-contrast settings to **detect** any text or interface elements that become unusable or unreadable.",
+            "blooms_level": "apply",
+            "priority": "medium"
+        },
+        {
+            "text": "Use maturity models and tools to illustrate progress and sustainability",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Use maturity models to assess current accessibility practices",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Use screen reader forms mode and application mode appropriately",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Use simulators for colorblindness and low vision testing (Colour Oracle, No Coffee vision simulator)",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Use single-purpose tools (Headings Map, PEAT, Contrast Checker, Colour Contrast Analyser)",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Verify all content/functionality available at desktop widths is accessible on small touch screens",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Verify all functionality is operable via keyboard",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Verify all functionality is operable via keyboard with no keyboard trap",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Verify alternatives for video (captions, audio description) and audio are provided and accurate",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Verify character key shortcuts can be turned off, remapped, or are only active on focus",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Verify color is not used as sole means to convey information",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Verify components with same functionality are identified consistently",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Verify descriptive labels or instructions for user input elements are available",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Verify device motion functionality has alternative UI controls",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Verify error messages are programmatically identifiable and described in text",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Verify error prevention mechanisms exist for legal and financial data",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Verify focus movement within components/widgets is as expected",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Verify headings and labels are descriptive",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Verify headings, lists, and structural elements are marked up correctly",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Verify input fields have appropriate autocomplete attributes",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Verify large touch target sizes",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Verify links are descriptive in context",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Verify link text is descriptive or determinable with context",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Verify methods exist to bypass repeated content (skip links, landmarks, section headings)",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Verify methods to bypass repeated content exist",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Verify motion activation can be disabled to prevent accidental activation",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Verify no content flashes above threshold",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Verify no loss of content/functionality when text spacing is changed",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Verify no loss of content or functionality when users change text spacing",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Verify no loss of functionality when zooming to 200%",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Verify no restriction to single display orientation",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Verify no restriction to single display orientation (portrait or landscape)",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Verify no UI component causes unexpected context change when setting is changed",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Verify programmatic labels match visual labels",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Verify session timeouts can be turned off or adjusted",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Verify state changes are announced to screen reader users",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Verify sufficient contrast of text elements",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Verify text can be resized to 200%",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Verify that alternatives exist for images and video content",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Verify that automatically playing audio can be turned off",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Verify that dynamically updated or hidden elements are properly announced or hidden from screen readers.",
+            "blooms_level": "evaluate",
+            "priority": "medium"
+        },
+        {
+            "text": "Verify that focus indicator is easily visible",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Verify that link text is descriptive or determinable with context",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Verify that only up-events execute functions or users can reverse/undo",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Verify transcripts are provided for audio-only content",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Verify use of real text instead of images of text",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Verify videos have accurate captions",
+            "blooms_level": "understand",
+            "priority": "medium"
+        },
+        {
+            "text": "Verify visual labels match programmatic labels",
+            "blooms_level": "understand",
+            "priority": "medium"
+        }
+    ],
+    "associations_by_canvas_id": [
+        {
+            "canvas_id": 8959943,
+            "question_preview": "Which of the following could best be described as a\u00a0multi-national standard?",
+            "objective_text": "Understand the role and significance of international standards in promoting web accessibility and identify examples of such standards."
+        },
+        {
+            "canvas_id": 8959968,
+            "question_preview": "Which of the following is true regarding the `document` role?",
+            "objective_text": "Analyze design elements (e.g., headings, landmarks, color contrast) to determine their impact on diverse user groups' navigation and comprehension strategies."
+        },
+        {
+            "canvas_id": 8959980,
+            "question_preview": "What value should you set `aria-atomic` to for a region that dynamically display",
+            "objective_text": "Demonstrate correct focus management using `aria-activedescendant` or roving `tabindex` in interactive widgets."
+        },
+        {
+            "canvas_id": 8959980,
+            "question_preview": "What value should you set `aria-atomic` to for a region that dynamically display",
+            "objective_text": "Demonstrate how to manage announcements of dynamic page updates (e.g., with `aria-live`) when navigation or content changes do not trigger a full page reload."
+        },
+        {
+            "canvas_id": 8959980,
+            "question_preview": "What value should you set `aria-atomic` to for a region that dynamically display",
+            "objective_text": "Understand how ARIA live region properties affect the announcement of dynamic content to assistive technologies and determine their default behaviors."
+        },
+        {
+            "canvas_id": 8959980,
+            "question_preview": "What value should you set `aria-atomic` to for a region that dynamically display",
+            "objective_text": "Understand how ARIA live region properties and values impact assistive technology behavior and user experience."
+        },
+        {
+            "canvas_id": 8959982,
+            "question_preview": "Which of the following live region types are set to `aria-live=\"assertive\"` by d",
+            "objective_text": "Analyze how the accessibility tree is exposed to assistive technology and **verify** ARIA roles, states, and properties in different screen reader/browser combinations."
+        },
+        {
+            "canvas_id": 8959982,
+            "question_preview": "Which of the following live region types are set to `aria-live=\"assertive\"` by d",
+            "objective_text": "Conduct screen reader testing to confirm that name, role, value, and state changes of interactive elements are conveyed properly."
+        },
+        {
+            "canvas_id": 8959982,
+            "question_preview": "Which of the following live region types are set to `aria-live=\"assertive\"` by d",
+            "objective_text": "Construct a custom widget (e.g., a modal dialog or accordion) using the WAI-ARIA Authoring Practices, ensuring correct roles, states, and properties."
+        },
+        {
+            "canvas_id": 8959982,
+            "question_preview": "Which of the following live region types are set to `aria-live=\"assertive\"` by d",
+            "objective_text": "Demonstrate how to manage announcements of dynamic page updates (e.g., with `aria-live`) when navigation or content changes do not trigger a full page reload."
+        },
+        {
+            "canvas_id": 8959982,
+            "question_preview": "Which of the following live region types are set to `aria-live=\"assertive\"` by d",
+            "objective_text": "Distinguish between semantic HTML controls (e.g., `<button>`, `<a>`) and generic elements (e.g., `<div>`) in terms of built-in accessibility."
+        },
+        {
+            "canvas_id": 8959982,
+            "question_preview": "Which of the following live region types are set to `aria-live=\"assertive\"` by d",
+            "objective_text": "Evaluate existing custom controls for missing or incorrect ARIA markup, and **recommend** solutions to align them with best practices."
+        },
+        {
+            "canvas_id": 8959982,
+            "question_preview": "Which of the following live region types are set to `aria-live=\"assertive\"` by d",
+            "objective_text": "Explain the five primary rules of ARIA usage (e.g., \"use native HTML first,\" \"do not change native semantics unless necessary\")."
+        },
+        {
+            "canvas_id": 8959982,
+            "question_preview": "Which of the following live region types are set to `aria-live=\"assertive\"` by d",
+            "objective_text": "Identify common pitfalls in dynamic content updates (e.g., partial page refreshes with AJAX) and **implement** focus management or live regions to keep screen reader users informed."
+        },
+        {
+            "canvas_id": 8959982,
+            "question_preview": "Which of the following live region types are set to `aria-live=\"assertive\"` by d",
+            "objective_text": "Identify how assistive technologies (e.g., screen readers, magnifiers, voice input) interact with browsers and what \"accessibility-supported\" means under WCAG."
+        },
+        {
+            "canvas_id": 8959982,
+            "question_preview": "Which of the following live region types are set to `aria-live=\"assertive\"` by d",
+            "objective_text": "Understand how ARIA live region properties affect the announcement of dynamic content to assistive technologies and determine their default behaviors."
+        },
+        {
+            "canvas_id": 8959982,
+            "question_preview": "Which of the following live region types are set to `aria-live=\"assertive\"` by d",
+            "objective_text": "Understand how ARIA live region properties and values impact assistive technology behavior and user experience."
+        },
+        {
+            "canvas_id": 8959982,
+            "question_preview": "Which of the following live region types are set to `aria-live=\"assertive\"` by d",
+            "objective_text": "Verify that dynamically updated or hidden elements are properly announced or hidden from screen readers."
+        },
+        {
+            "canvas_id": 8959984,
+            "question_preview": "Which of the following live region types are set to `aria-live=\"off\"` by default",
+            "objective_text": "Demonstrate how to manage announcements of dynamic page updates (e.g., with `aria-live`) when navigation or content changes do not trigger a full page reload."
+        },
+        {
+            "canvas_id": 8959984,
+            "question_preview": "Which of the following live region types are set to `aria-live=\"off\"` by default",
+            "objective_text": "Evaluate existing custom controls for missing or incorrect ARIA markup, and **recommend** solutions to align them with best practices."
+        },
+        {
+            "canvas_id": 8959984,
+            "question_preview": "Which of the following live region types are set to `aria-live=\"off\"` by default",
+            "objective_text": "Explain the five primary rules of ARIA usage (e.g., \"use native HTML first,\" \"do not change native semantics unless necessary\")."
+        },
+        {
+            "canvas_id": 8959984,
+            "question_preview": "Which of the following live region types are set to `aria-live=\"off\"` by default",
+            "objective_text": "Explain why certain ARIA roles or HTML5 elements might not be fully supported across older browsers, and how to mitigate these gaps."
+        },
+        {
+            "canvas_id": 8959984,
+            "question_preview": "Which of the following live region types are set to `aria-live=\"off\"` by default",
+            "objective_text": "Understand how ARIA live region properties affect the announcement of dynamic content to assistive technologies and determine their default behaviors."
+        },
+        {
+            "canvas_id": 8959984,
+            "question_preview": "Which of the following live region types are set to `aria-live=\"off\"` by default",
+            "objective_text": "Understand how ARIA live region properties and values impact assistive technology behavior and user experience."
+        },
+        {
+            "canvas_id": 8959985,
+            "question_preview": "Where is the best place to look for keyboard best practices for different kinds ",
+            "objective_text": "Analyze design elements (e.g., headings, landmarks, color contrast) to determine their impact on diverse user groups' navigation and comprehension strategies."
+        },
+        {
+            "canvas_id": 8959985,
+            "question_preview": "Where is the best place to look for keyboard best practices for different kinds ",
+            "objective_text": "Demonstrate correct keyboard interaction models (e.g., tab vs. arrow keys) for composite components such as menus, tabs, and disclosure widgets."
+        },
+        {
+            "canvas_id": 8959985,
+            "question_preview": "Where is the best place to look for keyboard best practices for different kinds ",
+            "objective_text": "Demonstrate manual keyboard testing to detect missing focus indicators, incorrect tab order, or keyboard traps."
+        },
+        {
+            "canvas_id": 8959985,
+            "question_preview": "Where is the best place to look for keyboard best practices for different kinds ",
+            "objective_text": "Evaluate a website's accessibility across multiple devices (desktop, tablet, mobile) and assistive technologies."
+        },
+        {
+            "canvas_id": 8959987,
+            "question_preview": "Which of the following is true regarding the order in which items receive focus?",
+            "objective_text": "Analyze how focus order, event handling (onClick, onKeyDown, etc.), and ARIA states can either improve or harm the user experience for assistive technology."
+        },
+        {
+            "canvas_id": 8959987,
+            "question_preview": "Which of the following is true regarding the order in which items receive focus?",
+            "objective_text": "Demonstrate correct focus management using `aria-activedescendant` or roving `tabindex` in interactive widgets."
+        },
+        {
+            "canvas_id": 8959987,
+            "question_preview": "Which of the following is true regarding the order in which items receive focus?",
+            "objective_text": "Implement focus changes appropriately when new views or dialogs appear, ensuring screen-reader and keyboard-only users can track SPA updates."
+        },
+        {
+            "canvas_id": 8959987,
+            "question_preview": "Which of the following is true regarding the order in which items receive focus?",
+            "objective_text": "Understand how focus order impacts accessibility and evaluate whether the focus sequence of interactive elements aligns with logical and intuitive navigation for all users."
+        },
+        {
+            "canvas_id": 8959987,
+            "question_preview": "Which of the following is true regarding the order in which items receive focus?",
+            "objective_text": "Understand how focus order impacts usability and accessibility, and evaluate whether the focus sequence aligns with a logical, meaningful, and user-friendly navigation experience."
+        },
+        {
+            "canvas_id": 8959990,
+            "question_preview": "Which of the following is a way that you can activate a button using Dragon Natu",
+            "objective_text": "Analyze design elements (e.g., headings, landmarks, color contrast) to determine their impact on diverse user groups' navigation and comprehension strategies."
+        },
+        {
+            "canvas_id": 8959990,
+            "question_preview": "Which of the following is a way that you can activate a button using Dragon Natu",
+            "objective_text": "Analyze how focus order, event handling (onClick, onKeyDown, etc.), and ARIA states can either improve or harm the user experience for assistive technology."
+        },
+        {
+            "canvas_id": 8959990,
+            "question_preview": "Which of the following is a way that you can activate a button using Dragon Natu",
+            "objective_text": "Assess the compatibility of a chosen technology stack (front-end framework, JS library) with major screen reader/browser pairs and **recommend** fallback or polyfill strategies."
+        }
+    ],
+    "associations_by_text": [
+        {
+            "question_text": "What are the four principles of WCAG 2.2, commonly referred to as POUR?",
+            "objective_text": "Explain the structure of WCAG 2.2 by identifying the four principles (POUR), guidelines, and success criteria levels (A, AA, AAA)."
+        },
+        {
+            "question_text": "What is the primary purpose of the `alt` attribute in HTML image tags?",
+            "objective_text": "Analyze how focus order, event handling (onClick, onKeyDown, etc.), and ARIA states can either improve or harm the user experience for assistive technology."
+        }
+    ]
+}

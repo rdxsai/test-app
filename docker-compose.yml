@@ -19,6 +19,7 @@ services:
       # Bind mounts for persistent data (always on host machine)
       - ./data:/app/data                     # Data files (quiz_questions.json, etc.)
       - ./logs:/app/logs                     # Application logs
+      - ./scripts:/app/scripts:ro            # One-time scripts (export/import)
     environment:
       # PostgreSQL configuration
       - POSTGRES_HOST=postgres
@@ -119,7 +120,7 @@ services:
         # Keep container running
         wait
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      test: ["CMD", "ollama", "list"]
       interval: 30s
       timeout: 10s
       retries: 3
