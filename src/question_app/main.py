@@ -99,10 +99,26 @@ async def home(request: Request):
         templates = get_templates(app)
 
         # Convert markdown in question_text to HTML for card preview
+        import re
         md = markdown.Markdown(extensions=['fenced_code', 'codehilite'])
+        # Tags that are safe in markdown output (block + inline formatting)
+        SAFE_TAGS = {'p', 'br', 'strong', 'b', 'em', 'i', 'code', 'pre', 'span',
+                     'ul', 'ol', 'li', 'a', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+                     'blockquote', 'hr', 'div', 'table', 'thead', 'tbody', 'tr',
+                     'th', 'td', 'img', 'del', 's', 'sub', 'sup'}
+
+        def sanitize_html(html_str):
+            """Escape HTML tags that aren't safe markdown output."""
+            def replace_tag(m):
+                tag_name = m.group(1).strip().split()[0].lower().lstrip('/')
+                if tag_name in SAFE_TAGS:
+                    return m.group(0)
+                return m.group(0).replace('<', '&lt;').replace('>', '&gt;')
+            return re.sub(r'<(/?\s*[a-zA-Z][^>]*)>', replace_tag, html_str)
+
         for q in questions:
             if q.get('question_text'):
-                q['question_text_html'] = md.convert(q['question_text'])
+                q['question_text_html'] = sanitize_html(md.convert(q['question_text']))
                 md.reset()
             else:
                 q['question_text_html'] = ''
