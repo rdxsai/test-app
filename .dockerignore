@@ -47,8 +47,6 @@ docs/
 tests/
 pytest.ini
 
-# Development files
-scripts/
 .cursorignore
 
 # Database files (will use volumes)
