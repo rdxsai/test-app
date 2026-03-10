@@ -133,12 +133,14 @@ questionapp/
 ### Quick Start with Docker
 
 1. **Clone the repository:**
+
    ```bash
    git clone <repository-url>
    cd Merged-App
    ```
 
 2. **Configure environment variables:**
+
    ```bash
    # Copy the template
    cp .env.docker.template .env
@@ -155,6 +157,7 @@ questionapp/
    ```
 
 3. **Start all services:**
+
    ```bash
    docker compose up -d --build
    ```
@@ -171,15 +174,18 @@ questionapp/
    a. **Fetch questions from Canvas:** Open http://localhost:8080, select your course and quiz in the configuration panel, then click **Fetch Questions**. This pulls all questions from Canvas into the database with dedup support (safe to click multiple times).
 
    b. **Import learning objectives and associations:**
-      ```bash
-      docker exec question-app-backend poetry run python scripts/import_objectives.py prod
-      ```
-      This reads `data/objectives_export.json` (included in the repo) and creates all learning objectives and links them to the fetched questions using stable Canvas IDs.
+
+   ```bash
+   docker exec question-app-backend poetry run python scripts/import_objectives.py prod
+   ```
+
+   This reads `data/objectives_export.json` (included in the repo) and creates all learning objectives and links them to the fetched questions using stable Canvas IDs.
 
    c. **Build the vector store (for RAG chat):** Click **More Options > Create Vector Store** in the UI header, or run:
-      ```bash
-      curl -X POST http://localhost:8080/vector-store/create
-      ```
+
+   ```bash
+   curl -X POST http://localhost:8080/vector-store/create
+   ```
 
 5. **Access the application:**
    - **Application:** http://localhost:8080
@@ -227,11 +233,13 @@ docker-compose restart backend
 **Hot Reload Enabled:** Code changes in `src/`, `templates/`, and `static/` are automatically reflected without rebuilding.
 
 **Persistent Data:**
+
 - **PostgreSQL database:** Stored in Docker volume `question-app-postgres-data` (questions, objectives, embeddings)
 - **JSON backups:** `./data/quiz_questions.json` and `./data/objectives_export.json` on your host machine
 - **Ollama models:** Stored in Docker volume `question-app-ollama-models`
 
 **Service Communication:** Services communicate using Docker DNS:
+
 - Backend connects to `postgres:5432` (not `localhost:5432`)
 - Backend connects to `ollama:11434` (not `localhost:11434`)
 
@@ -240,18 +248,21 @@ docker-compose restart backend
 Objectives and question associations are portable via JSON export/import:
 
 **Export (save your curated data):**
+
 ```bash
 docker exec question-app-backend poetry run python scripts/export_objectives.py prod
 # Creates data/objectives_export.json — commit this to share with others
 ```
 
 **Import (on a fresh instance):**
+
 ```bash
 # After fetching questions from Canvas:
 docker exec question-app-backend poetry run python scripts/import_objectives.py prod
 ```
 
 **Database backup (full PostgreSQL dump):**
+
 ```bash
 docker exec question-app-postgres pg_dump -U app_user socratic_tutor > backups/backup-$(date +%Y%m%d).sql
 ```
@@ -259,6 +270,7 @@ docker exec question-app-postgres pg_dump -U app_user socratic_tutor > backups/b
 ### Troubleshooting Docker Setup
 
 **Issue: Port already in use**
+
 ```bash
 # Check what's using the port
 lsof -i :8080  # or :8000, :11434
@@ -267,6 +279,7 @@ lsof -i :8080  # or :8000, :11434
 ```
 
 **Issue: Ollama model not downloading**
+
 ```bash
 # Check Ollama logs
 docker-compose logs ollama
@@ -276,6 +289,7 @@ docker-compose exec ollama ollama pull nomic-embed-text
 ```
 
 **Issue: Services can't communicate**
+
 ```bash
 # Check network
 docker network inspect question-app-network
@@ -286,6 +300,7 @@ docker compose exec backend ping ollama
 ```
 
 **Clean slate (⚠️ deletes all data):**
+
 ```bash
 # Remove everything and start fresh
 docker-compose down -v
