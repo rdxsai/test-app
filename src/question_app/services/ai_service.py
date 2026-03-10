@@ -312,15 +312,18 @@ Return only the objective text, starting with action verbs like: Understand, App
             logger.error(f"Error generating objective from question: {e}", exc_info=True)
             raise Exception("Failed to generate learning objective using AI")
 
-    async def compute_similarity_score(self, question_text: str, objective_text: str) -> float:
+    async def compute_similarity_score(self, question_data: Dict, objective_text: str) -> float:
         """
-        Computes similarity score between a question and a single objective text.
+        Computes similarity score between a question (including answers and feedback) and a single objective text.
         Returns score as percentage (0-100).
         """
         logger.info(f"Computing similarity between question and objective...")
         try:
+            # Build comprehensive question context
+            question_context = self._build_question_context(question_data)
+            
             # Generate embeddings
-            question_embedding = (await get_ollama_embeddings([question_text]))[0]
+            question_embedding = (await get_ollama_embeddings([question_context]))[0]
             objective_embedding = (await get_ollama_embeddings([objective_text]))[0]
             
             q_vec = np.array(question_embedding)
@@ -354,11 +357,13 @@ Return only the objective text, starting with action verbs like: Understand, App
             logger.error(f"Error computing similarity score: {e}", exc_info=True)
             return 0.0
 
-    async def rank_objectives_with_llm(self, question_text: str, objectives: List[Dict]) -> List[Dict]:
+    async def rank_objectives_with_llm(self, question_data: Dict, objectives: List[Dict]) -> List[Dict]:
         """
         Uses LLM (GPT via Azure OpenAI) to rank objectives based on relevance to the question.
+        Includes question text, answers (with correctness), and feedback in analysis.
         Returns objectives with scores (0-100) sorted from most to least relevant.
         """
+        question_text = question_data.get('question_text', '')
         logger.info(f"Ranking {len(objectives)} objectives with LLM for question: {question_text[:50]}...")
 
         try:
@@ -368,6 +373,9 @@ Return only the objective text, starting with action verbs like: Understand, App
                 objectives_list.append(f"{i}. [ID: {obj['id']}] {obj['text']}")
 
             objectives_text = "\n".join(objectives_list)
+            
+            # Build comprehensive question context for the LLM
+            question_context = self._build_question_context(question_data)
 
             system_prompt = """You are an expert educational assessment specialist with deep knowledge of web accessibility, WCAG standards, and Bloom's Taxonomy.
 
@@ -519,12 +527,12 @@ REQUIRED JSON OUTPUT
 
 Return ONLY the JSON object, no other text."""
 
-            user_prompt = f"""Question: "{question_text}"
+            user_prompt = f"""{question_context}
 
 Learning Objectives to Rank:
 {objectives_text}
 
-Analyze each objective and provide relevance scores. Return the JSON response."""
+Analyze each objective based on the complete question context (including answers and feedback) and provide relevance scores. Return the JSON response."""
 
             payload = {
                 "messages": [
@@ -602,12 +610,44 @@ Analyze each objective and provide relevance scores. Return the JSON response.""
         except Exception as e:
             logger.error(f"Error in LLM-based ranking: {e}", exc_info=True)
             raise
+    
+    def _build_question_context(self, question_data: Dict) -> str:
+        """
+        Builds a comprehensive context string from question data including:
+        - Question text
+        - All answers with correctness indicators
+        - Feedback text if available
+        """
+        context_parts = []
+        
+        # Add question text
+        question_text = question_data.get('question_text', '')
+        context_parts.append(f"Question: \"{question_text}\"")
+        
+        # Add answers with correctness indicators
+        answers = question_data.get('answers', [])
+        if answers:
+            context_parts.append("\nAnswer Options:")
+            for i, ans in enumerate(answers, 1):
+                ans_text = ans.get('text', '')
+                is_correct = ans.get('is_correct', False)
+                correctness = "[CORRECT]" if is_correct else "[INCORRECT]"
+                context_parts.append(f"{i}. {ans_text} {correctness}")
+                
+                # Include feedback if available
+                feedback = ans.get('feedback_text', '').strip()
+                if feedback:
+                    context_parts.append(f"   Feedback: {feedback}")
+        
+        return "\n".join(context_parts)
 
-    async def suggest_objectives_for_question(self, question_text: str) -> List[Dict]:
+    async def suggest_objectives_for_question(self, question_data: Dict) -> List[Dict]:
         """
         Suggests objectives for a question using LLM-based ranking.
+        Includes question text, answers, and feedback in analysis.
         Returns ALL objectives with their relevance scores sorted by relevance.
         """
+        question_text = question_data.get('question_text', '')
         logger.info(f"Suggesting objectives for question: {question_text[:30]}...")
         try:
             all_objectives = self.db.list_all_objectives()
@@ -615,8 +655,8 @@ Analyze each objective and provide relevance scores. Return the JSON response.""
                 logger.warning("No objectives found in DB to suggest.")
                 return []
 
-            # Use LLM-based ranking instead of semantic similarity
-            ranked_objectives = await self.rank_objectives_with_llm(question_text, all_objectives)
+            # Use LLM-based ranking with full question context
+            ranked_objectives = await self.rank_objectives_with_llm(question_data, all_objectives)
             return ranked_objectives
 
         except Exception as e:

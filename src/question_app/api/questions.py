@@ -365,7 +365,7 @@ async def generate_feedback_stream(question_id: str):
 async def suggest_objectives(question_id: str):
     """
     (Req 8.2) Suggests existing objectives for a question using AI.
-    (This is the correct, working version)
+    Includes question text, answers, and feedback in the analysis.
     """
     try:
         question = db.load_question_details(question_id)
@@ -373,7 +373,7 @@ async def suggest_objectives(question_id: str):
             raise HTTPException(status_code=404, detail="Question not found")
         
         suggestions = await ai_generator.suggest_objectives_for_question(
-            question['question_text']
+            question
         )
         
         return {"suggestions": suggestions}
@@ -434,7 +434,7 @@ async def suggest_objectives_stream(question_id: str):
             })
 
             ranked = await ai_generator.rank_objectives_with_llm(
-                question["question_text"], all_objectives
+                question, all_objectives
             )
 
             high_score_count = len([r for r in ranked if r["score"] >= 60])
@@ -478,8 +478,8 @@ async def generate_objective_for_question(question_id: str):
         # Generate objective using AI
         objective_text = await ai_generator.generate_objective_from_question(question_text)
         
-        # Compute similarity score between question and generated objective
-        similarity_score = await ai_generator.compute_similarity_score(question_text, objective_text)
+        # Compute similarity score between question (with answers/feedback) and generated objective
+        similarity_score = await ai_generator.compute_similarity_score(question_data, objective_text)
         
         return {
             "objective": objective_text, 
@@ -494,7 +494,7 @@ async def generate_objective_for_question(question_id: str):
 @router.post("/{question_id}/check-objective-similarity", response_class=JSONResponse)
 async def check_objective_similarity(question_id: str, data: dict):
     """
-    Computes similarity score between a question and a provided objective text.
+    Computes similarity score between a question (including answers and feedback) and a provided objective text.
     """
     logger.info(f"Checking objective similarity for question_id: {question_id}")
     try:
@@ -513,8 +513,8 @@ async def check_objective_similarity(question_id: str, data: dict):
         if len(objective_text) < 20:
             raise HTTPException(status_code=400, detail="Objective text must be at least 20 characters")
         
-        # Compute similarity score
-        similarity_score = await ai_generator.compute_similarity_score(question_text, objective_text)
+        # Compute similarity score (now includes answers and feedback)
+        similarity_score = await ai_generator.compute_similarity_score(question_data, objective_text)
         
         return {
             "score": similarity_score,
