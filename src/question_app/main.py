@@ -165,7 +165,16 @@ def dev():
         This function is designed to be called from the command line or
         as a Poetry script entry point for development with hot reloading.
     """
-    uvicorn.run("question_app.main:app", host="0.0.0.0", port=8080, reload=True)
+    import os
+    # Disable reload in Docker to avoid constant reload loops
+    in_docker = os.environ.get('DOCKER_ENV', 'false') == 'true'
+    
+    uvicorn.run(
+        "question_app.main:app",
+        host="0.0.0.0",
+        port=8080,
+        reload=not in_docker
+    )
 
 
 if __name__ == "__main__":
