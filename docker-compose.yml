@@ -11,16 +11,19 @@ services:
       - "8080:8080"
     volumes:
       # Bind mounts for hot reload (code changes reflect immediately)
-      - ./src:/app/src:ro                    # Source code (read-only)
-      - ./templates:/app/templates:ro        # HTML templates (read-only)
-      - ./static:/app/static:ro              # Static files (read-only)
-      - ./config:/app/config:ro              # Config files (read-only)
+      - ./src:/app/src:ro # Source code (read-only)
+      - ./templates:/app/templates:ro # HTML templates (read-only)
+      - ./static:/app/static:ro # Static files (read-only)
+      - ./config:/app/config:ro # Config files (read-only)
 
       # Bind mounts for persistent data (always on host machine)
-      - ./data:/app/data                     # Data files (quiz_questions.json, etc.)
-      - ./logs:/app/logs                     # Application logs
-      - ./scripts:/app/scripts:ro            # One-time scripts (export/import)
+      - ./data:/app/data # Data files (quiz_questions.json, etc.)
+      - ./logs:/app/logs # Application logs
+      - ./scripts:/app/scripts:ro # One-time scripts (export/import)
     environment:
+      # Docker environment flag
+      - DOCKER_ENV=true
+
       # PostgreSQL configuration
       - POSTGRES_HOST=postgres
       - POSTGRES_PORT=5432
@@ -93,7 +96,7 @@ services:
     ports:
       - "11434:11434"
     volumes:
-      - ollama_models:/root/.ollama          # Persistent model storage
+      - ollama_models:/root/.ollama # Persistent model storage
     networks:
       - app-network
     # Pull the embedding model on first start
