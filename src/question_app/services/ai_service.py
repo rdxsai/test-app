@@ -76,31 +76,31 @@ class AIGeneratorService:
         logger.info(f"Target URL: {self.api_url[:50]}...") 
 
     # --- === THIS IS THE RESTORED, HIGH-QUALITY FUNCTION === ---
-    async def generate_feedback_for_answer(self, question_text: str, answer_text: str, is_correct: bool) -> str:
+    async def generate_feedback_for_answer(self, question_text: str, answer_text: str, is_correct: bool, choices: List[Dict] = None) -> str:
         logger.info(f"Generating feedback for answer: {answer_text[:30]}...")
 
-        # Attempt to load the full set of choices from the DB so the LLM
-        # can explain why each incorrect option is incorrect.
-        choices = []
-        try:
-            all_questions = self.db.list_all_questions()
-            question_id = None
-            for q in all_questions:
-                if q.get("question_text") == question_text:
-                    question_id = q.get("id")
-                    break
-            if not question_id:
+        # Use provided choices if available; otherwise fall back to a DB lookup.
+        if choices is None:
+            choices = []
+            try:
+                all_questions = self.db.list_all_questions()
+                question_id = None
                 for q in all_questions:
-                    if question_text.strip() and question_text.strip() in q.get("question_text", ""):
+                    if q.get("question_text") == question_text:
                         question_id = q.get("id")
                         break
+                if not question_id:
+                    for q in all_questions:
+                        if question_text.strip() and question_text.strip() in q.get("question_text", ""):
+                            question_id = q.get("id")
+                            break
 
-            if question_id:
-                details = self.db.load_question_details(question_id)
-                if details and details.get("answers"):
-                    choices = details["answers"]
-        except Exception as e:
-            logger.warning(f"Unable to load choices from DB for question lookup: {e}")
+                if question_id:
+                    details = self.db.load_question_details(question_id)
+                    if details and details.get("answers"):
+                        choices = details["answers"]
+            except Exception as e:
+                logger.warning(f"Unable to load choices from DB for question lookup: {e}")
 
         # Build choices text for the prompt
         if choices:
