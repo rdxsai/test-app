@@ -9,11 +9,15 @@ WORKDIR /app
 # Install system dependencies
 # - curl: for health checks
 # - gcc, g++: for compiling Python packages with C extensions
+# - nodejs: for wcag-guidelines-mcp server
 RUN apt-get update && apt-get install -y \
     curl \
     gcc \
     g++ \
     libpq-dev \
+    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs \
+    && npm install -g wcag-guidelines-mcp \
     && rm -rf /var/lib/apt/lists/*
 
 # Set environment variables

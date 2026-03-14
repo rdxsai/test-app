@@ -72,3 +72,61 @@ Results from both are fused using **Reciprocal Rank Fusion**: `rrf_score = 1/(60
 - `src/question_app/services/tutor/interfaces.py` — `hybrid_search()` added to `VectorStoreInterface`
 - `src/question_app/services/database.py` — `content_tsv` tsvector column, GIN index, auto-update trigger
 - `src/question_app/services/tutor/hybrid_system.py` — `generate_hyde_query()`, `get_rag_context()` with HyDE + filtering
+
+---
+
+## 3. WCAG MCP Integration + Agent Pipeline Strip
+
+### Before
+
+**No authoritative source**: The tutor answered from LLM training data only. There was no way to cite specific WCAG 2.2 success criteria, techniques, or understanding documents. If the LLM's training data was stale or vague on a particular SC, the response would be too.
+
+**8 LLM calls per query**: Every `conceptual_question` went through:
+1. CoordinatorAgent — classify intent
+2. HyDE — hypothetical answer for vector search
+3. ResponseAnalystAgent — analyze student understanding (knowledge level, misconceptions)
+4. ProgressTrackerAgent — assess learning progress (consecutive correct count, phase transitions)
+5. QuestionGeneratorAgent — generate the answer
+6. SessionOrchestratorAgent — polish the final response
+
+Agents 3-6 existed to support a student mastery tracking system (knowledge levels, session phases, misconception tracking, advancement criteria). But this system was **not fully built** — the analysis/progress data wasn't surfaced anywhere meaningful. These 4 LLM calls burned API tokens on analysis that went unused.
+
+### After
+
+**WCAG MCP client**: A new `WCAGMCPClient` connects to the `wcag-guidelines-mcp` Node.js server via stdio (MCP protocol). It uses **LLM-driven tool selection** — Azure OpenAI function calling decides which tools to invoke based on the student's query:
+- `search_wcag` — keyword search across SC titles/descriptions
+- `search_techniques` — keyword search across WCAG techniques (H37, ARIA1, etc.)
+- `get_full_criterion_context` — full SC details by number (richest data)
+
+The system prompt includes **SC number mappings** (e.g., "captions/subtitles → 1.2.2") so the LLM can go directly to `get_full_criterion_context` instead of relying on substring search. A **multi-turn retry** feeds failures back to the LLM for a second attempt with a different tool strategy.
+
+RAG and MCP run **concurrently** via `asyncio.gather()` in `get_combined_context()`, adding zero additional latency.
+
+**Agent pipeline stripped to single call**: The 4-agent chain (analyst → progress → questioner → orchestrator) is replaced by a single `_generate_response()` method that takes the retrieved context (RAG + WCAG) + conversation history + student query and produces the response directly. All agent class definitions are preserved for future use.
+
+### Why it's better
+| Aspect | Before | After |
+|--------|--------|-------|
+| WCAG source | LLM training data (stale, uncitable) | Authoritative WCAG 2.2 via MCP (citable SCs) |
+| LLM calls per query | 7-8 | 4-5 (classify + HyDE + MCP + response) |
+| Response coherence | Telephone-game through 4 agents | Single direct generation from full context |
+| API cost | ~8 calls × tokens | ~4 calls × tokens (~50% reduction) |
+| Latency | Sequential agent chain | Concurrent RAG + MCP, then single response call |
+| Mastery tracking agents | Called but output unused | Preserved as classes, not called until system is ready |
+
+### LLM calls after change
+
+| # | Call | Purpose |
+|---|------|---------|
+| 1 | CoordinatorAgent | Classify intent (`conceptual_question` / `code_analysis_request` / `off_topic`) |
+| 2 | HyDE generation | Hypothetical answer for vector search embedding |
+| 3 | WCAG MCP tool selection | LLM picks which MCP tools to call via function calling |
+| 4 | (optional) WCAG retry | Retry with different tool if round 1 returned empty |
+| 5 | `_generate_response()` | Single call: context + history → final response |
+
+### Key files
+- `src/question_app/services/wcag_mcp_client.py` — MCP client with LLM-driven tool selection and multi-turn retry
+- `src/question_app/core/config.py` — `WCAG_MCP_ENABLED`, `WCAG_MCP_COMMAND` settings
+- `Dockerfile` — Node.js + `wcag-guidelines-mcp` npm install
+- `pyproject.toml` / `poetry.lock` — `mcp` dependency
+- `src/question_app/services/tutor/hybrid_system.py` — `_generate_response()`, simplified session methods, `get_combined_context()` with concurrent RAG + MCP
