@@ -168,12 +168,13 @@ def dev():
     import os
     # Disable reload in Docker to avoid constant reload loops
     in_docker = os.environ.get('DOCKER_ENV', 'false') == 'true'
-    
+
     uvicorn.run(
         "question_app.main:app",
         host="0.0.0.0",
         port=8080,
-        reload=not in_docker
+        reload=not in_docker,
+        reload_dirs=["/app/src", "/app/templates"],
     )
 
 

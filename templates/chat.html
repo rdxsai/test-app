@@ -7,6 +7,10 @@
   <title>Socratic Tutor - Canvas Quiz Manager</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet" />
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" />
+  <!-- Markdown rendering + syntax highlighting -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.1/marked.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
   <style>
     body {
       background-color: #f8f9fa;
@@ -119,9 +123,14 @@
       align-items: flex-start;
     }
 
+    .typing-content {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
     .typing-dots {
       display: inline-block;
-      padding: 1.25rem;
     }
 
     .typing-dots span {
@@ -143,7 +152,6 @@
     }
 
     @keyframes typing {
-
       0%,
       80%,
       100% {
@@ -155,6 +163,26 @@
         transform: scale(1);
         opacity: 1;
       }
+    }
+
+    .stage-label {
+      font-size: 0.8rem;
+      color: #6c757d;
+      font-style: italic;
+    }
+
+    .ws-status {
+      font-size: 0.75rem;
+      padding: 0.15rem 0.5rem;
+      border-radius: 4px;
+    }
+
+    .ws-status.connected {
+      color: #198754;
+    }
+
+    .ws-status.disconnected {
+      color: #dc3545;
     }
 
     .progress-panel {
@@ -175,18 +203,192 @@
       padding: 1rem;
     }
 
-    .progress-item {
-      margin-bottom: 1rem;
+    .chunk-card {
+      background-color: #f8f9fa;
+      border: 1px solid #e9ecef;
+      border-radius: 6px;
+      padding: 0.6rem 0.75rem;
+      margin-bottom: 0.5rem;
+      font-size: 0.8rem;
+      line-height: 1.4;
     }
 
-    .progress-item strong {
-      display: block;
+    .chunk-card .chunk-meta {
+      display: flex;
+      gap: 0.4rem;
+      flex-wrap: wrap;
+      margin-bottom: 0.3rem;
+    }
+
+    .chunk-card .chunk-meta .badge {
+      font-size: 0.65rem;
+      font-weight: 500;
+    }
+
+    .chunk-card .chunk-content {
       color: #495057;
+      white-space: pre-wrap;
+      max-height: 120px;
+      overflow-y: auto;
     }
 
-    .progress-item span,
-    .progress-item .progress {
-      font-size: 0.9rem;
+    .chunks-section {
+      border-top: 1px solid #dee2e6;
+      padding-top: 0.75rem;
+      margin-top: 0.75rem;
+    }
+
+    .chunks-section h6 {
+      font-size: 0.85rem;
+    }
+
+    .chunk-count-badge {
+      font-size: 0.7rem;
+    }
+
+    /* WCAG reference cards */
+    .wcag-ref-card {
+      background-color: #f8f9fa;
+      border: 1px solid #dee2e6;
+      border-left: 3px solid #0d6efd;
+      border-radius: 6px;
+      padding: 0.75rem;
+      margin-bottom: 0.5rem;
+      font-size: 0.82rem;
+    }
+    .wcag-ref-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      margin-bottom: 0.35rem;
+    }
+    .wcag-ref-title {
+      font-weight: 600;
+      font-size: 0.88rem;
+      color: #212529;
+    }
+    .wcag-ref-guideline {
+      font-size: 0.75rem;
+      color: #6c757d;
+      margin-bottom: 0.4rem;
+    }
+    .wcag-ref-desc {
+      color: #495057;
+      line-height: 1.45;
+      margin-bottom: 0.4rem;
+    }
+    .wcag-ref-techniques {
+      margin-bottom: 0.35rem;
+      display: flex;
+      gap: 0.3rem;
+    }
+    .wcag-ref-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 0.3rem;
+      padding-top: 0.35rem;
+      border-top: 1px solid #e9ecef;
+    }
+    .wcag-ref-links a {
+      font-size: 0.75rem;
+      color: #0d6efd;
+      text-decoration: none;
+    }
+    .wcag-ref-links a:hover {
+      text-decoration: underline;
+    }
+
+    /* ---- Markdown content inside messages ---- */
+    .message-content p {
+      margin-bottom: 0.5rem;
+    }
+    .message-content p:last-child {
+      margin-bottom: 0;
+    }
+    .message-content h1, .message-content h2, .message-content h3,
+    .message-content h4, .message-content h5, .message-content h6 {
+      margin-top: 0.75rem;
+      margin-bottom: 0.4rem;
+      font-weight: 600;
+    }
+    .message-content h1 { font-size: 1.25rem; }
+    .message-content h2 { font-size: 1.15rem; }
+    .message-content h3 { font-size: 1.05rem; }
+
+    .message-content ul, .message-content ol {
+      margin: 0.25rem 0 0.5rem 0;
+      padding-left: 1.5rem;
+    }
+    .message-content li {
+      margin-bottom: 0.2rem;
+    }
+
+    /* Inline code */
+    .message-content code {
+      background-color: rgba(0,0,0,0.06);
+      padding: 0.15rem 0.35rem;
+      border-radius: 4px;
+      font-size: 0.85em;
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    }
+    /* User message inline code needs different contrast */
+    .message-bubble.user .message-content code {
+      background-color: rgba(255,255,255,0.2);
+    }
+
+    /* Code blocks */
+    .message-content pre {
+      background-color: #1e1e1e;
+      color: #d4d4d4;
+      border-radius: 8px;
+      padding: 0.85rem 1rem;
+      margin: 0.5rem 0;
+      overflow-x: auto;
+      font-size: 0.82rem;
+      line-height: 1.5;
+    }
+    .message-content pre code {
+      background: none;
+      padding: 0;
+      border-radius: 0;
+      font-size: inherit;
+      color: inherit;
+    }
+
+    /* Blockquotes */
+    .message-content blockquote {
+      border-left: 3px solid #0d6efd;
+      margin: 0.5rem 0;
+      padding: 0.25rem 0.75rem;
+      color: #495057;
+      background-color: rgba(13, 110, 253, 0.04);
+      border-radius: 0 4px 4px 0;
+    }
+
+    /* Tables */
+    .message-content table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 0.5rem 0;
+      font-size: 0.85rem;
+    }
+    .message-content th, .message-content td {
+      border: 1px solid #dee2e6;
+      padding: 0.4rem 0.6rem;
+      text-align: left;
+    }
+    .message-content th {
+      background-color: rgba(0,0,0,0.04);
+      font-weight: 600;
+    }
+
+    /* Horizontal rules */
+    .message-content hr {
+      border: none;
+      border-top: 1px solid #dee2e6;
+      margin: 0.75rem 0;
     }
   </style>
 </head>
@@ -199,7 +401,8 @@
         <h1 class="h3 mb-0">
           <i class="fas fa-comments text-primary"></i> Socratic Tutor
         </h1>
-        <div>
+        <div class="d-flex align-items-center gap-2">
+          <span id="wsStatus" class="ws-status disconnected">Connecting...</span>
           <button id="newConversationBtn" class="btn btn-outline-danger me-2">
             <i class="fas fa-sync-alt"></i> New Conversation
           </button>
@@ -223,10 +426,13 @@
                 <i class="fas fa-robot"></i>
               </div>
               <div class="message-content">
-                <div class="typing-dots">
-                  <span></span>
-                  <span></span>
-                  <span></span>
+                <div class="typing-content">
+                  <div class="typing-dots">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                  </div>
+                  <span class="stage-label" id="stageLabel"></span>
                 </div>
               </div>
             </div>
@@ -243,51 +449,36 @@
         </div>
       </div>
 
-      <!-- Student Progress Panel (Right) -->
+      <!-- Knowledge Sources Panel (Right) -->
       <div class="col-lg-4">
         <div class="d-lg-none mb-2">
           <button class="btn btn-outline-secondary w-100" type="button" data-bs-toggle="collapse"
             data-bs-target="#progressCollapse" aria-expanded="false" aria-controls="progressCollapse">
-            <i class="fas fa-tasks"></i> Toggle Student Progress
+            <i class="fas fa-database"></i> Toggle Knowledge Sources
           </button>
         </div>
         <div class="collapse d-lg-block" id="progressCollapse">
           <div class="progress-panel">
             <div class="progress-header">
               <h6 class="mb-0">
-                <i class="fas fa-user-graduate"></i> Student Progress
+                <i class="fas fa-database"></i> Knowledge Sources
               </h6>
             </div>
             <div class="progress-content" id="progressContent">
-              <div class="progress-item">
-                <strong>Student ID:</strong>
-                <span id="studentIdDisplay" class="text-muted">Initializing...</span>
-              </div>
-              <div class="progress-item">
-                <strong>Current Topic:</strong>
-                <span id="currentTopic" class="text-muted">None</span>
-              </div>
-              <div class="progress-item">
-                <strong>Knowledge Level:</strong>
-                <span id="knowledgeLevel" class="badge bg-light text-dark">Unknown</span>
-              </div>
-              <div class="progress-item">
-                <strong>Session Phase:</strong>
-                <span id="sessionPhase" class="badge bg-light text-dark">Not Started</span>
-              </div>
-              <div class="progress-item">
-                <strong>Misconceptions:</strong>
-                <ul id="misconceptionsList" class="list-unstyled text-muted ps-3">
-                  <li>None identified.</li>
-                </ul>
-              </div>
-              <div class="progress-item">
-                <strong>Progress (temp):</strong>
-                <div class="progress" style="height: 10px;">
-                  <div id="understandingProgress" class="progress-bar" role="progressbar" style="width: 0%;"
-                    aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
-                  </div>
+              <div>
+                <h6 class="mb-2">
+                  <i class="fas fa-search"></i> Retrieved Chunks
+                  <span id="chunkCount" class="badge bg-secondary chunk-count-badge ms-1">0</span>
+                </h6>
+                <div id="chunksContainer">
+                  <span class="text-muted" style="font-size:0.8rem;">No chunks retrieved yet.</span>
                 </div>
+              </div>
+              <div class="chunks-section" id="wcagSection" style="display:none;">
+                <h6 class="mb-2">
+                  <i class="fas fa-universal-access"></i> WCAG References
+                </h6>
+                <div id="wcagContainer"></div>
               </div>
             </div>
           </div>
@@ -303,40 +494,230 @@
       const sendBtn = document.getElementById("sendBtn");
       const chatMessages = document.getElementById("chatMessages");
       const typingIndicator = document.getElementById("typingIndicator");
+      const stageLabel = document.getElementById("stageLabel");
+      const wsStatus = document.getElementById("wsStatus");
       const newConversationBtn = document.getElementById("newConversationBtn");
-      const studentIdDisplay = document.getElementById("studentIdDisplay");
-      const currentTopic = document.getElementById("currentTopic");
-      const knowledgeLevel = document.getElementById("knowledgeLevel");
-      const sessionPhase = document.getElementById("sessionPhase");
-      const misconceptionsList = document.getElementById("misconceptionsList");
-      const understandingProgress = document.getElementById("understandingProgress");
+      const chunksContainer = document.getElementById("chunksContainer");
+      const chunkCount = document.getElementById("chunkCount");
+      const wcagSection = document.getElementById("wcagSection");
+      const wcagContainer = document.getElementById("wcagContainer");
 
       let isProcessing = false;
-      // --- THIS IS THE FIX ---
-      // We will get the student ID from the API response
-      // and store it here.
-      let studentId = null;
-      // --- END OF FIX ---
+      let studentId = "default-student";
+      let ws = null;
+      let pingInterval = null;
+      let reconnectTimeout = null;
+      let streamingBubble = null; // reference to the bubble being streamed into
+      let streamingTextEl = null; // the text div inside the streaming bubble
+
+      const STAGE_LABELS = {
+        classifying: "Understanding your question...",
+        searching: "Searching knowledge base...",
+        analyzing: "Analyzing your response...",
+        assessing: "Assessing progress...",
+        composing: "Composing response...",
+      };
+
+      // ================================================================
+      // WEBSOCKET CONNECTION
+      // ================================================================
+
+      function connectWebSocket() {
+        if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
+          return;
+        }
+
+        const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+        const url = `${protocol}//${window.location.host}/chat/ws`;
+        ws = new WebSocket(url);
+
+        ws.onopen = function () {
+          console.log("WebSocket connected");
+          wsStatus.textContent = "Connected";
+          wsStatus.className = "ws-status connected";
+
+          // Authenticate
+          ws.send(JSON.stringify({ type: "auth", student_id: studentId }));
+
+          // Start keepalive
+          if (pingInterval) clearInterval(pingInterval);
+          pingInterval = setInterval(() => {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+              ws.send(JSON.stringify({ type: "ping" }));
+            }
+          }, 30000);
+        };
+
+        ws.onmessage = function (event) {
+          const msg = JSON.parse(event.data);
+          handleServerMessage(msg);
+        };
+
+        ws.onclose = function (event) {
+          console.log("WebSocket closed:", event.code, event.reason);
+          wsStatus.textContent = "Disconnected";
+          wsStatus.className = "ws-status disconnected";
+          if (pingInterval) clearInterval(pingInterval);
+
+          // Auto-reconnect after 3 seconds (unless clean close)
+          if (event.code !== 1000) {
+            reconnectTimeout = setTimeout(connectWebSocket, 3000);
+          }
+        };
+
+        ws.onerror = function (error) {
+          console.error("WebSocket error:", error);
+        };
+      }
+
+      function handleServerMessage(msg) {
+        switch (msg.type) {
+          case "connected":
+            console.log("WS: connected");
+            break;
+
+          case "authenticated":
+            studentId = msg.student_id;
+            console.log("WS: authenticated as", studentId, "session", msg.session_number);
+            // Request new session to get welcome message
+            ws.send(JSON.stringify({ type: "new_session" }));
+            break;
+
+          case "welcome":
+            studentId = msg.student_id;
+            addMessage("tutor", msg.content);
+            setProcessingState(false);
+            break;
+
+          case "stage":
+            stageLabel.textContent = STAGE_LABELS[msg.stage] || msg.stage;
+            setProcessingState(true);
+            break;
+
+          case "rag_chunks":
+            renderChunks(msg.chunks || []);
+            break;
+
+          case "wcag_context":
+            renderWCAGContext(msg.content || "");
+            break;
+
+          case "stream_start":
+            // Hide typing indicator, create an empty tutor bubble
+            typingIndicator.style.display = "none";
+            stageLabel.textContent = "";
+            createStreamingBubble();
+            break;
+
+          case "token":
+            appendToken(msg.content);
+            break;
+
+          case "stream_end":
+            finalizeStreamingBubble();
+            updateProgressPanel(msg.metadata);
+            setProcessingState(false);
+            break;
+
+          case "error":
+            setProcessingState(false);
+            addMessage("system", "Error: " + msg.message);
+            break;
+
+          case "pong":
+            break;
+
+          default:
+            console.log("WS: unknown message type", msg.type);
+        }
+      }
+
+      // ================================================================
+      // STREAMING BUBBLE
+      // ================================================================
+
+      // Returns true if the user is scrolled near the bottom (within 100px)
+      function isNearBottom() {
+        const threshold = 100;
+        return chatMessages.scrollHeight - chatMessages.scrollTop - chatMessages.clientHeight < threshold;
+      }
+
+      function scrollToBottomIfNeeded() {
+        if (isNearBottom()) {
+          chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+      }
+
+      function createStreamingBubble() {
+        const bubble = document.createElement("div");
+        bubble.className = "message-bubble tutor";
+
+        const avatar = document.createElement("div");
+        avatar.className = "avatar avatar-tutor";
+        avatar.innerHTML = '<i class="fas fa-robot"></i>';
+
+        const content = document.createElement("div");
+        content.className = "message-content";
+
+        const textEl = document.createElement("div");
+        textEl.className = "streaming-text";
+        content.appendChild(textEl);
+
+        bubble.appendChild(avatar);
+        bubble.appendChild(content);
+
+        chatMessages.insertBefore(bubble, typingIndicator);
+        streamingBubble = bubble;
+        streamingTextEl = textEl;
+        scrollToBottomIfNeeded();
+      }
+
+      function appendToken(token) {
+        if (!streamingTextEl) return;
+        // Append raw text, format on finalize
+        streamingTextEl._rawText = (streamingTextEl._rawText || "") + token;
+        streamingTextEl.innerHTML = formatMessage(streamingTextEl._rawText);
+        scrollToBottomIfNeeded();
+      }
+
+      function finalizeStreamingBubble() {
+        if (streamingBubble && streamingTextEl) {
+          // Add timestamp
+          const timestamp = document.createElement("div");
+          timestamp.className = "message-timestamp";
+          timestamp.textContent = new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+          streamingTextEl.parentElement.appendChild(timestamp);
+        }
+        streamingBubble = null;
+        streamingTextEl = null;
+      }
+
+      // ================================================================
+      // USER ACTIONS
+      // ================================================================
 
       function startNewConversation() {
-        // We no longer create a UUID here. We let the backend do it.
-        studentId = null;
-        studentIdDisplay.textContent = "Initializing...";
         chatMessages.innerHTML = "";
         chatMessages.appendChild(typingIndicator);
         updateProgressPanel(null);
+        // Reset WCAG section
+        wcagSection.style.display = "none";
+        wcagContainer.innerHTML = "";
+        setProcessingState(true);
 
-        // Send a "START_SESSION" message.
-        // The new chat.py will see student_id is null and create one.
-        sendMessage("START_SESSION");
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: "new_session" }));
+        } else {
+          connectWebSocket();
+        }
       }
 
       newConversationBtn.addEventListener("click", startNewConversation);
 
       sendBtn.addEventListener("click", () => {
         const message = messageInput.value.trim();
-        if (message) {
-          sendMessage(message);
+        if (message && !isProcessing) {
+          sendChatMessage(message);
           messageInput.value = "";
           autoResizeTextarea(messageInput);
         }
@@ -351,112 +732,191 @@
 
       messageInput.addEventListener("input", () => autoResizeTextarea(messageInput));
 
-      async function sendMessage(message) {
-        if (isProcessing && message !== "START_SESSION") return;
-
-        if (message !== "START_SESSION") {
-          addMessage("user", message);
-        }
-
+      function sendChatMessage(message) {
+        addMessage("user", message);
         setProcessingState(true);
 
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: "message", content: message }));
+        } else {
+          // Fallback to POST if WebSocket not available
+          sendMessageViaPost(message);
+        }
+      }
+
+      // POST fallback for backward compatibility
+      async function sendMessageViaPost(message) {
         try {
           const response = await fetch("/chat/message", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              message: message,
-              student_id: studentId // This will be `null` for the first message
-            }),
+            body: JSON.stringify({ message: message, student_id: studentId }),
           });
-
           const result = await response.json();
-
           if (response.ok) {
-            // --- THIS IS THE FIX ---
-            // The server sends back the ID, so we save it
-            // for all future messages in this session.
             studentId = result.student_id;
-            // --- END OF FIX ---
-
             addMessage("tutor", result.response);
             updateProgressPanel(result.session_metadata);
           } else {
             throw new Error(result.detail || "An unknown error occurred.");
           }
-
         } catch (error) {
-          addMessage("system", `Error: ${error.message}`);
+          addMessage("system", "Error: " + error.message);
         } finally {
           setProcessingState(false);
         }
       }
+
+      // ================================================================
+      // UI HELPERS
+      // ================================================================
 
       function addMessage(type, content) {
         const messageBubble = document.createElement("div");
         messageBubble.className = `message-bubble ${type}`;
         const avatar = document.createElement("div");
         avatar.className = `avatar avatar-${type}`;
-        avatar.innerHTML = `<i class="fas ${type === 'user' ? 'fa-user' : 'fa-robot'}"></i>`;
+        avatar.innerHTML = `<i class="fas ${type === "user" ? "fa-user" : "fa-robot"}"></i>`;
         const messageContent = document.createElement("div");
         messageContent.className = "message-content";
         const messageText = document.createElement("div");
         messageText.innerHTML = formatMessage(content);
         const timestamp = document.createElement("div");
         timestamp.className = "message-timestamp";
-        timestamp.textContent = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        timestamp.textContent = new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
         messageContent.appendChild(messageText);
         messageContent.appendChild(timestamp);
         messageBubble.appendChild(avatar);
         messageBubble.appendChild(messageContent);
         chatMessages.insertBefore(messageBubble, typingIndicator);
-        chatMessages.scrollTop = chatMessages.scrollHeight;
+        scrollToBottomIfNeeded();
       }
 
       function updateProgressPanel(metadata) {
-        // --- THIS IS THE FIX ---
-        // Update the display with the new studentId
-        studentIdDisplay.textContent = studentId ? studentId.split('-')[0] + "..." : "N/A";
-        // --- END OF FIX ---
+        // No-op: student progress panel removed. Chunks + WCAG handled separately.
+      }
 
-        if (!metadata || !metadata.analysis) { // Check for metadata.analysis
-          currentTopic.textContent = "Web Accessibility";
-          knowledgeLevel.textContent = "Unknown";
-          sessionPhase.textContent = "Not Started";
-          misconceptionsList.innerHTML = "<li>None identified.</li>";
-          understandingProgress.style.width = "0%";
-          understandingProgress.textContent = "0%";
+      function renderChunks(chunks) {
+        chunkCount.textContent = chunks.length;
+        if (!chunks.length) {
+          chunksContainer.innerHTML = '<span class="text-muted" style="font-size:0.8rem;">No relevant chunks found (LLM using general knowledge).</span>';
           return;
         }
+        chunksContainer.innerHTML = "";
+        chunks.forEach((chunk, idx) => {
+          const card = document.createElement("div");
+          card.className = "chunk-card";
 
-        const analysis = metadata.analysis;
+          const meta = document.createElement("div");
+          meta.className = "chunk-meta";
+          if (chunk.rrf_score) {
+            const rrfBadge = document.createElement("span");
+            rrfBadge.className = "badge bg-primary";
+            rrfBadge.textContent = `RRF: ${chunk.rrf_score}`;
+            meta.appendChild(rrfBadge);
+          }
+          if (chunk.distance !== null && chunk.distance !== undefined) {
+            const distBadge = document.createElement("span");
+            distBadge.className = "badge bg-info text-dark";
+            distBadge.textContent = `Dist: ${chunk.distance}`;
+            meta.appendChild(distBadge);
+          }
+          if (chunk.topic) {
+            const topicBadge = document.createElement("span");
+            topicBadge.className = "badge bg-light text-dark";
+            topicBadge.textContent = chunk.topic;
+            meta.appendChild(topicBadge);
+          }
 
-        currentTopic.textContent = "Web Accessibility"; // Hardcoded for now
-        knowledgeLevel.textContent = analysis.understanding_level || "Unknown";
-        sessionPhase.textContent = metadata.session_phase || "Unknown";
+          const content = document.createElement("div");
+          content.className = "chunk-content";
+          content.textContent = chunk.content || "";
 
-        let knowledgeClass = "bg-light text-dark";
-        if (analysis.understanding_level === "recall") knowledgeClass = "bg-danger";
-        if (analysis.understanding_level === "understanding") knowledgeClass = "bg-warning";
-        if (analysis.understanding_level === "application") knowledgeClass = "bg-info";
-        if (analysis.understanding_level === "analysis") knowledgeClass = "bg-success";
-        knowledgeLevel.className = `badge ${knowledgeClass}`;
+          card.appendChild(meta);
+          card.appendChild(content);
+          chunksContainer.appendChild(card);
+        });
+      }
 
-        if (analysis.misconceptions && analysis.misconceptions.length > 0) {
-          misconceptionsList.innerHTML = "";
-          analysis.misconceptions.forEach(misconception => {
-            const li = document.createElement("li");
-            li.innerHTML = `<i class="fas fa-times-circle text-danger me-2"></i>${escapeHtml(misconception)}`;
-            misconceptionsList.appendChild(li);
-          });
-        } else {
-          misconceptionsList.innerHTML = "<li>None identified.</li>";
+      function renderWCAGContext(content) {
+        if (!content) {
+          wcagSection.style.display = "none";
+          return;
         }
+        wcagSection.style.display = "block";
+        wcagContainer.innerHTML = "";
 
-        // This is just a placeholder, as 'understanding_progression' is a list
-        let progress = (metadata.session_number || 1) * 10;
-        understandingProgress.style.width = `${progress}%`;
-        understandingProgress.textContent = `${progress}%`;
+        // MCP may return multiple SCs separated by double newlines.
+        // Each starts with "# Complete Context: X.X.X ..."
+        const scBlocks = content.split(/(?=# Complete Context:)/g).filter(b => b.trim());
+
+        scBlocks.forEach(block => {
+          const card = document.createElement("div");
+          card.className = "wcag-ref-card";
+
+          // Parse key fields from the markdown block
+          const titleMatch = block.match(/# Complete Context:\s*(.+)/);
+          const levelMatch = block.match(/\*\*Level:\*\*\s*(\w+)/);
+          const principleMatch = block.match(/\*\*Principle:\*\*\s*(.+)/);
+          const guidelineMatch = block.match(/\*\*Guideline:\*\*\s*(.+)/);
+          const versionsMatch = block.match(/\*\*WCAG Versions:\*\*\s*(.+)/);
+          const sufficientMatch = block.match(/\*\*Sufficient:\*\*\s*(\d+)/);
+          const failureMatch = block.match(/\*\*Failure:\*\*\s*(\d+)/);
+
+          // Extract the criterion description (text between versions line and ## Techniques)
+          const descMatch = block.match(/WCAG Versions:[^\n]*\n\n([\s\S]*?)(?=\n## Techniques|$)/);
+          const description = descMatch ? descMatch[1].trim() : "";
+
+          // Extract links
+          const links = [];
+          const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
+          let m;
+          // Only get links from the ## Links section
+          const linksSection = block.split("## Links")[1] || "";
+          while ((m = linkRegex.exec(linksSection)) !== null) {
+            links.push({ text: m[1], url: m[2] });
+          }
+
+          const title = titleMatch ? titleMatch[1].trim() : "WCAG Reference";
+          const level = levelMatch ? levelMatch[1] : "";
+          const guideline = guidelineMatch ? guidelineMatch[1].trim() : "";
+
+          // Build card HTML
+          let html = `<div class="wcag-ref-header">
+            <span class="wcag-ref-title">${title}</span>
+            ${level ? `<span class="badge ${level === 'A' ? 'bg-success' : level === 'AA' ? 'bg-primary' : 'bg-warning text-dark'}">${level}</span>` : ''}
+          </div>`;
+
+          if (guideline) {
+            html += `<div class="wcag-ref-guideline">${guideline}</div>`;
+          }
+
+          if (description) {
+            html += `<div class="wcag-ref-desc">${description}</div>`;
+          }
+
+          // Techniques summary
+          const sufficient = sufficientMatch ? parseInt(sufficientMatch[1]) : 0;
+          const failures = failureMatch ? parseInt(failureMatch[1]) : 0;
+          if (sufficient || failures) {
+            html += `<div class="wcag-ref-techniques">`;
+            if (sufficient) html += `<span class="badge bg-light text-dark">${sufficient} techniques</span> `;
+            if (failures) html += `<span class="badge bg-danger bg-opacity-10 text-danger">${failures} failures</span>`;
+            html += `</div>`;
+          }
+
+          // Links
+          if (links.length) {
+            html += `<div class="wcag-ref-links">`;
+            links.forEach(link => {
+              html += `<a href="${link.url}" target="_blank" rel="noopener">${link.text}</a>`;
+            });
+            html += `</div>`;
+          }
+
+          card.innerHTML = html;
+          wcagContainer.appendChild(card);
+        });
       }
 
       function setProcessingState(processing) {
@@ -467,33 +927,41 @@
 
         if (processing) {
           sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-          chatMessages.scrollTop = chatMessages.scrollHeight;
+          scrollToBottomIfNeeded();
         } else {
           sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
+          stageLabel.textContent = "";
           messageInput.focus();
         }
       }
 
       function autoResizeTextarea(textarea) {
-        textarea.style.height = 'auto';
+        textarea.style.height = "auto";
         textarea.style.height = `${Math.min(textarea.scrollHeight, 160)}px`;
       }
 
+      // Configure marked with highlight.js for code blocks
+      marked.setOptions({
+        highlight: function(code, lang) {
+          if (lang && hljs.getLanguage(lang)) {
+            return hljs.highlight(code, { language: lang }).value;
+          }
+          return hljs.highlightAuto(code).value;
+        },
+        breaks: true,
+        gfm: true,
+      });
+
       function formatMessage(content) {
-        return escapeHtml(content)
-          .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-          .replace(/\*(.*?)\*/g, "<em>$1</em>")
-          .replace(/\n/g, "<br>");
+        if (typeof content !== "string") return "";
+        return marked.parse(content);
       }
 
-      function escapeHtml(text) {
-        if (typeof text !== 'string') return '';
-        const div = document.createElement("div");
-        div.textContent = text;
-        return div.innerHTML;
-      }
-
-      startNewConversation();
+      // ================================================================
+      // INIT
+      // ================================================================
+      setProcessingState(true);
+      connectWebSocket();
     });
   </script>
 </body>
