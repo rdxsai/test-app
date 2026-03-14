@@ -28,3 +28,47 @@ The frontend was redesigned:
 - `src/question_app/services/tutor/simple_system.py` — `chat_stream_async()` (httpx SSE streaming from Azure OpenAI)
 - `src/question_app/services/tutor/hybrid_system.py` — `conduct_socratic_session_streaming()`, `_progressive_send()`
 - `src/question_app/main.py` — `reload_dirs` for template hot-reloading
+
+---
+
+## 2. Vector DB & RAG Pipeline (answer-feedback chunks, HyDE, hybrid search)
+
+### Before
+
+**Chunking**: Each quiz question produced **N+1 chunks** — 1 question chunk + 1 chunk per answer option. Most wrong-answer chunks were noise (e.g., `"Answer 3: div elements"` with no context about *why* it's wrong). The vector store was full of thin, low-signal fragments.
+
+**Search**: Pure vector search using cosine similarity with a high threshold (`MIN_COSINE_SIMILARITY = 0.7`). A student's raw question (e.g., "what is alt text?") was embedded directly and compared against chunks. But the chunks were answer-shaped ("Alt text provides a text alternative for non-text content...") while the query was question-shaped — a fundamental **semantic mismatch** that degraded retrieval quality.
+
+**No keyword fallback**: If the vector embedding missed a match (e.g., the student used different terminology), there was no fallback. Either the cosine similarity cleared 0.7 or the chunk was dropped entirely.
+
+### After
+
+**Chunking — answer-feedback focused**: Each question now produces **1 focused chunk** centered on the correct answer's feedback (the richest teaching signal). The chunk includes: question text as framing context, correct answer, its explanation/feedback, wrong answers listed as common misconceptions, and the learning objective. This is concise but informationally dense — the LLM expands on these cues at query time.
+
+**HyDE (Hypothetical Document Embedding)**: Before searching, the system generates a **hypothetical correct answer** to the student's question (3-5 sentences, quiz-answer style). This answer-shaped text is embedded and matched against the answer-shaped chunks in the DB — resolving the question↔answer semantic gap. HyDE also resolves vague follow-ups ("can you explain more?") by using the last 4 conversation turns as context.
+
+**Hybrid search (vector + BM25 via RRF)**: Search now combines:
+1. **pgvector cosine similarity** on the HyDE embedding (semantic matching)
+2. **PostgreSQL BM25** (`ts_rank_cd` on a `content_tsv` tsvector column) on the student's original words (keyword matching)
+
+Results from both are fused using **Reciprocal Rank Fusion**: `rrf_score = 1/(60+vec_rank) + 1/(60+bm25_rank)`. This is rank-based (not score-based), making it robust to different score distributions between the two signals.
+
+**Filtering**: Chunks are filtered by `MAX_COSINE_DISTANCE = 0.3` (tighter than before) and `MIN_RRF_SCORE = 0.01`. If nothing passes, the LLM answers from general knowledge rather than receiving garbage context.
+
+### Why it's better
+| Aspect | Before | After |
+|--------|--------|-------|
+| Chunks per question | N+1 (question + each answer) | 1 (focused on correct answer + feedback) |
+| Chunk quality | Thin fragments, many noise answers | Dense teaching signal with misconceptions |
+| Query embedding | Raw student question (question-shaped) | HyDE hypothetical answer (answer-shaped) |
+| Search method | Vector-only (cosine similarity ≥ 0.7) | Hybrid: vector + BM25 via RRF |
+| Keyword matching | None | BM25 with GIN-indexed tsvector column |
+| Vague follow-ups | Missed (no context resolution) | Resolved via HyDE using conversation history |
+| Bad match handling | Silent inclusion of low-quality chunks | Distance + RRF filtering, graceful fallback |
+
+### Key files
+- `src/question_app/api/vector_store.py` — `create_comprehensive_chunks()` rewritten for answer-feedback focused chunking
+- `src/question_app/api/pg_vector_store.py` — `hybrid_search()` with RRF SQL query
+- `src/question_app/services/tutor/interfaces.py` — `hybrid_search()` added to `VectorStoreInterface`
+- `src/question_app/services/database.py` — `content_tsv` tsvector column, GIN index, auto-update trigger
+- `src/question_app/services/tutor/hybrid_system.py` — `generate_hyde_query()`, `get_rag_context()` with HyDE + filtering

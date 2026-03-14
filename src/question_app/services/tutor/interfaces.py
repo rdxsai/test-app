@@ -10,4 +10,6 @@ class VectorStoreInterface(ABC):
     async def search(self , query : str , n_results : int = 3) -> List[Dict[str , Any]]:
         pass
 
-
+    async def hybrid_search(self, query: str, k: int = 3, bm25_query: str = "") -> List[Dict[str, Any]]:
+        """Hybrid search combining vector + BM25 via RRF. Falls back to vector-only search."""
+        return await self.search(query, n_results=k)

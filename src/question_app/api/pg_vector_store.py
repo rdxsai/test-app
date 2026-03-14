@@ -79,6 +79,108 @@ class VectorStoreService(VectorStoreInterface):
             logger.error(f"pgvector search failed: {e}", exc_info=True)
             return []
 
+    async def hybrid_search(self, query: str, k: int = 3, bm25_query: str = "") -> List[Dict[str, Any]]:
+        """
+        Hybrid search combining pgvector cosine + BM25 ts_rank_cd via
+        Reciprocal Rank Fusion (RRF). Returns top-k results scored by
+        rrf_score = 1/(60+vec_rank) + 1/(60+bm25_rank).
+
+        query: text to embed for vector search (e.g. HyDE hypothetical answer)
+        bm25_query: separate text for BM25 keyword matching (e.g. original student words).
+                    Falls back to query if not provided.
+        """
+        bm25_text = bm25_query or query
+        try:
+            query_embeddings = await get_ollama_embeddings([query])
+            if not query_embeddings or not query_embeddings[0]:
+                logger.error("Failed to generate query embedding for hybrid search")
+                return []
+
+            query_vector = query_embeddings[0]
+            pool_size = k * 3
+
+            with self.db.get_connection() as conn:
+                register_vector(conn)
+                cursor = conn.cursor()
+                cursor.execute(
+                    """
+                    WITH vector_results AS (
+                        SELECT id, question_id, chunk_type, answer_index, is_correct,
+                               topic, tags, question_type, learning_objective, content,
+                               embedding <=> %(vec)s::vector AS distance,
+                               ROW_NUMBER() OVER (ORDER BY embedding <=> %(vec)s::vector) AS vec_rank
+                        FROM question_embeddings
+                        ORDER BY embedding <=> %(vec)s::vector
+                        LIMIT %(pool)s
+                    ),
+                    bm25_results AS (
+                        SELECT id, question_id, chunk_type, answer_index, is_correct,
+                               topic, tags, question_type, learning_objective, content,
+                               ts_rank_cd(content_tsv, plainto_tsquery('english', %(q)s)) AS bm25_score,
+                               ROW_NUMBER() OVER (
+                                   ORDER BY ts_rank_cd(content_tsv, plainto_tsquery('english', %(q)s)) DESC
+                               ) AS bm25_rank
+                        FROM question_embeddings
+                        WHERE content_tsv @@ plainto_tsquery('english', %(q)s)
+                        ORDER BY bm25_score DESC
+                        LIMIT %(pool)s
+                    ),
+                    combined AS (
+                        SELECT
+                            COALESCE(v.id, b.id) AS id,
+                            COALESCE(v.question_id, b.question_id) AS question_id,
+                            COALESCE(v.chunk_type, b.chunk_type) AS chunk_type,
+                            COALESCE(v.answer_index, b.answer_index) AS answer_index,
+                            COALESCE(v.is_correct, b.is_correct) AS is_correct,
+                            COALESCE(v.topic, b.topic) AS topic,
+                            COALESCE(v.tags, b.tags) AS tags,
+                            COALESCE(v.question_type, b.question_type) AS question_type,
+                            COALESCE(v.learning_objective, b.learning_objective) AS learning_objective,
+                            COALESCE(v.content, b.content) AS content,
+                            v.distance,
+                            v.vec_rank,
+                            b.bm25_rank,
+                            COALESCE(1.0 / (60 + v.vec_rank), 0)
+                              + COALESCE(1.0 / (60 + b.bm25_rank), 0) AS rrf_score
+                        FROM vector_results v
+                        FULL OUTER JOIN bm25_results b ON v.id = b.id
+                    )
+                    SELECT * FROM combined
+                    ORDER BY rrf_score DESC
+                    LIMIT %(k)s
+                    """,
+                    {"vec": str(query_vector), "q": bm25_text, "pool": pool_size, "k": k},
+                )
+                rows = cursor.fetchall()
+
+            results = []
+            for r in rows:
+                chunk = {
+                    'question_id': r['question_id'],
+                    'chunk_type': r['chunk_type'],
+                    'topic': r['topic'],
+                    'tags': r['tags'],
+                    'question_type': r['question_type'],
+                    'learning_objective': r['learning_objective'],
+                    'content': r['content'],
+                    'distance': r['distance'],
+                    'rrf_score': float(r['rrf_score']) if r['rrf_score'] else 0.0,
+                }
+                if r['answer_index'] is not None:
+                    chunk['answer_index'] = r['answer_index']
+                if r['is_correct'] is not None:
+                    chunk['is_correct'] = r['is_correct']
+                results.append(chunk)
+
+            logger.info(f"Hybrid search returned {len(results)} results (RRF)")
+            return results
+
+        except Exception as e:
+            logger.error(f"Hybrid search failed: {e}", exc_info=True)
+            # Fall back to vector-only search
+            logger.info("Falling back to vector-only search")
+            return await self.search(query, k)
+
     async def embed_single_question(self, question_id: str) -> int:
         """Generate and store embeddings for a single question + its answers.
         Returns number of chunks embedded."""

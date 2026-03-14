@@ -182,6 +182,42 @@ class DatabaseManager:
             cursor.execute("ALTER TABLE question ADD COLUMN IF NOT EXISTS canvas_id INTEGER UNIQUE;")
             cursor.execute("ALTER TABLE answer ADD COLUMN IF NOT EXISTS canvas_id INTEGER UNIQUE;")
 
+            # BM25 full-text search: tsvector column + GIN index + auto-update trigger
+            cursor.execute(
+                "ALTER TABLE question_embeddings ADD COLUMN IF NOT EXISTS content_tsv tsvector;"
+            )
+            cursor.execute(
+                "UPDATE question_embeddings SET content_tsv = to_tsvector('english', content) WHERE content_tsv IS NULL;"
+            )
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_question_embeddings_gin ON question_embeddings USING gin(content_tsv);"
+            )
+            cursor.execute(
+                f"""
+                CREATE OR REPLACE FUNCTION {self.schema}.update_content_tsv()
+                RETURNS trigger AS $func$
+                BEGIN
+                    NEW.content_tsv := to_tsvector('english', NEW.content);
+                    RETURN NEW;
+                END;
+                $func$ LANGUAGE plpgsql;
+                """
+            )
+            cursor.execute(
+                f"""
+                DO $$
+                BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM pg_trigger WHERE tgname = 'trg_content_tsv'
+                    ) THEN
+                        CREATE TRIGGER trg_content_tsv
+                        BEFORE INSERT OR UPDATE OF content ON {self.schema}.question_embeddings
+                        FOR EACH ROW EXECUTE FUNCTION {self.schema}.update_content_tsv();
+                    END IF;
+                END $$;
+                """
+            )
+
             # IVFFlat index for approximate nearest neighbor search
             # Only create if table has rows (IVFFlat requires data)
             cursor.execute(
