@@ -52,6 +52,12 @@ class TestTextCleaning:
         expected_output = "What is the capital?"
         assert result == expected_output
 
+    def test_clean_question_text_preserves_anchor_links(self):
+        """Test preserving anchor tags as markdown links."""
+        text = '<p>Read <a href="https://example.com/doc">the docs</a> first.</p>'
+        result = clean_question_text(text)
+        assert result == "Read [the docs](https://example.com/doc) first."
+
     # Edge case tests for HTML to Markdown conversion
     def test_clean_question_text_malformed_html(self):
         """Test handling malformed HTML"""
