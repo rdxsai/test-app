@@ -57,8 +57,9 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, AsyncGenerator, Dict, List, Optional
 
+import httpx
 import requests
 
 # Load environment variables
@@ -213,6 +214,99 @@ class AzureAPIMClient:
         except (KeyError, IndexError) as e:
             logger.error(f"Invalid response format: {e}")
             return "I received an unexpected response format. Please try again."
+
+    async def chat_stream_async(
+        self, messages: List[Dict], temperature: float = 0.7, max_tokens: int = 1000
+    ) -> AsyncGenerator[str, None]:
+        """
+        Async streaming chat completion via httpx. Yields content deltas
+        (individual tokens/chunks) as they arrive from Azure OpenAI.
+        """
+        url = f"{self.endpoint}/deployments/{self.deployment}/chat/completions"
+
+        headers = {
+            "Content-Type": "application/json",
+            "Ocp-Apim-Subscription-Key": self.api_key,
+        }
+
+        params = {"api-version": self.api_version}
+
+        data = {
+            "messages": messages,
+            "max_tokens": max_tokens,
+            "temperature": temperature,
+            "stream": True,
+        }
+
+        try:
+            async with httpx.AsyncClient(timeout=90.0) as client:
+                async with client.stream(
+                    "POST", url, headers=headers, params=params, json=data
+                ) as response:
+                    response.raise_for_status()
+                    # Use aiter_bytes() with manual line parsing for true
+                    # real-time streaming. aiter_lines() buffers internally
+                    # and dumps all tokens at once.
+                    buf = ""
+                    async for raw_bytes in response.aiter_bytes():
+                        buf += raw_bytes.decode("utf-8", errors="replace")
+                        while "\n" in buf:
+                            line, buf = buf.split("\n", 1)
+                            line = line.strip()
+                            if not line or not line.startswith("data: "):
+                                continue
+                            payload = line[6:]
+                            if payload.strip() == "[DONE]":
+                                return
+                            try:
+                                chunk = json.loads(payload)
+                                delta = chunk["choices"][0].get("delta", {})
+                                content = delta.get("content")
+                                if content:
+                                    yield content
+                            except (json.JSONDecodeError, KeyError, IndexError):
+                                continue
+        except httpx.HTTPStatusError as e:
+            logger.error(f"Azure streaming request failed with status {e.response.status_code}: {e}")
+            yield "I apologize, but I'm having trouble connecting right now. Please try again."
+        except Exception as e:
+            logger.error(f"Azure streaming request failed: {e}")
+            yield "I apologize, but I'm having trouble connecting right now. Please try again."
+
+    async def chat_with_tools(
+        self,
+        messages: List[Dict],
+        tools: List[Dict],
+        temperature: float = 0.3,
+        max_tokens: int = 300,
+        tool_choice: str = "auto",
+    ) -> Dict[str, Any]:
+        """
+        Non-streaming chat completion with function calling (tools parameter).
+        Returns the full response message dict, which may contain
+        tool_calls instead of content.
+
+        tool_choice: "auto" (LLM decides), "required" (must call a tool), "none"
+        """
+        url = f"{self.endpoint}/deployments/{self.deployment}/chat/completions"
+        headers = {
+            "Content-Type": "application/json",
+            "Ocp-Apim-Subscription-Key": self.api_key,
+        }
+        params = {"api-version": self.api_version}
+        data = {
+            "messages": messages,
+            "tools": tools,
+            "tool_choice": tool_choice,
+            "max_tokens": max_tokens,
+            "temperature": temperature,
+        }
+
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            resp = await client.post(url, headers=headers, params=params, json=data)
+            resp.raise_for_status()
+            result = resp.json()
+            return result["choices"][0]["message"]
 
     def make_request(self, prompt: str) -> Dict[str, Any]:
         """Make a request - test interface method"""

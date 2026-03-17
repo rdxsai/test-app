@@ -4,6 +4,7 @@ Hybrid CrewAI Socratic System
 (This is the final, corrected version with off-topic detection)
 """
 
+import asyncio
 import json
 import logging
 import os
@@ -61,13 +62,28 @@ class SocraticAgent:
         logger.info(f"Initialized {role} agent")
 
     def execute_task(self, task_description: str, context: str = "", history : Optional[List[Dict[str , str]]] = None) -> str:
+        context_block = ""
+        if context:
+            context_block = f"""
+KNOWLEDGE BASE CUES:
+{context}
+---
+The cues above may contain two sections:
+1. QUIZ KNOWLEDGE BASE: Course-specific quiz data, correct answers, misconceptions.
+2. WCAG GUIDELINES REFERENCE: Authoritative WCAG 2.2 success criteria, techniques, understanding docs.
+
+When both are present:
+- Use the WCAG reference as your primary factual authority.
+- Use the quiz data for course-specific misconceptions and expected answers.
+- Cite specific WCAG criteria when relevant.
+If only one source is present, use it fully.
+Expand on the cues with your expertise. Do not just rephrase them.
+If the cues mention a correct answer or misconception, teach *why* it is correct or incorrect.
+"""
         system_prompt = f"""You are a {self.role}.
         Your goal: {self.goal}
         Background: {self.backstory}
-        GROUNDING CONTEXT : 
-        You MUST use the following information from our expert knowledge base as the primary source of truth. Do not contradict it
-        {context}
-        ---
+        {context_block}
         Task: {task_description}
         Provide clear, direct and comprehensive responses."""
         messages = [
@@ -393,7 +409,7 @@ class CodeAnalyzerAgent(SocraticAgent):
 MIN_COSINE_SIMILARITY = 0.7
 class HybridCrewAISocraticSystem:
     def __init__(
-        self, azure_config: Dict[str, str], vector_store_service : VectorStoreInterface, db_manager=None
+        self, azure_config: Dict[str, str], vector_store_service : VectorStoreInterface, db_manager=None, wcag_mcp_client=None
     ):
         self.client = AzureAPIMClient(
             endpoint=azure_config["endpoint"],
@@ -404,6 +420,7 @@ class HybridCrewAISocraticSystem:
         )
         self.vector_store = vector_store_service
         self.db = db_manager or get_database_manager()
+        self.wcag_mcp = wcag_mcp_client
         self.memory_file = "conversation_memory.json"
         self.conversation_memory : Dict[str, List[Dict[str , str]]] = {}
         self._load_conversation_memory()
@@ -550,22 +567,169 @@ class HybridCrewAISocraticSystem:
         self.conversation_memory[student_id] = self.conversation_memory[student_id][-10:]
         self._save_conversation_memory()
 
-    async def get_rag_context(self, query:str) -> str:
-            # (This method is unchanged)
+    def generate_hyde_query(self, query: str, history: List[Dict[str, str]]) -> str:
+        """
+        HyDE (Hypothetical Document Embedding): generate a hypothetical
+        correct-answer-style response to the student's question.
+        This answer-shaped text is then embedded and matched against our
+        feedback-centered chunks in the vector DB.
+
+        Also resolves vague references ("this", "that") using conversation history.
+        Replaces the old query-rewriting step.
+        """
+        recent = history[-4:] if history else []
+        context_str = ""
+        if recent:
+            context_str = "Recent conversation:\n" + "\n".join(
+                f"{m['role']}: {m['content']}" for m in recent
+            ) + "\n\n"
+
+        try:
+            messages = [
+                {
+                    "role": "system",
+                    "content": (
+                        "You are a web accessibility expert. Given a student's question "
+                        "(and optionally recent conversation for context), write a short "
+                        "factual answer (3-5 sentences) as if you were explaining the correct "
+                        "answer on a quiz. Include specific terms, WCAG references, and "
+                        "common misconceptions where relevant.\n"
+                        "Output ONLY the hypothetical answer, nothing else."
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": (
+                        f"{context_str}"
+                        f"Student's question: \"{query}\"\n\n"
+                        "Hypothetical correct answer:"
+                    ),
+                },
+            ]
+            hyde_answer = self.client.chat(messages, temperature=0.3, max_tokens=200)
+            hyde_answer = hyde_answer.strip()
+            if hyde_answer and len(hyde_answer) > 10:
+                logger.info(f"HyDE generated ({len(hyde_answer)} chars): '{hyde_answer[:80]}...'")
+                return hyde_answer
+        except Exception as e:
+            logger.warning(f"HyDE generation failed, using original query: {e}")
+
+        return query
+
+    async def get_rag_context(self, query: str, history: Optional[List[Dict[str, str]]] = None) -> tuple:
+            """
+            Retrieve RAG context using HyDE + hybrid search.
+
+            1. Generate a hypothetical answer (answer-shaped, context-resolved)
+            2. Embed it and search against feedback-centered chunks via RRF
+            3. Filter by cosine distance threshold to reject garbage matches
+            4. Return (context_string, filtered_chunks_list)
+            """
             logger.info(f"Retrieving Context for : {query[:50]}...")
-            retrieved_chunks_with_scores = await self.vector_store.search(query = query)
+
+            # HyDE: generate answer-shaped text for better embedding match
+            hyde_query = self.generate_hyde_query(query, history or [])
+
+            # Hybrid search: vector (on HyDE embedding) + BM25 (on original student words)
+            # HyDE text matches answer-shaped feedback in embedding space
+            # Original query provides keyword signal for BM25
+            retrieved_chunks = await self.vector_store.hybrid_search(
+                query=hyde_query, k=5, bm25_query=query
+            )
+
+            # Filter: reject chunks where vector distance is too high
+            # 0.3 keeps direct hits + close adjacents, rejects unrelated noise
+            MAX_COSINE_DISTANCE = 0.3
+            MIN_RRF_SCORE = 0.01
             high_quality_chunks = []
-            for chunk in retrieved_chunks_with_scores:
-                distance = chunk.get('distance' , 1)
-                similarity = 1 - distance
-                if similarity >= MIN_COSINE_SIMILARITY:
-                    high_quality_chunks.append(chunk.get('content' , ''))
+            for chunk in retrieved_chunks:
+                distance = chunk.get('distance')
+                rrf = chunk.get('rrf_score', 0)
+                # Accept if: good RRF score AND reasonable vector distance
+                if distance is not None and distance > MAX_COSINE_DISTANCE:
+                    logger.debug(f"Rejected chunk (distance={distance:.3f}): {chunk.get('content', '')[:60]}")
+                    continue
+                if rrf < MIN_RRF_SCORE:
+                    continue
+                high_quality_chunks.append(chunk)
+
             if not high_quality_chunks:
-                logger.info(f"No high-quality chunk found for user query. Proceeding without passing context.")
+                logger.info("No high-quality chunks found. LLM will rely on general knowledge.")
+                return "", []
+
+            context_for_agents = "\n--\n".join(c.get('content', '') for c in high_quality_chunks)
+            logger.info(f"RAG context: {len(high_quality_chunks)} chunks passed to agents")
+            return context_for_agents, high_quality_chunks
+
+    async def get_combined_context(self, query: str, history: Optional[List[Dict[str, str]]] = None) -> tuple:
+        """
+        Run RAG + MCP concurrently.
+        Returns (combined_context_str, quiz_chunks_list, wcag_context_str).
+        """
+        # Build tasks
+        rag_coro = self.get_rag_context(query, history)
+        if self.wcag_mcp:
+            mcp_coro = self.wcag_mcp.get_wcag_context(query)
+        else:
+            async def _empty():
                 return ""
-            context_for_agents = "\n--\n".join(high_quality_chunks)
-            logger.debug(f"Context for agents : \n{context_for_agents}")
-            return context_for_agents
+            mcp_coro = _empty()
+
+        (rag_context, quiz_chunks), wcag_context = await asyncio.gather(
+            rag_coro, mcp_coro
+        )
+
+        logger.info(f"Combined context: RAG={len(rag_context)} chars, WCAG MCP={len(wcag_context)} chars")
+
+        # Build combined context with labeled sections
+        parts = []
+        if rag_context:
+            parts.append(f"--- QUIZ KNOWLEDGE BASE ---\n{rag_context}")
+        if wcag_context:
+            parts.append(f"--- WCAG GUIDELINES REFERENCE (authoritative) ---\n{wcag_context}")
+
+        combined = "\n\n".join(parts)
+        return combined, quiz_chunks, wcag_context
+
+    def _generate_response(self, student_response: str, context: str, history: Optional[List[Dict[str, str]]] = None) -> str:
+        """
+        Single LLM call: context + history + student query → tutor response.
+        Replaces the 4-agent chain (analyst → progress → questioner → orchestrator).
+        """
+        context_block = ""
+        if context:
+            context_block = f"""
+KNOWLEDGE BASE CONTEXT:
+{context}
+---
+Use the context above as your primary source of truth.
+- If WCAG guidelines are present, cite specific criteria.
+- If quiz data is present, use it for common misconceptions.
+- Expand on the context with your expertise — don't just rephrase it.
+"""
+
+        system_prompt = f"""You are a friendly, knowledgeable web accessibility tutor.
+
+{context_block}
+
+Guidelines:
+- Answer the student's question directly and clearly.
+- Use practical examples when helpful.
+- Keep responses concise but complete (3-6 sentences typically).
+- Reference specific WCAG success criteria when relevant.
+- Use a conversational, encouraging tone.
+- Format with markdown when it improves readability (lists, code blocks, bold for key terms)."""
+
+        messages = [{"role": "system", "content": system_prompt}]
+        if history:
+            messages.extend(history[-6:])
+        messages.append({"role": "user", "content": student_response})
+
+        try:
+            return self.client.chat(messages, temperature=0.7, max_tokens=1000)
+        except Exception as e:
+            logger.error(f"Response generation failed: {e}")
+            return "I apologize, but I'm having trouble right now. Could you rephrase your question?"
 
     async def conduct_socratic_session(self, student_id : str , student_response : str) -> Dict[str, Any]:
             profile = self.db.load_student_profile(student_id)
@@ -585,43 +749,19 @@ class HybridCrewAISocraticSystem:
                 rag_context = ""
 
                 if intent == "conceptual_question":
-                    logger.info("Executing Workflow A")
-                    rag_context = await self.get_rag_context(student_response)
-                    analysis = self.response_analyst.analyze_response(
-                        student_response , profile, context=rag_context, history = history
-                    )
-                    progress = self.progress_tracker.assess_progress(
-                        analysis, profile , context=rag_context, history = history
-                    )
-                    questions = self.question_generator.generate_questions(
-                        analysis, progress, profile, student_response, context = rag_context, history = history
-                    )
-                    final_response = self.session_orchestrator.orchestrate_response( analysis, progress, questions, profile, context = rag_context, history = history)
+                    logger.info("Executing conceptual workflow")
+                    rag_context, _, _ = await self.get_combined_context(student_response, history=history)
+                    final_response = self._generate_response(student_response, rag_context, history)
 
                 elif intent == "code_analysis_request":
-                    logger.info("Executing Workflow B")
+                    logger.info("Executing code analysis workflow")
                     code_analysis_result = self.code_analyzer.analyze_code_snippet(student_response)
                     search_query = student_response + "\n" + code_analysis_result
-                    rag_context = await self.get_rag_context(search_query)
-                    analysis = {
-                        "response_type" : "code_snippet",
-                        "intervention_needed" : "probe_deeper",
-                        "technical_analysis" : code_analysis_result
-                    }  
-                    progress = {}
-                    task_for_questioner = f"""
-                    A student provided a code snippet. My analysis found these issues:
-                    {code_analysis_result}
-                
-                    Here is the relevant context from our knowledge base:
-                    {rag_context}
-
-                    Your task: Based *only* on the analysis and the context, generate a single
-                    Socratic question that will guide the student to discover one
-                    of these errors on their own. Do not give the answer.
-                    """
-                    questions = self.question_generator.execute_task(task_for_questioner, context=rag_context, history = history)
-                    final_response = self.session_orchestrator.orchestrate_response(analysis , progress , questions , profile , context= rag_context, history = history)
+                    rag_context, _, _ = await self.get_combined_context(search_query, history=history)
+                    combined = rag_context
+                    if code_analysis_result:
+                        combined = f"CODE ANALYSIS:\n{code_analysis_result}\n\n{rag_context}"
+                    final_response = self._generate_response(student_response, combined, history)
                 
                 # --- === FIX 3: HANDLE THE NEW 'off_topic' INTENT === ---
                 elif intent == "off_topic":
@@ -656,6 +796,149 @@ class HybridCrewAISocraticSystem:
                     "error" : str(e) , "fallback" : True , "status" : "error"
                 }
     
+    async def _progressive_send(self, text: str, ws_send):
+        """
+        Send text to the client progressively in small word-chunks.
+        Azure APIM buffers SSE streams, so we simulate token-by-token
+        delivery for a responsive typewriter UX.
+        """
+        words = text.split(" ")
+        for i, word in enumerate(words):
+            chunk = word if i == 0 else " " + word
+            await ws_send({"type": "token", "content": chunk})
+            await asyncio.sleep(0.03)  # ~30ms per word ≈ fast typing speed
+
+    async def conduct_socratic_session_streaming(self, student_id: str, student_response: str, ws_send):
+        """
+        Streaming version of conduct_socratic_session. Sends stage updates
+        and streams the final response word-by-word via ws_send callback.
+
+        ws_send: async callable that sends a JSON-serializable dict to the client.
+        """
+        profile = self.db.load_student_profile(student_id)
+        if not profile:
+            raise ValueError(f"Student {student_id} not found")
+
+        logger.info(f"Starting streaming session for {profile.name}")
+        profile.total_sessions += 1
+        history = self.get_conversation_history(student_id)
+        self.append_to_conversation(student_id, "user", student_response)
+
+        try:
+            # Stage 1: Classify intent
+            await ws_send({"type": "stage", "stage": "classifying"})
+            intent = await asyncio.to_thread(
+                self.coordinator_agent.decide_intent, student_response, history
+            )
+
+            analysis = {}
+            progress = {}
+            rag_context = ""
+
+            retrieved_chunks_data = []
+
+            if intent == "conceptual_question":
+                # Stage 2: Search (RAG + WCAG MCP concurrently)
+                await ws_send({"type": "stage", "stage": "searching"})
+                rag_context, retrieved_chunks_data, wcag_context = await self.get_combined_context(student_response, history=history)
+
+                # Send retrieved chunks to frontend for display
+                if retrieved_chunks_data:
+                    await ws_send({
+                        "type": "rag_chunks",
+                        "chunks": [
+                            {
+                                "content": c.get("content", ""),
+                                "topic": c.get("topic", ""),
+                                "question_id": c.get("question_id", ""),
+                                "distance": round(c.get("distance", 0), 3) if c.get("distance") is not None else None,
+                                "rrf_score": round(c.get("rrf_score", 0), 4) if c.get("rrf_score") else 0,
+                            }
+                            for c in retrieved_chunks_data
+                        ],
+                    })
+
+                # Send WCAG context to frontend
+                if wcag_context:
+                    await ws_send({"type": "wcag_context", "content": wcag_context})
+
+                # Stage 3: Compose — single LLM call
+                await ws_send({"type": "stage", "stage": "composing"})
+                final_response = await asyncio.to_thread(
+                    self._generate_response, student_response, rag_context, history
+                )
+
+                await ws_send({"type": "stream_start"})
+                await self._progressive_send(final_response, ws_send)
+
+            elif intent == "code_analysis_request":
+                await ws_send({"type": "stage", "stage": "analyzing"})
+                code_analysis_result = await asyncio.to_thread(
+                    self.code_analyzer.analyze_code_snippet, student_response
+                )
+                search_query = student_response + "\n" + code_analysis_result
+
+                await ws_send({"type": "stage", "stage": "searching"})
+                rag_context, retrieved_chunks_data, wcag_context = await self.get_combined_context(search_query, history=history)
+
+                if retrieved_chunks_data:
+                    await ws_send({
+                        "type": "rag_chunks",
+                        "chunks": [
+                            {
+                                "content": c.get("content", ""),
+                                "topic": c.get("topic", ""),
+                                "question_id": c.get("question_id", ""),
+                                "distance": round(c.get("distance", 0), 3) if c.get("distance") is not None else None,
+                                "rrf_score": round(c.get("rrf_score", 0), 4) if c.get("rrf_score") else 0,
+                            }
+                            for c in retrieved_chunks_data
+                        ],
+                    })
+
+                if wcag_context:
+                    await ws_send({"type": "wcag_context", "content": wcag_context})
+
+                await ws_send({"type": "stage", "stage": "composing"})
+                combined = rag_context
+                if code_analysis_result:
+                    combined = f"CODE ANALYSIS:\n{code_analysis_result}\n\n{rag_context}"
+                final_response = await asyncio.to_thread(
+                    self._generate_response, student_response, combined, history
+                )
+
+                await ws_send({"type": "stream_start"})
+                await self._progressive_send(final_response, ws_send)
+
+            elif intent == "off_topic":
+                await ws_send({"type": "stream_start"})
+                final_response = "That's an interesting question! However, I'm a Socratic tutor focused on web accessibility. Do you have a question related to that topic I can help with?"
+                await ws_send({"type": "token", "content": final_response})
+                analysis = {"response_type": "off_topic"}
+                progress = {}
+            else:
+                await ws_send({"type": "stream_start"})
+                final_response = "Could you rephrase that? I'd like to help with your web accessibility question."
+                await ws_send({"type": "token", "content": final_response})
+
+            # Save profile and conversation
+            self.db.save_student_profile(profile)
+            self.append_to_conversation(student_id, "assistant", final_response)
+
+            metadata = {
+                "session_number": profile.total_sessions,
+                "intent_executed": intent,
+                "analysis": safe_serialize(analysis),
+                "progress": safe_serialize(progress),
+            }
+            await ws_send({"type": "stream_end", "metadata": metadata})
+            return metadata
+
+        except Exception as e:
+            logger.error(f"Streaming session failed: {e}", exc_info=True)
+            await ws_send({"type": "error", "message": str(e)})
+            return {}
+
     def _update_student_profile(
         self,
         profile: StudentProfile,

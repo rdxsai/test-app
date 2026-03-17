@@ -1,13 +1,15 @@
 """
 Chat API module for the Question App.
-(This is the corrected version that fixes initialization and student creation)
+WebSocket streaming + POST fallback.
 """
 
+import asyncio
+import json
+import logging
 from typing import Dict
-from fastapi.openapi.utils import status_code_ranges
+
 from pydantic import BaseModel
-import httpx
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
@@ -21,6 +23,8 @@ from ..utils import (
     save_welcome_message,
 )
 from ..services.tutor.hybrid_system import HybridCrewAISocraticSystem
+from ..services.tutor.simple_system import AzureAPIMClient
+from ..services.wcag_mcp_client import WCAGMCPClient
 from ..api.pg_vector_store import VectorStoreService
 
 
@@ -32,10 +36,10 @@ router = APIRouter(prefix="/chat", tags=["chat"])
 # Templates setup
 templates = Jinja2Templates(directory="templates")
 
-# --- === (This initialization is correct) === ---
+# --- === INITIALIZATION === ---
 try:
     vector_service = VectorStoreService()
-    
+
     azure_config = {
         "api_key": config.AZURE_OPENAI_SUBSCRIPTION_KEY,
         "endpoint": config.AZURE_OPENAI_ENDPOINT,
@@ -43,9 +47,25 @@ try:
         "api_version": config.AZURE_OPENAI_API_VERSION
     }
 
+    # Create Azure client for WCAG MCP function calling
+    azure_client = AzureAPIMClient(
+        endpoint=azure_config["endpoint"],
+        deployment=azure_config["deployment_name"],
+        api_key=azure_config["api_key"],
+        api_version=azure_config.get("api_version", "2024-02-15-preview"),
+    )
+
+    wcag_mcp = WCAGMCPClient(
+        command=config.WCAG_MCP_COMMAND,
+        azure_client=azure_client,
+    ) if config.WCAG_MCP_ENABLED else None
+    if wcag_mcp:
+        logger.info("Chat API: WCAG MCP client created with LLM-driven tool calling.")
+
     tutor_system = HybridCrewAISocraticSystem(
         azure_config=azure_config,
         vector_store_service=vector_service,
+        wcag_mcp_client=wcag_mcp,
     )
     logger.info("Chat API: HybridCrewAISocraticSystem initialized successfully.")
 
@@ -157,8 +177,149 @@ async def handle_chat_message(chat_message : ChatMessage):
             status_code=500 , detail = f"Failed to process chat message : {str(e)}"
         )
 
-# (The rest of your file for /system-prompt and /welcome-message is unchanged and correct)
-# ...
+# ============================================================================
+# WEBSOCKET ENDPOINT
+# ============================================================================
+
+@router.websocket("/ws")
+async def websocket_chat(websocket: WebSocket):
+    """
+    WebSocket endpoint for real-time chat with stage updates and token streaming.
+
+    Protocol:
+    Client -> Server:
+      {"type": "auth", "student_id": "default-student"}
+      {"type": "message", "content": "what is alt text?"}
+      {"type": "new_session"}
+      {"type": "ping"}
+
+    Server -> Client:
+      {"type": "connected"}
+      {"type": "authenticated", "student_id": "...", "session_number": N}
+      {"type": "stage", "stage": "classifying|searching|analyzing|assessing|composing"}
+      {"type": "stream_start"}
+      {"type": "token", "content": "..."}
+      {"type": "stream_end", "metadata": {...}}
+      {"type": "welcome", "content": "...", "student_id": "..."}
+      {"type": "error", "message": "..."}
+      {"type": "pong"}
+    """
+    await websocket.accept()
+
+    if not tutor_system:
+        await websocket.send_json({"type": "error", "message": "Tutor system is offline."})
+        await websocket.close(code=1011)
+        return
+
+    await websocket.send_json({"type": "connected"})
+
+    student_id = None
+
+    async def ws_send(data: dict):
+        """Helper to send JSON over WebSocket."""
+        await websocket.send_json(data)
+
+    try:
+        while True:
+            raw = await websocket.receive_text()
+            try:
+                msg = json.loads(raw)
+            except json.JSONDecodeError:
+                await websocket.send_json({"type": "error", "message": "Invalid JSON"})
+                continue
+
+            msg_type = msg.get("type")
+
+            # --- AUTH ---
+            if msg_type == "auth":
+                student_id = msg.get("student_id") or DEFAULT_STUDENT_ID
+                profile = await asyncio.to_thread(
+                    tutor_system.get_student_profile, student_id
+                )
+                if not profile:
+                    try:
+                        await asyncio.to_thread(
+                            tutor_system.create_student_profile,
+                            DEFAULT_STUDENT_NAME,
+                            DEFAULT_TOPIC,
+                            "",
+                            student_id,
+                        )
+                        profile = await asyncio.to_thread(
+                            tutor_system.get_student_profile, student_id
+                        )
+                    except Exception as e:
+                        logger.error(f"WS: Failed to create student: {e}", exc_info=True)
+                        await websocket.send_json({
+                            "type": "error",
+                            "message": "Failed to create student profile."
+                        })
+                        continue
+
+                session_number = profile.total_sessions if profile else 0
+                await websocket.send_json({
+                    "type": "authenticated",
+                    "student_id": student_id,
+                    "session_number": session_number,
+                })
+
+            # --- NEW SESSION ---
+            elif msg_type == "new_session":
+                if not student_id:
+                    student_id = DEFAULT_STUDENT_ID
+
+                profile = await asyncio.to_thread(
+                    tutor_system.get_student_profile, student_id
+                )
+                if profile:
+                    profile.total_sessions += 1
+                    await asyncio.to_thread(tutor_system.db.save_student_profile, profile)
+
+                welcome = load_welcome_message()
+                await websocket.send_json({
+                    "type": "welcome",
+                    "content": welcome,
+                    "student_id": student_id,
+                    "session_number": profile.total_sessions if profile else 1,
+                })
+
+            # --- CHAT MESSAGE ---
+            elif msg_type == "message":
+                content = msg.get("content", "").strip()
+                if not content:
+                    await websocket.send_json({"type": "error", "message": "Empty message"})
+                    continue
+
+                if not student_id:
+                    student_id = DEFAULT_STUDENT_ID
+
+                await tutor_system.conduct_socratic_session_streaming(
+                    student_id=student_id,
+                    student_response=content,
+                    ws_send=ws_send,
+                )
+
+            # --- PING / KEEPALIVE ---
+            elif msg_type == "ping":
+                await websocket.send_json({"type": "pong"})
+
+            else:
+                await websocket.send_json({
+                    "type": "error",
+                    "message": f"Unknown message type: {msg_type}"
+                })
+
+    except WebSocketDisconnect:
+        logger.info(f"WS: Client disconnected (student_id={student_id})")
+    except Exception as e:
+        logger.error(f"WS: Unexpected error: {e}", exc_info=True)
+        try:
+            await websocket.send_json({"type": "error", "message": "Internal server error"})
+            await websocket.close(code=1011)
+        except Exception:
+            pass
+
+
 @router.get("/system-prompt", response_class=HTMLResponse)
 async def chat_system_prompt_page(request: Request):
     """Chat system prompt edit page"""

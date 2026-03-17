@@ -77,7 +77,11 @@ def create_comprehensive_chunks(
     questions: List[Dict[str, Any]]
 ) -> Tuple[List[str], List[Dict[str, Any]], List[str]]:
     """
-    Create comprehensive chunks from quiz questions for vector store processing.
+    Create focused chunks from quiz questions for vector store processing.
+
+    Each question produces ONE chunk centred on the correct answer's feedback
+    (the richest teaching signal) with the question as framing context.
+    Chunks are concise directional cues — the LLM expands on them at query time.
     """
     documents = []
     metadatas = []
@@ -86,67 +90,62 @@ def create_comprehensive_chunks(
     for question in questions:
         question_id = str(question.get("id", "unknown"))
         question_text = clean_question_text(question.get("question_text", ""))
+        if not question_text:
+            continue
 
-        general_feedback = clean_question_text(
-            question.get("neutral_comments", "")
-        )
         topic = question.get("topic", "Web Accessibility")
         tags = ", ".join(question.get("tags", []))
         learning_objective = question.get("learning_objective", "")
         question_type = question.get("question_type", "multiple_choice_question")
 
-        # Create main question chunk
-        if question_text:
-            main_content = f"Question: {question_text}"
-            if general_feedback:
-                main_content += f"\n\nGeneral Feedback: {general_feedback}"
-            if learning_objective:
-                main_content += f"\n\nLearning Objective: {learning_objective}"
-
-            documents.append(main_content)
-            metadatas.append(
-                {
-                    "question_id": question_id,
-                    "chunk_type": "question",
-                    "topic": topic,
-                    "tags": tags,
-                    "question_type": question_type,
-                    "learning_objective": learning_objective,
-                }
-            )
-            ids.append(f"q_{question_id}_main")
-
-        # Create answer-specific chunks
+        # Find correct answer + its feedback (the primary teaching content)
         answers = question.get("answers", [])
-        for i, answer in enumerate(answers):
-            answer_text = clean_question_text(answer.get("text", ""))
-            answer_feedback = clean_answer_feedback(answer.get("feedback_text", ""))
-            answer_feedback = clean_question_text(answer_feedback)
+        correct_answer_text = ""
+        correct_feedback = ""
+        wrong_answers = []
 
-            if answer_text:
-                answer_content = (
-                    f"Question: {question_text}\n\nAnswer {i+1}: {answer_text}"
-                )
-                if answer_feedback:
-                    answer_content += f"\n\nAnswer Feedback: {answer_feedback}"
+        for answer in answers:
+            a_text = clean_question_text(answer.get("text", ""))
+            a_feedback = clean_question_text(
+                clean_answer_feedback(answer.get("feedback_text", ""))
+            )
+            if answer.get("is_correct"):
+                correct_answer_text = a_text
+                correct_feedback = a_feedback
+            else:
+                if a_text:
+                    wrong_answers.append(a_text)
 
-                documents.append(answer_content)
-                metadatas.append(
-                    {
-                        "question_id": question_id,
-                        "chunk_type": "answer",
-                        "answer_index": i,
-                        "is_correct": answer.get("is_correct", False),
-                        "topic": topic,
-                        "tags": tags,
-                        "question_type": question_type,
-                        "learning_objective": learning_objective,
-                    }
-                )
-                ids.append(f"q_{question_id}_answer_{i}")
+        # Build a single focused chunk:
+        #   Topic direction (question) + teaching content (correct feedback)
+        parts = [f"Topic: {question_text}"]
+        if correct_answer_text:
+            parts.append(f"Correct answer: {correct_answer_text}")
+        if correct_feedback:
+            parts.append(f"Explanation: {correct_feedback}")
+        if wrong_answers:
+            parts.append(f"Common misconceptions: {'; '.join(wrong_answers)}")
+        if learning_objective:
+            parts.append(f"Learning objective: {learning_objective}")
+
+        chunk_content = "\n".join(parts)
+
+        documents.append(chunk_content)
+        metadatas.append(
+            {
+                "question_id": question_id,
+                "chunk_type": "question_with_feedback",
+                "is_correct": True,
+                "topic": topic,
+                "tags": tags,
+                "question_type": question_type,
+                "learning_objective": learning_objective,
+            }
+        )
+        ids.append(f"q_{question_id}_focused")
 
     logger.info(
-        f"Created {len(documents)} comprehensive chunks from {len(questions)} questions"
+        f"Created {len(documents)} focused chunks from {len(questions)} questions"
     )
     return documents, metadatas, ids
 
