@@ -168,6 +168,7 @@ canvas_app.log
 vector_store/
 data/quiz_questions.json
 data/learning_objectives.json
+data/system_prompts.json
 # config/*.txt
 
 # Temporary files
