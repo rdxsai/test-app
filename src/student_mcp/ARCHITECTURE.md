@@ -63,13 +63,38 @@ onboarding → introduction → exploration → readiness_check →
 mini_assessment → mini_review → final_assessment → transition
 ```
 
-## Tools (Phase 1: 2 of 12 implemented)
+## Tools (12/12 implemented)
 
-### Read Tools
-- `get_student_profile(student_id)` — Fetch profile or `{"found": false}`
+### Read Tools (called before LLM → build context window)
 
-### Write Tools
-- `create_student_profile(student_id, technical_level, a11y_exposure, role_context, learning_goal)` — Idempotent profile creation
+| Tool | Args | Returns |
+|------|------|---------|
+| `get_student_profile` | `student_id` | Profile dict with `found: true/false` |
+| `get_mastery_state` | `student_id` | Array of mastery records (objective_id, mastery_level, evidence, scores, turns) |
+| `get_active_session` | `student_id` | Most recent session state with `found: true/false` |
+| `get_misconception_patterns` | `student_id` | Array of unresolved misconceptions (resolved_at IS NULL) |
+| `get_recommended_next_objective` | `student_id` | Next objective via cross-schema join with main app's `learning_objective` table. Prioritizes: in_progress > partial > not_attempted |
+| `get_session_summary` | `student_id, summary_type` | Most recent summary of given type (short/medium/long) |
+
+### Write Tools (called after LLM → persist evaluation)
+
+| Tool | Args | Action |
+|------|------|--------|
+| `create_student_profile` | `student_id, technical_level, a11y_exposure, role_context, learning_goal` | INSERT (idempotent via ON CONFLICT) |
+| `update_mastery` | `student_id, objective_id, mastery_level, evidence_summary` | UPSERT — increments turns_spent on update |
+| `log_misconception` | `student_id, objective_id, misconception_text, source_question_id` | INSERT new misconception |
+| `update_session_state` | `session_id, student_id, stage, active_objective_id, turns, readiness_score, assessment_progress, stage_summary` | Creates session if needed, then selectively updates non-empty fields |
+| `save_session_summary` | `session_id, student_id, summary_type, content, objectives_covered, mastery_changes` | INSERT summary (content/mastery_changes as JSON strings, objectives_covered as JSON array) |
+| `update_student_preferences` | `student_id, preferred_style` | UPDATE profile preferred_style + last_session_at |
+
+### Tool Design Notes
+
+- All tools return JSON strings (MCP TextContent). Timestamps are ISO 8601.
+- Read tools return `{"found": false}` for missing records (not errors).
+- Write tools use UPSERT/ON CONFLICT for idempotency where applicable.
+- Complex params (JSONB) are passed as JSON strings and parsed server-side.
+- DB calls use `asyncio.to_thread()` to avoid blocking the event loop.
+- `get_recommended_next_objective` does a cross-schema query joining `{MAIN_DB_SCHEMA}.learning_objective` with `student_mcp.mastery_records`.
 
 ## Configuration
 

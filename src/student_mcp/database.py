@@ -10,6 +10,7 @@ independent — no imports from the main app. This isolation is intentional:
 the MCP server runs as a separate subprocess.
 """
 
+import json
 import logging
 import sys
 from contextlib import contextmanager
@@ -235,3 +236,336 @@ class StudentDatabase:
 
                 # Profile already existed — fetch and return it
                 return self.get_profile(student_id)
+
+    def update_preferences(self, student_id: str, preferred_style: str) -> Optional[Dict[str, Any]]:
+        """Update a student's learning style preference."""
+        with self.get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    UPDATE student_profiles
+                    SET preferred_style = %s, last_session_at = NOW()
+                    WHERE student_id = %s
+                    RETURNING *
+                    """,
+                    (preferred_style, student_id),
+                )
+                row = cur.fetchone()
+                conn.commit()
+                return dict(row) if row else None
+
+    # ------------------------------------------------------------------
+    # Read: Mastery Records
+    # ------------------------------------------------------------------
+
+    def get_mastery_state(self, student_id: str) -> List[Dict[str, Any]]:
+        """Get mastery levels for all objectives a student has engaged with."""
+        with self.get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    SELECT * FROM mastery_records
+                    WHERE student_id = %s
+                    ORDER BY last_assessed_at DESC
+                    """,
+                    (student_id,),
+                )
+                return [dict(row) for row in cur.fetchall()]
+
+    # ------------------------------------------------------------------
+    # Write: Mastery Records
+    # ------------------------------------------------------------------
+
+    def upsert_mastery(
+        self,
+        student_id: str,
+        objective_id: str,
+        mastery_level: str,
+        evidence_summary: str = "",
+    ) -> Dict[str, Any]:
+        """Insert or update a mastery record for a student-objective pair.
+
+        On conflict (same student + objective), updates the mastery level,
+        appends evidence, and increments turns_spent.
+        """
+        with self.get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    INSERT INTO mastery_records
+                        (student_id, objective_id, mastery_level, evidence_summary)
+                    VALUES (%s, %s, %s, %s)
+                    ON CONFLICT (student_id, objective_id) DO UPDATE SET
+                        mastery_level    = EXCLUDED.mastery_level,
+                        evidence_summary = EXCLUDED.evidence_summary,
+                        turns_spent      = mastery_records.turns_spent + 1,
+                        last_assessed_at = NOW()
+                    RETURNING *
+                    """,
+                    (student_id, objective_id, mastery_level, evidence_summary),
+                )
+                row = cur.fetchone()
+                conn.commit()
+                return dict(row)
+
+    # ------------------------------------------------------------------
+    # Read: Session State
+    # ------------------------------------------------------------------
+
+    def get_active_session(self, student_id: str) -> Optional[Dict[str, Any]]:
+        """Get the most recent session for a student."""
+        with self.get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    SELECT * FROM session_state
+                    WHERE student_id = %s
+                    ORDER BY started_at DESC
+                    LIMIT 1
+                    """,
+                    (student_id,),
+                )
+                row = cur.fetchone()
+                return dict(row) if row else None
+
+    # ------------------------------------------------------------------
+    # Write: Session State
+    # ------------------------------------------------------------------
+
+    def create_session(self, session_id: str, student_id: str) -> Dict[str, Any]:
+        """Create a new session. Returns existing session if ID conflicts."""
+        with self.get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    INSERT INTO session_state (session_id, student_id)
+                    VALUES (%s, %s)
+                    ON CONFLICT (session_id) DO NOTHING
+                    RETURNING *
+                    """,
+                    (session_id, student_id),
+                )
+                row = cur.fetchone()
+                conn.commit()
+                if row:
+                    return dict(row)
+                return self.get_active_session(student_id)
+
+    def update_session(
+        self,
+        session_id: str,
+        stage: str = "",
+        active_objective_id: str = "",
+        turns: int = -1,
+        readiness_score: float = -1.0,
+        assessment_progress: str = "",
+        stage_summary: str = "",
+    ) -> Optional[Dict[str, Any]]:
+        """Update specific fields of a session. Only non-empty values are applied.
+
+        This selective update approach avoids requiring all fields on every call.
+        Pass only the fields you want to change.
+        """
+        updates = []
+        params = []
+
+        if stage:
+            updates.append("current_stage = %s")
+            params.append(stage)
+        if active_objective_id:
+            updates.append("active_objective_id = %s")
+            params.append(active_objective_id)
+        if turns >= 0:
+            updates.append("turns_on_objective = %s")
+            params.append(turns)
+        if readiness_score >= 0.0:
+            updates.append("readiness_score = %s")
+            params.append(readiness_score)
+        if assessment_progress:
+            # Determine which assessment field to update based on current stage
+            # The caller passes JSON; we store in the appropriate column
+            updates.append("mini_assessment_progress = %s::jsonb")
+            params.append(assessment_progress)
+        if stage_summary:
+            updates.append("stage_summary = %s")
+            params.append(stage_summary)
+
+        if not updates:
+            # No fields to update — return current state by looking up via session_id
+            with self.get_connection() as conn:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        "SELECT * FROM session_state WHERE session_id = %s",
+                        (session_id,),
+                    )
+                    row = cur.fetchone()
+                    return dict(row) if row else None
+
+        params.append(session_id)
+        set_clause = ", ".join(updates)
+
+        with self.get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    f"UPDATE session_state SET {set_clause} WHERE session_id = %s RETURNING *",
+                    params,
+                )
+                row = cur.fetchone()
+                conn.commit()
+                return dict(row) if row else None
+
+    # ------------------------------------------------------------------
+    # Read: Misconceptions
+    # ------------------------------------------------------------------
+
+    def get_misconception_patterns(self, student_id: str) -> List[Dict[str, Any]]:
+        """Get unresolved misconceptions for a student, newest first."""
+        with self.get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    SELECT * FROM misconception_log
+                    WHERE student_id = %s AND resolved_at IS NULL
+                    ORDER BY identified_at DESC
+                    """,
+                    (student_id,),
+                )
+                return [dict(row) for row in cur.fetchall()]
+
+    # ------------------------------------------------------------------
+    # Write: Misconceptions
+    # ------------------------------------------------------------------
+
+    def insert_misconception(
+        self,
+        student_id: str,
+        objective_id: str,
+        misconception_text: str,
+        source_question_id: str = "",
+    ) -> Dict[str, Any]:
+        """Log a newly detected misconception."""
+        with self.get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    INSERT INTO misconception_log
+                        (student_id, objective_id, misconception_text, source_question_id)
+                    VALUES (%s, %s, %s, %s)
+                    RETURNING *
+                    """,
+                    (student_id, objective_id, misconception_text, source_question_id or None),
+                )
+                row = cur.fetchone()
+                conn.commit()
+                return dict(row)
+
+    # ------------------------------------------------------------------
+    # Read: Session Summaries
+    # ------------------------------------------------------------------
+
+    def get_latest_session_summary(
+        self, student_id: str, summary_type: str = "short"
+    ) -> Optional[Dict[str, Any]]:
+        """Get the most recent session summary of a given type."""
+        with self.get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    SELECT * FROM session_summaries
+                    WHERE student_id = %s AND summary_type = %s
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                    """,
+                    (student_id, summary_type),
+                )
+                row = cur.fetchone()
+                return dict(row) if row else None
+
+    # ------------------------------------------------------------------
+    # Write: Session Summaries
+    # ------------------------------------------------------------------
+
+    def insert_session_summary(
+        self,
+        session_id: str,
+        student_id: str,
+        summary_type: str = "short",
+        content: str = "{}",
+        objectives_covered: str = "[]",
+        mastery_changes: str = "{}",
+    ) -> Dict[str, Any]:
+        """Store a session summary. Content fields are JSON strings."""
+        # Parse objectives_covered from JSON string to Python list for TEXT[] column
+        try:
+            obj_list = json.loads(objectives_covered) if objectives_covered else []
+        except (json.JSONDecodeError, TypeError):
+            obj_list = []
+
+        with self.get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    INSERT INTO session_summaries
+                        (session_id, student_id, summary_type, content,
+                         objectives_covered, mastery_changes)
+                    VALUES (%s, %s, %s, %s::jsonb, %s, %s::jsonb)
+                    RETURNING *
+                    """,
+                    (session_id, student_id, summary_type, content,
+                     obj_list, mastery_changes),
+                )
+                row = cur.fetchone()
+                conn.commit()
+                return dict(row)
+
+    # ------------------------------------------------------------------
+    # Read: Recommended Next Objective (cross-schema)
+    # ------------------------------------------------------------------
+
+    def get_recommended_next_objective(self, student_id: str) -> Optional[Dict[str, Any]]:
+        """Recommend the next objective based on mastery state.
+
+        Joins against the main app's learning_objective table (cross-schema)
+        to find objectives the student hasn't mastered yet. Prioritizes:
+          1. Objectives with mastery_level = 'in_progress' (resume work)
+          2. Objectives with mastery_level = 'partial' (needs more work)
+          3. Objectives not yet attempted (new material)
+
+        Within each priority group, orders by the objective's priority field.
+        """
+        with self.get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    f"""
+                    SELECT
+                        lo.id AS objective_id,
+                        lo.text AS objective_text,
+                        lo.blooms_level,
+                        lo.priority,
+                        mr.mastery_level,
+                        mr.turns_spent
+                    FROM {self.main_schema}.learning_objective lo
+                    LEFT JOIN mastery_records mr
+                        ON lo.id = mr.objective_id AND mr.student_id = %s
+                    WHERE mr.mastery_level IS NULL
+                       OR mr.mastery_level NOT IN ('mastered')
+                    ORDER BY
+                        CASE
+                            WHEN mr.mastery_level = 'in_progress' THEN 1
+                            WHEN mr.mastery_level = 'partial' THEN 2
+                            WHEN mr.mastery_level = 'misconception' THEN 3
+                            WHEN mr.mastery_level IS NULL THEN 4
+                            ELSE 5
+                        END,
+                        CASE lo.priority
+                            WHEN 'high' THEN 1
+                            WHEN 'medium' THEN 2
+                            WHEN 'low' THEN 3
+                            ELSE 4
+                        END
+                    LIMIT 1
+                    """,
+                    (student_id,),
+                )
+                row = cur.fetchone()
+                return dict(row) if row else None

@@ -185,3 +185,204 @@ class TestProfileCRUD:
                 )
                 row = cur.fetchone()
         assert row["a11y_exposure"] == "professional"
+
+    def test_update_preferences(self, db):
+        db.create_profile(student_id="test-pref")
+        result = db.update_preferences("test-pref", "code_examples")
+        assert result["preferred_style"] == "code_examples"
+        assert result["last_session_at"] is not None
+
+    def test_update_preferences_nonexistent(self, db):
+        result = db.update_preferences("ghost", "visual")
+        assert result is None
+
+
+# ---------------------------------------------------------------------------
+# Tests: Mastery Records
+# ---------------------------------------------------------------------------
+
+
+class TestMasteryRecords:
+    """Test mastery tracking operations."""
+
+    def test_upsert_creates_new(self, db):
+        db.create_profile(student_id="mastery-1")
+        result = db.upsert_mastery(
+            "mastery-1", "obj-semantic-html", "in_progress",
+            "Student understands basic div vs nav distinction",
+        )
+        assert result["student_id"] == "mastery-1"
+        assert result["objective_id"] == "obj-semantic-html"
+        assert result["mastery_level"] == "in_progress"
+        assert result["turns_spent"] == 0  # first insert
+
+    def test_upsert_updates_existing(self, db):
+        db.create_profile(student_id="mastery-2")
+        db.upsert_mastery("mastery-2", "obj-1", "in_progress", "initial")
+        result = db.upsert_mastery("mastery-2", "obj-1", "partial", "improved")
+        assert result["mastery_level"] == "partial"
+        assert result["evidence_summary"] == "improved"
+        assert result["turns_spent"] == 1  # incremented
+
+    def test_get_mastery_state_empty(self, db):
+        db.create_profile(student_id="mastery-empty")
+        result = db.get_mastery_state("mastery-empty")
+        assert result == []
+
+    def test_get_mastery_state_multiple(self, db):
+        db.create_profile(student_id="mastery-multi")
+        db.upsert_mastery("mastery-multi", "obj-1", "mastered", "")
+        db.upsert_mastery("mastery-multi", "obj-2", "in_progress", "")
+        result = db.get_mastery_state("mastery-multi")
+        assert len(result) == 2
+        levels = {r["objective_id"]: r["mastery_level"] for r in result}
+        assert levels["obj-1"] == "mastered"
+        assert levels["obj-2"] == "in_progress"
+
+
+# ---------------------------------------------------------------------------
+# Tests: Session State
+# ---------------------------------------------------------------------------
+
+
+class TestSessionState:
+    """Test session management operations."""
+
+    def test_create_session(self, db):
+        db.create_profile(student_id="sess-1")
+        result = db.create_session("session-abc", "sess-1")
+        assert result["session_id"] == "session-abc"
+        assert result["current_stage"] == "onboarding"
+        assert result["turns_on_objective"] == 0
+
+    def test_get_active_session(self, db):
+        db.create_profile(student_id="sess-2")
+        db.create_session("session-xyz", "sess-2")
+        result = db.get_active_session("sess-2")
+        assert result is not None
+        assert result["session_id"] == "session-xyz"
+
+    def test_get_active_session_not_found(self, db):
+        db.create_profile(student_id="sess-none")
+        result = db.get_active_session("sess-none")
+        assert result is None
+
+    def test_update_session_stage(self, db):
+        db.create_profile(student_id="sess-upd")
+        db.create_session("session-upd", "sess-upd")
+        result = db.update_session("session-upd", stage="introduction")
+        assert result["current_stage"] == "introduction"
+
+    def test_update_session_turns(self, db):
+        db.create_profile(student_id="sess-turns")
+        db.create_session("session-turns", "sess-turns")
+        result = db.update_session("session-turns", turns=5)
+        assert result["turns_on_objective"] == 5
+
+    def test_update_session_multiple_fields(self, db):
+        db.create_profile(student_id="sess-multi")
+        db.create_session("session-multi", "sess-multi")
+        result = db.update_session(
+            "session-multi",
+            stage="mini_assessment",
+            active_objective_id="obj-1",
+            turns=3,
+            readiness_score=0.75,
+            stage_summary="Student explored headings and landmarks.",
+        )
+        assert result["current_stage"] == "mini_assessment"
+        assert result["active_objective_id"] == "obj-1"
+        assert result["turns_on_objective"] == 3
+        assert result["readiness_score"] == pytest.approx(0.75)
+        assert "headings" in result["stage_summary"]
+
+    def test_update_session_no_changes(self, db):
+        """Calling update with no fields returns the current state."""
+        db.create_profile(student_id="sess-noop")
+        db.create_session("session-noop", "sess-noop")
+        result = db.update_session("session-noop")
+        assert result is not None
+
+
+# ---------------------------------------------------------------------------
+# Tests: Misconceptions
+# ---------------------------------------------------------------------------
+
+
+class TestMisconceptions:
+    """Test misconception logging and retrieval."""
+
+    def test_insert_misconception(self, db):
+        db.create_profile(student_id="misc-1")
+        result = db.insert_misconception(
+            "misc-1", "obj-aria", "Thinks aria-hidden removes from DOM",
+            source_question_id="q42",
+        )
+        assert result["misconception_text"] == "Thinks aria-hidden removes from DOM"
+        assert result["source_question_id"] == "q42"
+        assert result["resolved_at"] is None
+
+    def test_get_misconception_patterns_empty(self, db):
+        db.create_profile(student_id="misc-empty")
+        result = db.get_misconception_patterns("misc-empty")
+        assert result == []
+
+    def test_get_misconception_patterns_filters_resolved(self, db):
+        db.create_profile(student_id="misc-filt")
+        db.insert_misconception("misc-filt", "obj-1", "misconception A")
+        db.insert_misconception("misc-filt", "obj-1", "misconception B")
+
+        # Resolve one
+        with db.get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """UPDATE misconception_log SET resolved_at = NOW()
+                       WHERE student_id = 'misc-filt'
+                       AND misconception_text = 'misconception A'"""
+                )
+            conn.commit()
+
+        result = db.get_misconception_patterns("misc-filt")
+        assert len(result) == 1
+        assert result[0]["misconception_text"] == "misconception B"
+
+
+# ---------------------------------------------------------------------------
+# Tests: Session Summaries
+# ---------------------------------------------------------------------------
+
+
+class TestSessionSummaries:
+    """Test session summary storage and retrieval."""
+
+    def test_insert_and_get_summary(self, db):
+        db.create_profile(student_id="sum-1")
+        db.insert_session_summary(
+            session_id="sess-sum-1",
+            student_id="sum-1",
+            summary_type="short",
+            content='{"topics": ["alt text"]}',
+            objectives_covered='["obj-alt-text"]',
+            mastery_changes='{"obj-alt-text": "mastered"}',
+        )
+        result = db.get_latest_session_summary("sum-1", "short")
+        assert result is not None
+        assert result["summary_type"] == "short"
+        assert result["content"]["topics"] == ["alt text"]
+        assert "obj-alt-text" in result["objectives_covered"]
+
+    def test_get_summary_not_found(self, db):
+        db.create_profile(student_id="sum-none")
+        result = db.get_latest_session_summary("sum-none", "long")
+        assert result is None
+
+    def test_get_latest_returns_most_recent(self, db):
+        db.create_profile(student_id="sum-latest")
+        db.insert_session_summary(
+            "sess-old", "sum-latest", "short", '{"n": 1}',
+        )
+        db.insert_session_summary(
+            "sess-new", "sum-latest", "short", '{"n": 2}',
+        )
+        result = db.get_latest_session_summary("sum-latest", "short")
+        assert result["content"]["n"] == 2
