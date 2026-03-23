@@ -96,6 +96,38 @@ mini_assessment → mini_review → final_assessment → transition
 - DB calls use `asyncio.to_thread()` to avoid blocking the event loop.
 - `get_recommended_next_objective` does a cross-schema query joining `{MAIN_DB_SCHEMA}.learning_objective` with `student_mcp.mastery_records`.
 
+## Client Integration
+
+The FastAPI backend connects to this server via `StudentMCPClient` (`src/question_app/services/student_mcp_client.py`). The client follows the same lifecycle pattern as `WCAGMCPClient`:
+
+- **Lazy init**: subprocess starts on first tool call, not at import time
+- **asyncio.Lock**: prevents double-initialization under concurrent requests
+- **Auto-reconnect**: if the subprocess dies, the next `_call()` resets the session and reconnects
+- **Direct calls**: `session.call_tool()` — no LLM function-calling layer
+
+### Wiring
+
+```
+config.py          →  STUDENT_MCP_ENABLED (env var, default: true)
+chat.py            →  StudentMCPClient(command=python, args=["-m", "student_mcp"])
+                   →  passed to HybridCrewAISocraticSystem(student_mcp_client=...)
+hybrid_system.py   →  self.student_mcp = student_mcp_client
+                   →  read tools before LLM, write tools after LLM
+```
+
+### Read/Write Flow
+
+```python
+# Before LLM call (build context):
+profile = await self.student_mcp.get_profile(student_id)
+mastery = await self.student_mcp.get_mastery_state(student_id)
+session = await self.student_mcp.get_active_session(student_id)
+
+# After LLM call (persist evaluation):
+await self.student_mcp.update_mastery(student_id, obj_id, level, evidence)
+await self.student_mcp.update_session_state(session_id, stage=new_stage)
+```
+
 ## Configuration
 
 Environment variables (inherited from parent process):

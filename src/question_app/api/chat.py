@@ -25,6 +25,7 @@ from ..utils import (
 from ..services.tutor.hybrid_system import HybridCrewAISocraticSystem
 from ..services.tutor.simple_system import AzureAPIMClient
 from ..services.wcag_mcp_client import WCAGMCPClient
+from ..services.student_mcp_client import StudentMCPClient
 from ..api.pg_vector_store import VectorStoreService
 
 
@@ -62,10 +63,19 @@ try:
     if wcag_mcp:
         logger.info("Chat API: WCAG MCP client created with LLM-driven tool calling.")
 
+    import sys
+    student_mcp = StudentMCPClient(
+        command=sys.executable,
+        args=["-m", "student_mcp"],
+    ) if config.STUDENT_MCP_ENABLED else None
+    if student_mcp:
+        logger.info("Chat API: Student MCP client created for programmatic state management.")
+
     tutor_system = HybridCrewAISocraticSystem(
         azure_config=azure_config,
         vector_store_service=vector_service,
         wcag_mcp_client=wcag_mcp,
+        student_mcp_client=student_mcp,
     )
     logger.info("Chat API: HybridCrewAISocraticSystem initialized successfully.")
 

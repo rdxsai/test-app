@@ -61,7 +61,7 @@ class SocraticAgent:
         self.client = client
         logger.info(f"Initialized {role} agent")
 
-    def execute_task(self, task_description: str, context: str = "", history : Optional[List[Dict[str , str]]] = None) -> str:
+    def execute_task(self, task_description: str, context: str = "", history : Optional[List[Dict[str , str]]] = None, reasoning_effort: Optional[str] = None) -> str:
         context_block = ""
         if context:
             context_block = f"""
@@ -93,7 +93,7 @@ If the cues mention a correct answer or misconception, teach *why* it is correct
             messages.extend(history[-4:])
         messages.append({"role": "user" , "content": task_description})
         try:
-            response = self.client.chat(messages, temperature=0.7)
+            response = self.client.chat(messages, temperature=0.7, reasoning_effort=reasoning_effort)
             logger.info(f"{self.role} completed task successfully")
             return response
         except Exception as e:
@@ -140,7 +140,7 @@ Respond with ONLY a JSON object in this exact format:
 """
         # --- === END OF FIX 2 === ---
         try:
-            repsonse_json = self.execute_task(task_description , context = "", history=history)
+            repsonse_json = self.execute_task(task_description , context = "", history=history, reasoning_effort="low")
             intent = json.loads(repsonse_json).get("intent" , "conceptual_question")
 
             # Add the new intent to the valid list
@@ -409,7 +409,8 @@ class CodeAnalyzerAgent(SocraticAgent):
 MIN_COSINE_SIMILARITY = 0.7
 class HybridCrewAISocraticSystem:
     def __init__(
-        self, azure_config: Dict[str, str], vector_store_service : VectorStoreInterface, db_manager=None, wcag_mcp_client=None
+        self, azure_config: Dict[str, str], vector_store_service : VectorStoreInterface,
+        db_manager=None, wcag_mcp_client=None, student_mcp_client=None
     ):
         self.client = AzureAPIMClient(
             endpoint=azure_config["endpoint"],
@@ -421,6 +422,7 @@ class HybridCrewAISocraticSystem:
         self.vector_store = vector_store_service
         self.db = db_manager or get_database_manager()
         self.wcag_mcp = wcag_mcp_client
+        self.student_mcp = student_mcp_client
         self.memory_file = "conversation_memory.json"
         self.conversation_memory : Dict[str, List[Dict[str , str]]] = {}
         self._load_conversation_memory()
@@ -606,7 +608,7 @@ class HybridCrewAISocraticSystem:
                     ),
                 },
             ]
-            hyde_answer = self.client.chat(messages, temperature=0.3, max_tokens=200)
+            hyde_answer = self.client.chat(messages, temperature=0.3, max_tokens=300, reasoning_effort="low")
             hyde_answer = hyde_answer.strip()
             if hyde_answer and len(hyde_answer) > 10:
                 logger.info(f"HyDE generated ({len(hyde_answer)} chars): '{hyde_answer[:80]}...'")
@@ -691,11 +693,8 @@ class HybridCrewAISocraticSystem:
         combined = "\n\n".join(parts)
         return combined, quiz_chunks, wcag_context
 
-    def _generate_response(self, student_response: str, context: str, history: Optional[List[Dict[str, str]]] = None) -> str:
-        """
-        Single LLM call: context + history + student query → tutor response.
-        Replaces the 4-agent chain (analyst → progress → questioner → orchestrator).
-        """
+    def _build_response_messages(self, student_response: str, context: str, history: Optional[List[Dict[str, str]]] = None) -> List[Dict]:
+        """Build the messages list for response generation (used by both sync and streaming paths)."""
         context_block = ""
         if context:
             context_block = f"""
@@ -714,17 +713,30 @@ Use the context above as your primary source of truth.
 
 Guidelines:
 - Answer the student's question directly and clearly.
-- Use practical examples when helpful.
-- Keep responses concise but complete (3-6 sentences typically).
-- Reference specific WCAG success criteria when relevant.
+- Use practical examples with HTML code snippets when helpful.
+- Be concise: aim for 150-250 words. Do NOT repeat the question back.
+- Reference specific WCAG success criteria (e.g. **SC 1.1.1**) when relevant.
 - Use a conversational, encouraging tone.
-- Format with markdown when it improves readability (lists, code blocks, bold for key terms)."""
+
+Formatting rules (important — your output is rendered as Markdown):
+- Use **bold** for key terms on first mention.
+- Use ### headings to separate distinct concepts when comparing items.
+- Use bullet lists for attributes, steps, or tips.
+- Wrap HTML/code in backticks (`<img alt="...">`) or fenced code blocks.
+- End with a brief practical tip or takeaway."""
 
         messages = [{"role": "system", "content": system_prompt}]
         if history:
             messages.extend(history[-6:])
         messages.append({"role": "user", "content": student_response})
+        return messages
 
+    def _generate_response(self, student_response: str, context: str, history: Optional[List[Dict[str, str]]] = None) -> str:
+        """
+        Single LLM call: context + history + student query → tutor response.
+        Used by the non-streaming POST endpoint.
+        """
+        messages = self._build_response_messages(student_response, context, history)
         try:
             return self.client.chat(messages, temperature=0.7, max_tokens=1000)
         except Exception as e:
@@ -799,14 +811,57 @@ Guidelines:
     async def _progressive_send(self, text: str, ws_send):
         """
         Send text to the client progressively in small word-chunks.
-        Azure APIM buffers SSE streams, so we simulate token-by-token
-        delivery for a responsive typewriter UX.
+        Fallback for non-streaming code paths (e.g. POST endpoint).
         """
         words = text.split(" ")
         for i, word in enumerate(words):
             chunk = word if i == 0 else " " + word
             await ws_send({"type": "token", "content": chunk})
-            await asyncio.sleep(0.03)  # ~30ms per word ≈ fast typing speed
+            await asyncio.sleep(0.03)
+
+    async def _stream_response(self, messages: List[Dict], ws_send) -> str:
+        """
+        Stream LLM response via WebSocket with smooth drip-feed.
+
+        Azure APIM buffers the full SSE response before forwarding, so tokens
+        always arrive in a burst regardless of model.  We collect them, then
+        drip-feed to the client for a smooth typing effect.
+
+        Falls back to sync chat() + _progressive_send on failure.
+        """
+        full_response: List[str] = []
+
+        try:
+            async for token in self.client.chat_stream_async(messages, max_tokens=1000):
+                full_response.append(token)
+        except Exception as e:
+            logger.error(f"Streaming failed: {e}, falling back to sync response")
+            if not full_response:
+                sync_response = await asyncio.to_thread(
+                    self.client.chat, messages, 0.7, 1000
+                )
+                await ws_send({"type": "stream_start"})
+                await self._progressive_send(sync_response, ws_send)
+                return sync_response
+
+        result = "".join(full_response)
+        if not result:
+            logger.warning("Stream returned empty response, falling back to sync call")
+            sync_response = await asyncio.to_thread(
+                self.client.chat, messages, 0.7, 1000
+            )
+            await ws_send({"type": "stream_start"})
+            await self._progressive_send(sync_response, ws_send)
+            return sync_response
+
+        # Drip-feed tokens for smooth visual streaming
+        await ws_send({"type": "stream_start"})
+        for token in full_response:
+            await ws_send({"type": "token", "content": token})
+            await asyncio.sleep(0.008)
+
+        logger.info(f"Streamed {len(full_response)} tokens ({len(result)} chars)")
+        return result
 
     async def conduct_socratic_session_streaming(self, student_id: str, student_response: str, ws_send):
         """
@@ -839,8 +894,12 @@ Guidelines:
 
             if intent == "conceptual_question":
                 # Stage 2: Search (RAG + WCAG MCP concurrently)
-                await ws_send({"type": "stage", "stage": "searching"})
+                await ws_send({"type": "stage", "stage": "searching", "detail": "Searching quiz bank and WCAG guidelines..."})
                 rag_context, retrieved_chunks_data, wcag_context = await self.get_combined_context(student_response, history=history)
+
+                # Send retrieval stats
+                n_chunks = len(retrieved_chunks_data) if retrieved_chunks_data else 0
+                await ws_send({"type": "stage", "stage": "searching", "detail": f"Found {n_chunks} quiz matches{' + WCAG references' if wcag_context else ''}"})
 
                 # Send retrieved chunks to frontend for display
                 if retrieved_chunks_data:
@@ -862,24 +921,25 @@ Guidelines:
                 if wcag_context:
                     await ws_send({"type": "wcag_context", "content": wcag_context})
 
-                # Stage 3: Compose — single LLM call
-                await ws_send({"type": "stage", "stage": "composing"})
-                final_response = await asyncio.to_thread(
-                    self._generate_response, student_response, rag_context, history
-                )
+                # Stage 3: Compose — stream response token-by-token
+                await ws_send({"type": "stage", "stage": "composing", "detail": "Generating response..."})
 
-                await ws_send({"type": "stream_start"})
-                await self._progressive_send(final_response, ws_send)
+                # Build messages for streaming
+                response_messages = self._build_response_messages(student_response, rag_context, history)
+                final_response = await self._stream_response(response_messages, ws_send)
 
             elif intent == "code_analysis_request":
-                await ws_send({"type": "stage", "stage": "analyzing"})
+                await ws_send({"type": "stage", "stage": "analyzing", "detail": "Analyzing code snippet..."})
                 code_analysis_result = await asyncio.to_thread(
                     self.code_analyzer.analyze_code_snippet, student_response
                 )
                 search_query = student_response + "\n" + code_analysis_result
 
-                await ws_send({"type": "stage", "stage": "searching"})
+                await ws_send({"type": "stage", "stage": "searching", "detail": "Searching quiz bank and WCAG guidelines..."})
                 rag_context, retrieved_chunks_data, wcag_context = await self.get_combined_context(search_query, history=history)
+
+                n_chunks = len(retrieved_chunks_data) if retrieved_chunks_data else 0
+                await ws_send({"type": "stage", "stage": "searching", "detail": f"Found {n_chunks} quiz matches{' + WCAG references' if wcag_context else ''}"})
 
                 if retrieved_chunks_data:
                     await ws_send({
@@ -899,16 +959,13 @@ Guidelines:
                 if wcag_context:
                     await ws_send({"type": "wcag_context", "content": wcag_context})
 
-                await ws_send({"type": "stage", "stage": "composing"})
+                await ws_send({"type": "stage", "stage": "composing", "detail": "Generating response..."})
                 combined = rag_context
                 if code_analysis_result:
                     combined = f"CODE ANALYSIS:\n{code_analysis_result}\n\n{rag_context}"
-                final_response = await asyncio.to_thread(
-                    self._generate_response, student_response, combined, history
-                )
 
-                await ws_send({"type": "stream_start"})
-                await self._progressive_send(final_response, ws_send)
+                response_messages = self._build_response_messages(student_response, combined, history)
+                final_response = await self._stream_response(response_messages, ws_send)
 
             elif intent == "off_topic":
                 await ws_send({"type": "stream_start"})

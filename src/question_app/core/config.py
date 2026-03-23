@@ -49,6 +49,9 @@ class Config:
         self.WCAG_MCP_ENABLED: bool = os.getenv("WCAG_MCP_ENABLED", "true").lower() == "true"
         self.WCAG_MCP_COMMAND: str = os.getenv("WCAG_MCP_COMMAND", "wcag-guidelines-mcp")
 
+        # Student MCP Server Configuration
+        self.STUDENT_MCP_ENABLED: bool = os.getenv("STUDENT_MCP_ENABLED", "true").lower() == "true"
+
         # Application Configuration
         self.APP_TITLE: str = "Canvas Quiz Manager"
         self.LOG_FILE: str = "canvas_app.log"
