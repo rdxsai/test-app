@@ -128,6 +128,48 @@ await self.student_mcp.update_mastery(student_id, obj_id, level, evidence)
 await self.student_mcp.update_session_state(session_id, stage=new_stage)
 ```
 
+## Pipeline Integration
+
+The student context is loaded in parallel with intent classification, adding zero latency to the pipeline:
+
+```
+conduct_socratic_session_streaming()
+    │
+    ├── asyncio.create_task(_load_student_context)  ← parallel
+    │     └── asyncio.gather(profile, mastery, session, misconceptions)
+    │
+    ├── Stage 1: classify intent (concurrent with above)
+    │
+    ├── await student_context_task  ← ready by now (DB reads are fast)
+    │
+    ├── Stage 2: RAG + WCAG MCP search
+    │
+    ├── Stage 3: _build_response_messages(student_context=...)
+    │     └── system prompt now includes:
+    │           STUDENT PROFILE: level, role, style
+    │           ACTIVE SESSION: stage, objective, turns
+    │           MASTERY STATE: per-objective levels
+    │           ACTIVE MISCONCEPTIONS: unresolved items
+    │           ---
+    │           KNOWLEDGE BASE CONTEXT: RAG + WCAG
+    │
+    └── Stream response
+```
+
+### Context Window Composition
+
+```
+System prompt + stage instructions           (~500 tok)
+Student profile (from MCP)                   (~100 tok)
+Session state + mastery (from MCP)           (~250 tok)
+Active misconceptions (from MCP)             (~100 tok)
+Stage summary (compressed, from MCP)         (~200 tok)
+Last 6 raw messages (conversational flow)    (~600 tok)
+Retrieved content (RAG + WCAG MCP)          (~1500 tok)
+─────────────────────────────────────────────────────
+Total                                       (~3250 tok)
+```
+
 ## Configuration
 
 Environment variables (inherited from parent process):

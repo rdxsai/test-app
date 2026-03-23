@@ -693,7 +693,91 @@ class HybridCrewAISocraticSystem:
         combined = "\n\n".join(parts)
         return combined, quiz_chunks, wcag_context
 
-    def _build_response_messages(self, student_response: str, context: str, history: Optional[List[Dict[str, str]]] = None) -> List[Dict]:
+    # ------------------------------------------------------------------
+    # Student MCP context helpers
+    # ------------------------------------------------------------------
+
+    async def _load_student_context(self, student_id: str) -> str:
+        """Load student state from the Student MCP server and format for the LLM.
+
+        Calls read tools in parallel: profile, mastery, active session,
+        misconceptions. Returns a formatted text block for the system prompt,
+        or empty string if the Student MCP client is not available.
+        """
+        if not self.student_mcp:
+            return ""
+
+        try:
+            profile, mastery, session, misconceptions = await asyncio.gather(
+                self.student_mcp.get_profile(student_id),
+                self.student_mcp.get_mastery_state(student_id),
+                self.student_mcp.get_active_session(student_id),
+                self.student_mcp.get_misconception_patterns(student_id),
+            )
+            return self._format_student_context(profile, mastery, session, misconceptions)
+        except Exception as e:
+            logger.warning(f"Failed to load student context from MCP: {e}")
+            return ""
+
+    def _format_student_context(
+        self, profile: Optional[Dict], mastery: List[Dict],
+        session: Optional[Dict], misconceptions: List[Dict],
+    ) -> str:
+        """Format student MCP data into a concise text block for the system prompt."""
+        parts = []
+
+        if profile:
+            parts.append(
+                f"STUDENT PROFILE:\n"
+                f"  Level: {profile.get('technical_level', 'unknown')} | "
+                f"A11y experience: {profile.get('a11y_exposure', 'unknown')} | "
+                f"Role: {profile.get('role_context', 'unknown')} | "
+                f"Style: {profile.get('preferred_style', 'balanced')}"
+            )
+
+        if session:
+            stage = session.get("current_stage", "unknown")
+            objective = session.get("active_objective_id", "none")
+            turns = session.get("turns_on_objective", 0)
+            summary = session.get("stage_summary", "")
+            session_block = (
+                f"ACTIVE SESSION:\n"
+                f"  Stage: {stage} | Objective: {objective} | Turns: {turns}"
+            )
+            if summary:
+                session_block += f"\n  Previous stage summary: {summary}"
+            parts.append(session_block)
+
+        if mastery:
+            mastery_lines = []
+            for m in mastery[:10]:  # cap to avoid token bloat
+                mastery_lines.append(
+                    f"  {m.get('objective_id', '?')}: {m.get('mastery_level', '?')}"
+                    + (f" ({m.get('evidence_summary', '')})" if m.get('evidence_summary') else "")
+                )
+            parts.append("MASTERY STATE:\n" + "\n".join(mastery_lines))
+
+        if misconceptions:
+            misc_lines = [
+                f"  - {m.get('misconception_text', '?')} (objective: {m.get('objective_id', '?')})"
+                for m in misconceptions[:5]  # cap to avoid token bloat
+            ]
+            parts.append("ACTIVE MISCONCEPTIONS:\n" + "\n".join(misc_lines))
+
+        if not parts:
+            return ""
+
+        return "\n".join(parts)
+
+    # ------------------------------------------------------------------
+    # Response message builder
+    # ------------------------------------------------------------------
+
+    def _build_response_messages(
+        self, student_response: str, context: str,
+        history: Optional[List[Dict[str, str]]] = None,
+        student_context: str = "",
+    ) -> List[Dict]:
         """Build the messages list for response generation (used by both sync and streaming paths)."""
         context_block = ""
         if context:
@@ -707,9 +791,18 @@ Use the context above as your primary source of truth.
 - Expand on the context with your expertise — don't just rephrase it.
 """
 
+        # Inject student context before knowledge base context
+        student_block = ""
+        if student_context:
+            student_block = f"""
+{student_context}
+---
+Adapt your response to the student's level and known misconceptions above.
+"""
+
         system_prompt = f"""You are a friendly, knowledgeable web accessibility tutor.
 
-{context_block}
+{student_block}{context_block}
 
 Guidelines:
 - Answer the student's question directly and clearly.
@@ -731,12 +824,12 @@ Formatting rules (important — your output is rendered as Markdown):
         messages.append({"role": "user", "content": student_response})
         return messages
 
-    def _generate_response(self, student_response: str, context: str, history: Optional[List[Dict[str, str]]] = None) -> str:
+    def _generate_response(self, student_response: str, context: str, history: Optional[List[Dict[str, str]]] = None, student_context: str = "") -> str:
         """
         Single LLM call: context + history + student query → tutor response.
         Used by the non-streaming POST endpoint.
         """
-        messages = self._build_response_messages(student_response, context, history)
+        messages = self._build_response_messages(student_response, context, history, student_context=student_context)
         try:
             return self.client.chat(messages, temperature=0.7, max_tokens=1000)
         except Exception as e:
@@ -880,11 +973,21 @@ Formatting rules (important — your output is rendered as Markdown):
         self.append_to_conversation(student_id, "user", student_response)
 
         try:
+            # Stage 0: Load student context from Student MCP (parallel with intent)
+            student_context_task = asyncio.create_task(
+                self._load_student_context(student_id)
+            )
+
             # Stage 1: Classify intent
             await ws_send({"type": "stage", "stage": "classifying"})
             intent = await asyncio.to_thread(
                 self.coordinator_agent.decide_intent, student_response, history
             )
+
+            # Await student context (should be done by now — DB reads are fast)
+            student_context = await student_context_task
+            if student_context:
+                logger.info(f"Student MCP context loaded ({len(student_context)} chars)")
 
             analysis = {}
             progress = {}
@@ -924,8 +1027,10 @@ Formatting rules (important — your output is rendered as Markdown):
                 # Stage 3: Compose — stream response token-by-token
                 await ws_send({"type": "stage", "stage": "composing", "detail": "Generating response..."})
 
-                # Build messages for streaming
-                response_messages = self._build_response_messages(student_response, rag_context, history)
+                # Build messages for streaming (with student context injected)
+                response_messages = self._build_response_messages(
+                    student_response, rag_context, history, student_context=student_context
+                )
                 final_response = await self._stream_response(response_messages, ws_send)
 
             elif intent == "code_analysis_request":
@@ -964,7 +1069,9 @@ Formatting rules (important — your output is rendered as Markdown):
                 if code_analysis_result:
                     combined = f"CODE ANALYSIS:\n{code_analysis_result}\n\n{rag_context}"
 
-                response_messages = self._build_response_messages(student_response, combined, history)
+                response_messages = self._build_response_messages(
+                    student_response, combined, history, student_context=student_context
+                )
                 final_response = await self._stream_response(response_messages, ws_send)
 
             elif intent == "off_topic":
