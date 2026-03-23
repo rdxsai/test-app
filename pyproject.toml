@@ -4,7 +4,10 @@ version = "0.3.0"
 description = "A comprehensive web application for managing Canvas LMS quiz questions with AI-powered feedback generation, intelligent chat assistant using RAG, comprehensive type safety, and VS Code integration."
 authors = ["Bryce Kayanuma <BrycePK@vt.edu>", "Robert Fentress <learn@vt.edu>"]
 readme = "README.md"
-packages = [{include = "question_app", from = "src"}]
+packages = [
+    {include = "question_app", from = "src"},
+    {include = "student_mcp", from = "src"},
+]
 
 [tool.poetry.dependencies]
 python = "^3.11"
@@ -53,6 +56,7 @@ lint = "scripts.lint_code:main"
 format = "scripts.format_code:main"
 type-check = "scripts.type_check:main"
 test = "scripts.run_tests:main"
+student-mcp = "student_mcp.server:main"
 
 [build-system]
 requires = ["poetry-core"]
