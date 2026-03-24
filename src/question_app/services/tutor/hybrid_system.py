@@ -423,6 +423,15 @@ class HybridCrewAISocraticSystem:
         self.db = db_manager or get_database_manager()
         self.wcag_mcp = wcag_mcp_client
         self.student_mcp = student_mcp_client
+        # Session content cache: teaching material cached per objective (zero-latency reuse)
+        from .session_cache import SessionContentCache
+        self._session_cache = SessionContentCache()
+        # Stage machine: enforces transitions and thresholds for Instance B
+        if student_mcp_client:
+            from .stage_machine import StageMachine
+            self._stage_machine = StageMachine(student_mcp_client)
+        else:
+            self._stage_machine = None
         self.memory_file = "conversation_memory.json"
         self.conversation_memory : Dict[str, List[Dict[str , str]]] = {}
         self._load_conversation_memory()
@@ -1122,6 +1131,350 @@ class HybridCrewAISocraticSystem:
             logger.error(f"Streaming session failed: {e}", exc_info=True)
             await ws_send({"type": "error", "message": str(e)})
             return {}
+
+    # ==================================================================
+    # Instance B: Guided Learning Session
+    # ==================================================================
+
+    async def conduct_guided_session_streaming(
+        self, student_id: str, student_response: str,
+        session_id: str, ws_send,
+    ) -> Dict[str, Any]:
+        """Instance B: Stage-aware guided learning with eval-driven state updates.
+
+        Per-turn flow:
+        1. Load student context from MCP (profile, mastery, session, misconceptions)
+        2. Check session content cache — hit → skip retrieval, miss → retrieve + cache
+        3. Build Instance B prompt (stage-aware, includes eval JSON schema)
+        4. Single LLM call → Socratic response + eval JSON
+        5. Stream conversational text to client (strip eval JSON before streaming)
+        6. Parse eval JSON from full response
+        7. Stage machine processes eval → MCP write-backs
+        8. Send stage/mastery updates to client via WebSocket
+        """
+        if not self.student_mcp:
+            await ws_send({"type": "error", "message": "Student MCP not available"})
+            return {}
+
+        history = self.get_conversation_history(student_id)
+        self.append_to_conversation(student_id, "user", student_response)
+
+        try:
+            # Load student context from MCP
+            await ws_send({"type": "stage", "stage": "loading", "detail": "Loading your learning profile..."})
+            student_context = await self._load_student_context(student_id)
+            session_state = await self.student_mcp.get_active_session(student_id)
+
+            # Handle onboarding (no profile yet or stage is onboarding)
+            current_stage = (session_state or {}).get("current_stage", "onboarding")
+            if not session_state or current_stage == "onboarding":
+                return await self._handle_onboarding(
+                    student_id, student_response, session_id, ws_send, history,
+                )
+
+            objective_id = session_state.get("active_objective_id", "")
+            objective_text = ""
+
+            # Resolve objective text for the prompt
+            if objective_id:
+                obj_data = await self.student_mcp.get_recommended_next_objective(student_id)
+                if obj_data:
+                    objective_text = obj_data.get("objective_text", "")
+
+            # Check session content cache — retrieve only if needed
+            if self._session_cache.needs_retrieval(session_id, objective_id):
+                await ws_send({"type": "stage", "stage": "searching",
+                               "detail": "Retrieving teaching content for this objective..."})
+                rag_context, rag_chunks, wcag_context = await self.get_combined_context(
+                    objective_text or student_response, history=history
+                )
+                teaching_content = rag_context
+                if wcag_context:
+                    teaching_content = f"{rag_context}\n\n{wcag_context}" if rag_context else wcag_context
+
+                self._session_cache.store(
+                    session_id, objective_id, objective_text,
+                    rag_chunks, wcag_context, teaching_content,
+                )
+                # Send chunks to frontend
+                if rag_chunks:
+                    await ws_send({
+                        "type": "rag_chunks",
+                        "chunks": [
+                            {"content": c.get("content", ""), "topic": c.get("topic", ""),
+                             "question_id": c.get("question_id", ""),
+                             "distance": round(c.get("distance", 0), 3) if c.get("distance") is not None else None,
+                             "rrf_score": round(c.get("rrf_score", 0), 4) if c.get("rrf_score") else 0}
+                            for c in rag_chunks
+                        ],
+                    })
+            else:
+                teaching_content = self._session_cache.get_teaching_content(session_id)
+
+            # For assessment stages, inject quiz questions as templates
+            if current_stage in ("mini_assessment", "final_assessment"):
+                assessment_ctx = await self._get_assessment_context(objective_id)
+                if assessment_ctx:
+                    teaching_content = f"{teaching_content}\n\n{assessment_ctx}"
+
+            # Build Instance B prompt
+            await ws_send({"type": "stage", "stage": "composing",
+                           "detail": f"Generating response ({current_stage})..."})
+
+            from .prompts import build_instance_b_prompt
+            system_prompt = build_instance_b_prompt(
+                knowledge_context=teaching_content,
+                student_context=student_context,
+                current_stage=current_stage,
+                active_objective=objective_text,
+            )
+            messages = [{"role": "system", "content": system_prompt}]
+            if history:
+                messages.extend(history[-6:])
+            messages.append({"role": "user", "content": student_response})
+
+            # Single LLM call — collect full response then parse
+            full_response = await self._stream_response(messages, ws_send)
+
+            # Parse eval JSON from the response
+            conversational_text, eval_data = self._parse_eval_json(full_response)
+
+            # Save conversation (conversational part only, not eval JSON)
+            self.append_to_conversation(student_id, "assistant", conversational_text)
+
+            # Process eval through stage machine
+            stage_result = {}
+            if eval_data and self._stage_machine:
+                stage_result = await self._stage_machine.process_eval(
+                    student_id, session_id, session_state, eval_data,
+                )
+
+                # Invalidate cache if objective changed
+                if stage_result.get("new_stage") == "introduction" and stage_result.get("stage_changed"):
+                    self._session_cache.invalidate(session_id)
+
+                # Send stage updates to client
+                if stage_result.get("stage_changed"):
+                    await ws_send({
+                        "type": "stage_update",
+                        "stage": stage_result["new_stage"],
+                        "objective": objective_id,
+                        "summary": stage_result.get("stage_summary", ""),
+                    })
+
+                if stage_result.get("mastery_updated"):
+                    await ws_send({
+                        "type": "mastery_update",
+                        "objective_id": objective_id,
+                        "new_level": stage_result.get("new_mastery_level", ""),
+                    })
+
+                if stage_result.get("assessment_result"):
+                    await ws_send({
+                        "type": "assessment_score",
+                        **stage_result["assessment_result"],
+                    })
+
+            metadata = {
+                "session_id": session_id,
+                "stage": current_stage,
+                "eval_data": eval_data,
+                "stage_result": stage_result,
+            }
+            await ws_send({"type": "stream_end", "metadata": metadata})
+            return metadata
+
+        except Exception as e:
+            logger.error(f"Guided session failed: {e}", exc_info=True)
+            await ws_send({"type": "error", "message": str(e)})
+            return {}
+
+    # ------------------------------------------------------------------
+    # Onboarding handler (Instance B — first 2-3 turns)
+    # ------------------------------------------------------------------
+
+    _ONBOARDING_PROMPTS = [
+        (
+            "Welcome! I'm your web accessibility tutor. Before we start, "
+            "I'd like to learn a bit about you so I can personalize your learning.\n\n"
+            "**What's your technical background?** For example, are you a developer, "
+            "designer, content author, QA tester, student, or something else?"
+        ),
+        (
+            "Great! Now, **how much experience do you have with web accessibility?**\n\n"
+            "- **None** — I'm just getting started\n"
+            "- **Some awareness** — I've heard of WCAG but haven't applied it\n"
+            "- **Working knowledge** — I've worked on accessible websites\n"
+            "- **Professional** — I have deep a11y expertise or certification"
+        ),
+        (
+            "Last question: **What's driving your interest in accessibility?**\n\n"
+            "- Preparing for a certification\n"
+            "- Job requirement or project need\n"
+            "- Personal interest in inclusive design"
+        ),
+    ]
+
+    async def _handle_onboarding(
+        self, student_id: str, student_response: str,
+        session_id: str, ws_send, history: List[Dict],
+    ) -> Dict[str, Any]:
+        """Handle onboarding (first 2-3 turns before guided learning begins).
+
+        Gathers technical background, a11y experience, and learning goals
+        through a structured conversational flow. After the final turn,
+        creates the student profile and selects the first objective.
+        """
+        # Count how many assistant messages we've sent (= onboarding turn)
+        assistant_turns = sum(1 for m in history if m.get("role") == "assistant")
+
+        if assistant_turns < 3:
+            # Still gathering info — send the next onboarding prompt
+            prompt_text = self._ONBOARDING_PROMPTS[min(assistant_turns, 2)]
+
+            await ws_send({"type": "stream_start"})
+            await self._progressive_send(prompt_text, ws_send)
+            self.append_to_conversation(student_id, "assistant", prompt_text)
+
+            await ws_send({"type": "stream_end", "metadata": {
+                "stage": "onboarding", "onboarding_step": assistant_turns + 1,
+            }})
+            return {"stage": "onboarding", "step": assistant_turns + 1}
+
+        # Final turn — parse gathered info and create profile
+        # Use LLM to extract structured data from the conversation
+        profile_data = await self._extract_onboarding_profile(history, student_response)
+
+        # Create profile via MCP
+        await self.student_mcp.create_profile(
+            student_id=student_id,
+            technical_level=profile_data.get("technical_level", "beginner"),
+            a11y_exposure=profile_data.get("a11y_exposure", "none"),
+            role_context=profile_data.get("role_context", ""),
+            learning_goal=profile_data.get("learning_goal", ""),
+        )
+
+        # Select first objective
+        next_obj = await self.student_mcp.get_recommended_next_objective(student_id)
+        objective_id = next_obj.get("objective_id", "") if next_obj else ""
+        objective_text = next_obj.get("objective_text", "web accessibility fundamentals") if next_obj else "web accessibility fundamentals"
+
+        # Create session and transition to introduction
+        await self.student_mcp.update_session_state(
+            session_id, student_id=student_id,
+            stage="introduction", active_objective_id=objective_id, turns=0,
+        )
+
+        # Send transition message
+        transition_msg = (
+            f"Thanks for sharing! Based on your background, I think we should start with "
+            f"**{objective_text}**.\n\n"
+            f"Let's dive in — I'll guide you through this topic step by step, "
+            f"and we'll check your understanding along the way."
+        )
+        await ws_send({"type": "stream_start"})
+        await self._progressive_send(transition_msg, ws_send)
+        self.append_to_conversation(student_id, "assistant", transition_msg)
+
+        await ws_send({"type": "onboarding_complete", "profile": profile_data,
+                       "first_objective": objective_text})
+        await ws_send({"type": "stream_end", "metadata": {
+            "stage": "onboarding_complete", "objective": objective_text,
+        }})
+        return {"stage": "onboarding_complete", "objective": objective_text}
+
+    async def _extract_onboarding_profile(
+        self, history: List[Dict], final_response: str,
+    ) -> Dict[str, str]:
+        """Use LLM to extract structured profile data from onboarding conversation."""
+        conversation_text = "\n".join(
+            f"{m['role']}: {m['content']}" for m in history
+        ) + f"\nuser: {final_response}"
+
+        messages = [
+            {"role": "system", "content": (
+                "Extract the student's profile from this onboarding conversation. "
+                "Return ONLY a JSON object with these fields:\n"
+                '  "technical_level": "beginner" | "intermediate" | "advanced"\n'
+                '  "a11y_exposure": "none" | "awareness" | "working_knowledge" | "professional"\n'
+                '  "role_context": their role (e.g., "developer", "designer", "student")\n'
+                '  "learning_goal": "certification" | "job_requirement" | "personal_interest"\n'
+                "Infer from context if not stated explicitly."
+            )},
+            {"role": "user", "content": conversation_text},
+        ]
+        try:
+            result = await asyncio.to_thread(
+                self.client.chat, messages, 0.3, 300
+            )
+            return json.loads(result)
+        except (json.JSONDecodeError, Exception) as e:
+            logger.warning(f"Failed to parse onboarding profile: {e}")
+            return {
+                "technical_level": "beginner",
+                "a11y_exposure": "none",
+                "role_context": "student",
+                "learning_goal": "personal_interest",
+            }
+
+    # ------------------------------------------------------------------
+    # Assessment context (fetch quiz questions for an objective)
+    # ------------------------------------------------------------------
+
+    async def _get_assessment_context(self, objective_id: str) -> str:
+        """Fetch quiz questions mapped to an objective for assessment generation.
+
+        The LLM uses these as templates to generate rephrased assessment
+        questions. Includes answer text and feedback so the LLM can evaluate
+        student responses against rubrics.
+        """
+        if not objective_id:
+            return ""
+
+        try:
+            # Query questions associated with this objective
+            questions = await asyncio.to_thread(
+                self._fetch_questions_for_objective, objective_id
+            )
+            if not questions:
+                return ""
+
+            lines = ["ASSESSMENT REFERENCE QUESTIONS (use as templates, do NOT reuse verbatim):"]
+            for i, q in enumerate(questions[:5], 1):  # max 5 questions
+                lines.append(f"\nQ{i}: {q.get('question_text', '')}")
+                for a in q.get("answers", []):
+                    marker = "✓" if a.get("is_correct") else "✗"
+                    lines.append(f"  {marker} {a.get('text', '')}")
+                    if a.get("feedback_text"):
+                        lines.append(f"    Feedback: {a['feedback_text']}")
+            return "\n".join(lines)
+        except Exception as e:
+            logger.warning(f"Failed to fetch assessment context: {e}")
+            return ""
+
+    def _fetch_questions_for_objective(self, objective_id: str) -> List[Dict]:
+        """Synchronous DB query for questions mapped to an objective."""
+        with self.db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT q.id, q.question_text
+                FROM question q
+                JOIN question_objective_association qoa ON q.id = qoa.question_id
+                WHERE qoa.objective_id = %s
+                """,
+                (objective_id,),
+            )
+            questions = [dict(row) for row in cursor.fetchall()]
+
+        # Load answers for each question
+        for q in questions:
+            q["answers"] = self.db.get_answers_for_questions(q["id"])
+        return questions
+
+    # ==================================================================
+    # End of Instance B methods
+    # ==================================================================
 
     def _update_student_profile(
         self,
