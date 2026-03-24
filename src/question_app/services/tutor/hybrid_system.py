@@ -1266,6 +1266,7 @@ class HybridCrewAISocraticSystem:
                     await ws_send({
                         "type": "mastery_update",
                         "objective_id": objective_id,
+                        "objective_text": objective_text or objective_id,
                         "new_level": stage_result.get("new_mastery_level", ""),
                     })
 

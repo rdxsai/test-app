@@ -127,9 +127,13 @@ class StageMachine:
             )
 
         # 3. Apply mastery change (if confidence meets threshold)
+        # IMPORTANT: during exploration stages, cap mastery at "in_progress".
+        # "partial" requires passing mini assessment, "mastered" requires final.
+        # The LLM may optimistically suggest higher levels, but the stage machine
+        # enforces that only assessment scoring can grant partial/mastered.
         if confidence >= self.CONFIDENCE_THRESHOLD:
             mastery_changed = await self._apply_mastery_change(
-                student_id, objective_id, eval_data
+                student_id, objective_id, eval_data, current_stage
             )
             result["mastery_updated"] = mastery_changed
             if mastery_changed:
@@ -396,10 +400,27 @@ class StageMachine:
     # Shared helpers
     # ------------------------------------------------------------------
 
+    # Maximum mastery level allowed per stage (prevents LLM from over-promoting)
+    _STAGE_MASTERY_CAP = {
+        "onboarding": "not_attempted",
+        "introduction": "in_progress",
+        "exploration": "in_progress",
+        "readiness_check": "in_progress",
+        "mini_assessment": "in_progress",  # "partial" set by assessment scoring, not eval JSON
+        "final_assessment": "in_progress", # "mastered" set by assessment scoring, not eval JSON
+        "transition": "mastered",
+    }
+
     async def _apply_mastery_change(
         self, student_id: str, objective_id: str, eval_data: Dict,
+        current_stage: str = "",
     ) -> bool:
-        """Write mastery update if eval indicates a change."""
+        """Write mastery update if eval indicates a change.
+
+        Enforces stage-based mastery caps: during exploration, mastery can
+        only reach 'in_progress'. 'partial' and 'mastered' are granted
+        exclusively by assessment scoring logic, not by the LLM's eval JSON.
+        """
         level_change = eval_data.get("mastery_level_change", "no_change")
         if level_change == "no_change" or not objective_id:
             return False
@@ -410,9 +431,21 @@ class StageMachine:
             logger.warning(f"Invalid mastery level: {new_level}")
             return False
 
+        # Enforce stage-based cap
+        cap = self._STAGE_MASTERY_CAP.get(current_stage, "in_progress")
+        cap_index = MASTERY_LEVELS.index(cap) if cap in MASTERY_LEVELS else 2
+        new_index = MASTERY_LEVELS.index(new_level)
+        if new_index > cap_index:
+            capped_level = cap
+            logger.info(
+                f"Mastery capped: LLM suggested {new_level} but stage={current_stage} "
+                f"allows max {capped_level}. Applying cap."
+            )
+            new_level = capped_level
+
         evidence = eval_data.get("mastery_evidence", "")
         await self.mcp.update_mastery(student_id, objective_id, new_level, evidence)
-        logger.info(f"Mastery updated: {objective_id} → {new_level}")
+        logger.info(f"Mastery updated: {objective_id} → {new_level} (stage={current_stage})")
         return True
 
     async def _log_misconceptions(

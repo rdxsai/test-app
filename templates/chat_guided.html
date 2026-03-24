@@ -326,7 +326,7 @@
             break;
 
           case "mastery_update":
-            updateMasteryCard(msg.objective_id, msg.new_level);
+            updateMasteryCard(msg.objective_text || msg.objective_id, msg.new_level);
             break;
 
           case "assessment_score":

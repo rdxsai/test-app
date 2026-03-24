@@ -320,6 +320,31 @@ class TestMasteryChanges:
         )
         assert result["mastery_updated"] is False
 
+    @pytest.mark.asyncio
+    async def test_mastery_capped_during_exploration(self, machine, mock_mcp):
+        """LLM suggests 'mastered' during exploration but stage machine caps to 'in_progress'."""
+        result = await machine.process_eval(
+            "stu-1", "sess-1",
+            _session(stage="exploration", turns=5),
+            _eval(level_change="not_attempted→mastered", confidence=0.9),
+        )
+        assert result["mastery_updated"] is True
+        # The level written to MCP should be "in_progress", not "mastered"
+        call_str = str(mock_mcp.update_mastery.call_args)
+        assert "in_progress" in call_str, f"Expected 'in_progress' in call but got: {call_str}"
+
+    @pytest.mark.asyncio
+    async def test_mastery_capped_during_introduction(self, machine, mock_mcp):
+        """LLM suggests 'partial' during introduction but stage machine caps to 'in_progress'."""
+        result = await machine.process_eval(
+            "stu-1", "sess-1",
+            _session(stage="introduction", turns=2),
+            _eval(level_change="not_attempted→partial", confidence=0.85),
+        )
+        assert result["mastery_updated"] is True
+        call_str = str(mock_mcp.update_mastery.call_args)
+        assert "in_progress" in call_str, f"Expected 'in_progress' in call but got: {call_str}"
+
 
 # ---------------------------------------------------------------------------
 # Tests: Misconception Logging
