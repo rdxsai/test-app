@@ -1365,23 +1365,22 @@ class HybridCrewAISocraticSystem:
             stage="introduction", active_objective_id=objective_id, turns=0,
         )
 
-        # Send transition message
-        transition_msg = (
-            f"Thanks for sharing! Based on your background, I think we should start with "
-            f"**{objective_text}**.\n\n"
-            f"Let's dive in — I'll guide you through this topic step by step, "
-            f"and we'll check your understanding along the way."
-        )
-        await ws_send({"type": "stream_start"})
-        await self._progressive_send(transition_msg, ws_send)
-        self.append_to_conversation(student_id, "assistant", transition_msg)
-
+        # Notify frontend of onboarding completion and stage change
         await ws_send({"type": "onboarding_complete", "profile": profile_data,
                        "first_objective": objective_text})
-        await ws_send({"type": "stream_end", "metadata": {
-            "stage": "onboarding_complete", "objective": objective_text,
-        }})
-        return {"stage": "onboarding_complete", "objective": objective_text}
+        await ws_send({"type": "stage_update", "stage": "introduction",
+                       "objective": objective_text, "summary": ""})
+
+        # Automatically start the first teaching turn — the tutor drives Instance B.
+        # We call conduct_guided_session_streaming with a synthetic "start" message
+        # so the LLM opens with an introductory Socratic question about the objective.
+        await self.conduct_guided_session_streaming(
+            student_id=student_id,
+            student_response=f"I'm ready to learn about {objective_text}. Please introduce this topic.",
+            session_id=session_id,
+            ws_send=ws_send,
+        )
+        return {"stage": "introduction", "objective": objective_text}
 
     async def _extract_onboarding_profile(
         self, history: List[Dict], final_response: str,
