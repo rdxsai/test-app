@@ -778,45 +778,20 @@ class HybridCrewAISocraticSystem:
         history: Optional[List[Dict[str, str]]] = None,
         student_context: str = "",
     ) -> List[Dict]:
-        """Build the messages list for response generation (used by both sync and streaming paths)."""
-        context_block = ""
-        if context:
-            context_block = f"""
-KNOWLEDGE BASE CONTEXT:
-{context}
----
-Use the context above as your primary source of truth.
-- If WCAG guidelines are present, cite specific criteria.
-- If quiz data is present, use it for common misconceptions.
-- Expand on the context with your expertise — don't just rephrase it.
-"""
+        """Build the messages list for response generation.
 
-        # Inject student context before knowledge base context
-        student_block = ""
-        if student_context:
-            student_block = f"""
-{student_context}
----
-Adapt your response to the student's level and known misconceptions above.
-"""
+        Uses the research-backed Socratic prompt (Instance A) which includes:
+        - 6 cognitive state detection (SocraticLM)
+        - 4 response modes (SocraticMATH)
+        - Termination rules and anti-patterns
+        - 4 few-shot examples
+        """
+        from .prompts import build_instance_a_prompt
 
-        system_prompt = f"""You are a friendly, knowledgeable web accessibility tutor.
-
-{student_block}{context_block}
-
-Guidelines:
-- Answer the student's question directly and clearly.
-- Use practical examples with HTML code snippets when helpful.
-- Be concise: aim for 150-250 words. Do NOT repeat the question back.
-- Reference specific WCAG success criteria (e.g. **SC 1.1.1**) when relevant.
-- Use a conversational, encouraging tone.
-
-Formatting rules (important — your output is rendered as Markdown):
-- Use **bold** for key terms on first mention.
-- Use ### headings to separate distinct concepts when comparing items.
-- Use bullet lists for attributes, steps, or tips.
-- Wrap HTML/code in backticks (`<img alt="...">`) or fenced code blocks.
-- End with a brief practical tip or takeaway."""
+        system_prompt = build_instance_a_prompt(
+            knowledge_context=context,
+            student_context=student_context,
+        )
 
         messages = [{"role": "system", "content": system_prompt}]
         if history:
