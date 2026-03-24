@@ -62,10 +62,11 @@ class StudentMCPClient:
             logger.info(f"Starting Student MCP server: {self._command} {' '.join(self._args)}")
             self._exit_stack = AsyncExitStack()
 
+            import os
             server_params = StdioServerParameters(
                 command=self._command,
                 args=self._args,
-                env=None,  # inherit parent env (DB creds, etc.)
+                env=os.environ.copy(),  # explicitly pass parent env (DB creds, etc.)
             )
 
             stdio_transport = await self._exit_stack.enter_async_context(

@@ -403,6 +403,9 @@
         </h1>
         <div class="d-flex align-items-center gap-2">
           <span id="wsStatus" class="ws-status disconnected">Connecting...</span>
+          <a href="/chat/guided" class="btn btn-outline-primary btn-sm me-2">
+            <i class="fas fa-graduation-cap"></i> Guided Learning
+          </a>
           <button id="newConversationBtn" class="btn btn-outline-danger me-2">
             <i class="fas fa-sync-alt"></i> New Conversation
           </button>
@@ -590,7 +593,7 @@
             break;
 
           case "stage":
-            stageLabel.textContent = STAGE_LABELS[msg.stage] || msg.stage;
+            stageLabel.textContent = msg.detail || STAGE_LABELS[msg.stage] || msg.stage;
             setProcessingState(true);
             break;
 
@@ -672,17 +675,35 @@
         scrollToBottomIfNeeded();
       }
 
+      let _markdownTimer = null;
+
       function appendToken(token) {
         if (!streamingTextEl) return;
-        // Append raw text, format on finalize
         streamingTextEl._rawText = (streamingTextEl._rawText || "") + token;
-        streamingTextEl.innerHTML = formatMessage(streamingTextEl._rawText);
-        scrollToBottomIfNeeded();
+
+        // Debounced markdown render: re-parse at most every 120ms
+        // to avoid O(n^2) re-parsing on every single token
+        if (!_markdownTimer) {
+          _markdownTimer = setTimeout(() => {
+            _markdownTimer = null;
+            if (streamingTextEl) {
+              streamingTextEl.innerHTML = formatMessage(streamingTextEl._rawText);
+              scrollToBottomIfNeeded();
+            }
+          }, 120);
+        }
       }
 
       function finalizeStreamingBubble() {
+        // Clear any pending debounce timer
+        if (_markdownTimer) {
+          clearTimeout(_markdownTimer);
+          _markdownTimer = null;
+        }
         if (streamingBubble && streamingTextEl) {
-          // Add timestamp
+          // Final definitive markdown render
+          streamingTextEl.innerHTML = formatMessage(streamingTextEl._rawText || "");
+
           const timestamp = document.createElement("div");
           timestamp.className = "message-timestamp";
           timestamp.textContent = new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
@@ -830,7 +851,7 @@
 
           const content = document.createElement("div");
           content.className = "chunk-content";
-          content.textContent = chunk.content || "";
+          content.innerHTML = formatMessage(chunk.content || "");
 
           card.appendChild(meta);
           card.appendChild(content);
