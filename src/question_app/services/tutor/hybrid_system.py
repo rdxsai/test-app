@@ -770,6 +770,51 @@ class HybridCrewAISocraticSystem:
         return "\n".join(parts)
 
     # ------------------------------------------------------------------
+    # Eval JSON parser (Instance B)
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _parse_eval_json(response: str) -> tuple:
+        """Extract conversational text and eval JSON from an Instance B response.
+
+        The LLM outputs the Socratic response first, then a ```json block
+        containing the structured evaluation. This method splits them apart.
+
+        Returns:
+            (conversational_text, eval_dict) if JSON found and valid
+            (response, None) if no JSON block or parse error
+        """
+        import re
+
+        # Match ```json ... ``` block (possibly with whitespace around it)
+        pattern = r"```json\s*\n?(.*?)\n?\s*```"
+        match = re.search(pattern, response, re.DOTALL)
+
+        if not match:
+            logger.debug("No eval JSON block found in response")
+            return response.strip(), None
+
+        json_str = match.group(1).strip()
+        # Everything before the JSON block is the conversational response
+        conversational = response[:match.start()].strip()
+
+        try:
+            eval_data = json.loads(json_str)
+        except json.JSONDecodeError as e:
+            logger.warning(f"Failed to parse eval JSON: {e}")
+            return conversational or response.strip(), None
+
+        # Validate expected keys
+        expected_keys = {"detected_state", "response_mode", "stage_recommendation", "confidence"}
+        if not expected_keys.issubset(eval_data.keys()):
+            missing = expected_keys - eval_data.keys()
+            logger.warning(f"Eval JSON missing keys: {missing}")
+            # Still return what we have — partial data is better than none
+            return conversational, eval_data
+
+        return conversational, eval_data
+
+    # ------------------------------------------------------------------
     # Response message builder
     # ------------------------------------------------------------------
 
