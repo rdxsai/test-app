@@ -446,3 +446,45 @@ class TestMisconceptionLogging:
         )
         assert len(result["misconceptions_logged"]) == 2
         assert mock_mcp.log_misconception.call_count == 2
+
+
+# ---------------------------------------------------------------------------
+# Tests: Scope boundaries (off-topic / out-of-scope)
+# ---------------------------------------------------------------------------
+
+class TestScopeBoundaries:
+
+    @pytest.mark.asyncio
+    async def test_off_topic_skips_all_updates(self, machine, mock_mcp):
+        result = await machine.process_eval(
+            "stu-1", "sess-1",
+            _session(stage="exploration", turns=5),
+            _eval(state="OFF_TOPIC", recommendation="stay"),
+        )
+        assert result["turns_incremented"] is False
+        assert result["mastery_updated"] is False
+        assert result["stage_changed"] is False
+        mock_mcp.update_session_state.assert_not_called()
+        mock_mcp.update_mastery.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_out_of_scope_skips_all_updates(self, machine, mock_mcp):
+        result = await machine.process_eval(
+            "stu-1", "sess-1",
+            _session(stage="introduction", turns=3),
+            _eval(state="OUT_OF_SCOPE", recommendation="stay",
+                  level_change="no_change", confidence=0.9),
+        )
+        assert result["turns_incremented"] is False
+        assert result["mastery_updated"] is False
+        mock_mcp.update_session_state.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_off_topic_doesnt_log_misconceptions(self, machine, mock_mcp):
+        result = await machine.process_eval(
+            "stu-1", "sess-1",
+            _session(stage="exploration", turns=3),
+            _eval(state="OFF_TOPIC", misconceptions=["not a real misconception"]),
+        )
+        assert result["misconceptions_logged"] == []
+        mock_mcp.log_misconception.assert_not_called()

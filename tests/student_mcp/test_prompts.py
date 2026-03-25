@@ -58,6 +58,10 @@ class TestInstanceAPrompt:
         assert "STAGE AWARENESS" not in prompt
         assert "STRUCTURED OUTPUT" not in prompt
 
+    def test_contains_off_topic_boundary(self):
+        prompt = build_instance_a_prompt()
+        assert "outside what I can help with" in prompt
+
     def test_includes_knowledge_context(self):
         prompt = build_instance_a_prompt(knowledge_context="SC 1.1.1 Non-text Content")
         assert "SC 1.1.1 Non-text Content" in prompt
@@ -105,6 +109,13 @@ class TestInstanceBPrompt:
         assert "misconceptions_detected" in prompt
         assert "confidence" in prompt
 
+    def test_contains_scope_boundaries(self):
+        prompt = build_instance_b_prompt()
+        assert "SCOPE BOUNDARIES" in prompt
+        assert "OFF_TOPIC" in prompt
+        assert "OUT_OF_SCOPE" in prompt
+        assert "Q&A chatbot" in prompt
+
     def test_includes_current_stage(self):
         prompt = build_instance_b_prompt(current_stage="exploration")
         assert "CURRENT STAGE: EXPLORATION" in prompt
@@ -137,9 +148,9 @@ class TestPromptTokenBudget:
         assert len(prompt) < 8000, f"Instance A base prompt is {len(prompt)} chars — may be too large"
 
     def test_instance_b_base_size(self):
-        """Base prompt (no context) should be under 2500 tokens (~10500 chars)."""
+        """Base prompt (no context) should be under 3000 tokens (~12000 chars)."""
         prompt = build_instance_b_prompt()
-        assert len(prompt) < 10500, f"Instance B base prompt is {len(prompt)} chars — may be too large"
+        assert len(prompt) < 12000, f"Instance B base prompt is {len(prompt)} chars — may be too large"
 
     def test_instance_a_with_contexts(self):
         """With typical context, should stay under 4000 tokens (~16000 chars)."""

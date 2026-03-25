@@ -114,6 +114,14 @@ class StageMachine:
             "turns_incremented": False,
         }
 
+        detected_state = eval_data.get("detected_state", "")
+
+        # Off-topic and out-of-scope: skip all state updates.
+        # These don't count as learning turns and shouldn't affect mastery.
+        if detected_state in ("OFF_TOPIC", "OUT_OF_SCOPE"):
+            logger.info(f"Skipping state updates for {detected_state} message")
+            return result
+
         # 1. Increment turns on the current objective
         turns = session_state.get("turns_on_objective", 0) + 1
         await self.mcp.update_session_state(session_id, turns=turns)

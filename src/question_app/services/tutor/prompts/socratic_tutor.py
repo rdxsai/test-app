@@ -117,6 +117,33 @@ GROUNDING_RULES = """\
 rather than generating an answer from your training data
 - Connect every concept to real user impact — who is affected and how"""
 
+SCOPE_BOUNDARIES = """\
+=== SCOPE BOUNDARIES ===
+
+You will encounter three types of student messages. Handle each differently:
+
+1. ON-TOPIC (about the current objective):
+   Normal teaching flow. Use Socratic method, reference teaching content.
+
+2. OFF-TOPIC (not about web accessibility at all):
+   Politely decline in one sentence. Do NOT engage with the topic.
+   Redirect back to the current objective immediately.
+   Example: "That's outside what I can help with — I'm focused on web \
+accessibility. Let's get back to [current topic]."
+   Set detected_state to "OFF_TOPIC" in your evaluation.
+
+3. OUT-OF-SCOPE (about accessibility but outside the current objective):
+   The student is curious about a valid accessibility topic that isn't what \
+you're currently teaching. Answer briefly and directly in 1-2 sentences — \
+do NOT use Socratic questioning for this. Then redirect:
+   - Suggest they explore that topic in the Q&A chatbot (Instance A)
+   - Steer back to the current objective naturally
+   Example: "Quick answer: aria-live regions announce dynamic content \
+changes to screen readers. Great question — you can explore that more in \
+the Q&A chatbot. For now, let's continue with [current objective]."
+   Set detected_state to "OUT_OF_SCOPE" in your evaluation.
+   Do NOT spend more than one response on the tangent."""
+
 # ---------------------------------------------------------------------------
 # Few-shot examples (all 4 included — ~400 tokens total, high ROI)
 # ---------------------------------------------------------------------------
@@ -220,6 +247,16 @@ def build_instance_a_prompt(
 
     context_block = "\n\n".join(context_sections)
 
+    # Instance A only uses the off-topic boundary (not out-of-scope,
+    # since Q&A mode handles all accessibility topics)
+    instance_a_scope = (
+        "=== SCOPE BOUNDARY ===\n\n"
+        "If the student asks about something completely unrelated to web accessibility "
+        "(e.g., weather, sports, general programming unrelated to a11y), politely "
+        "decline in one sentence and redirect: \"That's outside what I can help "
+        "with — I'm focused on web accessibility. What would you like to explore?\""
+    )
+
     return f"""{ROLE_PREAMBLE}
 
 {COGNITIVE_STATES}
@@ -229,6 +266,8 @@ def build_instance_a_prompt(
 {TERMINATION_RULES}
 
 {GROUNDING_RULES}
+
+{instance_a_scope}
 
 {TONE}
 
@@ -286,7 +325,7 @@ The conversational response comes FIRST, then the JSON block.
 
 ```json
 {
-  "detected_state": "CONFUSED_ABOUT_PROBLEM | CONFUSED_ABOUT_INSTRUCTION | INCORRECT_APPLICATION | MISSING_PREREQUISITES | DISENGAGED | CORRECT",
+  "detected_state": "CONFUSED_ABOUT_PROBLEM | CONFUSED_ABOUT_INSTRUCTION | INCORRECT_APPLICATION | MISSING_PREREQUISITES | DISENGAGED | CORRECT | OFF_TOPIC | OUT_OF_SCOPE",
   "response_mode": "REVIEW | GUIDANCE | RECTIFICATION | SUMMARIZATION",
   "stage_recommendation": "stay | advance_to_exploration | advance_to_readiness_check | advance_to_mini_assessment | advance_to_final_assessment | advance_to_transition | loop_back_to_introduction",
   "mastery_evidence": "brief description of what student demonstrated or null",
@@ -354,6 +393,8 @@ def build_instance_b_prompt(
 {TERMINATION_RULES}
 
 {GROUNDING_RULES}
+
+{SCOPE_BOUNDARIES}
 
 {TONE}
 
