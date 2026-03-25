@@ -84,13 +84,69 @@ class TestTurnTracking:
 
 
 # ---------------------------------------------------------------------------
-# Tests: Exploration → Readiness Check
+# Tests: Introduction stage
 # ---------------------------------------------------------------------------
 
-class TestExplorationToReadiness:
+class TestIntroduction:
 
     @pytest.mark.asyncio
-    async def test_advance_when_ready(self, machine, mock_mcp):
+    async def test_advance_to_exploration(self, machine, mock_mcp):
+        result = await machine.process_eval(
+            "stu-1", "sess-1",
+            _session(stage="introduction", turns=2),
+            _eval(recommendation="advance_to_exploration"),
+        )
+        assert result["stage_changed"] is True
+        assert result["new_stage"] == "exploration"
+
+    @pytest.mark.asyncio
+    async def test_advance_to_readiness_check_with_evidence(self, machine, mock_mcp):
+        result = await machine.process_eval(
+            "stu-1", "sess-1",
+            _session(stage="introduction", turns=3),
+            _eval(recommendation="advance_to_readiness_check", evidence="strong understanding"),
+        )
+        assert result["stage_changed"] is True
+        assert result["new_stage"] == "readiness_check"
+
+    @pytest.mark.asyncio
+    async def test_fast_track_to_mini_assessment(self, machine, mock_mcp):
+        result = await machine.process_eval(
+            "stu-1", "sess-1",
+            _session(stage="introduction", turns=1),
+            _eval(recommendation="advance_to_mini_assessment"),
+        )
+        assert result["stage_changed"] is True
+        assert result["new_stage"] == "mini_assessment"
+
+    @pytest.mark.asyncio
+    async def test_force_to_exploration_at_max_turns(self, machine, mock_mcp):
+        result = await machine.process_eval(
+            "stu-1", "sess-1",
+            _session(stage="introduction", turns=7),  # +1 = 8 = MAX
+            _eval(recommendation="stay"),
+        )
+        assert result["stage_changed"] is True
+        assert result["new_stage"] == "exploration"
+
+    @pytest.mark.asyncio
+    async def test_stay_in_introduction(self, machine, mock_mcp):
+        result = await machine.process_eval(
+            "stu-1", "sess-1",
+            _session(stage="introduction", turns=2),
+            _eval(recommendation="stay"),
+        )
+        assert result["stage_changed"] is False
+
+
+# ---------------------------------------------------------------------------
+# Tests: Exploration stage
+# ---------------------------------------------------------------------------
+
+class TestExploration:
+
+    @pytest.mark.asyncio
+    async def test_advance_to_readiness_check(self, machine, mock_mcp):
         result = await machine.process_eval(
             "stu-1", "sess-1",
             _session(stage="exploration", turns=4),
@@ -103,7 +159,7 @@ class TestExplorationToReadiness:
     async def test_deny_advance_too_few_turns(self, machine, mock_mcp):
         result = await machine.process_eval(
             "stu-1", "sess-1",
-            _session(stage="introduction", turns=1),
+            _session(stage="exploration", turns=1),
             _eval(recommendation="advance_to_readiness_check", evidence="some evidence"),
         )
         assert result["stage_changed"] is False
@@ -116,7 +172,6 @@ class TestExplorationToReadiness:
             _eval(state="CONFUSED_ABOUT_PROBLEM",
                   recommendation="advance_to_readiness_check", evidence=""),
         )
-        # No evidence AND not detected as CORRECT → denied
         assert result["stage_changed"] is False
 
     @pytest.mark.asyncio
@@ -130,11 +185,21 @@ class TestExplorationToReadiness:
         assert result["new_stage"] == "readiness_check"
 
     @pytest.mark.asyncio
+    async def test_advance_to_mini_directly(self, machine, mock_mcp):
+        result = await machine.process_eval(
+            "stu-1", "sess-1",
+            _session(stage="exploration", turns=5),
+            _eval(state="CORRECT", recommendation="advance_to_mini_assessment"),
+        )
+        assert result["stage_changed"] is True
+        assert result["new_stage"] == "mini_assessment"
+
+    @pytest.mark.asyncio
     async def test_force_readiness_at_max_turns(self, machine, mock_mcp):
         result = await machine.process_eval(
             "stu-1", "sess-1",
             _session(stage="exploration", turns=7),  # +1 = 8 = MAX
-            _eval(recommendation="stay"),  # LLM says stay, but max turns reached
+            _eval(recommendation="stay"),
         )
         assert result["stage_changed"] is True
         assert result["new_stage"] == "readiness_check"

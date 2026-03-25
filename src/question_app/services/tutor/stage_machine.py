@@ -142,9 +142,15 @@ class StageMachine:
                 ).split("→")[-1].strip() if "→" in eval_data.get("mastery_level_change", "") else None
 
         # 4. Evaluate stage transition
-        if current_stage in ("introduction", "exploration"):
+        if current_stage == "introduction":
             result.update(
-                await self._handle_exploration_stage(
+                await self._handle_introduction(
+                    session_id, session_state, eval_data, turns, recommendation
+                )
+            )
+        elif current_stage == "exploration":
+            result.update(
+                await self._handle_exploration(
                     session_id, session_state, eval_data, turns, recommendation
                 )
             )
@@ -179,46 +185,106 @@ class StageMachine:
     # Stage-specific handlers
     # ------------------------------------------------------------------
 
-    async def _handle_exploration_stage(
+    async def _handle_introduction(
         self, session_id: str, session_state: Dict,
         eval_data: Dict, turns: int, recommendation: str,
     ) -> Dict[str, Any]:
-        """Handle INTRODUCTION and EXPLORATION stages.
+        """Handle INTRODUCTION stage.
 
-        Transition to READINESS_CHECK when:
-          - LLM recommends it AND turns >= MIN_TURNS AND evidence of correct reasoning
-          - OR turns >= MAX_TURNS (force offer assessment)
+        Transitions:
+          - advance_to_exploration: student has some baseline understanding
+          - advance_to_readiness_check: student already shows strong understanding
+          - advance_to_mini_assessment: fast-track for experienced students
+          - MAX_TURNS: force to exploration after too many intro turns
         """
         result = {"stage_changed": False, "new_stage": None, "stage_summary": None}
+        stage_summary = eval_data.get("stage_summary", "")
 
-        has_evidence = bool(eval_data.get("mastery_evidence"))
-        detected_correct = eval_data.get("detected_state") == "CORRECT"
+        if recommendation == "advance_to_exploration":
+            await self.mcp.update_session_state(
+                session_id, stage="exploration", stage_summary=stage_summary,
+            )
+            result.update(stage_changed=True, new_stage="exploration",
+                          stage_summary=stage_summary)
+            logger.info(f"Stage transition: introduction → exploration (turns={turns})")
 
-        if recommendation == "advance_to_readiness_check":
-            if turns >= self.MIN_TURNS_FOR_READINESS and (has_evidence or detected_correct):
-                stage_summary = eval_data.get("stage_summary", "")
+        elif recommendation == "advance_to_readiness_check":
+            has_evidence = bool(eval_data.get("mastery_evidence"))
+            detected_correct = eval_data.get("detected_state") == "CORRECT"
+            if has_evidence or detected_correct:
                 await self.mcp.update_session_state(
-                    session_id, stage="readiness_check",
-                    stage_summary=stage_summary,
+                    session_id, stage="readiness_check", stage_summary=stage_summary,
                 )
                 result.update(stage_changed=True, new_stage="readiness_check",
                               stage_summary=stage_summary)
-                logger.info(f"Stage transition: exploration → readiness_check (turns={turns})")
+                logger.info(f"Stage transition: introduction → readiness_check (fast, turns={turns})")
+
+        elif recommendation == "advance_to_mini_assessment":
+            # Fast-track: experienced student skips exploration
+            await self.mcp.update_session_state(
+                session_id, stage="mini_assessment", stage_summary=stage_summary,
+                assessment_progress='{"asked": 0, "correct": 0}',
+            )
+            result.update(stage_changed=True, new_stage="mini_assessment",
+                          stage_summary=stage_summary)
+            logger.info(f"Stage transition: introduction → mini_assessment (fast-track, turns={turns})")
+
+        elif turns >= self.MAX_TURNS_BEFORE_OFFER:
+            await self.mcp.update_session_state(
+                session_id, stage="exploration",
+                stage_summary="Max intro turns reached, moving to exploration.",
+            )
+            result.update(stage_changed=True, new_stage="exploration",
+                          stage_summary="Max intro turns reached")
+            logger.info(f"Stage transition: introduction → exploration (max turns={turns})")
+
+        return result
+
+    async def _handle_exploration(
+        self, session_id: str, session_state: Dict,
+        eval_data: Dict, turns: int, recommendation: str,
+    ) -> Dict[str, Any]:
+        """Handle EXPLORATION stage.
+
+        Transitions:
+          - advance_to_readiness_check: student has shown understanding
+          - advance_to_mini_assessment: strong student, skip readiness check
+          - MAX_TURNS: force readiness check
+        """
+        result = {"stage_changed": False, "new_stage": None, "stage_summary": None}
+        has_evidence = bool(eval_data.get("mastery_evidence"))
+        detected_correct = eval_data.get("detected_state") == "CORRECT"
+        stage_summary = eval_data.get("stage_summary", "")
+
+        if recommendation in ("advance_to_readiness_check", "advance_to_mini_assessment"):
+            if turns >= self.MIN_TURNS_FOR_READINESS and (has_evidence or detected_correct):
+                target = "readiness_check"
+                if recommendation == "advance_to_mini_assessment":
+                    target = "mini_assessment"
+                    await self.mcp.update_session_state(
+                        session_id, stage=target, stage_summary=stage_summary,
+                        assessment_progress='{"asked": 0, "correct": 0}',
+                    )
+                else:
+                    await self.mcp.update_session_state(
+                        session_id, stage=target, stage_summary=stage_summary,
+                    )
+                result.update(stage_changed=True, new_stage=target,
+                              stage_summary=stage_summary)
+                logger.info(f"Stage transition: exploration → {target} (turns={turns})")
             else:
                 logger.info(
-                    f"Readiness check denied: turns={turns} (min={self.MIN_TURNS_FOR_READINESS}), "
+                    f"Advancement denied: turns={turns} (min={self.MIN_TURNS_FOR_READINESS}), "
                     f"evidence={has_evidence}, correct={detected_correct}"
                 )
 
         elif turns >= self.MAX_TURNS_BEFORE_OFFER:
-            # Force transition — student has been exploring long enough
-            stage_summary = eval_data.get("stage_summary", "Max turns reached, offering assessment.")
             await self.mcp.update_session_state(
                 session_id, stage="readiness_check",
-                stage_summary=stage_summary,
+                stage_summary=stage_summary or "Max exploration turns reached.",
             )
             result.update(stage_changed=True, new_stage="readiness_check",
-                          stage_summary=stage_summary)
+                          stage_summary=stage_summary or "Max exploration turns reached")
             logger.info(f"Stage transition: exploration → readiness_check (max turns={turns})")
 
         return result
