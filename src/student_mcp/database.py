@@ -443,9 +443,27 @@ class StudentDatabase:
         misconception_text: str,
         source_question_id: str = "",
     ) -> Dict[str, Any]:
-        """Log a newly detected misconception."""
+        """Log a newly detected misconception. Deduplicates by text.
+
+        If the same misconception text already exists (unresolved) for this
+        student + objective, returns the existing record instead of inserting.
+        """
         with self.get_connection() as conn:
             with conn.cursor() as cur:
+                # Check for existing unresolved duplicate
+                cur.execute(
+                    """
+                    SELECT * FROM misconception_log
+                    WHERE student_id = %s AND objective_id = %s
+                      AND misconception_text = %s AND resolved_at IS NULL
+                    LIMIT 1
+                    """,
+                    (student_id, objective_id, misconception_text),
+                )
+                existing = cur.fetchone()
+                if existing:
+                    return dict(existing)
+
                 cur.execute(
                     """
                     INSERT INTO misconception_log

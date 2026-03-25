@@ -327,6 +327,16 @@ class TestMisconceptions:
         result = db.get_misconception_patterns("misc-empty")
         assert result == []
 
+    def test_insert_deduplicates(self, db):
+        """Same misconception text for same student+objective returns existing, not duplicate."""
+        db.create_profile(student_id="misc-dedup")
+        first = db.insert_misconception("misc-dedup", "obj-1", "same misconception")
+        second = db.insert_misconception("misc-dedup", "obj-1", "same misconception")
+        assert first["id"] == second["id"]  # same record returned
+        # Verify only 1 exists
+        patterns = db.get_misconception_patterns("misc-dedup")
+        assert len(patterns) == 1
+
     def test_get_misconception_patterns_filters_resolved(self, db):
         db.create_profile(student_id="misc-filt")
         db.insert_misconception("misc-filt", "obj-1", "misconception A")

@@ -195,16 +195,6 @@ class TestExploration:
         assert result["new_stage"] == "mini_assessment"
 
     @pytest.mark.asyncio
-    async def test_force_readiness_at_max_turns(self, machine, mock_mcp):
-        result = await machine.process_eval(
-            "stu-1", "sess-1",
-            _session(stage="exploration", turns=7),  # +1 = 8 = MAX
-            _eval(recommendation="stay"),
-        )
-        assert result["stage_changed"] is True
-        assert result["new_stage"] == "readiness_check"
-
-    @pytest.mark.asyncio
     async def test_stay_in_exploration(self, machine, mock_mcp):
         result = await machine.process_eval(
             "stu-1", "sess-1",
@@ -212,6 +202,68 @@ class TestExploration:
             _eval(recommendation="stay"),
         )
         assert result["stage_changed"] is False
+
+
+class TestSmartMaxTurns:
+    """Test the smart decision at max exploration turns."""
+
+    @pytest.mark.asyncio
+    async def test_in_progress_goes_to_assessment(self, machine, mock_mcp):
+        """Student with some understanding → assess (don't loop)."""
+        result = await machine.process_eval(
+            "stu-1", "sess-1",
+            _session(stage="exploration", turns=7),  # +1 = 8 = MAX
+            _eval(state="CORRECT", recommendation="stay",
+                  level_change="not_attempted→in_progress"),
+        )
+        assert result["stage_changed"] is True
+        assert result["new_stage"] == "mini_assessment"
+
+    @pytest.mark.asyncio
+    async def test_misconception_first_cycle_re_explores(self, machine, mock_mcp):
+        """Misconceptions + first cycle → one re-explore with reset turns."""
+        result = await machine.process_eval(
+            "stu-1", "sess-1",
+            _session(stage="exploration", turns=7, objective="obj-1"),
+            _eval(state="INCORRECT_APPLICATION", recommendation="stay",
+                  misconceptions=["wrong idea"]),
+        )
+        assert result["stage_changed"] is True
+        assert result["new_stage"] == "exploration"  # re-explore
+        assert "re-explore" in result["stage_summary"].lower()
+
+    @pytest.mark.asyncio
+    async def test_misconception_second_cycle_forces_assessment(self, machine, mock_mcp):
+        """Misconceptions + already re-explored → force assessment."""
+        result = await machine.process_eval(
+            "stu-1", "sess-1",
+            _session(stage="exploration", turns=7, objective="obj-1"),
+            # stage_summary from previous re-explore contains "re-explore"
+            _eval(state="INCORRECT_APPLICATION", recommendation="stay",
+                  misconceptions=["still wrong"]),
+        )
+        # Need to set the stage_summary to indicate re-explore
+        # The session fixture doesn't have stage_summary, let me use it directly
+        session = _session(stage="exploration", turns=7, objective="obj-1")
+        session["stage_summary"] = "re-explore: misconceptions present, trying different approach"
+        result = await machine.process_eval(
+            "stu-1", "sess-1", session,
+            _eval(state="INCORRECT_APPLICATION", recommendation="stay",
+                  misconceptions=["still wrong"]),
+        )
+        assert result["stage_changed"] is True
+        assert result["new_stage"] == "mini_assessment"
+
+    @pytest.mark.asyncio
+    async def test_no_signal_goes_to_assessment(self, machine, mock_mcp):
+        """No mastery signal at all → assess to get data."""
+        result = await machine.process_eval(
+            "stu-1", "sess-1",
+            _session(stage="exploration", turns=7),
+            _eval(state="DISENGAGED", recommendation="stay"),
+        )
+        assert result["stage_changed"] is True
+        assert result["new_stage"] == "mini_assessment"
 
 
 # ---------------------------------------------------------------------------
@@ -231,14 +283,26 @@ class TestReadinessCheck:
         assert result["new_stage"] == "mini_assessment"
 
     @pytest.mark.asyncio
-    async def test_decline_back_to_exploration(self, machine, mock_mcp):
+    async def test_stay_still_proceeds_to_mini(self, machine, mock_mcp):
+        """Readiness check no longer bounces back — always proceeds to assessment."""
+        result = await machine.process_eval(
+            "stu-1", "sess-1",
+            _session(stage="readiness_check"),
+            _eval(recommendation="stay"),
+        )
+        assert result["stage_changed"] is True
+        assert result["new_stage"] == "mini_assessment"
+
+    @pytest.mark.asyncio
+    async def test_loop_back_still_proceeds_to_mini(self, machine, mock_mcp):
+        """Even loop_back from readiness check goes to assessment now."""
         result = await machine.process_eval(
             "stu-1", "sess-1",
             _session(stage="readiness_check"),
             _eval(recommendation="loop_back_to_introduction"),
         )
         assert result["stage_changed"] is True
-        assert result["new_stage"] == "exploration"
+        assert result["new_stage"] == "mini_assessment"
 
 
 # ---------------------------------------------------------------------------

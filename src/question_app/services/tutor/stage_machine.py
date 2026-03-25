@@ -255,9 +255,12 @@ class StageMachine:
         """Handle EXPLORATION stage.
 
         Transitions:
-          - advance_to_readiness_check: student has shown understanding
-          - advance_to_mini_assessment: strong student, skip readiness check
-          - MAX_TURNS: force readiness check
+          - LLM recommends advancement + min turns + evidence → readiness_check or mini_assessment
+          - MAX_TURNS: smart decision based on mastery level and exploration cycle:
+              in_progress or better → mini_assessment (assessment is diagnostic)
+              misconception + first cycle → one re-exploration with different approach
+              misconception + second cycle → force mini_assessment (stop looping)
+              not_attempted → mini_assessment (need data from wrong answers too)
         """
         result = {"stage_changed": False, "new_stage": None, "stage_summary": None}
         has_evidence = bool(eval_data.get("mastery_evidence"))
@@ -287,13 +290,74 @@ class StageMachine:
                 )
 
         elif turns >= self.MAX_TURNS_BEFORE_OFFER:
-            await self.mcp.update_session_state(
-                session_id, stage="readiness_check",
-                stage_summary=stage_summary or "Max exploration turns reached.",
+            result.update(
+                await self._smart_max_turns_decision(
+                    session_id, session_state, eval_data, turns
+                )
             )
-            result.update(stage_changed=True, new_stage="readiness_check",
-                          stage_summary=stage_summary or "Max exploration turns reached")
-            logger.info(f"Stage transition: exploration → readiness_check (max turns={turns})")
+
+        return result
+
+    async def _smart_max_turns_decision(
+        self, session_id: str, session_state: Dict,
+        eval_data: Dict, turns: int,
+    ) -> Dict[str, Any]:
+        """Decide what to do when exploration hits max turns.
+
+        Assessment is a diagnostic tool, not a reward. Even struggling students
+        benefit from assessment — wrong answers surface exactly where they're stuck.
+
+        Decision logic:
+          - in_progress or better → go to mini_assessment
+          - misconception + first exploration cycle → one re-explore with reset
+          - misconception + already re-explored → force mini_assessment
+          - not_attempted (no signal) → force mini_assessment (need data)
+        """
+        result = {"stage_changed": False, "new_stage": None, "stage_summary": None}
+        stage_summary = eval_data.get("stage_summary", "")
+        previous_summary = session_state.get("stage_summary", "")
+        is_re_exploration = "re-explore" in previous_summary.lower()
+
+        # Get current mastery level from the most recent eval
+        mastery_change = eval_data.get("mastery_level_change", "no_change")
+        current_level = mastery_change.split("→")[-1].strip() if "→" in mastery_change else None
+
+        # If we don't have the level from eval, check what's in the detected state
+        detected = eval_data.get("detected_state", "")
+        has_misconceptions = detected == "INCORRECT_APPLICATION" or bool(eval_data.get("misconceptions_detected"))
+
+        # Decision
+        if is_re_exploration:
+            # Second cycle — force assessment regardless. Stop looping.
+            summary = f"Second exploration cycle complete (turns={turns}). Forcing assessment."
+            await self.mcp.update_session_state(
+                session_id, stage="mini_assessment",
+                stage_summary=summary,
+                assessment_progress='{"asked": 0, "correct": 0}',
+            )
+            result.update(stage_changed=True, new_stage="mini_assessment", stage_summary=summary)
+            logger.info(f"Stage transition: exploration → mini_assessment (forced after re-explore, turns={turns})")
+
+        elif has_misconceptions and current_level in (None, "misconception", "not_attempted"):
+            # First cycle with active misconceptions and no real progress — one retry
+            summary = f"re-explore: misconceptions present, trying different approach (turns={turns})"
+            await self.mcp.update_session_state(
+                session_id, stage="exploration", turns=0,
+                stage_summary=summary,
+            )
+            result.update(stage_changed=True, new_stage="exploration", stage_summary=summary)
+            logger.info(f"Stage transition: exploration → exploration (re-explore, turns={turns})")
+
+        else:
+            # in_progress, or no misconceptions, or not_attempted with no signal — assess
+            summary = stage_summary or f"Max exploration turns ({turns}). Moving to assessment."
+            await self.mcp.update_session_state(
+                session_id, stage="mini_assessment",
+                stage_summary=summary,
+                assessment_progress='{"asked": 0, "correct": 0}',
+            )
+            result.update(stage_changed=True, new_stage="mini_assessment", stage_summary=summary)
+            logger.info(f"Stage transition: exploration → mini_assessment (max turns={turns})")
 
         return result
 
@@ -303,23 +367,23 @@ class StageMachine:
         """Handle READINESS_CHECK stage.
 
         Student accepts → MINI_ASSESSMENT
-        Student declines → back to EXPLORATION
+        Any other response → also MINI_ASSESSMENT
+
+        We no longer bounce back to exploration from readiness check.
+        If we got here (either via LLM recommendation or max turns),
+        the student should proceed to assessment. Assessment itself
+        handles re-teaching if needed (fail → loop back to introduction).
         """
         result = {"stage_changed": False, "new_stage": None, "stage_summary": None}
 
-        if recommendation == "advance_to_mini_assessment":
-            await self.mcp.update_session_state(
-                session_id, stage="mini_assessment",
-                assessment_progress='{"asked": 0, "correct": 0}',
-            )
-            result.update(stage_changed=True, new_stage="mini_assessment")
-            logger.info("Stage transition: readiness_check → mini_assessment")
-
-        elif recommendation in ("loop_back_to_introduction", "stay"):
-            # Student not ready or declined
-            await self.mcp.update_session_state(session_id, stage="exploration")
-            result.update(stage_changed=True, new_stage="exploration")
-            logger.info("Stage transition: readiness_check → exploration (student not ready)")
+        # Always proceed to mini_assessment from readiness_check.
+        # The old "stay" → bounce back to exploration caused infinite loops.
+        await self.mcp.update_session_state(
+            session_id, stage="mini_assessment",
+            assessment_progress='{"asked": 0, "correct": 0}',
+        )
+        result.update(stage_changed=True, new_stage="mini_assessment")
+        logger.info(f"Stage transition: readiness_check → mini_assessment (recommendation={recommendation})")
 
         return result
 
