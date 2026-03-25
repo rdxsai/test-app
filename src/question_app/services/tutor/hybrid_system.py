@@ -1395,10 +1395,10 @@ class HybridCrewAISocraticSystem:
             learning_goal=profile_data.get("learning_goal", ""),
         )
 
-        # Select first objective
-        next_obj = await self.student_mcp.get_recommended_next_objective(student_id)
-        objective_id = next_obj.get("objective_id", "") if next_obj else ""
-        objective_text = next_obj.get("objective_text", "web accessibility fundamentals") if next_obj else "web accessibility fundamentals"
+        # Select first objective based on student's assessed level
+        objective_id, objective_text = await self._select_starting_objective(
+            student_id, profile_data.get("a11y_exposure", "none")
+        )
 
         # Create session and transition to introduction
         await self.student_mcp.update_session_state(
@@ -1456,6 +1456,68 @@ class HybridCrewAISocraticSystem:
                 "role_context": "student",
                 "learning_goal": "personal_interest",
             }
+
+    # ------------------------------------------------------------------
+    # Starting objective selection (level-based)
+    # ------------------------------------------------------------------
+
+    # Maps a11y_exposure from onboarding to a specific starting objective.
+    # Each objective has 2-3 associated quiz questions for rich assessment.
+    _STARTING_OBJECTIVES = {
+        # Level 0: foundational — no prior accessibility knowledge
+        "none": "31bd3671-e8fa-45f5-9a71-3abe55d792e0",
+        # "Explain the five primary rules of ARIA usage" (2 questions)
+
+        # Level 1: awareness/working knowledge — knows basics, needs applied concepts
+        "awareness": "653bc9b8-9cc2-42e8-aa4f-c94c21012f62",
+        "working_knowledge": "653bc9b8-9cc2-42e8-aa4f-c94c21012f62",
+        # "Understand how ARIA live region properties and values impact AT behavior" (3 questions)
+
+        # Level 2: professional — deep expertise, needs analysis-level challenges
+        "professional": "07003c38-5181-4e6d-88ba-f22f198f4986",
+        # "Analyze design elements (headings, landmarks, color contrast) to determine
+        #  their impact on diverse user groups" (3 questions)
+    }
+
+    async def _select_starting_objective(
+        self, student_id: str, a11y_exposure: str,
+    ) -> tuple:
+        """Select the first objective based on the student's assessed level.
+
+        Returns (objective_id, objective_text). Falls back to
+        get_recommended_next_objective if the level-specific objective
+        is not found or already mastered.
+        """
+        target_id = self._STARTING_OBJECTIVES.get(a11y_exposure, self._STARTING_OBJECTIVES["none"])
+
+        # Verify the objective exists and get its text
+        try:
+            obj = await asyncio.to_thread(self._fetch_objective_by_id, target_id)
+            if obj:
+                logger.info(
+                    f"[ONBOARDING] Level-based objective selected: "
+                    f"exposure={a11y_exposure} → {target_id} ({obj['text'][:60]})"
+                )
+                return target_id, obj["text"]
+        except Exception as e:
+            logger.warning(f"Failed to fetch starting objective {target_id}: {e}")
+
+        # Fallback to generic recommendation
+        next_obj = await self.student_mcp.get_recommended_next_objective(student_id)
+        if next_obj:
+            return next_obj.get("objective_id", ""), next_obj.get("objective_text", "web accessibility fundamentals")
+        return "", "web accessibility fundamentals"
+
+    def _fetch_objective_by_id(self, objective_id: str) -> Optional[Dict]:
+        """Fetch a single learning objective by ID from the main DB."""
+        with self.db.get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "SELECT id, text, blooms_level, priority FROM learning_objective WHERE id = %s",
+                    (objective_id,),
+                )
+                row = cur.fetchone()
+                return dict(row) if row else None
 
     # ------------------------------------------------------------------
     # Assessment context (fetch quiz questions for an objective)
