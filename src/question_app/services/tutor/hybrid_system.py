@@ -1232,12 +1232,39 @@ class HybridCrewAISocraticSystem:
             if history:
                 messages.extend(history[-6:])
             messages.append({"role": "user", "content": student_response})
+            # Force eval JSON output by adding a prefill hint as a partial assistant message.
+            # This technique makes GPT-4 continue the response and append the JSON block.
+            # We DON'T actually add an assistant message (Azure doesn't support prefill),
+            # but we reinforce via a system reminder at the end.
+            messages.append({"role": "system", "content": (
+                "IMPORTANT: After your conversational response, you MUST output an evaluation "
+                "JSON block wrapped in ```json ... ```. This is required for every response. "
+                "The system will malfunction without it. Include detected_state, response_mode, "
+                "stage_recommendation, mastery_evidence, mastery_level_change, "
+                "misconceptions_detected, stage_summary, and confidence."
+            )})
 
             # Single LLM call — collect full response then parse
             full_response = await self._stream_response(messages, ws_send)
 
             # Parse eval JSON from the response
             conversational_text, eval_data = self._parse_eval_json(full_response)
+
+            # --- Diagnostic logging ---
+            if eval_data:
+                logger.info(
+                    f"[GUIDED] Eval JSON parsed: stage={current_stage} "
+                    f"detected_state={eval_data.get('detected_state')} "
+                    f"recommendation={eval_data.get('stage_recommendation')} "
+                    f"mastery_change={eval_data.get('mastery_level_change')} "
+                    f"confidence={eval_data.get('confidence')}"
+                )
+            else:
+                logger.warning(
+                    f"[GUIDED] No eval JSON in response! stage={current_stage} "
+                    f"response_length={len(full_response)} chars. "
+                    f"Last 200 chars: ...{full_response[-200:]}"
+                )
 
             # Save conversation (conversational part only, not eval JSON)
             self.append_to_conversation(student_id, "assistant", conversational_text)
@@ -1247,6 +1274,12 @@ class HybridCrewAISocraticSystem:
             if eval_data and self._stage_machine:
                 stage_result = await self._stage_machine.process_eval(
                     student_id, session_id, session_state, eval_data,
+                )
+                logger.info(
+                    f"[GUIDED] Stage machine result: changed={stage_result.get('stage_changed')} "
+                    f"new_stage={stage_result.get('new_stage')} "
+                    f"mastery={stage_result.get('mastery_updated')} "
+                    f"assessment={stage_result.get('assessment_result')}"
                 )
 
                 # Invalidate cache if objective changed
@@ -1328,10 +1361,16 @@ class HybridCrewAISocraticSystem:
         """
         # Count how many assistant messages we've sent (= onboarding turn)
         assistant_turns = sum(1 for m in history if m.get("role") == "assistant")
+        logger.info(
+            f"[ONBOARDING] student={student_id} assistant_turns={assistant_turns} "
+            f"history_len={len(history)} student_said='{student_response[:80]}'"
+        )
 
         if assistant_turns < 3:
             # Still gathering info — send the next onboarding prompt
-            prompt_text = self._ONBOARDING_PROMPTS[min(assistant_turns, 2)]
+            prompt_idx = min(assistant_turns, 2)
+            prompt_text = self._ONBOARDING_PROMPTS[prompt_idx]
+            logger.info(f"[ONBOARDING] Sending prompt #{prompt_idx + 1} of 3")
 
             await ws_send({"type": "stream_start"})
             await self._progressive_send(prompt_text, ws_send)
@@ -1343,6 +1382,7 @@ class HybridCrewAISocraticSystem:
             return {"stage": "onboarding", "step": assistant_turns + 1}
 
         # Final turn — parse gathered info and create profile
+        logger.info(f"[ONBOARDING] All 3 prompts answered — creating profile")
         # Use LLM to extract structured data from the conversation
         profile_data = await self._extract_onboarding_profile(history, student_response)
 

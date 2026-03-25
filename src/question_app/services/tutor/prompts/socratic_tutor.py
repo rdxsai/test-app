@@ -341,6 +341,8 @@ def build_instance_b_prompt(
 
     context_block = "\n\n".join(context_sections)
 
+    # EVAL_OUTPUT_SCHEMA goes LAST — after context — so GPT-4 doesn't lose it
+    # in the middle of a long system prompt (recency bias).
     return f"""{ROLE_PREAMBLE}
 
 {COGNITIVE_STATES}
@@ -359,6 +361,8 @@ def build_instance_b_prompt(
 
 {FEW_SHOT_EXAMPLES}
 
+{context_block}
+
 {EVAL_OUTPUT_SCHEMA}
 
-{context_block}"""
+REMINDER: You MUST end every response with the ```json evaluation block. This is not optional."""

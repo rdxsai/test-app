@@ -421,7 +421,9 @@ async def websocket_guided_chat(websocket: WebSocket):
                         stage=current_stage, active_objective_id=objective,
                     )
                 else:
-                    # New student — will go through onboarding
+                    # New student — onboarding handled by conduct_guided_session_streaming.
+                    # Don't create a session here (no profile yet → FK would fail).
+                    # Send auth confirmation, then the first onboarding prompt.
                     await websocket.send_json({
                         "type": "authenticated",
                         "student_id": student_id,
@@ -430,12 +432,7 @@ async def websocket_guided_chat(websocket: WebSocket):
                         "has_profile": False,
                     })
 
-                    # Create onboarding session
-                    await tutor_system.student_mcp.update_session_state(
-                        session_id, student_id=student_id, stage="onboarding",
-                    )
-
-                    # Send first onboarding prompt
+                    # Send first onboarding prompt directly (no session/MCP needed)
                     first_prompt = tutor_system._ONBOARDING_PROMPTS[0]
                     await websocket.send_json({
                         "type": "welcome",
