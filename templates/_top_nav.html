@@ -1,0 +1,67 @@
+{% set path = request.url.path %}
+<nav class="navbar navbar-expand-lg navbar-light bg-light border-bottom">
+  <div class="container-fluid">
+    <a class="navbar-brand fw-semibold" href="/">
+      <i class="fas fa-graduation-cap text-primary"></i> Socratic Tutor
+    </a>
+    <button
+      class="navbar-toggler"
+      type="button"
+      data-bs-toggle="collapse"
+      data-bs-target="#siteTopNav"
+      aria-controls="siteTopNav"
+      aria-expanded="false"
+      aria-label="Toggle navigation"
+    >
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse" id="siteTopNav">
+      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+        <li class="nav-item">
+          <a class="nav-link {% if path == '/' %}active{% endif %}" href="/">
+            <i class="fas fa-list me-1"></i>Questions
+          </a>
+        </li>
+        <li class="nav-item">
+          <a
+            class="nav-link {% if path.startswith('/objectives') %}active{% endif %}"
+            href="/objectives"
+          >
+            <i class="fas fa-bullseye me-1"></i>Objectives
+          </a>
+        </li>
+        <li class="nav-item">
+          <a
+            class="nav-link {% if path.startswith('/chat') and not path.startswith('/chat/system-prompt') %}active{% endif %}"
+            href="/chat"
+          >
+            <i class="fas fa-comments me-1"></i>Chat
+          </a>
+        </li>
+        <li class="nav-item">
+          <a
+            class="nav-link {% if path.startswith('/system-prompt') %}active{% endif %}"
+            href="/system-prompt"
+          >
+            <i class="fas fa-cog me-1"></i>Feedback Prompts
+          </a>
+        </li>
+        <li class="nav-item">
+          <a
+            class="nav-link {% if path.startswith('/chat/system-prompt') %}active{% endif %}"
+            href="/chat/system-prompt"
+          >
+            <i class="fas fa-robot me-1"></i>Chat Prompt
+          </a>
+        </li>
+      </ul>
+
+      <div class="d-flex">
+        <a href="/questions/new" class="btn btn-sm btn-primary">
+          <i class="fas fa-plus me-1"></i>New Question
+        </a>
+      </div>
+    </div>
+  </div>
+</nav>
