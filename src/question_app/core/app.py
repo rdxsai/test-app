@@ -54,6 +54,7 @@ def register_routers(app: FastAPI) -> None:
         canvas_router,
         chat_router,
         debug_router,
+        eval_router,
         objectives_router,
         questions_router,
         system_prompt_router,
@@ -68,6 +69,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(system_prompt_router)
     app.include_router(objectives_router)
     app.include_router(debug_router)
+    app.include_router(eval_router)
 
     logger.info("API routers registered successfully")
 

@@ -1118,6 +1118,20 @@ class HybridCrewAISocraticSystem:
             self.db.save_student_profile(profile)
             self.append_to_conversation(student_id, "assistant", final_response)
 
+            # Fire-and-forget RAG triple capture for evaluation pipeline
+            if retrieved_chunks_data and intent != "off_topic":
+                try:
+                    from ..services.eval.repository import EvalRepository
+                    eval_repo = EvalRepository(db=self.db)
+                    eval_repo.capture_rag_sample(
+                        query=student_response,
+                        retrieved_contexts=[c.get("content", "") for c in retrieved_chunks_data],
+                        response=final_response,
+                        student_id=student_id, intent=intent, instance="a",
+                    )
+                except Exception as e:
+                    logger.warning(f"RAG capture failed (non-critical): {e}")
+
             metadata = {
                 "session_number": profile.total_sessions,
                 "intent_executed": intent,
@@ -1268,6 +1282,22 @@ class HybridCrewAISocraticSystem:
 
             # Save conversation (conversational part only, not eval JSON)
             self.append_to_conversation(student_id, "assistant", conversational_text)
+
+            # Fire-and-forget RAG triple capture for evaluation pipeline
+            cached = self._session_cache.get(session_id)
+            if cached and cached.get("rag_chunks"):
+                try:
+                    from ..services.eval.repository import EvalRepository
+                    eval_repo = EvalRepository(db=self.db)
+                    eval_repo.capture_rag_sample(
+                        query=student_response,
+                        retrieved_contexts=[c.get("content", "") for c in cached["rag_chunks"]],
+                        response=conversational_text,
+                        student_id=student_id, session_id=session_id,
+                        intent="guided", instance="b",
+                    )
+                except Exception as e:
+                    logger.warning(f"RAG capture failed (non-critical): {e}")
 
             # Process eval through stage machine
             stage_result = {}

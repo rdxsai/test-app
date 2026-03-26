@@ -239,6 +239,47 @@ class DatabaseManager:
             """
             )
 
+            # 7. Evaluation Log Table
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS eval_log (
+                    id TEXT PRIMARY KEY,
+                    content_type TEXT NOT NULL,
+                    content_id TEXT NOT NULL,
+                    metric_name TEXT NOT NULL,
+                    metric_value FLOAT,
+                    details JSONB DEFAULT '{}'::jsonb,
+                    evaluated_at TIMESTAMPTZ DEFAULT NOW(),
+                    evaluator TEXT DEFAULT 'auto',
+                    batch_id TEXT
+                )
+            """)
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_eval_log_content ON eval_log(content_type, content_id);"
+            )
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_eval_log_metric ON eval_log(metric_name, evaluated_at);"
+            )
+
+            # 8. RAG Evaluation Samples Table
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS rag_eval_samples (
+                    id TEXT PRIMARY KEY,
+                    query TEXT NOT NULL,
+                    retrieved_contexts JSONB NOT NULL DEFAULT '[]'::jsonb,
+                    response TEXT NOT NULL,
+                    ground_truth TEXT,
+                    student_id TEXT,
+                    session_id TEXT,
+                    intent TEXT,
+                    instance TEXT DEFAULT 'a',
+                    captured_at TIMESTAMPTZ DEFAULT NOW(),
+                    evaluated BOOLEAN DEFAULT FALSE
+                )
+            """)
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_rag_samples_evaluated ON rag_eval_samples(evaluated, captured_at);"
+            )
+
             conn.commit()
             logger.info("PostgreSQL database tables initialized successfully.")
 

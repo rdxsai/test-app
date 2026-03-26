@@ -11,6 +11,7 @@ from .objectives import router as objectives_router
 from .questions import router as questions_router
 from .system_prompt import router as system_prompt_router
 from .vector_store import router as vector_store_router
+from .eval import router as eval_router
 
 __all__ = [
     "canvas_router",
@@ -20,4 +21,5 @@ __all__ = [
     "objectives_router",
     "vector_store_router",
     "debug_router",
+    "eval_router",
 ]
