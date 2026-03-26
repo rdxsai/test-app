@@ -489,6 +489,18 @@ async def websocket_guided_chat(websocket: WebSocket):
                     ws_send=ws_send,
                 )
 
+            # --- RESET SESSION ---
+            elif msg_type == "reset_session":
+                if student_id:
+                    # Clear conversation memory for this student
+                    tutor_system.conversation_memory.pop(student_id, None)
+                    tutor_system._save_conversation_memory()
+                    # Invalidate session cache
+                    if session_id:
+                        tutor_system._session_cache.invalidate(session_id)
+                    logger.info(f"WS Guided: Session reset for {student_id}")
+                    await websocket.send_json({"type": "session_reset", "student_id": student_id})
+
             # --- PING ---
             elif msg_type == "ping":
                 await websocket.send_json({"type": "pong"})

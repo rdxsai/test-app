@@ -44,6 +44,11 @@
     .student-level.none { background: #e9ecef; color: #6c757d; }
     .student-level.awareness, .student-level.working_knowledge { background: #cff4fc; color: #055160; }
     .student-level.professional { background: #d1e7dd; color: #0f5132; }
+    .student-actions { display: flex; flex-direction: column; gap: 0.15rem; opacity: 0; transition: opacity 0.15s; }
+    .student-item:hover .student-actions { opacity: 1; }
+    .btn-icon { background: none; border: none; padding: 0.15rem 0.3rem; border-radius: 4px; cursor: pointer; color: #6c757d; font-size: 0.68rem; }
+    .btn-icon:hover { background: #e9ecef; color: #212529; }
+    .btn-icon-danger:hover { background: #f8d7da; color: #dc3545; }
     .sidebar-footer { padding: 0.5rem; border-top: 1px solid #dee2e6; font-size: 0.7rem; color: #999; text-align: center; }
     .sidebar-nav { padding: 0.5rem 1rem; border-top: 1px solid #dee2e6; display: flex; gap: 0.3rem; }
     .sidebar-nav a { font-size: 0.75rem; }
@@ -340,6 +345,46 @@
         connectWebSocket();
       }
 
+      function resetStudent(id) {
+        if (!confirm("Reset this student's session? Chat history will be cleared but their profile stays.")) return;
+        // Clear frontend state
+        localStorage.removeItem(`chat_${id}`);
+        localStorage.removeItem(`mastery_${id}`);
+        // Reset student meta
+        const s = getStudent(id);
+        if (s) { s.stage = "onboarding"; s.objective = ""; saveStudents(); }
+        // Clear backend conversation memory by sending a reset message
+        if (id === activeStudentId) {
+          masteryData = {};
+          chatMessages.innerHTML = "";
+          chatMessages.appendChild(typingIndicator);
+          renderMasteryList();
+          // Send reset to backend to clear conversation memory
+          if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: "reset_session" }));
+          }
+          disconnectWS();
+          connectWebSocket();
+        }
+        renderStudentList();
+      }
+
+      function deleteStudent(id) {
+        if (!confirm("Delete this student entirely?")) return;
+        localStorage.removeItem(`chat_${id}`);
+        localStorage.removeItem(`mastery_${id}`);
+        students = students.filter(s => s.id !== id);
+        saveStudents();
+        if (id === activeStudentId) {
+          if (students.length > 0) {
+            switchStudent(students[0].id);
+          } else {
+            createNewStudent();
+          }
+        }
+        renderStudentList();
+      }
+
       function renderStudentList() {
         studentListEl.innerHTML = "";
         students.forEach(s => {
@@ -348,12 +393,30 @@
           const levelClass = s.level || "none";
           const levelLabel = s.level ? s.level.replace("_", " ") : "New";
           const objShort = s.objective ? s.objective.substring(0, 30) + "..." : "Onboarding";
-          item.innerHTML = `
+
+          const infoDiv = document.createElement("div");
+          infoDiv.style.flex = "1";
+          infoDiv.innerHTML = `
             <div class="student-label">${s.label}</div>
             <div class="student-meta">${objShort}</div>
             <span class="student-level ${levelClass}">${levelLabel}</span>
           `;
-          item.addEventListener("click", () => switchStudent(s.id));
+          infoDiv.addEventListener("click", () => switchStudent(s.id));
+
+          const actionsDiv = document.createElement("div");
+          actionsDiv.className = "student-actions";
+          actionsDiv.innerHTML = `
+            <button class="btn-icon" title="Reset session"><i class="fas fa-redo-alt"></i></button>
+            <button class="btn-icon btn-icon-danger" title="Delete student"><i class="fas fa-trash"></i></button>
+          `;
+          actionsDiv.querySelector("button:first-child").addEventListener("click", (e) => { e.stopPropagation(); resetStudent(s.id); });
+          actionsDiv.querySelector("button:last-child").addEventListener("click", (e) => { e.stopPropagation(); deleteStudent(s.id); });
+
+          item.style.display = "flex";
+          item.style.alignItems = "flex-start";
+          item.style.gap = "0.3rem";
+          item.appendChild(infoDiv);
+          item.appendChild(actionsDiv);
           studentListEl.appendChild(item);
         });
       }
