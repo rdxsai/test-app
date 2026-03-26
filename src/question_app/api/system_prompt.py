@@ -7,14 +7,12 @@ This module contains all system prompt management functionality including:
 - Test system prompt functionality
 """
 
-from fastapi import APIRouter, Form, HTTPException, Request, Depends
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi import APIRouter, Form, HTTPException, Request
+from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
 from ..core import get_logger
 from ..utils import (
-    load_system_prompt,
-    save_system_prompt,
     load_feedback_prompt_from_json,
     save_feedback_prompt_to_json
 )
@@ -30,33 +28,10 @@ templates = Jinja2Templates(directory="templates")
 
 @router.get("/", response_class=HTMLResponse)
 async def get_system_prompt_page(request: Request):
-    """Get the system prompt editing page"""
-    correct_prompt = load_feedback_prompt_from_json("feedback_correct")
-    incorrect_prompt = load_feedback_prompt_from_json("feedback_incorrect")
+    """Get the prompt editing page"""
     return templates.TemplateResponse(
-        "system_prompt_edit.html", {"request": request, "current_prompt_correct": correct_prompt, "current_prompt_incorrect" : incorrect_prompt}
+        "system_prompt_edit.html", {"request": request}
     )
-
-
-@router.get("/api")
-async def get_system_prompt_api():
-    """Get the current system prompt as JSON (for API calls)"""
-    prompt = load_system_prompt()
-    return {"prompt": prompt}
-
-
-@router.post("/")
-async def save_system_prompt_endpoint(prompt: str = Form(...)):
-    """Save the system prompt"""
-    try:
-        if save_system_prompt(prompt):
-            logger.info("System prompt updated")
-            return {"success": True, "message": "System prompt saved successfully"}
-        else:
-            raise HTTPException(status_code=500, detail="Failed to save system prompt")
-    except Exception as e:
-        logger.error(f"Error saving system prompt: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/test", response_class=HTMLResponse)
