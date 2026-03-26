@@ -284,7 +284,7 @@ class DatabaseManager:
     def list_all_questions(self) -> List[Dict]:
         """
         Fetches all questions from the database for the home page.
-        Joins with association table for objective count.
+        Includes objective and answer feedback status counts.
         """
         logger.info("Fetching all questions from database for home page...")
         try:
@@ -295,13 +295,36 @@ class DatabaseManager:
                         q.id,
                         q.question_text,
                         q.created_at,
-                        COUNT(qoa.objective_id) AS objective_count
+                        COALESCE(obj_stats.objective_count, 0) AS objective_count,
+                        COALESCE(ans_stats.answer_count, 0) AS answer_count,
+                        COALESCE(ans_stats.answers_without_feedback_count, 0) AS answers_without_feedback_count,
+                        COALESCE(ans_stats.answers_with_feedback_pending_approval_count, 0) AS answers_with_feedback_pending_approval_count
                     FROM
                         question q
                     LEFT JOIN
-                        question_objective_association qoa ON q.id = qoa.question_id
-                    GROUP BY
-                        q.id, q.question_text, q.created_at
+                        (
+                            SELECT
+                                question_id,
+                                COUNT(*) AS objective_count
+                            FROM question_objective_association
+                            GROUP BY question_id
+                        ) obj_stats ON q.id = obj_stats.question_id
+                    LEFT JOIN
+                        (
+                            SELECT
+                                question_id,
+                                COUNT(*) AS answer_count,
+                                COUNT(*) FILTER (
+                                    WHERE feedback_text IS NULL OR btrim(feedback_text) = ''
+                                ) AS answers_without_feedback_count,
+                                COUNT(*) FILTER (
+                                    WHERE feedback_text IS NOT NULL
+                                      AND btrim(feedback_text) <> ''
+                                      AND feedback_approved = FALSE
+                                ) AS answers_with_feedback_pending_approval_count
+                            FROM answer
+                            GROUP BY question_id
+                        ) ans_stats ON q.id = ans_stats.question_id
                     ORDER BY
                         q.created_at DESC;
                 """
