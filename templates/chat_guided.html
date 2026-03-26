@@ -99,6 +99,33 @@
     .message-content table { width: 100%; border-collapse: collapse; margin: 0.5rem 0; font-size: 0.85rem; }
     .message-content th, .message-content td { border: 1px solid #dee2e6; padding: 0.4rem 0.6rem; text-align: left; }
     .message-content th { background-color: rgba(0,0,0,0.04); font-weight: 600; }
+
+    /* Onboarding form cards */
+    .onboarding-card {
+      background: #fff; border: 1px solid #dee2e6; border-radius: 12px;
+      padding: 1.25rem; margin-bottom: 1rem; max-width: 85%;
+    }
+    .onboarding-card .question-text { font-weight: 600; font-size: 1rem; margin-bottom: 0.25rem; }
+    .onboarding-card .question-desc { font-size: 0.82rem; color: #6c757d; margin-bottom: 0.75rem; }
+    .onboarding-card .step-badge { font-size: 0.7rem; color: #6c757d; margin-bottom: 0.5rem; }
+    .onboarding-options { display: flex; flex-direction: column; gap: 0.5rem; }
+    .onboarding-option {
+      display: flex; align-items: center; gap: 0.75rem;
+      padding: 0.6rem 1rem; border: 2px solid #e9ecef; border-radius: 8px;
+      cursor: pointer; transition: all 0.15s; background: #fff;
+    }
+    .onboarding-option:hover { border-color: #0d6efd; background: #f0f6ff; }
+    .onboarding-option.selected { border-color: #0d6efd; background: #e7f1ff; }
+    .onboarding-option .opt-label { font-weight: 500; font-size: 0.9rem; }
+    .onboarding-option .opt-desc { font-size: 0.78rem; color: #6c757d; }
+    .onboarding-other {
+      display: none; margin-top: 0.5rem;
+    }
+    .onboarding-other.visible { display: flex; gap: 0.5rem; }
+    .onboarding-other input { flex: 1; }
+    .onboarding-submit {
+      margin-top: 0.75rem; width: 100%;
+    }
   </style>
 </head>
 
@@ -333,9 +360,14 @@
             updateAssessmentDisplay(msg);
             break;
 
+          case "onboarding_question":
+            renderOnboardingQuestion(msg);
+            break;
+
           case "onboarding_complete":
             updateStageDisplay("introduction", msg.first_objective || "");
             addSystemNotice(`Profile created! Starting: ${msg.first_objective}`);
+            setProcessingState(false);
             break;
 
           case "objective_complete":
@@ -558,6 +590,118 @@
       function formatMessage(content) {
         if (typeof content !== "string") return "";
         return marked.parse(content);
+      }
+
+      // ================================================================
+      // ONBOARDING FORM
+      // ================================================================
+
+      function renderOnboardingQuestion(msg) {
+        setProcessingState(false);
+
+        const card = document.createElement("div");
+        card.className = "onboarding-card";
+
+        // Step indicator
+        const step = document.createElement("div");
+        step.className = "step-badge";
+        step.textContent = `Step ${msg.step} of ${msg.total_steps}`;
+        card.appendChild(step);
+
+        // Question
+        const q = document.createElement("div");
+        q.className = "question-text";
+        q.textContent = msg.question;
+        card.appendChild(q);
+
+        if (msg.description) {
+          const desc = document.createElement("div");
+          desc.className = "question-desc";
+          desc.textContent = msg.description;
+          card.appendChild(desc);
+        }
+
+        // Options
+        const optionsDiv = document.createElement("div");
+        optionsDiv.className = "onboarding-options";
+        let selectedValue = null;
+
+        (msg.options || []).forEach(opt => {
+          const optEl = document.createElement("div");
+          optEl.className = "onboarding-option";
+          optEl.dataset.value = opt.value;
+
+          let html = `<div><div class="opt-label">${opt.label}</div>`;
+          if (opt.description) html += `<div class="opt-desc">${opt.description}</div>`;
+          html += `</div>`;
+          optEl.innerHTML = html;
+
+          optEl.addEventListener("click", () => {
+            optionsDiv.querySelectorAll(".onboarding-option").forEach(o => o.classList.remove("selected"));
+            optEl.classList.add("selected");
+            selectedValue = opt.value;
+            otherDiv.classList.remove("visible");
+            otherInput.value = "";
+            submitBtn.disabled = false;
+          });
+          optionsDiv.appendChild(optEl);
+        });
+        card.appendChild(optionsDiv);
+
+        // "Other" option
+        const otherDiv = document.createElement("div");
+        otherDiv.className = "onboarding-other";
+        const otherInput = document.createElement("input");
+        otherInput.type = "text";
+        otherInput.className = "form-control form-control-sm";
+        otherInput.placeholder = "Type your answer...";
+        otherInput.addEventListener("input", () => {
+          if (otherInput.value.trim()) {
+            selectedValue = otherInput.value.trim();
+            submitBtn.disabled = false;
+          }
+        });
+        otherDiv.appendChild(otherInput);
+        card.appendChild(otherDiv);
+
+        if (msg.allow_other) {
+          const otherBtn = document.createElement("div");
+          otherBtn.className = "onboarding-option";
+          otherBtn.innerHTML = `<div><div class="opt-label">Other</div><div class="opt-desc">Type your own answer</div></div>`;
+          otherBtn.addEventListener("click", () => {
+            optionsDiv.querySelectorAll(".onboarding-option").forEach(o => o.classList.remove("selected"));
+            otherBtn.classList.add("selected");
+            selectedValue = null;
+            otherDiv.classList.add("visible");
+            otherInput.focus();
+            submitBtn.disabled = true;
+          });
+          optionsDiv.appendChild(otherBtn);
+        }
+
+        // Submit button
+        const submitBtn = document.createElement("button");
+        submitBtn.className = "btn btn-primary onboarding-submit";
+        submitBtn.textContent = msg.step < msg.total_steps ? "Continue" : "Start Learning";
+        submitBtn.disabled = true;
+        submitBtn.addEventListener("click", () => {
+          if (!selectedValue) return;
+          // Show the answer as a user message
+          const displayLabel = selectedValue;
+          addMessage("user", displayLabel);
+          // Disable the card
+          card.style.opacity = "0.6";
+          card.style.pointerEvents = "none";
+          // Send the value
+          setProcessingState(true);
+          if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: "message", content: selectedValue }));
+          }
+        });
+        card.appendChild(submitBtn);
+
+        chatMessages.insertBefore(card, typingIndicator);
+        scrollToBottomIfNeeded();
       }
 
       // ================================================================

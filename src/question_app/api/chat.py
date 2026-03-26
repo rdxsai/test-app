@@ -432,15 +432,24 @@ async def websocket_guided_chat(websocket: WebSocket):
                         "has_profile": False,
                     })
 
-                    # Send first onboarding prompt directly (no session/MCP needed)
-                    first_prompt = tutor_system._ONBOARDING_PROMPTS[0]
+                    # Send welcome message + first structured onboarding question
                     await websocket.send_json({
                         "type": "welcome",
-                        "content": first_prompt,
+                        "content": "Welcome! I'm your web accessibility tutor. Let me learn a bit about you so I can personalize your learning.",
                         "student_id": student_id,
                         "stage": "onboarding",
                     })
-                    tutor_system.append_to_conversation(student_id, "assistant", first_prompt)
+
+                    first_question = tutor_system._ONBOARDING_QUESTIONS[0]
+                    await websocket.send_json({
+                        "type": "onboarding_question",
+                        "step": 1,
+                        "total_steps": 3,
+                        **first_question,
+                    })
+                    tutor_system.append_to_conversation(
+                        student_id, "assistant", tutor_system._ONBOARDING_PROMPTS[0]
+                    )
 
             # --- CHAT MESSAGE ---
             elif msg_type == "message":

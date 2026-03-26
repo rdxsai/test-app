@@ -1357,26 +1357,52 @@ class HybridCrewAISocraticSystem:
     # Onboarding handler (Instance B — first 2-3 turns)
     # ------------------------------------------------------------------
 
+    # Structured onboarding questions — sent as clickable forms, not free text
+    _ONBOARDING_QUESTIONS = [
+        {
+            "question": "What's your technical background?",
+            "description": "This helps us tailor examples and vocabulary to your role.",
+            "field": "role_context",
+            "options": [
+                {"label": "Developer", "value": "developer"},
+                {"label": "Designer", "value": "designer"},
+                {"label": "Content Author", "value": "content_author"},
+                {"label": "QA Tester", "value": "qa_tester"},
+                {"label": "Student", "value": "student"},
+                {"label": "Manager", "value": "manager"},
+            ],
+            "allow_other": True,
+        },
+        {
+            "question": "How much experience do you have with web accessibility?",
+            "description": "We'll match the starting topic to your level.",
+            "field": "a11y_exposure",
+            "options": [
+                {"label": "None", "value": "none", "description": "I'm just getting started"},
+                {"label": "Some awareness", "value": "awareness", "description": "I've heard of WCAG but haven't applied it"},
+                {"label": "Working knowledge", "value": "working_knowledge", "description": "I've worked on accessible websites"},
+                {"label": "Professional", "value": "professional", "description": "Deep a11y expertise or certification"},
+            ],
+            "allow_other": False,
+        },
+        {
+            "question": "What's driving your interest in accessibility?",
+            "description": "Last question — helps us focus on what matters to you.",
+            "field": "learning_goal",
+            "options": [
+                {"label": "Certification prep", "value": "certification"},
+                {"label": "Job requirement", "value": "job_requirement"},
+                {"label": "Personal interest", "value": "personal_interest"},
+            ],
+            "allow_other": True,
+        },
+    ]
+
+    # Legacy text prompts (kept for conversation history readability)
     _ONBOARDING_PROMPTS = [
-        (
-            "Welcome! I'm your web accessibility tutor. Before we start, "
-            "I'd like to learn a bit about you so I can personalize your learning.\n\n"
-            "**What's your technical background?** For example, are you a developer, "
-            "designer, content author, QA tester, student, or something else?"
-        ),
-        (
-            "Great! Now, **how much experience do you have with web accessibility?**\n\n"
-            "- **None** — I'm just getting started\n"
-            "- **Some awareness** — I've heard of WCAG but haven't applied it\n"
-            "- **Working knowledge** — I've worked on accessible websites\n"
-            "- **Professional** — I have deep a11y expertise or certification"
-        ),
-        (
-            "Last question: **What's driving your interest in accessibility?**\n\n"
-            "- Preparing for a certification\n"
-            "- Job requirement or project need\n"
-            "- Personal interest in inclusive design"
-        ),
+        "Welcome! What's your technical background?",
+        "How much experience do you have with web accessibility?",
+        "What's driving your interest in accessibility?",
     ]
 
     async def _handle_onboarding(
@@ -1397,24 +1423,26 @@ class HybridCrewAISocraticSystem:
         )
 
         if assistant_turns < 3:
-            # Still gathering info — send the next onboarding prompt
+            # Send the next structured onboarding question
             prompt_idx = min(assistant_turns, 2)
+            question_data = self._ONBOARDING_QUESTIONS[prompt_idx]
             prompt_text = self._ONBOARDING_PROMPTS[prompt_idx]
-            logger.info(f"[ONBOARDING] Sending prompt #{prompt_idx + 1} of 3")
+            logger.info(f"[ONBOARDING] Sending question #{prompt_idx + 1} of 3: {question_data['field']}")
 
-            await ws_send({"type": "stream_start"})
-            await self._progressive_send(prompt_text, ws_send)
+            # Send as structured form question
+            await ws_send({
+                "type": "onboarding_question",
+                "step": assistant_turns + 1,
+                "total_steps": 3,
+                **question_data,
+            })
             self.append_to_conversation(student_id, "assistant", prompt_text)
 
-            await ws_send({"type": "stream_end", "metadata": {
-                "stage": "onboarding", "onboarding_step": assistant_turns + 1,
-            }})
             return {"stage": "onboarding", "step": assistant_turns + 1}
 
-        # Final turn — parse gathered info and create profile
+        # Final turn — parse structured answers into profile
         logger.info(f"[ONBOARDING] All 3 prompts answered — creating profile")
-        # Use LLM to extract structured data from the conversation
-        profile_data = await self._extract_onboarding_profile(history, student_response)
+        profile_data = self._extract_onboarding_profile(history, student_response)
 
         # Create profile via MCP
         await self.student_mcp.create_profile(
@@ -1453,39 +1481,62 @@ class HybridCrewAISocraticSystem:
         )
         return {"stage": "introduction", "objective": objective_text}
 
-    async def _extract_onboarding_profile(
+    def _extract_onboarding_profile(
         self, history: List[Dict], final_response: str,
     ) -> Dict[str, str]:
-        """Use LLM to extract structured profile data from onboarding conversation."""
-        conversation_text = "\n".join(
-            f"{m['role']}: {m['content']}" for m in history
-        ) + f"\nuser: {final_response}"
+        """Extract structured profile from onboarding answers.
 
-        messages = [
-            {"role": "system", "content": (
-                "Extract the student's profile from this onboarding conversation. "
-                "Return ONLY a JSON object with these fields:\n"
-                '  "technical_level": "beginner" | "intermediate" | "advanced"\n'
-                '  "a11y_exposure": "none" | "awareness" | "working_knowledge" | "professional"\n'
-                '  "role_context": their role (e.g., "developer", "designer", "student")\n'
-                '  "learning_goal": "certification" | "job_requirement" | "personal_interest"\n'
-                "Infer from context if not stated explicitly."
-            )},
-            {"role": "user", "content": conversation_text},
-        ]
-        try:
-            result = await asyncio.to_thread(
-                self.client.chat, messages, 0.3, 300
-            )
-            return json.loads(result)
-        except (json.JSONDecodeError, Exception) as e:
-            logger.warning(f"Failed to parse onboarding profile: {e}")
-            return {
-                "technical_level": "beginner",
-                "a11y_exposure": "none",
-                "role_context": "student",
-                "learning_goal": "personal_interest",
-            }
+        Since onboarding uses structured form inputs (clickable options),
+        the user responses are the raw option values. Parse them directly
+        from conversation history — no LLM needed.
+        """
+        # User responses are at indices 1, 3, 5 in history (after each assistant prompt)
+        user_answers = [m["content"] for m in history if m.get("role") == "user"]
+        # Add the final response (3rd answer)
+        user_answers.append(final_response)
+
+        # Map answers to profile fields using the onboarding question definitions
+        profile = {
+            "technical_level": "beginner",
+            "a11y_exposure": "none",
+            "role_context": "student",
+            "learning_goal": "personal_interest",
+        }
+
+        for i, question in enumerate(self._ONBOARDING_QUESTIONS):
+            if i >= len(user_answers):
+                break
+            answer = user_answers[i].strip().lower()
+            field = question["field"]
+
+            # Check if answer matches any option value
+            matched = False
+            for opt in question["options"]:
+                if answer == opt["value"] or answer == opt["label"].lower():
+                    if field == "role_context":
+                        profile["role_context"] = opt["value"]
+                    elif field == "a11y_exposure":
+                        profile["a11y_exposure"] = opt["value"]
+                    elif field == "learning_goal":
+                        profile["learning_goal"] = opt["value"]
+                    matched = True
+                    break
+
+            if not matched and answer:
+                # "Other" or free-text — use as-is
+                profile[field] = answer
+
+        # Derive technical_level from a11y_exposure
+        exposure = profile.get("a11y_exposure", "none")
+        if exposure in ("none", "awareness"):
+            profile["technical_level"] = "beginner"
+        elif exposure == "working_knowledge":
+            profile["technical_level"] = "intermediate"
+        elif exposure == "professional":
+            profile["technical_level"] = "advanced"
+
+        logger.info(f"[ONBOARDING] Profile extracted: {profile}")
+        return profile
 
     # ------------------------------------------------------------------
     # Starting objective selection (level-based)
