@@ -1,0 +1,101 @@
+[
+  {
+    "question_id": "ff0e151c-a056-431d-a3cc-ca1ae0ec77e0",
+    "question_text": "Which of the following is **NOT** a valid value for the `lang` attribute?",
+    "primary": "II.C.12",
+    "primary_text": "Verify that page language, form errors, and component states are programmatically conveyed to assistive technologies.",
+    "secondary": [
+      {
+        "id": "II.B.6",
+        "text": "Analyze examples of web content to determine whether they meet or fail specific WCAG success criteria."
+      }
+    ]
+  },
+  {
+    "question_id": "1fec6d7f-ae84-4c78-80b3-50bc25431b67",
+    "question_text": "Which of the following would be the best text to put in the <title> tag of the accessibility policy page at a university with the top-level heading, “Accessibility Policy”?",
+    "primary": "II.C.6",
+    "primary_text": "Evaluate navigation structures, headings, labels, and link descriptions to determine whether they support clear information architecture and efficient screen reader navigation.",
+    "secondary": [
+      {
+        "id": "II.B.6",
+        "text": "Analyze examples of web content to determine whether they meet or fail specific WCAG success criteria."
+      }
+    ]
+  },
+  {
+    "question_id": "7ac44269-e225-4a0f-8326-1bd29095ada5",
+    "question_text": "A user has just entered the text string \"registration deadline\" in a site search field on a university website and hit the submit button.  What would be most likely to be the best title for the results page that loads?",
+    "primary": "II.C.6",
+    "primary_text": "Evaluate navigation structures, headings, labels, and link descriptions to determine whether they support clear information architecture and efficient screen reader navigation.",
+    "secondary": [
+      {
+        "id": "II.B.6",
+        "text": "Analyze examples of web content to determine whether they meet or fail specific WCAG success criteria."
+      }
+    ]
+  },
+  {
+    "question_id": "7b16d10a-72c8-4957-aefb-d78c385b6a72",
+    "question_text": "Which of the following is a WCAG 2.0 Level A requirement?",
+    "primary": "II.B.7",
+    "primary_text": "Identify WCAG 2.2 success criteria and classify them by conformance level.",
+    "secondary": [
+      {
+        "id": "II.B.3",
+        "text": "Explain WCAG conformance levels and analyze factors that influence the selection of a target conformance level."
+      },
+      {
+        "id": "II.B.4",
+        "text": "Explain WCAG conformance requirements and how they apply to evaluating web content."
+      }
+    ]
+  },
+  {
+    "question_id": "ebbfe1c6-6150-4bff-b0c0-764515b115ab",
+    "question_text": "Which of the following is **NOT** a way to navigate to the next visited link using a screen reader?",
+    "primary": "II.F.1",
+    "primary_text": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments.",
+    "secondary": null
+  },
+  {
+    "question_id": "7915e141-294d-44ee-8fee-e9b211b73e1e",
+    "question_text": "Which of the following is a way to navigate to the next unvisited link using a screen reader?",
+    "primary": "II.F.1",
+    "primary_text": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments.",
+    "secondary": null
+  },
+  {
+    "question_id": "927535a1-f331-43cc-9b3c-ae733453b854",
+    "question_text": "Which of the following is **NOT** a way to navigate from one link to the next using a screen reader?",
+    "primary": "II.F.1",
+    "primary_text": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments.",
+    "secondary": null
+  },
+  {
+    "question_id": "fd9dbd48-151c-4374-ae63-4f8eb0808449",
+    "question_text": "Which of the following is a way to list all links using a screen reader?",
+    "primary": "II.F.1",
+    "primary_text": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments.",
+    "secondary": [
+      {
+        "id": "II.C.6",
+        "text": "Evaluate navigation structures, headings, labels, and link descriptions to determine whether they support clear information architecture and efficient screen reader navigation."
+      }
+    ]
+  },
+  {
+    "question_id": "ef5ba151-f683-40d9-92e5-ba0a9a35f36a",
+    "question_text": "Which of the following is a way to navigate to headings of a certain level using a screen reader?",
+    "primary": "II.F.1",
+    "primary_text": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments.",
+    "secondary": null
+  },
+  {
+    "question_id": "6689da99-4c5d-4787-845d-688a94f0e38a",
+    "question_text": "Which of the following is **NOT** a way to navigate from one heading to the next using a screen reader?",
+    "primary": "II.F.1",
+    "primary_text": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments.",
+    "secondary": null
+  }
+]

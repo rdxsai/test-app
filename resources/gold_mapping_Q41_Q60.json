@@ -1,0 +1,194 @@
+[
+  {
+    "question_id": "cceefb58-6b91-4d30-a7b4-79cdbfded4b6",
+    "question_text_markdown": "Which of the following is the best way of indicating that content in a paragraph is important?",
+    "primary_objective_id": null,
+    "secondary_objective_ids": [],
+    "confidence": "High",
+    "rationale": "No strong match: question likely assesses content not explicitly represented in current objective set."
+  },
+  {
+    "question_id": "9f5b9d66-31b8-4119-8bc2-44f2d5eaa58d",
+    "question_text_markdown": "Which of the following is a reason why this code is a bad way of communicating to all users that something is a heading?\n\n`\n\n**A section about a topic**\n\n`",
+    "primary_objective_id": "II.C.5",
+    "secondary_objective_ids": [
+      "II.C.6"
+    ],
+    "confidence": "High",
+    "rationale": "Assesses correct use of semantic structure (headings) and its impact on navigation."
+  },
+  {
+    "question_id": "67e8adc9-b1c8-48ff-986c-adcce8847e54",
+    "question_text_markdown": "Which of the following is **NOT** a valid way of programmatically communicating that something is a heading?",
+    "primary_objective_id": "II.C.5",
+    "secondary_objective_ids": [
+      "II.C.6"
+    ],
+    "confidence": "High",
+    "rationale": "Assesses correct use of semantic structure (headings) and its impact on navigation."
+  },
+  {
+    "question_id": "b749ad76-5e05-45fd-b64b-1058fb2e8763",
+    "question_text_markdown": "Which of the following is **NOT** a benefit of using headings on web pages?",
+    "primary_objective_id": "II.C.5",
+    "secondary_objective_ids": [
+      "II.C.6"
+    ],
+    "confidence": "High",
+    "rationale": "Assesses correct use of semantic structure (headings) and its impact on navigation."
+  },
+  {
+    "question_id": "a191298e-2229-46be-a53d-d0b2bb427fd3",
+    "question_text_markdown": "Which of the following is a way to navigate to the main content landmark using a screen reader?",
+    "primary_objective_id": "II.F.1",
+    "secondary_objective_ids": [
+      "I.H.1"
+    ],
+    "confidence": "High",
+    "rationale": "Requires practical understanding of screen reader behavior and user navigation strategies."
+  },
+  {
+    "question_id": "6a8a749c-012b-4378-af07-8570c086b355",
+    "question_text_markdown": "Which of the following is **NOT** a way to navigate from one landmark to the next using a screen reader?",
+    "primary_objective_id": "II.F.1",
+    "secondary_objective_ids": [
+      "I.H.1"
+    ],
+    "confidence": "High",
+    "rationale": "Requires practical understanding of screen reader behavior and user navigation strategies."
+  },
+  {
+    "question_id": "e156fcde-a608-4c9e-b1ae-c0a11d32ec87",
+    "question_text_markdown": "Which of the following is **NOT** way to list all landmarks using a screen reader?",
+    "primary_objective_id": "II.F.1",
+    "secondary_objective_ids": [
+      "I.H.1"
+    ],
+    "confidence": "High",
+    "rationale": "Requires practical understanding of screen reader behavior and user navigation strategies."
+  },
+  {
+    "question_id": "b09c3bf1-2850-4a6d-8bf5-da3a1a393f2f",
+    "question_text_markdown": "Which of the following landmarks is it okay to have more than one of on a page?",
+    "primary_objective_id": "I.D.6",
+    "secondary_objective_ids": [
+      "II.C.6"
+    ],
+    "confidence": "High",
+    "rationale": "Assesses correct use of landmarks/navigation structure and usability."
+  },
+  {
+    "question_id": "cf582497-1251-42b0-8ca7-cf933bf66a64",
+    "question_text_markdown": "In a site with two regions for navigation, one for navigating the site and one for navigating a section of the site, which of the following would be the best way to code the part of the page with the site navigation?",
+    "primary_objective_id": "I.D.6",
+    "secondary_objective_ids": [
+      "II.C.6"
+    ],
+    "confidence": "High",
+    "rationale": "Assesses correct use of landmarks/navigation structure and usability."
+  },
+  {
+    "question_id": "b4e57d17-fccf-43a5-90d2-e447a58dbe31",
+    "question_text_markdown": "Which of the following is **NOT** listed among landmarks by most screen readers?",
+    "primary_objective_id": "II.F.1",
+    "secondary_objective_ids": [
+      "I.H.1"
+    ],
+    "confidence": "High",
+    "rationale": "Requires practical understanding of screen reader behavior and user navigation strategies."
+  },
+  {
+    "question_id": "46a5d52f-0efc-4179-8fcc-217f2bdfef0f",
+    "question_text_markdown": "What is the purpose of landmark regions?",
+    "primary_objective_id": "I.D.6",
+    "secondary_objective_ids": [
+      "II.C.6"
+    ],
+    "confidence": "High",
+    "rationale": "Assesses correct use of landmarks/navigation structure and usability."
+  },
+  {
+    "question_id": "cd0737ab-2f7f-47fc-9a5a-b2231ff6f404",
+    "question_text_markdown": "Why is it inadvisable to rely *solely* on landmark regions as a means of bypassing repetitive content?",
+    "primary_objective_id": "I.D.6",
+    "secondary_objective_ids": [
+      "II.C.6"
+    ],
+    "confidence": "High",
+    "rationale": "Assesses correct use of landmarks/navigation structure and usability."
+  },
+  {
+    "question_id": "5ea09fbf-862d-433c-9842-f585837fdcfc",
+    "question_text_markdown": "What WCAG conformance level are the success criteria having to do with the language of the page and the language of parts of the page?",
+    "primary_objective_id": "I.A.2",
+    "secondary_objective_ids": [
+      "II.B.7"
+    ],
+    "confidence": "High",
+    "rationale": "Assesses understanding of WCAG structure, principles, or success criteria classification."
+  },
+  {
+    "question_id": "1a3d9823-0173-47b5-a412-9d079eed7b08",
+    "question_text_markdown": "Which of the following is **NOT** a valid way of programmatically indicating the language of a page or content on that page?",
+    "primary_objective_id": null,
+    "secondary_objective_ids": [],
+    "confidence": "High",
+    "rationale": "No strong match: question likely assesses content not explicitly represented in current objective set."
+  },
+  {
+    "question_id": "ff0e151c-a056-431d-a3cc-ca1ae0ec77e0",
+    "question_text_markdown": "Which of the following is **NOT** a valid value for the `lang` attribute?",
+    "primary_objective_id": null,
+    "secondary_objective_ids": [],
+    "confidence": "High",
+    "rationale": "No strong match: question likely assesses content not explicitly represented in current objective set."
+  },
+  {
+    "question_id": "1fec6d7f-ae84-4c78-80b3-50bc25431b67",
+    "question_text_markdown": "Which of the following would be the best text to put in the\n\ntag of the accessibility policy page at a university with the top-level heading, “Accessibility Policy”?",
+    "primary_objective_id": "II.C.5",
+    "secondary_objective_ids": [
+      "II.C.6"
+    ],
+    "confidence": "High",
+    "rationale": "Assesses correct use of semantic structure (headings) and its impact on navigation."
+  },
+  {
+    "question_id": "7ac44269-e225-4a0f-8326-1bd29095ada5",
+    "question_text_markdown": "A user has just entered the text string \"registration deadline\" in a site search field on a university website and hit the submit button.  What would be most likely to be the best title for the results page that loads?",
+    "primary_objective_id": null,
+    "secondary_objective_ids": [],
+    "confidence": "High",
+    "rationale": "No strong match: question likely assesses content not explicitly represented in current objective set."
+  },
+  {
+    "question_id": "7b16d10a-72c8-4957-aefb-d78c385b6a72",
+    "question_text_markdown": "Which of the following is a WCAG 2.0 Level A requirement?",
+    "primary_objective_id": "I.A.2",
+    "secondary_objective_ids": [
+      "II.B.7"
+    ],
+    "confidence": "High",
+    "rationale": "Assesses understanding of WCAG structure, principles, or success criteria classification."
+  },
+  {
+    "question_id": "ebbfe1c6-6150-4bff-b0c0-764515b115ab",
+    "question_text_markdown": "Which of the following is **NOT** a way to navigate to the next visited link using a screen reader?",
+    "primary_objective_id": "II.F.1",
+    "secondary_objective_ids": [
+      "I.H.1"
+    ],
+    "confidence": "High",
+    "rationale": "Requires practical understanding of screen reader behavior and user navigation strategies."
+  },
+  {
+    "question_id": "7915e141-294d-44ee-8fee-e9b211b73e1e",
+    "question_text_markdown": "Which of the following is a way to navigate to the next unvisited link using a screen reader?",
+    "primary_objective_id": "II.F.1",
+    "secondary_objective_ids": [
+      "I.H.1"
+    ],
+    "confidence": "High",
+    "rationale": "Requires practical understanding of screen reader behavior and user navigation strategies."
+  }
+]

@@ -1,0 +1,9 @@
+{
+  "I.A.1": "Compare the scope of WCAG (2.0, 2.1, 2.2), ATAG 2.0, and EN 301 549, and identify how each set of requirements influences web accessibility design.",
+  "I.A.2": "Explain the structure of WCAG 2.2 by identifying the four principles (POUR), guidelines, and success criteria levels (A, AA, AAA).",
+  "I.A.3": "Differentiate between normative and non-normative parts of WCAG and justify why that distinction matters for conformance.",
+  "I.B.1": "Demonstrate how JavaScript event handlers can be made device-independent (e.g., supporting both pointer and keyboard input).",
+  "II.A.1": "Identify potential issues arising from specific browser\u2013screen reader combinations (e.g., JAWS + Chrome vs. NVDA + Firefox).",
+  "II.B.1": "Map discovered accessibility barriers to the appropriate WCAG success criterion (or EN 301 549 clause) and distinguish conformance failures from best-practice gaps.",
+  "III.B.10": "Evaluate the benefits of integrating accessibility during design and development compared to addressing accessibility through post-development remediation."
+}

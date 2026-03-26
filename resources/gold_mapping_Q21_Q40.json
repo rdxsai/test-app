@@ -1,0 +1,200 @@
+[
+  {
+    "question_id": "80d729ed-4b07-4634-9cc4-e2343f21fa17",
+    "question_text_markdown": "Which method can be used as a visual cue along with color, so that color is not the only means of conveying information?  *Make sure to read all options before answering.*",
+    "primary_objective_id": "II.G.6",
+    "secondary_objective_ids": [
+      "II.G.S2"
+    ],
+    "confidence": "High",
+    "rationale": "The question tests whether the learner understands that color cannot be the only means of conveying information and that additional visual distinctions such as borders, patterns, or text can make meaning available visually."
+  },
+  {
+    "question_id": "d36867eb-c9be-4041-9989-694caec278df",
+    "question_text_markdown": "Generally speaking, which of the following code examples is **MOST** accessible?",
+    "primary_objective_id": "II.C.7",
+    "secondary_objective_ids": [
+      "I.D.2"
+    ],
+    "confidence": "Medium",
+    "rationale": "The exported code examples are truncated, but the question appears to compare alternative ways of coding form fields. The most plausible construct being assessed is whether form controls are coded in a way that preserves clear labeling and accessible form interaction."
+  },
+  {
+    "question_id": "47412bfa-21f2-43e5-ba07-33001742199d",
+    "question_text_markdown": "The following code on a web page describes how to wash your hands.  Which of the following users might be confused by the instructions?\n\n```\n\nRepeat\n\nRinse\n\nLather\n\n```",
+    "primary_objective_id": "II.C.5",
+    "secondary_objective_ids": [
+      "II.C.8"
+    ],
+    "confidence": "High",
+    "rationale": "The correct answer depends on understanding that screen reader users who are blind can be confused when sequence or meaning is conveyed only visually rather than through semantic structure or meaningful programmatic order."
+  },
+  {
+    "question_id": "b1d11e5f-8bab-47f0-a8f3-dbeea1b7a0dc",
+    "question_text_markdown": "Which of the following is true regarding bypass blocks?",
+    "primary_objective_id": "II.C.6",
+    "secondary_objective_ids": [
+      "I.H.2"
+    ],
+    "confidence": "High",
+    "rationale": "This assesses knowledge of bypass blocks and skip links as mechanisms that help users bypass repeated content, including the requirement that skip links be visible when they receive focus."
+  },
+  {
+    "question_id": "57778c37-ce35-4172-a088-81e6ae21069c",
+    "question_text_markdown": "Which of the following is **NOT** true?",
+    "primary_objective_id": "II.C.6",
+    "secondary_objective_ids": [
+      "I.D.6"
+    ],
+    "confidence": "High",
+    "rationale": "The learner must understand accessible navigation structure: what a navigation region should contain, how current location is conveyed, and what is and is not required semantically."
+  },
+  {
+    "question_id": "6b63203f-f2f3-4506-afad-8a3b2b491e48",
+    "question_text_markdown": "Which of the following is **NOT** a way to navigate to the next visited link using a screen reader?",
+    "primary_objective_id": "II.F.1",
+    "secondary_objective_ids": [
+      "I.H.1"
+    ],
+    "confidence": "High",
+    "rationale": "This is practical screen reader knowledge: knowing how different screen readers navigate visited links. It also reflects understanding of real user navigation strategies."
+  },
+  {
+    "question_id": "54e5c37d-f39d-489d-954a-5a989c00a224",
+    "question_text_markdown": "Which of the following is a way to navigate to the next unvisited link using a screen reader?",
+    "primary_objective_id": "II.F.1",
+    "secondary_objective_ids": [
+      "I.H.1"
+    ],
+    "confidence": "High",
+    "rationale": "This question assesses practical use of screen readers to navigate by unvisited links, which is primarily assistive-technology operation knowledge."
+  },
+  {
+    "question_id": "936efd90-7f92-448e-b174-b6d75a4e967a",
+    "question_text_markdown": "Which of the following is **NOT** a way to navigate from one link to the next using a screen reader?",
+    "primary_objective_id": "II.F.1",
+    "secondary_objective_ids": [
+      "I.H.1"
+    ],
+    "confidence": "High",
+    "rationale": "The learner must know how screen readers navigate from link to link in different environments, which is a practical assistive-technology usage competency."
+  },
+  {
+    "question_id": "4628b74a-14be-404c-8c83-2aa818884a83",
+    "question_text_markdown": "Which of the following is a way to list all links using a screen reader?",
+    "primary_objective_id": "II.F.1",
+    "secondary_objective_ids": [
+      "I.H.1"
+    ],
+    "confidence": "High",
+    "rationale": "This asks about listing all links with a screen reader, so the main construct is operational knowledge of assistive technology navigation methods."
+  },
+  {
+    "question_id": "ed07e266-c587-4dd8-9c4d-329d6a299fa7",
+    "question_text_markdown": "Why is it important not to remove visual focus indicators from links and controls, for instance, by setting the outline CSS property for the focus pseudo-class to none?",
+    "primary_objective_id": "II.C.2",
+    "secondary_objective_ids": [
+      "I.H.2"
+    ],
+    "confidence": "High",
+    "rationale": "The correct answer depends on understanding why visible focus indicators matter for sighted keyboard users, which is a core keyboard accessibility and focus visibility concept."
+  },
+  {
+    "question_id": "5e1bdf61-fb21-4f24-beb9-40eb1f07a9f2",
+    "question_text_markdown": "Where the contrast ratio between color codes #990033 and #000000 is 2.4:1, which of the following code snippets is the **LEAST** preferable, assuming no other styles have been applied than what is apparent in the code?",
+    "primary_objective_id": "II.G.6",
+    "secondary_objective_ids": [],
+    "confidence": "High",
+    "rationale": "This question evaluates whether the learner can judge the accessibility implications of low-contrast link styling, especially when contrast is already known to be insufficient."
+  },
+  {
+    "question_id": "143d3179-a057-4986-af8d-6bbbf15009b9",
+    "question_text_markdown": "From an accessibility perspective, which of the following is the **LEAST** preferred means of coding a link to a site that opens in a new window?",
+    "primary_objective_id": "I.D.2",
+    "secondary_objective_ids": [
+      "II.C.6"
+    ],
+    "confidence": "High",
+    "rationale": "The learner must judge whether a link opening in a new window is described accessibly. The core construct is providing sufficient accessible naming or description, with a secondary concern for usable link descriptions."
+  },
+  {
+    "question_id": "8e947866-3e94-401e-98ff-45eeb974c8e7",
+    "question_text_markdown": "Which link text below would be preferable in most circumstances?",
+    "primary_objective_id": "I.D.2",
+    "secondary_objective_ids": [
+      "II.C.6"
+    ],
+    "confidence": "High",
+    "rationale": "This assesses whether link text is descriptive and meaningful in context. The preferred answer requires understanding accessible naming and link purpose."
+  },
+  {
+    "question_id": "f0f366e1-8fc0-47f8-9fed-32565fbb40f6",
+    "question_text_markdown": "Assuming there are no elements on the page that have an `id` attribute set, which of the following would **NOT** provide programmatically-discernable text for a link?",
+    "primary_objective_id": "I.D.S1",
+    "secondary_objective_ids": [
+      "I.D.2"
+    ],
+    "confidence": "High",
+    "rationale": "The question asks which coding pattern would not provide programmatically discernable text for a link. That directly tests how accessible names are derived from different naming sources."
+  },
+  {
+    "question_id": "6209b9a0-bcc1-4df5-8744-13f24ae10c0e",
+    "question_text_markdown": "The image in the following code is an icon of a printer styled to look like a button.  Assuming no other styling or scripting has been applied, which of the following would **NOT** be a problem with this code?\n\n`[print-version.html](print-version.html)`",
+    "primary_objective_id": "I.F.1",
+    "secondary_objective_ids": [
+      "II.F.4"
+    ],
+    "confidence": "High",
+    "rationale": "The learner must evaluate the mismatch between native link semantics and a control that is visually presented as a button. That is fundamentally about native versus custom controls, with secondary implications for voice and alternative input users."
+  },
+  {
+    "question_id": "74a046b8-1ab1-4aac-baea-b2969fd9edb3",
+    "question_text_markdown": "Assuming no other styling or scripting has been applied, which of the following is **NOT** a problem with the following code?\n\n`Virginia Tech`",
+    "primary_objective_id": "I.B.4",
+    "secondary_objective_ids": [
+      "I.F.2"
+    ],
+    "confidence": "High",
+    "rationale": "This question assesses the accessibility problems created when non-semantic elements are used as interactive controls. The core issue is semantic versus non-semantic HTML, with secondary relevance to how one would make a custom control accessible."
+  },
+  {
+    "question_id": "716c6dd1-82ea-4390-a630-86cc12ff4733",
+    "question_text_markdown": "Which of the following is a way to navigate to headings of a certain level using a screen reader?",
+    "primary_objective_id": "II.F.1",
+    "secondary_objective_ids": [
+      "I.H.1"
+    ],
+    "confidence": "High",
+    "rationale": "This is operational screen reader knowledge about navigating to headings of a specific level, which reflects practical AT use and user navigation strategies."
+  },
+  {
+    "question_id": "0412ed6d-50c5-4cd5-b0a8-82313ae8890c",
+    "question_text_markdown": "Which of the following is **NOT** a way to navigate from one heading to the next using a screen reader?",
+    "primary_objective_id": "II.F.1",
+    "secondary_objective_ids": [
+      "I.H.1"
+    ],
+    "confidence": "High",
+    "rationale": "The learner must know how various screen readers move from one heading to the next, which is best understood as practical screen reader operation."
+  },
+  {
+    "question_id": "807ce516-02bf-41c0-af25-8fd6ac87667d",
+    "question_text_markdown": "Which of the following is **NOT** way to list all headings using a screen reader?",
+    "primary_objective_id": "II.F.1",
+    "secondary_objective_ids": [
+      "I.H.1"
+    ],
+    "confidence": "High",
+    "rationale": "Listing all headings is a core screen reader navigation technique, so this primarily assesses practical knowledge of assistive-technology commands and user navigation behavior."
+  },
+  {
+    "question_id": "8e6cf6af-7584-4ad9-b824-70b4ec5966b0",
+    "question_text_markdown": "Which of the following is **NOT** true?",
+    "primary_objective_id": "II.C.5",
+    "secondary_objective_ids": [
+      "II.C.6"
+    ],
+    "confidence": "High",
+    "rationale": "The question asks what is true or false about headings, including use of heading levels in modal dialogs. The main construct is correct semantic heading structure, with secondary implications for navigation and document organization."
+  }
+]

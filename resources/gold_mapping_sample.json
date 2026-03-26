@@ -1,0 +1,80 @@
+[
+  {
+    "question_id": "Q11",
+    "primary": "I.A.1",
+    "secondary": [
+      "II.B.12"
+    ],
+    "confidence": "High"
+  },
+  {
+    "question_id": "Q12",
+    "primary": "I.A.2",
+    "secondary": [
+      "II.B.11"
+    ],
+    "confidence": "High"
+  },
+  {
+    "question_id": "Q13",
+    "primary": "II.C.2",
+    "secondary": [
+      "I.C.5"
+    ],
+    "confidence": "High"
+  },
+  {
+    "question_id": "Q14",
+    "primary": "II.F.1",
+    "secondary": [
+      "I.H.1"
+    ],
+    "confidence": "High"
+  },
+  {
+    "question_id": "Q15",
+    "primary": "I.D.6",
+    "secondary": [
+      "II.C.6"
+    ],
+    "confidence": "High"
+  },
+  {
+    "question_id": "Q16",
+    "primary": "I.D.2",
+    "secondary": [
+      "II.C.7"
+    ],
+    "confidence": "High"
+  },
+  {
+    "question_id": "Q17",
+    "primary": "I.D.10",
+    "secondary": [
+      "II.C.1"
+    ],
+    "confidence": "High"
+  },
+  {
+    "question_id": "Q18",
+    "primary": "I.B.4",
+    "secondary": [
+      "II.C.5"
+    ],
+    "confidence": "High"
+  },
+  {
+    "question_id": "Q19",
+    "primary": "I.D.3",
+    "secondary": [
+      "II.C.2"
+    ],
+    "confidence": "High"
+  },
+  {
+    "question_id": "Q20",
+    "primary": "II.G.6",
+    "secondary": [],
+    "confidence": "High"
+  }
+]

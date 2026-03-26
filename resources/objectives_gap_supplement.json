@@ -1,0 +1,68 @@
+{
+  "meta": {
+    "title": "Supplemental objective gaps for WAS BoK coverage",
+    "note": "These objectives were added to cover concepts present in the PDF but not explicitly assessed in objectives_deeper_assessment_optimized.json. Per request, none of these objectives specifically reference annexes."
+  },
+  "objectives": {
+    "I.B.S1": {
+      "text": "Analyze interaction patterns to determine whether multiple event models on the same control (for example, hover for one behavior and click for another) create accessibility barriers for keyboard, touch, or gesture-based assistive technology users.",
+      "cognitive_level": "Analyze",
+      "rationale": "Covers the PDF's specific 'simplify events' concept, which is more precise than general device-independent event handling."
+    },
+    "I.D.S1": {
+      "text": "Explain how accessible names and descriptions are computed from multiple possible naming sources and why source priority affects what assistive technologies announce.",
+      "cognitive_level": "Explain",
+      "rationale": "Adds explicit coverage for accessible name and description computation rather than only naming techniques."
+    },
+    "II.C.S1": {
+      "text": "Evaluate whether CSS-based hiding and visibility techniques expose or suppress content appropriately for assistive technologies in ways that match author intent.",
+      "cognitive_level": "Evaluate",
+      "rationale": "Captures the PDF's practical distinction between content hidden visually, hidden programmatically, and unintentionally exposed to screen readers."
+    },
+    "II.F.S1": {
+      "text": "Analyze assistive-technology test results to distinguish likely content defects from tester inexperience, support gaps, or assistive technology anomalies.",
+      "cognitive_level": "Analyze",
+      "rationale": "Makes explicit the PDF's warning that not all unexpected AT behavior should be treated as an authoring error."
+    },
+    "II.G.S1": {
+      "text": "Explain how the accessibility needs of people with limited reading capacities differ from those of screen reader users, including the role of text-to-speech tools and the importance of real text that can be customized.",
+      "cognitive_level": "Explain",
+      "rationale": "Adds explicit coverage for the PDF's limited-reading-capacities concept."
+    },
+    "II.G.S2": {
+      "text": "Evaluate whether text presentation choices such as font, spacing, line width, and use of images of text support users with reading, cognitive, and low-vision needs.",
+      "cognitive_level": "Evaluate",
+      "rationale": "Brings together under-assessed presentation issues discussed in the PDF for reading and cognitive accessibility."
+    },
+    "II.G.S3": {
+      "text": "Explain accessibility considerations for users with auditory disabilities that go beyond captions and transcripts, including the role of sign language, plain language, and visual supports.",
+      "cognitive_level": "Explain",
+      "rationale": "Preserves concepts in the PDF about early deafness, sign-language preference, and easy-to-read visual communication."
+    },
+    "II.B.S1": {
+      "text": "Explain the functional performance concept in EN 301 549 and how user needs categories can inform accessibility evaluation across disability types and contexts of use.",
+      "cognitive_level": "Explain",
+      "rationale": "Covers EN 301 549 functional performance statements without referencing annexes."
+    },
+    "II.B.S2": {
+      "text": "Identify accessibility issues associated with user needs such as limited reach, limited vocal capability, photosensitive seizure risk, and privacy when evaluating digital products.",
+      "cognitive_level": "Identify",
+      "rationale": "Adds specific EN 301 549 user-need categories that were not explicit in the current competency model."
+    },
+    "II.B.S3": {
+      "text": "Explain emerging accessibility gaps that are not fully addressed by WCAG, such as pseudomotion, ornate fonts, personalization or theming needs, and voice interaction.",
+      "cognitive_level": "Explain",
+      "rationale": "Makes the PDF's detailed guideline-limitations discussion assessable."
+    },
+    "II.E.S1": {
+      "text": "Apply accessibility quality-assurance practices that include defining accessibility in the definition of done, assigning responsibilities, planning resources, using standard reporting, and tracking remediation progress.",
+      "cognitive_level": "Apply",
+      "rationale": "Adds concrete operational QA and management practices from the PDF's Plan-Create-Test guidance."
+    },
+    "III.C.S1": {
+      "text": "Explain how procurement maturity models can be used to improve organizational accessibility practices over time.",
+      "cognitive_level": "Explain",
+      "rationale": "Adds the procurement maturity-model concept that was not preserved explicitly in the optimized competency model."
+    }
+  }
+}

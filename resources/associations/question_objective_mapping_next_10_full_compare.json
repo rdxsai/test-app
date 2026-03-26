@@ -1,0 +1,87 @@
+[
+  {
+    "question_id": "248ac2f8-87a3-4110-9f5d-831fc9100f32",
+    "question_text": "Which of the following is **NOT** a way to navigate from one landmark to the next using a screen reader?",
+    "primary": "II.F.1",
+    "primary_text": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments.",
+    "secondary": null
+  },
+  {
+    "question_id": "fd19caae-b5d6-4977-942a-6929e98f98de",
+    "question_text": "Which of the following is a way to navigate to the main content landmark using a screen reader?",
+    "primary": "II.F.1",
+    "primary_text": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments.",
+    "secondary": [
+      {
+        "id": "II.C.6",
+        "text": "Evaluate navigation structures, headings, labels, and link descriptions to determine whether they support clear information architecture and efficient screen reader navigation."
+      }
+    ]
+  },
+  {
+    "question_id": "7d822b18-dd3b-4bdf-8dc5-bb33bb3aca89",
+    "question_text": "Which of the following is **NOT** way to list all landmarks using a screen reader?",
+    "primary": "II.F.1",
+    "primary_text": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments.",
+    "secondary": null
+  },
+  {
+    "question_id": "1c33a8f9-15fb-4092-9131-a412c997ead5",
+    "question_text": "What does switching to the JAWS cursor allow you to do?",
+    "primary": "II.F.1",
+    "primary_text": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments.",
+    "secondary": null
+  },
+  {
+    "question_id": "d4730696-ccc6-46d5-ae5d-5bf25c1f38b3",
+    "question_text": "How do you navigate to a cell below the current one with JAWS?",
+    "primary": "II.F.1",
+    "primary_text": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments.",
+    "secondary": null
+  },
+  {
+    "question_id": "a2bb2585-36e0-4970-b10a-8f5d6488e428",
+    "question_text": "Which of the following is a way to navigate between form elements on macOS VoiceOver?",
+    "primary": "II.F.1",
+    "primary_text": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments.",
+    "secondary": null
+  },
+  {
+    "question_id": "935f1124-3bc8-44b3-b6e4-b23396593fd6",
+    "question_text": "Which of the following is true about accessibility APIs?  Choose all that apply.",
+    "primary": "I.E.1",
+    "primary_text": "Identify how assistive technologies interact with browsers and other user agents, and explain what accessibility support means under WCAG.",
+    "secondary": [
+      {
+        "id": "II.A.4",
+        "text": "Analyze how assistive technologies, adaptive strategies, and user agents interact to shape accessibility support."
+      }
+    ]
+  },
+  {
+    "question_id": "110eb85b-04b2-49c9-9a9b-514a84315e57",
+    "question_text": "Which of the following is **NOT** a full-featured screen reader?",
+    "primary": "II.F.1",
+    "primary_text": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments.",
+    "secondary": null
+  },
+  {
+    "question_id": "89fb5493-095f-4e71-accf-4b07f489c69f",
+    "question_text": "How do you bring up the rotor on iOS VoiceOver?",
+    "primary": "II.G.8",
+    "primary_text": "Explain how touch interactions change when screen readers are enabled on mobile devices.",
+    "secondary": [
+      {
+        "id": "II.F.1",
+        "text": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments."
+      }
+    ]
+  },
+  {
+    "question_id": "8c3ffc30-72ea-4cca-9206-ed43d8d602",
+    "question_text": "Which of the following key commands manually switches you to Focus mode from Browse mode in NVDA?",
+    "primary": "II.F.1",
+    "primary_text": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments.",
+    "secondary": null
+  }
+]

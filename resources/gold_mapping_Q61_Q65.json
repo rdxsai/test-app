@@ -1,0 +1,52 @@
+[
+  {
+    "question_id": "927535a1-f331-43cc-9b3c-ae733453b854",
+    "question_text_markdown": "Which of the following is **NOT** a way to navigate from one link to the next using a screen reader?",
+    "primary_objective_id": "II.F.1",
+    "secondary_objective_ids": [
+      "I.H.1"
+    ],
+    "confidence": "High",
+    "rationale": "Requires understanding of how screen readers behave and how users navigate content using them."
+  },
+  {
+    "question_id": "fd9dbd48-151c-4374-ae63-4f8eb0808449",
+    "question_text_markdown": "Which of the following is a way to list all links using a screen reader?",
+    "primary_objective_id": "II.F.1",
+    "secondary_objective_ids": [
+      "I.H.1"
+    ],
+    "confidence": "High",
+    "rationale": "Requires understanding of how screen readers behave and how users navigate content using them."
+  },
+  {
+    "question_id": "ef5ba151-f683-40d9-92e5-ba0a9a35f36a",
+    "question_text_markdown": "Which of the following is a way to navigate to headings of a certain level using a screen reader?",
+    "primary_objective_id": "II.F.1",
+    "secondary_objective_ids": [
+      "I.H.1"
+    ],
+    "confidence": "High",
+    "rationale": "Requires understanding of how screen readers behave and how users navigate content using them."
+  },
+  {
+    "question_id": "6689da99-4c5d-4787-845d-688a94f0e38a",
+    "question_text_markdown": "Which of the following is **NOT** a way to navigate from one heading to the next using a screen reader?",
+    "primary_objective_id": "II.F.1",
+    "secondary_objective_ids": [
+      "I.H.1"
+    ],
+    "confidence": "High",
+    "rationale": "Requires understanding of how screen readers behave and how users navigate content using them."
+  },
+  {
+    "question_id": "248ac2f8-87a3-4110-9f5d-831fc9100f32",
+    "question_text_markdown": "Which of the following is **NOT** a way to navigate from one landmark to the next using a screen reader?",
+    "primary_objective_id": "II.F.1",
+    "secondary_objective_ids": [
+      "I.H.1"
+    ],
+    "confidence": "High",
+    "rationale": "Requires understanding of how screen readers behave and how users navigate content using them."
+  }
+]

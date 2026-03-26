@@ -1,0 +1,107 @@
+[
+  {
+    "question_id": "a191298e-2229-46be-a53d-d0b2bb427fd3",
+    "question_text": "Which of the following is a way to navigate to the main content landmark using a screen reader?",
+    "primary": "II.F.1",
+    "primary_text": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments.",
+    "secondary": null
+  },
+  {
+    "question_id": "6a8a749c-012b-4378-af07-8570c086b355",
+    "question_text": "Which of the following is **NOT** a way to navigate from one landmark to the next using a screen reader?",
+    "primary": "II.F.1",
+    "primary_text": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments.",
+    "secondary": null
+  },
+  {
+    "question_id": "e156fcde-a608-4c9e-b1ae-c0a11d32ec87",
+    "question_text": "Which of the following is **NOT** way to list all landmarks using a screen reader?",
+    "primary": "II.F.1",
+    "primary_text": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments.",
+    "secondary": null
+  },
+  {
+    "question_id": "b09c3bf1-2850-4a6d-8bf5-da3a1a393f2f",
+    "question_text": "Which of the following landmarks is it okay to have more than one of on a page?",
+    "primary": "II.C.5",
+    "primary_text": "Evaluate HTML markup to determine whether headings, lists, tables, landmarks, and other structural semantics correctly convey meaning to assistive technologies.",
+    "secondary": [
+      {
+        "id": "I.D.6",
+        "text": "Identify appropriate ARIA roles for common interactive widgets and structural page elements."
+      }
+    ]
+  },
+  {
+    "question_id": "cf582497-1251-42b0-8ca7-cf933bf66a64",
+    "question_text": "In a site with two regions for navigation, one for navigating the site and one for navigating a section of the site, which of the following would be the best way to code the part of the page with the site navigation?",
+    "primary": "II.C.6",
+    "primary_text": "Evaluate navigation structures, headings, labels, and link descriptions to determine whether they support clear information architecture and efficient screen reader navigation.",
+    "secondary": [
+      {
+        "id": "II.C.5",
+        "text": "Evaluate HTML markup to determine whether headings, lists, tables, landmarks, and other structural semantics correctly convey meaning to assistive technologies."
+      }
+    ]
+  },
+  {
+    "question_id": "b4e57d17-fccf-43a5-90d2-e447a58dbe31",
+    "question_text": "Which of the following is **NOT** listed among landmarks by most screen readers?",
+    "primary": "II.C.5",
+    "primary_text": "Evaluate HTML markup to determine whether headings, lists, tables, landmarks, and other structural semantics correctly convey meaning to assistive technologies.",
+    "secondary": [
+      {
+        "id": "II.F.1",
+        "text": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments."
+      }
+    ]
+  },
+  {
+    "question_id": "46a5d52f-0efc-4179-8fcc-217f2bdfef0f",
+    "question_text": "What is the purpose of landmark regions?",
+    "primary": "II.C.5",
+    "primary_text": "Evaluate HTML markup to determine whether headings, lists, tables, landmarks, and other structural semantics correctly convey meaning to assistive technologies.",
+    "secondary": [
+      {
+        "id": "II.C.6",
+        "text": "Evaluate navigation structures, headings, labels, and link descriptions to determine whether they support clear information architecture and efficient screen reader navigation."
+      }
+    ]
+  },
+  {
+    "question_id": "cd0737ab-2f7f-47fc-9a5a-b2231ff6f404",
+    "question_text": "Why is it inadvisable to rely *solely* on landmark regions as a means of bypassing repetitive content?",
+    "primary": "II.C.6",
+    "primary_text": "Evaluate navigation structures, headings, labels, and link descriptions to determine whether they support clear information architecture and efficient screen reader navigation.",
+    "secondary": [
+      {
+        "id": "I.H.1",
+        "text": "Describe strategies that people with blindness, low vision, motor disabilities, auditory disabilities, and cognitive or learning disabilities use to interact with web content."
+      }
+    ]
+  },
+  {
+    "question_id": "5ea09fbf-862d-433c-9842-f585837fdcfc",
+    "question_text": "What WCAG conformance level are the success criteria having to do with the language of the page and the language of parts of the page?",
+    "primary": "II.B.7",
+    "primary_text": "Identify WCAG 2.2 success criteria and classify them by conformance level.",
+    "secondary": [
+      {
+        "id": "II.B.3",
+        "text": "Explain WCAG conformance levels and analyze factors that influence the selection of a target conformance level."
+      }
+    ]
+  },
+  {
+    "question_id": "1a3d9823-0173-47b5-a412-9d079eed7b08",
+    "question_text": "Which of the following is **NOT** a valid way of programmatically indicating the language of a page or content on that page?",
+    "primary": "II.C.12",
+    "primary_text": "Verify that page language, form errors, and component states are programmatically conveyed to assistive technologies.",
+    "secondary": [
+      {
+        "id": "II.B.6",
+        "text": "Analyze examples of web content to determine whether they meet or fail specific WCAG success criteria."
+      }
+    ]
+  }
+]

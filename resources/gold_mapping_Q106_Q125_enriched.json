@@ -1,0 +1,870 @@
+{
+  "range": "Q106-Q125",
+  "method": "Gold-standard semantic mapping using full question text, answer choices, correct answer selection, and available feedback.",
+  "results": [
+    {
+      "question_number": 106,
+      "question_id": "8820472d-90f5-41a2-a2b4-1829efe493cc",
+      "question_text_markdown": "Providing a page title using the `title` element is an example of which web accessibility principle?",
+      "answers": [
+        {
+          "answer_text_markdown": "Perceivable",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Understandable",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Operable",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Robust",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "I.A.2",
+        "text": "Explain the structure of WCAG 2.2, including the POUR principles, guidelines, success criteria, and conformance levels A, AA, and AAA."
+      },
+      "secondary_objectives": [
+        {
+          "id": "II.B.11",
+          "text": "Explain the relationship between WCAG principles, guidelines, and success criteria and the accessibility impact of each principle."
+        },
+        {
+          "id": "II.C.6",
+          "text": "Evaluate navigation structures, headings, labels, and link descriptions to determine whether they support clear information architecture and efficient screen reader navigation."
+        }
+      ],
+      "confidence": "Medium",
+      "rationale": "The keyed answer classifies page titles under the Operable principle. The main task is mapping an example to a POUR principle; secondarily, page titles support navigation and orientation. Although page titles are often also discussed under Understandable/navigation concepts, I am preserving the keyed framing and marking confidence as medium."
+    },
+    {
+      "question_number": 107,
+      "question_id": "59901e38-4267-48d5-af32-2049d7bc4934",
+      "question_text_markdown": "Adding a link at the top of each page that goes directly to the main content area is an example of which web accessibility principle?",
+      "answers": [
+        {
+          "answer_text_markdown": "Robust",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Perceivable",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Operable",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Understandable",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "I.A.2",
+        "text": "Explain the structure of WCAG 2.2, including the POUR principles, guidelines, success criteria, and conformance levels A, AA, and AAA."
+      },
+      "secondary_objectives": [
+        {
+          "id": "II.B.11",
+          "text": "Explain the relationship between WCAG principles, guidelines, and success criteria and the accessibility impact of each principle."
+        },
+        {
+          "id": "II.C.6",
+          "text": "Evaluate navigation structures, headings, labels, and link descriptions to determine whether they support clear information architecture and efficient screen reader navigation."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "A skip link to main content is clearly being used as an example of the Operable principle. The question primarily assesses ability to classify the example under the correct POUR principle, with secondary relevance to bypass blocks and navigational efficiency."
+    },
+    {
+      "question_number": 108,
+      "question_id": "a3818d0c-33b1-4bea-9fb0-71f16bb15c23",
+      "question_text_markdown": "Ensuring that nothing in a page flashes more than three times in any one second period is an example of which web accessibility principle?",
+      "answers": [
+        {
+          "answer_text_markdown": "Operable",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Robust",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Understandable",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Perceivable",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "I.A.2",
+        "text": "Explain the structure of WCAG 2.2, including the POUR principles, guidelines, success criteria, and conformance levels A, AA, and AAA."
+      },
+      "secondary_objectives": [
+        {
+          "id": "II.B.11",
+          "text": "Explain the relationship between WCAG principles, guidelines, and success criteria and the accessibility impact of each principle."
+        },
+        {
+          "id": "II.G.7",
+          "text": "Evaluate time limits, moving content, and automatically playing media to determine whether users can control or disable them."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "The flashing-content item is framed as a question about the correct accessibility principle. The primary skill is identifying the correct POUR principle, with secondary relevance to user control over flashing or moving content and seizure-related safety."
+    },
+    {
+      "question_number": 109,
+      "question_id": "81e1c4be-f3b1-4743-b87d-2dddc4be37fb",
+      "question_text_markdown": "Allowing the content to be paused and restarted from where it was paused is an example of which accessibility principle?",
+      "answers": [
+        {
+          "answer_text_markdown": "Understandable",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Robust",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Perceivable",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Operable",
+          "is_correct": true,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "I.A.2",
+        "text": "Explain the structure of WCAG 2.2, including the POUR principles, guidelines, success criteria, and conformance levels A, AA, and AAA."
+      },
+      "secondary_objectives": [
+        {
+          "id": "II.B.11",
+          "text": "Explain the relationship between WCAG principles, guidelines, and success criteria and the accessibility impact of each principle."
+        },
+        {
+          "id": "II.G.7",
+          "text": "Evaluate time limits, moving content, and automatically playing media to determine whether users can control or disable them."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "Allowing paused content to resume where it left off is presented as an Operable example. The primary target is classifying the scenario by POUR principle, with secondary relevance to controlling time-based or moving content."
+    },
+    {
+      "question_number": 110,
+      "question_id": "56ca92f8-0ad8-49f6-bd84-a713ba5d3dfd",
+      "question_text_markdown": "Providing a way for the user to turn the time limit off is an example of which web accessibility principle?",
+      "answers": [
+        {
+          "answer_text_markdown": "Understandable",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Perceivable",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Operable",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Robust",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "I.A.2",
+        "text": "Explain the structure of WCAG 2.2, including the POUR principles, guidelines, success criteria, and conformance levels A, AA, and AAA."
+      },
+      "secondary_objectives": [
+        {
+          "id": "II.B.11",
+          "text": "Explain the relationship between WCAG principles, guidelines, and success criteria and the accessibility impact of each principle."
+        },
+        {
+          "id": "II.G.7",
+          "text": "Evaluate time limits, moving content, and automatically playing media to determine whether users can control or disable them."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "Turning off a time limit is another example of the Operable principle. The question mainly assesses recognition of the principle, with secondary relevance to timing controls and user control over time-limited interactions."
+    },
+    {
+      "question_number": 111,
+      "question_id": "b054d26b-0c99-4920-8449-6b5c663cbb7c",
+      "question_text_markdown": "Ensuring that users are not trapped in content is an example of which web accessibility principle?",
+      "answers": [
+        {
+          "answer_text_markdown": "Operable",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Perceivable",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Robust",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Understandable",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "I.A.2",
+        "text": "Explain the structure of WCAG 2.2, including the POUR principles, guidelines, success criteria, and conformance levels A, AA, and AAA."
+      },
+      "secondary_objectives": [
+        {
+          "id": "II.B.11",
+          "text": "Explain the relationship between WCAG principles, guidelines, and success criteria and the accessibility impact of each principle."
+        },
+        {
+          "id": "II.C.2",
+          "text": "Demonstrate manual keyboard testing to detect missing focus indicators, incorrect tab order, keyboard traps, and other keyboard-operability issues."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "Not trapping users in content is a classic keyboard-operability example. The main task is choosing the correct POUR principle, with secondary relevance to keyboard testing and avoiding keyboard traps."
+    },
+    {
+      "question_number": 112,
+      "question_id": "7bfcbb3c-3f40-46f3-a000-6e4a6cb4bcc6",
+      "question_text_markdown": "Ensuring keyboard control for all functionality is an example of which accessibility principle?",
+      "answers": [
+        {
+          "answer_text_markdown": "Perceivable",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Robust",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Understandable",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Operable",
+          "is_correct": true,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "I.A.2",
+        "text": "Explain the structure of WCAG 2.2, including the POUR principles, guidelines, success criteria, and conformance levels A, AA, and AAA."
+      },
+      "secondary_objectives": [
+        {
+          "id": "II.B.11",
+          "text": "Explain the relationship between WCAG principles, guidelines, and success criteria and the accessibility impact of each principle."
+        },
+        {
+          "id": "II.C.2",
+          "text": "Demonstrate manual keyboard testing to detect missing focus indicators, incorrect tab order, keyboard traps, and other keyboard-operability issues."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "Ensuring keyboard access for all functionality is explicitly an Operable issue. The question primarily assesses knowledge of the POUR framework, with secondary relevance to keyboard operability in testing and implementation."
+    },
+    {
+      "question_number": 113,
+      "question_id": "e47d3381-deb5-4edc-9cbb-df6c12b7206d",
+      "question_text_markdown": "Providing a control near the beginning of the Web page that turns off sounds that play automatically is an example of which accessibility principle?",
+      "answers": [
+        {
+          "answer_text_markdown": "Perceivable",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Robust",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Understandable",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Operable",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "I.A.2",
+        "text": "Explain the structure of WCAG 2.2, including the POUR principles, guidelines, success criteria, and conformance levels A, AA, and AAA."
+      },
+      "secondary_objectives": [
+        {
+          "id": "II.B.11",
+          "text": "Explain the relationship between WCAG principles, guidelines, and success criteria and the accessibility impact of each principle."
+        },
+        {
+          "id": "II.G.7",
+          "text": "Evaluate time limits, moving content, and automatically playing media to determine whether users can control or disable them."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "A control to turn off autoplaying sound is keyed as Perceivable. The main skill is classifying the example by principle; secondarily it concerns control over automatically playing media that interferes with perception and comprehension."
+    },
+    {
+      "question_number": 114,
+      "question_id": "d2eab354-a511-45b6-a90e-b39f78997bb7",
+      "question_text_markdown": "Embedding informative text into a JPG image file is a violation of which web accessibility principle?",
+      "answers": [
+        {
+          "answer_text_markdown": "Understandable",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Operable",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Perceivable",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Robust",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "I.A.2",
+        "text": "Explain the structure of WCAG 2.2, including the POUR principles, guidelines, success criteria, and conformance levels A, AA, and AAA."
+      },
+      "secondary_objectives": [
+        {
+          "id": "II.B.11",
+          "text": "Explain the relationship between WCAG principles, guidelines, and success criteria and the accessibility impact of each principle."
+        },
+        {
+          "id": "II.G.S2",
+          "text": "Evaluate whether text presentation choices such as font, spacing, line width, and use of images of text support users with reading, cognitive, and low-vision needs."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "Embedding informative text in a JPG is a Perceivable violation because the text may not be available as real, adaptable text. The question mainly tests principle classification, with secondary relevance to the problems created by images of text."
+    },
+    {
+      "question_number": 115,
+      "question_id": "53afed55-80ec-44d9-b7c3-3a9c82a26e69",
+      "question_text_markdown": "If increasing the size of the text 175% causes that text to be obscured by a picture on the page which accessibility principle would that violate?",
+      "answers": [
+        {
+          "answer_text_markdown": "Operable",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Robust",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Understandable",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Perceivable",
+          "is_correct": true,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "I.A.2",
+        "text": "Explain the structure of WCAG 2.2, including the POUR principles, guidelines, success criteria, and conformance levels A, AA, and AAA."
+      },
+      "secondary_objectives": [
+        {
+          "id": "II.B.11",
+          "text": "Explain the relationship between WCAG principles, guidelines, and success criteria and the accessibility impact of each principle."
+        },
+        {
+          "id": "II.G.11",
+          "text": "Verify that text can be resized up to 200% without loss of functionality or content."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "If enlarged text becomes obscured, the keyed principle is Perceivable. The main skill is identifying the relevant POUR principle, with secondary relevance to resize-text and reflow-related accessibility outcomes."
+    },
+    {
+      "question_number": 116,
+      "question_id": "87196052-f17b-46d7-9f7f-05e374594280",
+      "question_text_markdown": "The following example violates which accessibility principle?\n\nComplete the assignments below. They will be graded as per the policy outlined in our syllabus.\n\nEverything in **red** is due tomorrow:\n\n- List of group members\n- Project proposal\n- Discussion forum assignment 4\n- Quiz 4\n\nAnd don't forget the game this Friday.  **Go Hokies!**",
+      "answers": [
+        {
+          "answer_text_markdown": "Perceivable",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Operable",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Robust",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Understandable",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "I.A.2",
+        "text": "Explain the structure of WCAG 2.2, including the POUR principles, guidelines, success criteria, and conformance levels A, AA, and AAA."
+      },
+      "secondary_objectives": [
+        {
+          "id": "II.B.11",
+          "text": "Explain the relationship between WCAG principles, guidelines, and success criteria and the accessibility impact of each principle."
+        },
+        {
+          "id": "II.G.6",
+          "text": "Evaluate the effects of contrast modes, text and non-text contrast, and color-contrast requirements on accessibility."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "The example relies on red text alone to communicate what is due tomorrow, so the keyed principle is Perceivable. The main task is principle identification, with secondary relevance to use-of-color barriers."
+    },
+    {
+      "question_number": 117,
+      "question_id": "05693e34-02fa-43bd-b99b-d333be4f3977",
+      "question_text_markdown": "Providing instructions to the user to click on a link to the right of another element on the page is a violation of which web accessibility principle?",
+      "answers": [
+        {
+          "answer_text_markdown": "Robust",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Perceivable",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Understandable",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Operable",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "I.A.2",
+        "text": "Explain the structure of WCAG 2.2, including the POUR principles, guidelines, success criteria, and conformance levels A, AA, and AAA."
+      },
+      "secondary_objectives": [
+        {
+          "id": "II.B.11",
+          "text": "Explain the relationship between WCAG principles, guidelines, and success criteria and the accessibility impact of each principle."
+        },
+        {
+          "id": "II.G.9",
+          "text": "Identify accessibility issues related to sensory-dependent instructions, autoplaying audio, or moving content that may interfere with assistive technology use."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "Instructions that say 'click the link to the right' rely on sensory characteristics and spatial references. The primary skill is choosing the correct principle (Perceivable), with secondary relevance to identifying sensory-dependent instructions as a barrier."
+    },
+    {
+      "question_number": 118,
+      "question_id": "0cf1e292-421b-4909-ab99-1ea0dfcf7468",
+      "question_text_markdown": "Ensuring content is presented in a meaningful sequence when accessed with a screen reader is an example of which web accessibility principle?",
+      "answers": [
+        {
+          "answer_text_markdown": "Robust",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Understandable",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Perceivable",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Operable",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "I.A.2",
+        "text": "Explain the structure of WCAG 2.2, including the POUR principles, guidelines, success criteria, and conformance levels A, AA, and AAA."
+      },
+      "secondary_objectives": [
+        {
+          "id": "II.B.11",
+          "text": "Explain the relationship between WCAG principles, guidelines, and success criteria and the accessibility impact of each principle."
+        },
+        {
+          "id": "II.C.8",
+          "text": "Test the reading order of web content to confirm that the programmatic order is meaningful and consistent with intended visual presentation."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "Meaningful sequence for screen reader access is framed as a Perceivable issue in the question set. The main task is principle classification, with secondary relevance to preserving meaningful reading order."
+    },
+    {
+      "question_number": 119,
+      "question_id": "9709fd0b-4905-4349-8c48-bff71b6cd005",
+      "question_text_markdown": "Using label elements to associate text labels with form controls is an example of which web accessibility principles? **Check all that apply.**",
+      "answers": [
+        {
+          "answer_text_markdown": "Perceivable",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Operable",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Robust",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Understandable",
+          "is_correct": true,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "II.B.11",
+        "text": "Explain the relationship between WCAG principles, guidelines, and success criteria and the accessibility impact of each principle."
+      },
+      "secondary_objectives": [
+        {
+          "id": "I.D.2",
+          "text": "Implement accessible names and descriptions for interactive controls using appropriate naming and description techniques."
+        },
+        {
+          "id": "II.C.7",
+          "text": "Evaluate form implementations to verify accessible interaction patterns, programmatic error identification, clear instructions, and usable suggestions for correction."
+        },
+        {
+          "id": "I.D.4",
+          "text": "Explain how WAI-ARIA communicates semantics to assistive technologies, including roles, states, properties, and the accessibility tree."
+        }
+      ],
+      "confidence": "Medium",
+      "rationale": "This multi-select item spans multiple principles, so the best match is not a single principle objective but the broader objective about understanding principles and their impact. Using labels with form controls supports perception, comprehension, and robust programmatic association. Secondary matches include accessible naming, accessible forms, and semantics exposure. Confidence is medium because the question intentionally crosses principle boundaries."
+    },
+    {
+      "question_number": 120,
+      "question_id": "a74ae067-b7f0-43cc-9717-65f8288b07b6",
+      "question_text_markdown": "Using table markup to present tabular information is an example of which web accessibility principle?",
+      "answers": [
+        {
+          "answer_text_markdown": "Perceivable",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Robust",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Understandable",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Operable",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "I.A.2",
+        "text": "Explain the structure of WCAG 2.2, including the POUR principles, guidelines, success criteria, and conformance levels A, AA, and AAA."
+      },
+      "secondary_objectives": [
+        {
+          "id": "II.B.11",
+          "text": "Explain the relationship between WCAG principles, guidelines, and success criteria and the accessibility impact of each principle."
+        },
+        {
+          "id": "II.C.5",
+          "text": "Evaluate HTML markup to determine whether headings, lists, tables, landmarks, and other structural semantics correctly convey meaning to assistive technologies."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "Using table markup for tabular data is framed as a Perceivable example. The main skill is classifying the example under the correct principle, with secondary relevance to correct structural semantics for tables."
+    },
+    {
+      "question_number": 121,
+      "question_id": "f2101e4e-b786-4abc-9731-58f3c7465e59",
+      "question_text_markdown": "Providing audio descriptions for a prerecorded video with an audio track is an example of which web accessibility principle?",
+      "answers": [
+        {
+          "answer_text_markdown": "Operable",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Understandable",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Robust",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Perceivable",
+          "is_correct": true,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "I.A.2",
+        "text": "Explain the structure of WCAG 2.2, including the POUR principles, guidelines, success criteria, and conformance levels A, AA, and AAA."
+      },
+      "secondary_objectives": [
+        {
+          "id": "II.B.11",
+          "text": "Explain the relationship between WCAG principles, guidelines, and success criteria and the accessibility impact of each principle."
+        },
+        {
+          "id": "II.G.5",
+          "text": "Evaluate multimedia to verify that videos provide captions and audio-only media provide transcripts."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "Providing audio descriptions for prerecorded video is a straightforward Perceivable example. The primary task is recognizing the correct POUR principle, with secondary relevance to multimedia alternatives."
+    },
+    {
+      "question_number": 122,
+      "question_id": "75946d4b-944d-431c-a67a-23e70a1ec213",
+      "question_text_markdown": "Providing a text transcript for a an audio recording of an interview is an example of which web accessibility principle?",
+      "answers": [
+        {
+          "answer_text_markdown": "Operable",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Understandable",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Robust",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Perceivable",
+          "is_correct": true,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "I.A.2",
+        "text": "Explain the structure of WCAG 2.2, including the POUR principles, guidelines, success criteria, and conformance levels A, AA, and AAA."
+      },
+      "secondary_objectives": [
+        {
+          "id": "II.B.11",
+          "text": "Explain the relationship between WCAG principles, guidelines, and success criteria and the accessibility impact of each principle."
+        },
+        {
+          "id": "II.G.5",
+          "text": "Evaluate multimedia to verify that videos provide captions and audio-only media provide transcripts."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "A transcript for an audio interview is another Perceivable example. The primary skill is principle classification, with secondary relevance to providing alternatives for time-based media."
+    },
+    {
+      "question_number": 123,
+      "question_id": "554b7fb9-0c40-408c-8f50-143da065e1fe",
+      "question_text_markdown": "Providing closed captions for a prerecorded video with an audio track is an example of which web accessibility principle?",
+      "answers": [
+        {
+          "answer_text_markdown": "Perceivable",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Operable",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Understandable",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Robust",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "I.A.2",
+        "text": "Explain the structure of WCAG 2.2, including the POUR principles, guidelines, success criteria, and conformance levels A, AA, and AAA."
+      },
+      "secondary_objectives": [
+        {
+          "id": "II.B.11",
+          "text": "Explain the relationship between WCAG principles, guidelines, and success criteria and the accessibility impact of each principle."
+        },
+        {
+          "id": "II.G.5",
+          "text": "Evaluate multimedia to verify that videos provide captions and audio-only media provide transcripts."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "Closed captions for prerecorded video are used as a Perceivable example. The main task is identifying the relevant principle, with secondary relevance to captioning and media accessibility."
+    },
+    {
+      "question_number": 124,
+      "question_id": "2474f786-3812-417b-b040-e5e8629b1948",
+      "question_text_markdown": "A web-based email service allows users to delete messages by clicking an icon button whose `aria-label` attribute is set to \"Delete Message\".  The icon chosen looks like the null symbol, which is a circle with a diagonal slash through it (Ø). Which of the following is a reason why this might present a barrier?",
+      "answers": [
+        {
+          "answer_text_markdown": "Because the purpose of the null symbol, as described, would probably not be visually self-evident to most users",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Because all buttons must include visible text",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Because the text of `aria-label` must include a description of the role of the element, in this instance, \"Delete Message Button\"",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Because `aria-label` cannot be used to provide buttons with an accessible name",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "II.B.1",
+        "text": "Map accessibility barriers to the appropriate WCAG success criterion or EN 301 549 requirement and distinguish conformance failures from broader usability or best-practice issues."
+      },
+      "secondary_objectives": [
+        {
+          "id": "I.D.2",
+          "text": "Implement accessible names and descriptions for interactive controls using appropriate naming and description techniques."
+        },
+        {
+          "id": "II.C.7",
+          "text": "Evaluate form implementations to verify accessible interaction patterns, programmatic error identification, clear instructions, and usable suggestions for correction."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "This question asks why an icon button with an aria-label may still present a barrier. The correct answer depends on distinguishing accessible name from visual affordance and judging the barrier for sighted users. That is best treated as evaluating a scenario against accessibility requirements and best practices, with secondary relevance to accessible naming and control usability."
+    },
+    {
+      "question_number": 125,
+      "question_id": "0f7dd21b-89df-450c-bb3e-de0ed6440b12",
+      "question_text_markdown": "Which of the following techniques would **BEST** ensure that *all* users know which fields in a form are required?",
+      "answers": [
+        {
+          "answer_text_markdown": "Add `aria-required=\"true\"` to all required fields",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Make sure the visible text label for all required fields includes the word \"required\" and the fields themselves have the `required` attribute",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Make the border for all required form fields red and include a note at the top of the form indicating all required fields are outlined in red",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Add an asterisk character beside all required fields",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "II.C.7",
+        "text": "Evaluate form implementations to verify accessible interaction patterns, programmatic error identification, clear instructions, and usable suggestions for correction."
+      },
+      "secondary_objectives": [
+        {
+          "id": "I.D.2",
+          "text": "Implement accessible names and descriptions for interactive controls using appropriate naming and description techniques."
+        },
+        {
+          "id": "II.G.6",
+          "text": "Evaluate the effects of contrast modes, text and non-text contrast, and color-contrast requirements on accessibility."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "The question asks for the best technique to ensure all users know which fields are required. The correct answer combines visible text labels with the required attribute, so the main skill is accessible form design and instructions, with secondary relevance to accessible naming and avoiding reliance on visual-only cues."
+    }
+  ]
+}

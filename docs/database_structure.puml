@@ -1,0 +1,97 @@
+@startuml
+' Production database schema (PostgreSQL schema: prod)
+
+hide circle
+skinparam linetype ortho
+skinparam class {
+  BackgroundColor White
+  ArrowColor Black
+  BorderColor Black
+}
+
+entity "student_profiles" as student_profiles {
+  * id : text <<PK>>
+  --
+  name : text
+  current_topic : text
+  knowledge_level : text
+  session_phase : text
+  understanding_progression : jsonb
+  misconceptions : jsonb
+  strengths : jsonb
+  warning_signs : jsonb
+  consecutive_correct : integer
+  engagement_level : text
+  last_solid_understanding : text
+  total_sessions : integer
+  created_at : text
+  updated_at : text
+}
+
+entity "learning_objective" as learning_objective {
+  * id : text <<PK>>
+  --
+  text : text <<UQ>>
+  created_at : text
+  blooms_level : text
+  priority : text
+}
+
+entity "question" as question {
+  * id : text <<PK>>
+  --
+  question_text : text
+  created_at : text
+  canvas_id : integer <<UQ>>
+}
+
+entity "answer" as answer {
+  * id : text <<PK>>
+  --
+  question_id : text <<FK>>
+  text : text
+  is_correct : boolean
+  feedback_text : text
+  feedback_approved : boolean
+  canvas_id : integer <<UQ>>
+}
+
+entity "question_objective_association" as qoa {
+  * id : text <<PK>>
+  --
+  question_id : text <<FK>>
+  objective_id : text <<FK>>
+  (question_id, objective_id) <<UQ>>
+}
+
+entity "question_embeddings" as question_embeddings {
+  * id : text <<PK>>
+  --
+  question_id : text <<FK>>
+  chunk_type : text
+  answer_index : integer
+  is_correct : boolean
+  topic : text
+  tags : text
+  question_type : text
+  learning_objective : text
+  content : text
+  embedding : vector(768)
+  content_tsv : tsvector
+  created_at : timestamptz
+}
+
+question ||--o{ answer : id = question_id
+question ||--o{ qoa : id = question_id
+learning_objective ||--o{ qoa : id = objective_id
+question ||--o{ question_embeddings : id = question_id
+
+note right of question_embeddings
+  Search objects:
+  - GIN index on content_tsv
+  - IVFFlat cosine index on embedding
+  - Trigger trg_content_tsv
+    (uses function update_content_tsv)
+end note
+
+@enduml

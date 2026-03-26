@@ -1,0 +1,818 @@
+{
+  "range": "Q166-Q185",
+  "method": "Gold-standard semantic mapping using full question text, answer choices, correct answer selection, and available feedback.",
+  "results": [
+    {
+      "question_number": 166,
+      "question_id": "11a520a1-5862-40ff-9beb-58091984c8e6",
+      "question_text_markdown": "When scoped to the `\n\n` tag, which HTML tag is equivalent to `role=\"contentinfo\"`?",
+      "answers": [
+        {
+          "answer_text_markdown": "`\n\n`",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "`\n\n`",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "`\n\n`",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "`\n\n`",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "I.A.7",
+        "text": "Explain the purpose of WAI-ARIA 1.2 and describe its model of roles, states, and properties."
+      },
+      "secondary_objectives": [
+        {
+          "id": "I.D.4",
+          "text": "Explain how WAI-ARIA communicates semantics to assistive technologies, including roles, states, properties, and the accessibility tree."
+        },
+        {
+          "id": "I.D.12",
+          "text": "Compare the accessibility benefits and limitations of native HTML controls and custom WAI-ARIA widgets."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "This asks for the primary purpose of WAI-ARIA. The core construct is understanding what ARIA is for: enhancing semantics and accessibility support for dynamic or custom interfaces. It secondarily touches how ARIA communicates semantics and why native HTML is usually preferred when it already provides the needed behavior."
+    },
+    {
+      "question_number": 167,
+      "question_id": "254d144e-9535-4a48-9e8f-39a29776a2bd",
+      "question_text_markdown": "When scoped to the `\n\n` tag, which HTML tag is equivalent to `role=\"banner\"`?",
+      "answers": [
+        {
+          "answer_text_markdown": "`\n\n`",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "`\n\n`",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "`\n\n`",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "`\n\n`",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "I.D.6",
+        "text": "Identify appropriate ARIA roles for common interactive widgets and structural page elements."
+      },
+      "secondary_objectives": [
+        {
+          "id": "II.C.6",
+          "text": "Evaluate navigation structures, headings, labels, and link descriptions to determine whether they support clear information architecture and efficient screen reader navigation."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "Choosing the best way to code site navigation is fundamentally about selecting the correct structural role/element for navigation. It secondarily supports navigation usability and efficient landmark-based orientation."
+    },
+    {
+      "question_number": 168,
+      "question_id": "66aef1d6-4537-4c18-a28e-f502274472c2",
+      "question_text_markdown": "Which HTML tag is equivalent to the `complementary` role?",
+      "answers": [
+        {
+          "answer_text_markdown": "`\n\n`",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "``",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "`\n\n`",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "`\n\n`",
+          "is_correct": true,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "I.D.5",
+        "text": "Describe the semantic structure of ARIA roles, including required parent-child relationships and associated attributes."
+      },
+      "secondary_objectives": [
+        {
+          "id": "I.D.6",
+          "text": "Identify appropriate ARIA roles for common interactive widgets and structural page elements."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "This asks which role is abstract. The main skill is understanding ARIA role taxonomy and which roles are not intended for direct author use. It secondarily relates to choosing appropriate concrete roles instead."
+    },
+    {
+      "question_number": 169,
+      "question_id": "2f7aac73-7572-45b7-a88c-f5717bf64bd8",
+      "question_text_markdown": "Which HTML tag is equivalent to the `navigation` role?",
+      "answers": [
+        {
+          "answer_text_markdown": "`\n\n`",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "`\n\n`",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "`\n\n`",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "`\n\n`",
+          "is_correct": true,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "I.D.8",
+        "text": "Analyze widget implementations to determine whether ARIA roles, states, and properties are applied correctly."
+      },
+      "secondary_objectives": [
+        {
+          "id": "I.D.6",
+          "text": "Identify appropriate ARIA roles for common interactive widgets and structural page elements."
+        },
+        {
+          "id": "I.D.7",
+          "text": "Analyze interface patterns and implementation scenarios to determine when native HTML or WAI-ARIA is the appropriate solution."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "The question asks why using the appropriate ARIA roles is important. The core construct is correct ARIA application in implementations. It secondarily relates to selecting the appropriate role and understanding when ARIA is the right solution."
+    },
+    {
+      "question_number": 170,
+      "question_id": "63e4766b-233e-4ca2-8dc5-2fb99d8fda91",
+      "question_text_markdown": "Which of the following HTML tags is a landmark region?",
+      "answers": [
+        {
+          "answer_text_markdown": "`\n\n`",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "`\n\n`",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "`\n\n`",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "``",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "II.C.5",
+        "text": "Evaluate HTML markup to determine whether headings, lists, tables, landmarks, and other structural semantics correctly convey meaning to assistive technologies."
+      },
+      "secondary_objectives": [
+        {
+          "id": "I.D.6",
+          "text": "Identify appropriate ARIA roles for common interactive widgets and structural page elements."
+        },
+        {
+          "id": "II.C.6",
+          "text": "Evaluate navigation structures, headings, labels, and link descriptions to determine whether they support clear information architecture and efficient screen reader navigation."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "This asks what is NOT true about headings, likely including heading structure and levels in dialogs or pages. The main construct is correct structural semantics for headings. It secondarily affects navigation and wayfinding."
+    },
+    {
+      "question_number": 171,
+      "question_id": "8b65adff-e182-4fdc-9350-971ecf0a7b5b",
+      "question_text_markdown": "Which of the following HTML tags is **ALWAYS** a landmark region?  Check all that apply.",
+      "answers": [
+        {
+          "answer_text_markdown": "`\n\n`",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "`\n\n`",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "`\n\n`",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "`\n\n`",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "II.C.5",
+        "text": "Evaluate HTML markup to determine whether headings, lists, tables, landmarks, and other structural semantics correctly convey meaning to assistive technologies."
+      },
+      "secondary_objectives": [
+        {
+          "id": "I.D.6",
+          "text": "Identify appropriate ARIA roles for common interactive widgets and structural page elements."
+        },
+        {
+          "id": "II.C.6",
+          "text": "Evaluate navigation structures, headings, labels, and link descriptions to determine whether they support clear information architecture and efficient screen reader navigation."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "This asks what is NOT true about landmarks. The primary skill is understanding structural semantics and landmark roles. It secondarily concerns navigational efficiency for assistive technology users."
+    },
+    {
+      "question_number": 172,
+      "question_id": "60a85743-7c93-4366-bae7-d5a6ef716c4b",
+      "question_text_markdown": "Which of the following is **NEVER** a valid landmark role?",
+      "answers": [
+        {
+          "answer_text_markdown": "group",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "form",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "banner",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "region",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "II.C.7",
+        "text": "Evaluate form implementations to verify accessible interaction patterns, programmatic error identification, clear instructions, and usable suggestions for correction."
+      },
+      "secondary_objectives": [
+        {
+          "id": "I.D.2",
+          "text": "Implement accessible names and descriptions for interactive controls using appropriate naming and description techniques."
+        },
+        {
+          "id": "II.G.6",
+          "text": "Evaluate the effects of contrast modes, text and non-text contrast, and color-contrast requirements on accessibility."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "Required-field communication is primarily an accessible forms question: users need clear, redundant indication of which fields are required. It secondarily touches accessible naming/association and avoiding reliance on color alone."
+    },
+    {
+      "question_number": 173,
+      "question_id": "6c25e59d-c04e-4370-8b3c-bba39dcd06d1",
+      "question_text_markdown": "Which of the following is a reason why should you usually avoid using `role=\"application\"`?",
+      "answers": [
+        {
+          "answer_text_markdown": "Because all useful interaction patterns are already defined by other more specific roles",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Because application regions disable useful screen reader keyboard shortcuts",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Because doing so will prevent users from using the `Tab` key to navigate between focusable items in the region.",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Because `application` is not a valid role",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "II.C.5",
+        "text": "Evaluate HTML markup to determine whether headings, lists, tables, landmarks, and other structural semantics correctly convey meaning to assistive technologies."
+      },
+      "secondary_objectives": [
+        {
+          "id": "I.D.4",
+          "text": "Explain how WAI-ARIA communicates semantics to assistive technologies, including roles, states, properties, and the accessibility tree."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "A question about which code would not be announced as a heading is mainly about semantic structure. It secondarily depends on understanding how those semantics are exposed to assistive technologies."
+    },
+    {
+      "question_number": 174,
+      "question_id": "71844a30-372e-43d5-ae7e-b776466cc5d4",
+      "question_text_markdown": "A web page has two different navigation regions that both use the `\n\n` tag.  Which of the following should you do to ensure these are optimally accessible?",
+      "answers": [
+        {
+          "answer_text_markdown": "Remove one of the `\n\n` tags because there can only be one `` tag per page",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Make sure each one contains a heading (for instance, `\n\n` or ``) tag",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Make sure one is in a `banner` landmark region and the other is in a `contentinfo` landmark region",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Use `aria-label` or `aria-labelledby` to give them different labels, so users can easily tell which is which",
+          "is_correct": true,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "I.D.2",
+        "text": "Implement accessible names and descriptions for interactive controls using appropriate naming and description techniques."
+      },
+      "secondary_objectives": [
+        {
+          "id": "II.C.7",
+          "text": "Evaluate form implementations to verify accessible interaction patterns, programmatic error identification, clear instructions, and usable suggestions for correction."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "This asks about labels and placeholders or which pattern provides a proper label. The central construct is accessible naming for form controls, with secondary relevance to usable form implementation."
+    },
+    {
+      "question_number": 175,
+      "question_id": "5fd33c40-913a-45ca-8d7a-669dd012c8db",
+      "question_text_markdown": "What is wrong with the following code?\n\n```\n\nCapital:\n\n```",
+      "answers": [
+        {
+          "answer_text_markdown": "The `title` attribute is unnecessary, since the fields are already supplied with a label using the `name` attribute",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "The `title` attribute does not provide an accessible name that will be read by screen reading software",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "The `title` attribute is unnecessary, since the fields are already labelled by the word \"Capital:\"",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "The text in the `title` attribute will only reliably be visibly displayed when someone is accessing it using a mouse",
+          "is_correct": true,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "II.C.6",
+        "text": "Evaluate navigation structures, headings, labels, and link descriptions to determine whether they support clear information architecture and efficient screen reader navigation."
+      },
+      "secondary_objectives": [
+        {
+          "id": "I.D.2",
+          "text": "Implement accessible names and descriptions for interactive controls using appropriate naming and description techniques."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "This likely concerns the best link text or the least preferred way to indicate a new window. The primary construct is navigational clarity and descriptive link purpose, with secondary relevance to accessible naming."
+    },
+    {
+      "question_number": 176,
+      "question_id": "a30a1024-a65f-4e6f-8763-e55f27507398",
+      "question_text_markdown": "With all else being equal, which of the following would be the best way of creating a level 1 heading?",
+      "answers": [
+        {
+          "answer_text_markdown": "```\n\nAcme Widgets\n\n```",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "```\n\nAcme Widgets\n\n```",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "```\n\nAcme Widgets\n\n```",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "```\n\nAcme Widgets\n\n```",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "II.G.6",
+        "text": "Evaluate the effects of contrast modes, text and non-text contrast, and color-contrast requirements on accessibility."
+      },
+      "secondary_objectives": [
+        {
+          "id": "II.B.1",
+          "text": "Map accessibility barriers to the appropriate WCAG success criterion or EN 301 549 requirement and distinguish conformance failures from broader usability or best-practice issues."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "This question is about contrast requirements or which example violates or does not violate them. The main skill is evaluating visual contrast requirements, with secondary relevance to WCAG conformance reasoning."
+    },
+    {
+      "question_number": 177,
+      "question_id": "b605efc2-7465-48db-aa90-0828ae86c4c1",
+      "question_text_markdown": "According to the Accessible Name and Description Computation algorithm, what should be the accessible name for the checkbox in the following code snippet?\n\n```\nRob ...\nAgree ...\n\n```",
+      "answers": [
+        {
+          "answer_text_markdown": "agreement",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Rob Agree",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "name agree",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "checkbox agreement",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "II.C.2",
+        "text": "Demonstrate manual keyboard testing to detect missing focus indicators, incorrect tab order, keyboard traps, and other keyboard-operability issues."
+      },
+      "secondary_objectives": [
+        {
+          "id": "I.D.3",
+          "text": "Demonstrate correct focus management in interactive widgets using techniques such as roving tabindex and aria-activedescendant."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "This question is about focus behavior or focus indicators. The primary construct is keyboard operability and visible focus; it secondarily relates to focus management in more complex widgets or interactions."
+    },
+    {
+      "question_number": 178,
+      "question_id": "397f7f8e-ae29-43c0-b0fc-8d265f2209c9",
+      "question_text_markdown": "According to the Accessible Name and Description Computation algorithm, what should the accessible name for the link be in the following code snippet?\n\n```\n[Virginia Tech](index.html)\n```",
+      "answers": [
+        {
+          "answer_text_markdown": "Home Virginia Tech",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Virginia Tech",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "`home.png`",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Home",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "II.C.8",
+        "text": "Test the reading order of web content to confirm that the programmatic order is meaningful and consistent with intended visual presentation."
+      },
+      "secondary_objectives": [
+        {
+          "id": "II.C.2",
+          "text": "Demonstrate manual keyboard testing to detect missing focus indicators, incorrect tab order, keyboard traps, and other keyboard-operability issues."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "A question about visual order versus DOM order, meaningful sequence, or the accessibility of layout code primarily assesses meaningful sequence and reading order. It secondarily affects keyboard focus order and predictability."
+    },
+    {
+      "question_number": 179,
+      "question_id": "2d9ee875-c8c9-40ea-a90d-5e5383b8d070",
+      "question_text_markdown": "According to the Accessible Name and Description Computation algorithm, what should be the accessible name for the link in the following code snippet?\n\n```\n[Acme widgets](acme.html)\n```",
+      "answers": [
+        {
+          "answer_text_markdown": "Acme widgets Your widget superstore",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Acme widgets",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Your widget superstore",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "`Acme.html`",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "II.C.6",
+        "text": "Evaluate navigation structures, headings, labels, and link descriptions to determine whether they support clear information architecture and efficient screen reader navigation."
+      },
+      "secondary_objectives": [
+        {
+          "id": "II.C.5",
+          "text": "Evaluate HTML markup to determine whether headings, lists, tables, landmarks, and other structural semantics correctly convey meaning to assistive technologies."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "This item appears to concern bypass blocks, skip links, page titles, or navigation methods. The primary construct is supporting efficient navigation and orientation, with secondary relevance to structural semantics."
+    },
+    {
+      "question_number": 180,
+      "question_id": "5ca19cf2-36e6-4e69-8ec9-03949c363b76",
+      "question_text_markdown": "The 21st Century Communications and Video Accessibility Act (CVAA) applies to which of the following?",
+      "answers": [
+        {
+          "answer_text_markdown": "Only television broadcasters",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Only the Public Broadcasting System",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Only telecommunications hardware and software providers",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "All entities already covered by FCC regulations (namely: telecommunication hardware and software providers and television broadcasters and television hardware/software providers)",
+          "is_correct": true,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "II.C.12",
+        "text": "Verify that page language, form errors, and component states are programmatically conveyed to assistive technologies."
+      },
+      "secondary_objectives": [
+        {
+          "id": "I.A.2",
+          "text": "Explain the structure of WCAG 2.2, including the POUR principles, guidelines, success criteria, and conformance levels A, AA, and AAA."
+        },
+        {
+          "id": "II.B.11",
+          "text": "Explain the relationship between WCAG principles, guidelines, and success criteria and the accessibility impact of each principle."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "This is about programmatically identifying language or valid uses of the lang attribute. The main skill is verifying that language is conveyed programmatically. It secondarily relates to the Perceivable principle and principle-level reasoning."
+    },
+    {
+      "question_number": 181,
+      "question_id": "7fbba681-21ed-4037-82b8-881df74eb9a1",
+      "question_text_markdown": "The Air Carrier Access Act (ACAA) applies to which of the following?",
+      "answers": [
+        {
+          "answer_text_markdown": "U.S. and foreign air carriers operating flights within or to the U.S. or selling tickets to the U.S. public",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Only U.S. air carriers offering flights between states",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "All air carriers based in countries which are signatories to the Convention on the Rights of the Disabled",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Only U.S. air carriers",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "II.C.12",
+        "text": "Verify that page language, form errors, and component states are programmatically conveyed to assistive technologies."
+      },
+      "secondary_objectives": [
+        {
+          "id": "I.A.2",
+          "text": "Explain the structure of WCAG 2.2, including the POUR principles, guidelines, success criteria, and conformance levels A, AA, and AAA."
+        },
+        {
+          "id": "II.B.11",
+          "text": "Explain the relationship between WCAG principles, guidelines, and success criteria and the accessibility impact of each principle."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "Like the previous item, this focuses on page language or language-of-parts exposure to assistive technologies. The primary assessment target is programmatic language identification, with secondary relation to Perceivable principle knowledge."
+    },
+    {
+      "question_number": 182,
+      "question_id": "8dbfb978-26c1-4eb3-a956-33056505ebef",
+      "question_text_markdown": "How is the Americans with Disabilities Act (ADA) enforced?",
+      "answers": [
+        {
+          "answer_text_markdown": "Consumers (people with disabilities) filing formal complaints",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "It is a published standard not a law, so there are no enforcement mechanisms",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "The Social Security Administration conducts surveys of individual receiving disability benefits and uses that identify targets for investigation",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "The Department of Justice conducts  annual reviews of  all federal government entities for compliance",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "II.F.1",
+        "text": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments."
+      },
+      "secondary_objectives": [
+        {
+          "id": "I.H.1",
+          "text": "Describe strategies that people with blindness, low vision, motor disabilities, auditory disabilities, and cognitive or learning disabilities use to interact with web content."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "This likely asks about a standard screen reader command or behavior. The main construct is practical assistive technology operation, with secondary relevance to understanding how users navigate using that technology."
+    },
+    {
+      "question_number": 183,
+      "question_id": "a66adf84-1298-4ad6-8cfc-95d1e1a29d0b",
+      "question_text_markdown": "The Americans with Disabilities Act (ADA) applies to which groups?",
+      "answers": [
+        {
+          "answer_text_markdown": "Private entities that own, operate, lease, or lease to places of public accommodation",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "All private entities",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Only the federal government",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Only federal and state government entities",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "II.F.1",
+        "text": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments."
+      },
+      "secondary_objectives": [
+        {
+          "id": "I.H.1",
+          "text": "Describe strategies that people with blindness, low vision, motor disabilities, auditory disabilities, and cognitive or learning disabilities use to interact with web content."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "This continues the assistive-technology command/behavior cluster. The key skill is real-world screen reader usage knowledge rather than markup or standards interpretation."
+    },
+    {
+      "question_number": 184,
+      "question_id": "7914c0c5-dd70-414b-9faa-178603b1a888",
+      "question_text_markdown": "The *Référentiel Général d'Accessibilité pour les Administrations* (RGAA) sets accessibility standards for which province or country?",
+      "answers": [
+        {
+          "answer_text_markdown": "Gabon",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Quebec",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "France",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Belgium",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "II.F.1",
+        "text": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments."
+      },
+      "secondary_objectives": [
+        {
+          "id": "II.A.4",
+          "text": "Analyze how assistive technologies, adaptive strategies, and user agents interact to shape accessibility support."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "This item likely concerns matching an assistive technology to platform/browser context. The primary construct is practical knowledge of major screen readers and commands, with secondary relevance to AT/browser/platform interaction."
+    },
+    {
+      "question_number": 185,
+      "question_id": "062f5538-b7ba-4d01-a43a-493820078da0",
+      "question_text_markdown": "Which of the following could best be described as a domain-specific law or regulation?",
+      "answers": [
+        {
+          "answer_text_markdown": "The Act on the Elimination of Discrimination against Persons with Disabilities",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Standards sur l'accessibilité du Web",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "21st Century Communications and Video Accessibility Act (CVAA) (U.S.)",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Section 508 of the Rehabilitation Action of 1973",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "II.B.1",
+        "text": "Map accessibility barriers to the appropriate WCAG success criterion or EN 301 549 requirement and distinguish conformance failures from broader usability or best-practice issues."
+      },
+      "secondary_objectives": [
+        {
+          "id": "I.A.1",
+          "text": "Compare the scope, purpose, and relationship of WCAG 2.0, WCAG 2.1, WCAG 2.2, ATAG 2.0, and EN 301 549, and identify how each influences web accessibility design and conformance."
+        },
+        {
+          "id": "II.B.12",
+          "text": "Compare WCAG with EN 301 549, including how WCAG requirements are incorporated and which additional EN 301 549 requirements extend beyond WCAG."
+        }
+      ],
+      "confidence": "Medium",
+      "rationale": "The final item in this range appears to concern standards scope or whether a requirement falls within WCAG versus another standard. The primary construct is mapping a scenario to the right conformance framework, with secondary relevance to comparing standards such as WCAG and EN 301 549. Confidence is medium because the exact item wording may span multiple standards-oriented objectives."
+    }
+  ]
+}

@@ -1,0 +1,201 @@
+[
+  {
+    "question_id": "5ea09fbf-862d-433c-9842-f585837fdcfc",
+    "question_text": "What WCAG conformance level are the success criteria having to do with the language of the page and the language of parts of the page?",
+    "primary_objective": {
+      "id": "I.G.4",
+      "text": "Explain accessibility challenges associated with single-page applications, including focus management, dynamic content updates, and assistive technology compatibility."
+    },
+    "secondary_objectives": [
+      {
+        "id": "I.D.10",
+        "text": "Apply ARIA live regions to communicate dynamic content updates without moving keyboard focus when appropriate."
+      },
+      {
+        "id": "II.C.1",
+        "text": "Conduct screen reader testing to verify that interactive elements expose correct name, role, value, state, and status changes."
+      }
+    ],
+    "rationale": "SPA accessibility challenges involving focus, dynamic updates, and AT compatibility."
+  },
+  {
+    "question_id": "1a3d9823-0173-47b5-a412-9d079eed7b08",
+    "question_text": "Which of the following is **NOT** a valid way of programmatically indicating the language of a page or content on that page?",
+    "primary_objective": {
+      "id": "I.C.2",
+      "text": "Demonstrate and apply established keyboard interaction models for ARIA-based custom widgets during design and implementation."
+    },
+    "secondary_objectives": [
+      {
+        "id": "I.C.3",
+        "text": "Apply established keyboard interaction conventions when testing ARIA-based custom widgets."
+      }
+    ],
+    "rationale": "Standard keyboard interaction patterns for ARIA widgets."
+  },
+  {
+    "question_id": "ff0e151c-a056-431d-a3cc-ca1ae0ec77e0",
+    "question_text": "Which of the following is **NOT** a valid value for the `lang` attribute?",
+    "primary_objective": {
+      "id": "II.C.2",
+      "text": "Demonstrate manual keyboard testing to detect missing focus indicators, incorrect tab order, keyboard traps, and other keyboard-operability issues."
+    },
+    "secondary_objectives": [
+      {
+        "id": "I.B.1",
+        "text": "Demonstrate how to make JavaScript event handling device-independent for keyboard, pointer, and other input methods."
+      }
+    ],
+    "rationale": "Keyboard shortcut handling and avoiding unintended activation."
+  },
+  {
+    "question_id": "1fec6d7f-ae84-4c78-80b3-50bc25431b67",
+    "question_text": "Which of the following would be the best text to put in the\n\ntag of the accessibility policy page at a university with the top-level heading, “Accessibility Policy”?",
+    "primary_objective": {
+      "id": "I.A.5",
+      "text": "Explain the rationale for using current WCAG versions and summarize the accessibility impact of changes introduced in WCAG 2.1 and 2.2."
+    },
+    "secondary_objectives": [
+      {
+        "id": "II.B.20",
+        "text": "Explain the major additions introduced in WCAG 2.1, particularly those addressing new input methods and improved support for low vision and cognitive disabilities."
+      }
+    ],
+    "rationale": "Understanding WCAG 2.1 changes and additive model."
+  },
+  {
+    "question_id": "7ac44269-e225-4a0f-8326-1bd29095ada5",
+    "question_text": "A user has just entered the text string \"registration deadline\" in a site search field on a university website and hit the submit button.  What would be most likely to be the best title for the results page that loads?",
+    "primary_objective": {
+      "id": "I.A.5",
+      "text": "Explain the rationale for using current WCAG versions and summarize the accessibility impact of changes introduced in WCAG 2.1 and 2.2."
+    },
+    "secondary_objectives": [
+      {
+        "id": "II.B.11",
+        "text": "Explain the relationship between WCAG principles, guidelines, and success criteria and the accessibility impact of each principle."
+      }
+    ],
+    "rationale": "Understanding WCAG 2.1 focus areas."
+  },
+  {
+    "question_id": "7b16d10a-72c8-4957-aefb-d78c385b6a72",
+    "question_text": "Which of the following is a WCAG 2.0 Level A requirement?",
+    "primary_objective": {
+      "id": "I.C.5",
+      "text": "Analyze interactive components to determine whether gesture-based interactions provide single-pointer alternatives."
+    },
+    "secondary_objectives": [
+      {
+        "id": "II.G.4",
+        "text": "Evaluate whether motion-based, device-motion, and gesture-based interactions provide accessible alternatives or can be disabled."
+      }
+    ],
+    "rationale": "Providing alternatives to complex gestures."
+  },
+  {
+    "question_id": "ebbfe1c6-6150-4bff-b0c0-764515b115ab",
+    "question_text": "Which of the following is **NOT** a way to navigate to the next visited link using a screen reader?",
+    "primary_objective": {
+      "id": "II.C.1",
+      "text": "Conduct screen reader testing to verify that interactive elements expose correct name, role, value, state, and status changes."
+    },
+    "secondary_objectives": [
+      {
+        "id": "I.D.10",
+        "text": "Apply ARIA live regions to communicate dynamic content updates without moving keyboard focus when appropriate."
+      }
+    ],
+    "rationale": "Distinguishing status messages vs focus-changing content."
+  },
+  {
+    "question_id": "7915e141-294d-44ee-8fee-e9b211b73e1e",
+    "question_text": "Which of the following is a way to navigate to the next unvisited link using a screen reader?",
+    "primary_objective": {
+      "id": "I.B.S1",
+      "text": "Analyze interaction patterns to determine whether multiple event models on the same control (for example, hover for one behavior and click for another) create accessibility barriers for keyboard, touch, or gesture-based assistive technology users."
+    },
+    "secondary_objectives": [
+      {
+        "id": "II.G.9",
+        "text": "Identify accessibility issues related to sensory-dependent instructions, autoplaying audio, or moving content that may interfere with assistive technology use."
+      }
+    ],
+    "rationale": "Interaction barriers from hover-only content."
+  },
+  {
+    "question_id": "927535a1-f331-43cc-9b3c-ae733453b854",
+    "question_text": "Which of the following is **NOT** a way to navigate from one link to the next using a screen reader?",
+    "primary_objective": {
+      "id": "I.D.2",
+      "text": "Implement accessible names and descriptions for interactive controls using appropriate naming and description techniques."
+    },
+    "secondary_objectives": [
+      {
+        "id": "II.F.4",
+        "text": "Evaluate whether interactive elements use native controls or appropriate ARIA semantics to support keyboard, voice control, and alternative input devices."
+      }
+    ],
+    "rationale": "Accessible naming vs visible label mismatch."
+  },
+  {
+    "question_id": "fd9dbd48-151c-4374-ae63-4f8eb0808449",
+    "question_text": "Which of the following is a way to list all links using a screen reader?",
+    "primary_objective": {
+      "id": "II.B.1",
+      "text": "Map accessibility barriers to the appropriate WCAG success criterion or EN 301 549 requirement and distinguish conformance failures from broader usability or best-practice issues."
+    },
+    "secondary_objectives": [
+      {
+        "id": "II.G.11",
+        "text": "Verify that text can be resized up to 200% without loss of functionality or content."
+      }
+    ],
+    "rationale": "WCAG conformance reasoning (what is NOT required)."
+  },
+  {
+    "question_id": "ef5ba151-f683-40d9-92e5-ba0a9a35f36a",
+    "question_text": "Which of the following is a way to navigate to headings of a certain level using a screen reader?",
+    "primary_objective": {
+      "id": "II.B.1",
+      "text": "Map accessibility barriers to the appropriate WCAG success criterion or EN 301 549 requirement and distinguish conformance failures from broader usability or best-practice issues."
+    },
+    "secondary_objectives": [
+      {
+        "id": "II.G.6",
+        "text": "Evaluate the effects of contrast modes, text and non-text contrast, and color-contrast requirements on accessibility."
+      }
+    ],
+    "rationale": "WCAG violation: use of color only."
+  },
+  {
+    "question_id": "6689da99-4c5d-4787-845d-688a94f0e38a",
+    "question_text": "Which of the following is **NOT** a way to navigate from one heading to the next using a screen reader?",
+    "primary_objective": {
+      "id": "II.F.1",
+      "text": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments."
+    },
+    "secondary_objectives": [
+      {
+        "id": "I.H.1",
+        "text": "Describe strategies that people with blindness, low vision, motor disabilities, auditory disabilities, and cognitive or learning disabilities use to interact with web content."
+      }
+    ],
+    "rationale": "Screen reader behavior on page load."
+  },
+  {
+    "question_id": "248ac2f8-87a3-4110-9f5d-831fc9100f32",
+    "question_text": "Which of the following is **NOT** a way to navigate from one landmark to the next using a screen reader?",
+    "primary_objective": {
+      "id": "II.C.5",
+      "text": "Evaluate HTML markup to determine whether headings, lists, tables, landmarks, and other structural semantics correctly convey meaning to assistive technologies."
+    },
+    "secondary_objectives": [
+      {
+        "id": "I.D.4",
+        "text": "Explain how WAI-ARIA communicates semantics to assistive technologies, including roles, states, properties, and the accessibility tree."
+      }
+    ],
+    "rationale": "Semantic structure and heading exposure."
+  }
+]

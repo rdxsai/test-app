@@ -1,0 +1,119 @@
+[
+  {
+    "question_id": "57778c37-ce35-4172-a088-81e6ae21069c",
+    "question_text": "Which of the following is **NOT** true?",
+    "primary": "II.C.6",
+    "primary_text": "Evaluate navigation structures, headings, labels, and link descriptions to determine whether they support clear information architecture and efficient screen reader navigation.",
+    "secondary": [
+      {
+        "id": "I.H.2",
+        "text": "Analyze how design elements such as headings, landmarks, and color contrast affect navigation and comprehension for diverse user groups."
+      }
+    ]
+  },
+  {
+    "question_id": "6b63203f-f2f3-4506-afad-8a3b2b491e48",
+    "question_text": "Which of the following is **NOT** a way to navigate to the next visited link using a screen reader?",
+    "primary": "II.F.1",
+    "primary_text": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments.",
+    "secondary": null
+  },
+  {
+    "question_id": "54e5c37d-f39d-489d-954a-5a989c00a224",
+    "question_text": "Which of the following is a way to navigate to the next unvisited link using a screen reader?",
+    "primary": "II.F.1",
+    "primary_text": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments.",
+    "secondary": null
+  },
+  {
+    "question_id": "936efd90-7f92-448e-b174-b6d75a4e967a",
+    "question_text": "Which of the following is **NOT** a way to navigate from one link to the next using a screen reader?",
+    "primary": "II.F.1",
+    "primary_text": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments.",
+    "secondary": null
+  },
+  {
+    "question_id": "4628b74a-14be-404c-8c83-2aa818884a83",
+    "question_text": "Which of the following is a way to list all links using a screen reader?",
+    "primary": "II.F.1",
+    "primary_text": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments.",
+    "secondary": [
+      {
+        "id": "II.C.6",
+        "text": "Evaluate navigation structures, headings, labels, and link descriptions to determine whether they support clear information architecture and efficient screen reader navigation."
+      }
+    ]
+  },
+  {
+    "question_id": "ed07e266-c587-4dd8-9c4d-329d6a299fa7",
+    "question_text": "Why is it important not to remove visual focus indicators from links and controls, for instance, by setting the outline CSS property for the focus pseudo-class to none?",
+    "primary": "II.C.2",
+    "primary_text": "Demonstrate manual keyboard testing to detect missing focus indicators, incorrect tab order, keyboard traps, and other keyboard-operability issues.",
+    "secondary": [
+      {
+        "id": "I.G.6",
+        "text": "Evaluate whether focus indicators, labels, instructions, and touch targets remain usable under zoom, text-spacing, and touch interaction conditions."
+      }
+    ]
+  },
+  {
+    "question_id": "5e1bdf61-fb21-4f24-beb9-40eb1f07a9f2",
+    "question_text": "Where the contrast ratio between color codes #990033 and #000000 is 2.4:1, which of the following code snippets is the **LEAST** preferable, assuming no other styles have been applied than what is apparent in the code?",
+    "primary": "II.G.6",
+    "primary_text": "Evaluate the effects of contrast modes, text and non-text contrast, and color-contrast requirements on accessibility.",
+    "secondary": [
+      {
+        "id": "II.B.6",
+        "text": "Analyze examples of web content to determine whether they meet or fail specific WCAG success criteria."
+      },
+      {
+        "id": "II.C.2",
+        "text": "Demonstrate manual keyboard testing to detect missing focus indicators, incorrect tab order, keyboard traps, and other keyboard-operability issues."
+      }
+    ]
+  },
+  {
+    "question_id": "143d3179-a057-4986-af8d-6bbbf15009b9",
+    "question_text": "From an accessibility perspective, which of the following is the **LEAST** preferred means of coding a link to a site that opens in a new window?",
+    "primary": "II.C.6",
+    "primary_text": "Evaluate navigation structures, headings, labels, and link descriptions to determine whether they support clear information architecture and efficient screen reader navigation.",
+    "secondary": [
+      {
+        "id": "I.D.2",
+        "text": "Implement accessible names and descriptions for interactive controls using appropriate naming and description techniques."
+      },
+      {
+        "id": "II.B.6",
+        "text": "Analyze examples of web content to determine whether they meet or fail specific WCAG success criteria."
+      }
+    ]
+  },
+  {
+    "question_id": "8e947866-3e94-401e-98ff-45eeb974c8e7",
+    "question_text": "Which link text below would be preferable in most circumstances?",
+    "primary": "II.C.6",
+    "primary_text": "Evaluate navigation structures, headings, labels, and link descriptions to determine whether they support clear information architecture and efficient screen reader navigation.",
+    "secondary": [
+      {
+        "id": "II.B.6",
+        "text": "Analyze examples of web content to determine whether they meet or fail specific WCAG success criteria."
+      }
+    ]
+  },
+  {
+    "question_id": "f0f366e1-8fc0-47f8-9fed-32565fbb40f6",
+    "question_text": "Assuming there are no elements on the page that have an `id` attribute set, which of the following would **NOT** provide programmatically-discernable text for a link?",
+    "primary": "I.D.S1",
+    "primary_text": "Explain how accessible names and descriptions are computed from multiple possible naming sources and why source priority affects what assistive technologies announce.",
+    "secondary": [
+      {
+        "id": "I.D.2",
+        "text": "Implement accessible names and descriptions for interactive controls using appropriate naming and description techniques."
+      },
+      {
+        "id": "II.C.1",
+        "text": "Conduct screen reader testing to verify that interactive elements expose correct name, role, value, state, and status changes."
+      }
+    ]
+  }
+]

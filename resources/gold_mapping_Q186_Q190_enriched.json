@@ -1,0 +1,183 @@
+{
+  "range": "Q186-Q190",
+  "note": "There were only 5 remaining questions in the file, not 20.",
+  "method": "Gold-standard semantic mapping using full question text, answer choices, correct answer selection, and available feedback.",
+  "results": [
+    {
+      "question_number": 186,
+      "question_id": "a479214f-f486-48f8-8dfe-3b585f53ebc4",
+      "question_text_markdown": "Which of the following is an example of a procurement law?",
+      "answers": [
+        {
+          "answer_text_markdown": "Convention on the Rights of Persons with Disabilities",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Section 508 of the Rehabilitation Action of 1973",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "The Web Content Accessibility Guidelines (WCAG)",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "The Americans with Disabilities Act of 1990",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": null,
+      "secondary_objectives": [],
+      "confidence": "High",
+      "rationale": "This question asks the learner to classify a specific law as a procurement law. The current objective set does not explicitly assess identification or differentiation of named laws and regulations such as Section 508, the ADA, or the CRPD. There is related procurement-process content in the objectives, but not a strong objective-level match for legal classification itself.",
+      "no_strong_match": true
+    },
+    {
+      "question_number": 187,
+      "question_id": "a1aef298-039c-4389-939f-a195855b80d4",
+      "question_text_markdown": "Which of the following could best be described as a multi-national standard?",
+      "answers": [
+        {
+          "answer_text_markdown": "Section 508 of the Rehabilitation Action of 1973",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "The Web Content Accessibility Guidelines (WCAG)",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "The Individuals with Disabilities Act",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "The Americans with Disabilities Act",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "I.A.1",
+        "text": "Compare the scope, purpose, and relationship of WCAG 2.0, WCAG 2.1, WCAG 2.2, ATAG 2.0, and EN 301 549, and identify how each influences web accessibility design and conformance."
+      },
+      "secondary_objectives": [
+        {
+          "id": "II.B.12",
+          "text": "Compare WCAG with EN 301 549, including how WCAG requirements are incorporated and which additional EN 301 549 requirements extend beyond WCAG."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "The learner must distinguish WCAG from national laws and identify it as a multi-national standard used across jurisdictions. That primarily assesses comparing the scope, purpose, and relationship of major accessibility standards, with secondary relevance to comparing WCAG to EN 301 549 and related frameworks.",
+      "no_strong_match": false
+    },
+    {
+      "question_number": 188,
+      "question_id": "e55a54df-5e82-4383-aa0c-0b244744f9b6",
+      "question_text_markdown": "Which of the following could best be described as a civil rights or non-discrimination law?",
+      "answers": [
+        {
+          "answer_text_markdown": "The Universal Declaration of Human Rights",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Section 504 of the Rehabilitation Action of 1973",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "The Web Content Accessibility Guidelines (WCAG)",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "21st Century Communications and Video Accessibility Act (CVAA)",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": null,
+      "secondary_objectives": [],
+      "confidence": "High",
+      "rationale": "This item asks the learner to classify Section 504 as a civil-rights or non-discrimination law. The current objective set does not explicitly assess recognition of named legal instruments by category, so there is no strong match. It is better treated as outside the present competency model than forced into a weak standards/procurement objective.",
+      "no_strong_match": true
+    },
+    {
+      "question_number": 189,
+      "question_id": "e0b1d265-0ab1-4fa2-8111-8fb63c1c4b45",
+      "question_text_markdown": "Which of the following could best be described as a civil rights or non-discrimination law?",
+      "answers": [
+        {
+          "answer_text_markdown": "EN 301 549",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "The Americans with Disabilities Act",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Section 508 of the Rehabilitation Action of 1973",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Guidelines on Dissemination of Information through Government Websites (Hong Kong)",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": null,
+      "secondary_objectives": [],
+      "confidence": "High",
+      "rationale": "Like Q188, this question is about identifying the ADA as a civil-rights or non-discrimination law. The existing objective set focuses on accessibility standards, testing, implementation, remediation, and procurement, not classification of named laws. Therefore there is no strong objective match.",
+      "no_strong_match": true
+    },
+    {
+      "question_number": 190,
+      "question_id": "19c2f47a-0524-440c-9535-718f03731f7f",
+      "question_text_markdown": "What is the primary purpose of WAI-ARIA in web accessibility?",
+      "answers": [
+        {
+          "answer_text_markdown": "To create alternative text for all images on a website.",
+          "is_correct": false,
+          "feedback_markdown": "That’s an interesting choice, but let’s think about it a bit more. Does WAI-ARIA specifically address images, or is there another accessibility guideline or technique focused on that? For example, how are alternative text descriptions for images typically implemented—do they rely on ARIA roles, or are they handled in a different way within HTML? Also, consider the broader role of WAI-ARIA. What types of elements or interactions might it be designed to enhance or describe, especially for users relying on assistive technologies? Reflecting on these questions might help clarify its primary purpose."
+        },
+        {
+          "answer_text_markdown": "To replace HTML with a new markup language for accessibility.",
+          "is_correct": false,
+          "feedback_markdown": "It’s a thoughtful attempt, but let’s consider the role of WAI-ARIA more closely. If WAI-ARIA were designed to replace HTML, what would that mean for existing web content and the millions of websites already built with HTML? Would creating an entirely new markup language align with the goal of making the web more accessible to everyone? Instead, think about how WAI-ARIA interacts with HTML elements—does it function as a replacement, or might it serve a different purpose to improve accessibility? Reflecting on its relationship with HTML could help clarify its primary purpose."
+        },
+        {
+          "answer_text_markdown": "To improve the visual design of websites.",
+          "is_correct": false,
+          "feedback_markdown": "It seems like you might be associating WAI-ARIA with aesthetics, but let’s think about its purpose a bit more. If WAI-ARIA were mainly about visual design, how would it benefit users who rely on assistive technologies like screen readers? Can you think about what kinds of barriers users with disabilities might face when interacting with dynamic or complex web content, and how WAI-ARIA might help address those challenges? Reflecting on these questions might help clarify the core goal of WAI-ARIA."
+        },
+        {
+          "answer_text_markdown": "To enhance accessibility for dynamic web content and custom interface components.",
+          "is_correct": true,
+          "feedback_markdown": "Great job selecting the correct answer! The primary purpose of WAI-ARIA (Web Accessibility Initiative – Accessible Rich Internet Applications) is indeed to enhance accessibility for dynamic web content and custom interface components. This question evaluates your understanding of how WAI-ARIA supports users of assistive technologies by providing additional semantics and roles that standard HTML may not fully address, particularly for modern, interactive web elements.\n\nYour chosen answer is correct because WAI-ARIA was specifically designed to bridge the gap between standard HTML and the increasingly dynamic nature of web interfaces. For example, when developers create custom widgets like sliders, accordions, or modal dialogs using JavaScript, these elements may not inherently communicate their function or state to assistive technologies. WAI-ARIA attributes such as `role`, `aria-label`, and `aria-expanded` allow developers to provide that critical information, ensuring that users who rely on screen readers, voice input, or other assistive technologies can interact with these elements effectively. This aligns with WCAG principles, particularly those related to ensuring content is perceivable (Principle 1) and operable (Principle 2).\n\nThe other options, while related to accessibility in some way, are not accurate representations of WAI-ARIA's purpose. The first option, \"To create alternative text for all images on a website,\" is incorrect because alternative text for images is handled by the `alt` attribute in HTML, not WAI-ARIA. While both aim to improve accessibility, they serve very different purposes. WAI-ARIA is not meant to replace native HTML features like `alt`, which should always be used when available, as native HTML is inherently more robust and widely supported.\n\nThe second option, \"To replace HTML with a new markup language for accessibility,\" is also incorrect. WAI-ARIA is not a standalone markup language that replaces HTML but rather an enhancement to it. It works by adding roles, states, and properties to existing HTML elements, thereby complementing the semantic structure of HTML rather than substituting for it. This distinction is important because developers should always prioritize using native HTML elements and attributes first, resorting to WAI-ARIA only when no suitable HTML feature exists.\n\nThe third option, \"To improve the visual design of websites,\" is unrelated to the purpose of WAI-ARIA. Accessibility and visual design are distinct aspects of web development. While accessible design often overlaps with good visual design—such as ensuring sufficient color contrast or clear visual focus indicators—WAI-ARIA focuses specifically on enhancing the interaction between web content and assistive technologies. It does not influence the visual appearance of a site but rather the underlying semantic information conveyed to users who may not rely on visual cues.\n\nIn summary, WAI-ARIA is a powerful tool for making dynamic and custom web components accessible, but it is not a replacement for native HTML or a tool for visual design. It serves as a bridge where HTML alone falls short, ensuring that all users, regardless of ability, can interact with complex web applications. Remember to always use native HTML features wherever possible and reserve WAI-ARIA for scenarios where native functionality is insufficient. This approach ensures maximum compatibility and accessibility for all users."
+        }
+      ],
+      "primary_objective": {
+        "id": "I.A.7",
+        "text": "Explain the purpose of WAI-ARIA 1.2 and describe its model of roles, states, and properties."
+      },
+      "secondary_objectives": [
+        {
+          "id": "I.D.4",
+          "text": "Explain how WAI-ARIA communicates semantics to assistive technologies, including roles, states, properties, and the accessibility tree."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "The correct answer states WAI-ARIA's primary purpose: enhancing accessibility for dynamic content and custom components. That directly matches the objective about explaining the purpose of WAI-ARIA and its model of roles, states, and properties. It secondarily relates to how ARIA communicates semantics to assistive technologies.",
+      "no_strong_match": false
+    }
+  ]
+}

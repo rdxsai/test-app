@@ -1,0 +1,156 @@
+[
+  {
+    "question_id": "0b784e75-8674-425f-aa83-45b8cd296bc2",
+    "primary": "I.A.2",
+    "secondary": [
+      "II.B.7"
+    ],
+    "confidence": "High"
+  },
+  {
+    "question_id": "fd9e1240-f725-4d90-a38f-094f8d165c47",
+    "primary": "I.D.2",
+    "secondary": [
+      "II.C.6"
+    ],
+    "confidence": "High"
+  },
+  {
+    "question_id": "ae368cea-45d2-434c-a580-9e6aec829ece",
+    "primary": "I.D.8",
+    "secondary": [
+      "I.D.7"
+    ],
+    "confidence": "High"
+  },
+  {
+    "question_id": "010c1ab4-d6aa-4450-b4c0-35a602456ef5",
+    "primary": "II.C.2",
+    "secondary": [
+      "I.B.5"
+    ],
+    "confidence": "High"
+  },
+  {
+    "question_id": "30b30d17-ea7f-4c92-9013-5b005acf81de",
+    "primary": "II.F.1",
+    "secondary": [
+      "I.H.1"
+    ],
+    "confidence": "High"
+  },
+  {
+    "question_id": "aa6806a5-62e9-4e08-ac3d-edac2cba9c73",
+    "primary": "II.G.6",
+    "secondary": [],
+    "confidence": "High"
+  },
+  {
+    "question_id": "c94b0de1-b8d0-4348-bb83-19f5afdf4d62",
+    "primary": "I.D.2",
+    "secondary": [
+      "II.C.7"
+    ],
+    "confidence": "High"
+  },
+  {
+    "question_id": "df2b6148-d746-41b2-8913-a37849c69bd0",
+    "primary": "I.D.10",
+    "secondary": [
+      "I.G.1"
+    ],
+    "confidence": "High"
+  },
+  {
+    "question_id": "3bd0f883-06ab-49ff-b0c7-684c2ea459aa",
+    "primary": null,
+    "secondary": [],
+    "confidence": "High"
+  },
+  {
+    "question_id": "8e5b75e6-5b9f-460c-b5ee-b269f04004d9",
+    "primary": "II.C.5",
+    "secondary": [
+      "II.C.6"
+    ],
+    "confidence": "High"
+  },
+  {
+    "question_id": "53feba68-45c1-46d4-bbad-f5c22d8ba278",
+    "primary": "I.A.1",
+    "secondary": [
+      "II.B.12"
+    ],
+    "confidence": "High"
+  },
+  {
+    "question_id": "32285693-acb3-42a1-b258-de799c60986d",
+    "primary": "I.A.2",
+    "secondary": [
+      "II.B.11"
+    ],
+    "confidence": "High"
+  },
+  {
+    "question_id": "ff4e3f2b-0cb9-4ffb-b211-471b0b673700",
+    "primary": "II.C.2",
+    "secondary": [
+      "I.C.5"
+    ],
+    "confidence": "High"
+  },
+  {
+    "question_id": "79fc2404-319f-451a-a500-9a327979a84d",
+    "primary": "II.F.1",
+    "secondary": [
+      "I.H.1"
+    ],
+    "confidence": "High"
+  },
+  {
+    "question_id": "6afdd222-4d18-4eba-84a4-865b59487c74",
+    "primary": "I.D.6",
+    "secondary": [
+      "II.C.6"
+    ],
+    "confidence": "High"
+  },
+  {
+    "question_id": "14f7d534-9aeb-43b6-a4e4-08210b004e8c",
+    "primary": "I.D.2",
+    "secondary": [
+      "II.C.7"
+    ],
+    "confidence": "High"
+  },
+  {
+    "question_id": "f4dd205f-c4bb-45f1-8032-a2a4a5ab65ed",
+    "primary": "I.D.10",
+    "secondary": [
+      "II.C.1"
+    ],
+    "confidence": "High"
+  },
+  {
+    "question_id": "b641ca5c-2dd1-4f03-8ab7-2eda5df1e488",
+    "primary": "I.B.4",
+    "secondary": [
+      "II.C.5"
+    ],
+    "confidence": "High"
+  },
+  {
+    "question_id": "e08eaf70-8652-490d-a5f0-2f3a5adf8dae",
+    "primary": "I.D.3",
+    "secondary": [
+      "II.C.2"
+    ],
+    "confidence": "High"
+  },
+  {
+    "question_id": "f3535518-ec50-4d4d-bc45-abfb8ed9feef",
+    "primary": "II.G.6",
+    "secondary": [],
+    "confidence": "High"
+  }
+]

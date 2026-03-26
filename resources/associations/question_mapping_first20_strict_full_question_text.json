@@ -1,0 +1,147 @@
+[
+  {
+    "question_id": "19c2f47a-0524-440c-9535-718f03731f7f",
+    "question_text": "What is the primary purpose of WAI-ARIA in web accessibility?",
+    "primary": "I.A.7",
+    "primary_text": "Explain the purpose of WAI-ARIA 1.2 and describe its model of roles, states, and properties.",
+    "secondary": [
+      {
+        "id": "I.E.6",
+        "text": "Explain how ARIA can enhance assistive technology support for dynamic content and custom user interface components."
+      }
+    ]
+  },
+  {
+    "question_id": "e0b1d265-0ab1-4fa2-8111-8fb63c1c4b45",
+    "question_text": "Which of the following could best be described as a civil rights or non-discrimination law?",
+    "primary": null,
+    "primary_text": null,
+    "secondary": null
+  },
+  {
+    "question_id": "e55a54df-5e82-4383-aa0c-0b244744f9b6",
+    "question_text": "Which of the following could best be described as a civil rights or non-discrimination law?",
+    "primary": null,
+    "primary_text": null,
+    "secondary": null
+  },
+  {
+    "question_id": "a1aef298-039c-4389-939f-a195855b80d4",
+    "question_text": "Which of the following could best be described as a multi-national standard?",
+    "primary": null,
+    "primary_text": null,
+    "secondary": null
+  },
+  {
+    "question_id": "a479214f-f486-48f8-8dfe-3b585f53ebc4",
+    "question_text": "Which of the following is an example of a procurement law?",
+    "primary": null,
+    "primary_text": null,
+    "secondary": null
+  },
+  {
+    "question_id": "062f5538-b7ba-4d01-a43a-493820078da0",
+    "question_text": "Which of the following could best be described as a domain-specific law or regulation?",
+    "primary": null,
+    "primary_text": null,
+    "secondary": null
+  },
+  {
+    "question_id": "7914c0c5-dd70-414b-9faa-178603b1a888",
+    "question_text": "The *Référentiel Général d'Accessibilité pour les Administrations* (RGAA) sets accessibility standards for which province or country?",
+    "primary": null,
+    "primary_text": null,
+    "secondary": null
+  },
+  {
+    "question_id": "a66adf84-1298-4ad6-8cfc-95d1e1a29d0b",
+    "question_text": "The Americans with Disabilities Act (ADA) applies to which groups?",
+    "primary": null,
+    "primary_text": null,
+    "secondary": null
+  },
+  {
+    "question_id": "8dbfb978-26c1-4eb3-a956-33056505ebef",
+    "question_text": "How is the Americans with Disabilities Act (ADA) enforced?",
+    "primary": null,
+    "primary_text": null,
+    "secondary": null
+  },
+  {
+    "question_id": "7fbba681-21ed-4037-82b8-881df74eb9a1",
+    "question_text": "The Air Carrier Access Act (ACAA) applies to which of the following?",
+    "primary": null,
+    "primary_text": null,
+    "secondary": null
+  },
+  {
+    "question_id": "5ca19cf2-36e6-4e69-8ec9-03949c363b76",
+    "question_text": "The 21st Century Communications and Video Accessibility Act (CVAA) applies to which of the following?",
+    "primary": null,
+    "primary_text": null,
+    "secondary": null
+  },
+  {
+    "question_id": "2d9ee875-c8c9-40ea-a90d-5e5383b8d070",
+    "question_text": "According to the Accessible Name and Description Computation algorithm, what should be the accessible name for the link in the following code snippet?\n\n```\n[Acme widgets](acme.html)\n```",
+    "primary": "I.D.2",
+    "primary_text": "Implement accessible names and descriptions for interactive controls using appropriate naming and description techniques.",
+    "secondary": null
+  },
+  {
+    "question_id": "397f7f8e-ae29-43c0-b0fc-8d265f2209c9",
+    "question_text": "According to the Accessible Name and Description Computation algorithm, what should the accessible name for the link be in the following code snippet?\n\n```\n[Virginia Tech](index.html)\n```",
+    "primary": "I.D.2",
+    "primary_text": "Implement accessible names and descriptions for interactive controls using appropriate naming and description techniques.",
+    "secondary": null
+  },
+  {
+    "question_id": "b605efc2-7465-48db-aa90-0828ae86c4c1",
+    "question_text": "According to the Accessible Name and Description Computation algorithm, what should be the accessible name for the checkbox in the following code snippet?\n\n```\nRob ...\nAgree ...\n\n```",
+    "primary": "I.D.2",
+    "primary_text": "Implement accessible names and descriptions for interactive controls using appropriate naming and description techniques.",
+    "secondary": null
+  },
+  {
+    "question_id": "a30a1024-a65f-4e6f-8763-e55f27507398",
+    "question_text": "With all else being equal, which of the following would be the best way of creating a level 1 heading?",
+    "primary": "I.B.4",
+    "primary_text": "Distinguish between semantic HTML controls and non-semantic elements in terms of built-in accessibility and keyboard support.",
+    "secondary": null
+  },
+  {
+    "question_id": "5fd33c40-913a-45ca-8d7a-669dd012c8db",
+    "question_text": "What is wrong with the following code?\n\n```\n\nCapital:\n\n```",
+    "primary": "I.D.2",
+    "primary_text": "Implement accessible names and descriptions for interactive controls using appropriate naming and description techniques.",
+    "secondary": null
+  },
+  {
+    "question_id": "71844a30-372e-43d5-ae7e-b776466cc5d4",
+    "question_text": "A web page has two different navigation regions that both use the `\n\n` tag.  Which of the following should you do to ensure these are optimally accessible?",
+    "primary": "I.D.2",
+    "primary_text": "Implement accessible names and descriptions for interactive controls using appropriate naming and description techniques.",
+    "secondary": null
+  },
+  {
+    "question_id": "6c25e59d-c04e-4370-8b3c-bba39dcd06d1",
+    "question_text": "Which of the following is a reason why should you usually avoid using `role=\"application\"`?",
+    "primary": "I.D.14",
+    "primary_text": "Evaluate scenarios where the application role may be used and justify when it should be avoided.",
+    "secondary": null
+  },
+  {
+    "question_id": "60a85743-7c93-4366-bae7-d5a6ef716c4b",
+    "question_text": "Which of the following is **NEVER** a valid landmark role?",
+    "primary": "I.D.6",
+    "primary_text": "Identify appropriate ARIA roles for common interactive widgets and structural page elements.",
+    "secondary": null
+  },
+  {
+    "question_id": "8b65adff-e182-4fdc-9350-971ecf0a7b5b",
+    "question_text": "Which of the following HTML tags is **ALWAYS** a landmark region?  Check all that apply.",
+    "primary": "I.D.6",
+    "primary_text": "Identify appropriate ARIA roles for common interactive widgets and structural page elements.",
+    "secondary": null
+  }
+]

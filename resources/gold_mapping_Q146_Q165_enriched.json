@@ -1,0 +1,794 @@
+{
+  "range": "Q146-Q165",
+  "method": "Gold-standard semantic mapping using full question text, answer choices, correct answer selection, and available feedback.",
+  "results": [
+    {
+      "question_number": 146,
+      "question_id": "8e50610c-ca7b-483a-b60b-f85957a90506",
+      "question_text_markdown": "Which of the following live region types are set to `aria-live=\"off\"` by default?",
+      "answers": [
+        {
+          "answer_text_markdown": "status",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "alert",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "timer",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "log",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "I.D.10",
+        "text": "Apply ARIA live regions to communicate dynamic content updates without moving keyboard focus when appropriate."
+      },
+      "secondary_objectives": [
+        {
+          "id": "II.C.1",
+          "text": "Conduct screen reader testing to verify that interactive elements expose correct name, role, value, state, and status changes."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "This asks about the default live-region behavior of a specific ARIA role (`timer`). The skill being assessed is knowledge of how to apply and reason about ARIA live-region patterns. It secondarily relates to how state or status changes are exposed to assistive technologies."
+    },
+    {
+      "question_number": 147,
+      "question_id": "e78b6b1e-0bf9-4614-9a9e-348804b11de2",
+      "question_text_markdown": "Which of the following live region types are set to `aria-live=\"polite\"` by default?",
+      "answers": [
+        {
+          "answer_text_markdown": "marquee",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "alert",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "status",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "timer",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "I.D.10",
+        "text": "Apply ARIA live regions to communicate dynamic content updates without moving keyboard focus when appropriate."
+      },
+      "secondary_objectives": [
+        {
+          "id": "II.C.1",
+          "text": "Conduct screen reader testing to verify that interactive elements expose correct name, role, value, state, and status changes."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "Knowing that `status` is polite by default is implementation knowledge about ARIA live regions. The question is fundamentally about choosing the correct live-region role and understanding how updates are announced."
+    },
+    {
+      "question_number": 148,
+      "question_id": "3d2b1c1e-7447-4396-b4c2-dd18d6da8ab1",
+      "question_text_markdown": "Which of the following live region types are set to `aria-live=\"assertive\"` by default?",
+      "answers": [
+        {
+          "answer_text_markdown": "timer",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "alert",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "log",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "status",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "I.D.10",
+        "text": "Apply ARIA live regions to communicate dynamic content updates without moving keyboard focus when appropriate."
+      },
+      "secondary_objectives": [
+        {
+          "id": "II.C.1",
+          "text": "Conduct screen reader testing to verify that interactive elements expose correct name, role, value, state, and status changes."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "This item tests which live-region type is assertive by default (`alert`). That is a direct assessment of ARIA live-region behavior and, secondarily, how important updates are conveyed to assistive technologies."
+    },
+    {
+      "question_number": 149,
+      "question_id": "e87a4619-0d1b-4d96-8a94-4632a8ac327c",
+      "question_text_markdown": "If that same chat region only keeps the last 10 messages, removing a message every time it adds one, what should the value of `aria-relevant` be?",
+      "answers": [
+        {
+          "answer_text_markdown": "removals",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "all",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "additions",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "true",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "I.D.10",
+        "text": "Apply ARIA live regions to communicate dynamic content updates without moving keyboard focus when appropriate."
+      },
+      "secondary_objectives": [
+        {
+          "id": "II.C.1",
+          "text": "Conduct screen reader testing to verify that interactive elements expose correct name, role, value, state, and status changes."
+        },
+        {
+          "id": "I.B.3",
+          "text": "Identify accessibility risks created by dynamic content updates and determine appropriate strategies for focus management and user notification."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "The chat-region question is about configuring `aria-relevant` correctly so screen readers announce meaningful updates without unnecessary noise. That primarily assesses live-region implementation, with secondary relevance to status-change exposure and dynamic content management."
+    },
+    {
+      "question_number": 150,
+      "question_id": "4d063a9e-f5f1-4eb4-84ec-c3ee00700245",
+      "question_text_markdown": "What value should you set `aria-atomic` to for a region that dynamically displays chat messages?",
+      "answers": [
+        {
+          "answer_text_markdown": "polite",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "false",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "true",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "assertive",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "I.D.10",
+        "text": "Apply ARIA live regions to communicate dynamic content updates without moving keyboard focus when appropriate."
+      },
+      "secondary_objectives": [
+        {
+          "id": "II.C.1",
+          "text": "Conduct screen reader testing to verify that interactive elements expose correct name, role, value, state, and status changes."
+        },
+        {
+          "id": "I.B.3",
+          "text": "Identify accessibility risks created by dynamic content updates and determine appropriate strategies for focus management and user notification."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "Choosing `aria-atomic=\"false\"` for a chat region requires understanding how screen readers announce changed portions of dynamic content. The primary construct is ARIA live-region implementation, with secondary relevance to dynamic updates and assistive technology behavior."
+    },
+    {
+      "question_number": 151,
+      "question_id": "b1fa8350-24cf-436c-a025-6a213bed67b8",
+      "question_text_markdown": "Will a live region with text in it on page load reliably be read automatically by screen readers?",
+      "answers": [
+        {
+          "answer_text_markdown": "No",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Yes",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "I.D.10",
+        "text": "Apply ARIA live regions to communicate dynamic content updates without moving keyboard focus when appropriate."
+      },
+      "secondary_objectives": [
+        {
+          "id": "I.B.3",
+          "text": "Identify accessibility risks created by dynamic content updates and determine appropriate strategies for focus management and user notification."
+        },
+        {
+          "id": "II.C.1",
+          "text": "Conduct screen reader testing to verify that interactive elements expose correct name, role, value, state, and status changes."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "The learner must know that text already present in a live region on page load is not reliably announced automatically. That tests conceptual and practical understanding of live-region behavior, plus the broader challenge of timing and dynamic updates."
+    },
+    {
+      "question_number": 152,
+      "question_id": "439d06f2-6bd7-477a-92e5-cb303e2a6a0f",
+      "question_text_markdown": "What would **NOT** be an appropriate use for `aria-describedby`?",
+      "answers": [
+        {
+          "answer_text_markdown": "Applied to a text field pointing to the ID of invisible text (`display:none`) that contains instructions that are essential for all users to know in order to enter the correct info in the field, like so:\n\n```\n\nAddress line 1\n\nNo P.O. boxes\n\n```",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Applied to a control pointing to the ID of invisible text (`display:none`) that is only relevant to screen reader users, like so:\n\n```\n\nScreen reader users may request sighted assistance during the exam.\n\n```",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Applied to a text field pointing to the ID of visible text that contains brief instructions for how to fill out the field, like so:\n\n```\n\nZip code\n\nFirst 5 digits required\n\n```",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "To give an alert dialog an accessible description by referencing the content of the dialog, which contains the dialog's primary message or purpose, like so:\n\n```\n\nConfirmation\n\nAre you sure you want to do this?\n\n\nNo\nYes\n\n```",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "I.D.2",
+        "text": "Implement accessible names and descriptions for interactive controls using appropriate naming and description techniques."
+      },
+      "secondary_objectives": [
+        {
+          "id": "II.C.7",
+          "text": "Evaluate form implementations to verify accessible interaction patterns, programmatic error identification, clear instructions, and usable suggestions for correction."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "This item distinguishes appropriate from inappropriate uses of `aria-describedby`. The keyed answer is wrong because it uses hidden text for instructions that are essential for all users, not supplemental description. The primary skill is applying accessible naming/description techniques, with secondary relevance to form instructions and usability."
+    },
+    {
+      "question_number": 153,
+      "question_id": "02db71a3-938a-48fc-bf58-602f689e94df",
+      "question_text_markdown": "Should you ever assign an abstract role to an element in a web page?",
+      "answers": [
+        {
+          "answer_text_markdown": "No",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Yes",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "I.D.5",
+        "text": "Describe the semantic structure of ARIA roles, including required parent-child relationships and associated attributes."
+      },
+      "secondary_objectives": [
+        {
+          "id": "I.D.6",
+          "text": "Identify appropriate ARIA roles for common interactive widgets and structural page elements."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "Abstract roles are part of ARIA's internal taxonomy and should not be assigned in authored page code. This primarily assesses understanding of ARIA role structure and secondarily the ability to distinguish appropriate author-facing roles from abstract ones."
+    },
+    {
+      "question_number": 154,
+      "question_id": "3834de1a-74e2-46d0-ad2d-5e699d1bbc00",
+      "question_text_markdown": "What is the difference between the `note` role and the `complementary` role?",
+      "answers": [
+        {
+          "answer_text_markdown": "Content with the `note` role should relate to the main content, but be at a similar level in the DOM and be meaningful when separated from that main content",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "The `note` role is equivalent to the `\n\n` HTML tag, whereas the `contentinfo` role is equivalent to the `` HTML tag.",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "There is no difference; they are equivalent",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "A note is not a landmark region",
+          "is_correct": true,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "I.D.6",
+        "text": "Identify appropriate ARIA roles for common interactive widgets and structural page elements."
+      },
+      "secondary_objectives": [
+        {
+          "id": "I.D.5",
+          "text": "Describe the semantic structure of ARIA roles, including required parent-child relationships and associated attributes."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "The difference between `note` and `complementary` is fundamentally about choosing and understanding the correct structural role. The keyed answer hinges on the fact that `note` is not a landmark region, so the primary skill is identifying appropriate roles for structural content."
+    },
+    {
+      "question_number": 155,
+      "question_id": "65234301-33fb-4708-a564-05db64d00643",
+      "question_text_markdown": "Which of the following code examples would **NOT** be announced as a heading by a screen reader?",
+      "answers": [
+        {
+          "answer_text_markdown": "```\n\nAbstract\n\n```",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "```\n\nAbstract\n\n```",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "```\n\nAbstract\n\n```",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "```\n\nAbstract\n```",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "II.C.5",
+        "text": "Evaluate HTML markup to determine whether headings, lists, tables, landmarks, and other structural semantics correctly convey meaning to assistive technologies."
+      },
+      "secondary_objectives": [
+        {
+          "id": "I.D.4",
+          "text": "Explain how WAI-ARIA communicates semantics to assistive technologies, including roles, states, properties, and the accessibility tree."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "To answer which code example would not be announced as a heading, the learner must understand what creates heading semantics and what gets exposed in the accessibility tree. The primary construct is semantic structure, with secondary relevance to how semantics are communicated to assistive technologies."
+    },
+    {
+      "question_number": 156,
+      "question_id": "18aa61a9-e927-433b-b3ff-f3a33442ed9c",
+      "question_text_markdown": "Which of the following code examples would **NOT** result in content being ignored by a screen reader?",
+      "answers": [
+        {
+          "answer_text_markdown": "```\n\n```",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "```\n\n```",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "```\n\n```",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "```\n\n```",
+          "is_correct": true,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "I.D.4",
+        "text": "Explain how WAI-ARIA communicates semantics to assistive technologies, including roles, states, properties, and the accessibility tree."
+      },
+      "secondary_objectives": [
+        {
+          "id": "II.C.S1",
+          "text": "Evaluate whether CSS-based hiding and visibility techniques expose or suppress content appropriately for assistive technologies in ways that match author intent."
+        }
+      ],
+      "confidence": "Medium",
+      "rationale": "This item asks which coding pattern would not cause content to be ignored by a screen reader. That primarily assesses how ARIA and other hiding techniques affect what is exposed to assistive technologies. It secondarily touches the gap objective about hiding/suppression behavior. Confidence is medium because the code snippets are minimal in the export."
+    },
+    {
+      "question_number": 157,
+      "question_id": "682a47f9-71d6-45a5-a8cf-ebfc5b235c9c",
+      "question_text_markdown": "Without further modification, why would the following code be problematic?\n\n```\n[Home](index.html)\n```",
+      "answers": [
+        {
+          "answer_text_markdown": "Because the `presentation` role can only be applied to the `` tag",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Because `aria-hidden=\"true\"` does the same thing as `role=\"presentation\"` and is better supported",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Because screen reader users could still tab to the link and activate it, but it wouldn’t be announced as a link.",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Because the `presentation` role has been deprecated in favor of the role, `none`.",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "I.D.15",
+        "text": "Explain how applying an ARIA role overrides the native semantic role of an HTML element and the resulting accessibility implications."
+      },
+      "secondary_objectives": [
+        {
+          "id": "I.D.8",
+          "text": "Analyze widget implementations to determine whether ARIA roles, states, and properties are applied correctly."
+        },
+        {
+          "id": "I.D.7",
+          "text": "Analyze interface patterns and implementation scenarios to determine when native HTML or WAI-ARIA is the appropriate solution."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "Applying `role=\"presentation\"` to a link removes its semantic role but does not remove focusability, creating a mismatch where users can tab to something that is no longer announced as a link. The main skill is understanding ARIA role override behavior, with secondary relevance to correct ARIA usage and when ARIA should not be used this way."
+    },
+    {
+      "question_number": 158,
+      "question_id": "1cd37ebf-8ca2-44d9-b432-1d3694e90e7a",
+      "question_text_markdown": "Which of the following roles would automatically invoke Application mode in a screen reader?",
+      "answers": [
+        {
+          "answer_text_markdown": "`list`",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "`table`",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "`tablist`",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "`banner`",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "I.D.6",
+        "text": "Identify appropriate ARIA roles for common interactive widgets and structural page elements."
+      },
+      "secondary_objectives": [
+        {
+          "id": "I.D.14",
+          "text": "Evaluate scenarios where the application role may be used and justify when it should be avoided."
+        }
+      ],
+      "confidence": "Medium",
+      "rationale": "The item asks which role invokes application mode in screen readers. That primarily assesses knowledge of ARIA roles for widget structures such as `tablist`. It secondarily relates to understanding the consequences of application-style interaction. Confidence is medium because the objective set does not contain a perfect one-to-one target for application-mode trivia."
+    },
+    {
+      "question_number": 159,
+      "question_id": "812dfb85-0d4f-42aa-977a-37386e3f7c00",
+      "question_text_markdown": "Which of the following is **NOT** a reason why you should generally avoid making a lengthy paragraph focusable solely for the purpose of making it readable to screen readers?",
+      "answers": [
+        {
+          "answer_text_markdown": "Screen reader users may not be able to pause the reading of the text in the paragraph and resume reading where it had paused",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Paragraphs are not usually focusable and so users may incorrectly assume that the text they’ve tabbed to is some sort of an interactive control.",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Users may not be able to use standard document reading commands that would let them back up a few words and reread content they may have missed.",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Pressing the `Enter` or `Return` key when a paragraph has focus will always cause any forms in the `application` region to submit",
+          "is_correct": true,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "I.D.14",
+        "text": "Evaluate scenarios where the application role may be used and justify when it should be avoided."
+      },
+      "secondary_objectives": [
+        {
+          "id": "II.F.1",
+          "text": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "This question is about why making paragraphs focusable inside an `application` region is generally a poor pattern. The main skill is understanding application-role implications and why it should be avoided except in narrow cases. It secondarily draws on practical screen reader behavior knowledge."
+    },
+    {
+      "question_number": 160,
+      "question_id": "2e60f7fd-b2ea-4429-9fee-bbdd9a75ee43",
+      "question_text_markdown": "Which of the following is a way to make paragraph text that appears inside of an `application` region readable by screen reader users?",
+      "answers": [
+        {
+          "answer_text_markdown": "D) Both A and B",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "A) Make the paragraph focusable by adding `tabindex=\"0\"` to the `\n\n` tag",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "B) Programmatically associate the paragraph with a focusable element in the application region",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "C) Add `aria-hidden=\"false\"` to the `\n\n` tag",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "I.D.14",
+        "text": "Evaluate scenarios where the application role may be used and justify when it should be avoided."
+      },
+      "secondary_objectives": [
+        {
+          "id": "II.F.1",
+          "text": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments."
+        },
+        {
+          "id": "I.D.2",
+          "text": "Implement accessible names and descriptions for interactive controls using appropriate naming and description techniques."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "The correct answer says paragraph text in an `application` region can be made readable either by making it focusable or by associating it with a focusable element. The main construct is understanding how document/application regions affect reading and when such techniques are used, with secondary relevance to practical AT behavior and programmatic association."
+    },
+    {
+      "question_number": 161,
+      "question_id": "4fe85ef2-2b2b-445b-a1d1-fb1458feb489",
+      "question_text_markdown": "Which of the following statements is **NOT** true regarding the `application` role?",
+      "answers": [
+        {
+          "answer_text_markdown": "People cannot activate buttons in `application` regions by pressing the `Space` key when the button has focus",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "People can still use arrow keys to choose elements within `\n\n` lists that appear in application regions",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "People can still activate a link or button in an `application` region by pressing the `Enter` or `Return` key when it has focus",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "People can still tab to links and form elements in an `application` region",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "I.D.14",
+        "text": "Evaluate scenarios where the application role may be used and justify when it should be avoided."
+      },
+      "secondary_objectives": [
+        {
+          "id": "II.F.1",
+          "text": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "The 'NOT true' item about the `application` role is directly assessing what application mode changes and what standard behaviors still remain available. That primarily maps to evaluating and understanding application-role usage, with secondary relevance to practical screen reader behavior."
+    },
+    {
+      "question_number": 162,
+      "question_id": "4b4451e5-3b3f-405e-b5dd-697161bb6dc8",
+      "question_text_markdown": "Which of the following is true regarding the `document` role?",
+      "answers": [
+        {
+          "answer_text_markdown": "The primary reason for explicitly assigning the document role to an element is to create a `document` region inside of some other type of region such as an `application` region",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "The document role is equivalent to the `\n\n` HTML tag",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "You need to explicitly add `role=\"document\"` to the `\n\n` tag of all HTML pages in order to ensure that standard document reading keyboard shortcuts are available to screen reader users",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Standard screen reader document reading keyboard shortcuts, such as the ability to navigate by heading, are available in both `document` and `application` regions.",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "I.D.14",
+        "text": "Evaluate scenarios where the application role may be used and justify when it should be avoided."
+      },
+      "secondary_objectives": [
+        {
+          "id": "I.D.5",
+          "text": "Describe the semantic structure of ARIA roles, including required parent-child relationships and associated attributes."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "The `document` role question is really about why a document region may be explicitly created inside an application region. That is best matched to understanding application/document role usage and, secondarily, ARIA role structure."
+    },
+    {
+      "question_number": 163,
+      "question_id": "bd8f1029-c5a5-4016-b197-8c0b1fbd8dc4",
+      "question_text_markdown": "What is one reason why it would usually be better to use a `\n\n` tag, rather than assign the `button` ARIA role to a `` tag?",
+      "answers": [
+        {
+          "answer_text_markdown": "Because the `` tag will not be announced by a screen reader as a button, even when the `button` role has been applied",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Because screen reader shortcuts keys that allow you to list and navigate between buttons will not work",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Because you would need to use JavaScript to create the expected behavior for a button, such as responding to `click` and spacebar `keypress` events",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Because it is impossible to indicate that a button created this way is disabled",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "I.F.1",
+        "text": "Compare the accessibility benefits and tradeoffs of native HTML controls and custom ARIA-based controls."
+      },
+      "secondary_objectives": [
+        {
+          "id": "I.F.2",
+          "text": "Demonstrate how to convert a non-semantic element into an accessible custom control using proper semantics, keyboard interaction, and visible focus."
+        },
+        {
+          "id": "I.C.8",
+          "text": "Evaluate when native HTML controls should be used instead of custom ARIA widgets based on accessibility best practices and implementation complexity."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "This asks why a native `<button>` is usually better than a `div` with `role=\"button\"`. The keyed answer focuses on the extra JavaScript needed to recreate expected keyboard and activation behavior. That primarily assesses native-vs-custom control tradeoffs, with secondary relevance to making custom controls accessible and preferring native controls where possible."
+    },
+    {
+      "question_number": 164,
+      "question_id": "78e44c38-5c14-49c0-8667-af7333f80d4f",
+      "question_text_markdown": "Which of the following is an ARIA widget role?",
+      "answers": [
+        {
+          "answer_text_markdown": "`menu`",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "`banner`",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "`range`",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "`navigation`",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "I.D.6",
+        "text": "Identify appropriate ARIA roles for common interactive widgets and structural page elements."
+      },
+      "secondary_objectives": [
+        {
+          "id": "I.D.5",
+          "text": "Describe the semantic structure of ARIA roles, including required parent-child relationships and associated attributes."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "Identifying `menu` as an ARIA widget role primarily assesses knowledge of appropriate ARIA roles for interactive components. It secondarily touches ARIA role categories and structure."
+    },
+    {
+      "question_number": 165,
+      "question_id": "873f9e68-55eb-404f-b51a-53bd025a5086",
+      "question_text_markdown": "What is one reason why is it important to use the appropriate ARIA roles when creating custom widgets, such as tabbed interfaces?",
+      "answers": [
+        {
+          "answer_text_markdown": "Because roles define the state a particular control is in",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Because applying the correct role automatically applies the correct keyboard navigation behavior",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Because without setting the correct role, certain users will not have permission to use the widget",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Because they communicate to screen reader users the kind of control they are encountering",
+          "is_correct": true,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "I.D.4",
+        "text": "Explain how WAI-ARIA communicates semantics to assistive technologies, including roles, states, properties, and the accessibility tree."
+      },
+      "secondary_objectives": [
+        {
+          "id": "I.D.6",
+          "text": "Identify appropriate ARIA roles for common interactive widgets and structural page elements."
+        },
+        {
+          "id": "I.C.6",
+          "text": "Evaluate custom controls and widget implementations to determine whether they follow accessibility authoring practices and contain correct ARIA markup."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "The keyed answer states that appropriate ARIA roles communicate the kind of control to screen reader users. The primary construct is how ARIA conveys semantics to assistive technologies. It secondarily relates to selecting the right role and evaluating custom widgets for correct ARIA usage."
+    }
+  ]
+}

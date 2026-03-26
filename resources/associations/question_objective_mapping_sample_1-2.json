@@ -1,0 +1,34 @@
+[
+  {
+    "question_id": "0b784e75-8674-425f-aa83-45b8cd296bc2",
+    "question_text": "Which of the following is the best approach to ensure a web interface is interoperable across browsers, platforms, and assistive technologies?",
+    "primary": "II.A.3",
+    "primary_text": "Evaluate accessibility across devices, platforms, browsers, and assistive technologies.",
+    "secondary": [
+      {
+        "id": "I.E.1",
+        "text": "Identify how assistive technologies interact with browsers and other user agents, and explain what accessibility support means under WCAG."
+      },
+      {
+        "id": "II.A.2",
+        "text": "Explain why certain HTML or ARIA features may have support gaps across browsers or assistive technologies and how to mitigate those gaps."
+      }
+    ]
+  },
+  {
+    "question_id": "fd9e1240-f725-4d90-a38f-094f8d165c47",
+    "question_text": "Which of the following requirements listed in Annex A, Table A.1 of EN 301 549 goes beyond the scope of WCAG?",
+    "primary": "I.A.13",
+    "primary_text": "Identify EN 301 549 requirements beyond WCAG, including Annex A and Web Accessibility Directive implications.",
+    "secondary": [
+      {
+        "id": "II.B.13",
+        "text": "Analyze the scope and intent of EN 301 549 requirements in Annex A Table A.1 that go beyond WCAG."
+      },
+      {
+        "id": "II.B.12",
+        "text": "Compare WCAG with EN 301 549, including how WCAG requirements are incorporated and which additional EN 301 549 requirements extend beyond WCAG."
+      }
+    ]
+  }
+]

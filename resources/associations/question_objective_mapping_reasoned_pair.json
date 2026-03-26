@@ -1,0 +1,26 @@
+[
+  {
+    "question_id": "ff4e3f2b-0cb9-4ffb-b211-471b0b673700",
+    "question_text": "Under WCAG 2.1, which of the following would violate conformance level A or AA success criteria?",
+    "primary": "II.B.6",
+    "primary_text": "Analyze examples of web content to determine whether they meet or fail specific WCAG success criteria.",
+    "secondary": [
+      {
+        "id": "II.B.1",
+        "text": "Map accessibility barriers to the appropriate WCAG success criterion or EN 301 549 requirement and distinguish conformance failures from broader usability or best-practice issues."
+      }
+    ]
+  },
+  {
+    "question_id": "79fc2404-319f-451a-a500-9a327979a84d",
+    "question_text": "Under WCAG 2.1, which of the following would violate conformance level A or AA success criteria?",
+    "primary": "II.G.6",
+    "primary_text": "Evaluate the effects of contrast modes, text and non-text contrast, and color-contrast requirements on accessibility.",
+    "secondary": [
+      {
+        "id": "II.B.6",
+        "text": "Analyze examples of web content to determine whether they meet or fail specific WCAG success criteria."
+      }
+    ]
+  }
+]
