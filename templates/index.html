@@ -148,16 +148,15 @@
           // Move focus to the close button (first choice) or first focusable element
           const closeBtn = modal.querySelector(".btn-close");
           const firstFocusable = modal.querySelector(
-            'button:not([disabled]), [href], input:not([disabled]), ' +
-            'select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+            "button:not([disabled]), [href], input:not([disabled]), " +
+              'select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
           );
           setTimeout(() => (closeBtn || firstFocusable)?.focus(), 20);
 
           // Focus trap: Tab/Shift+Tab cycles within the dialog; Escape closes it
-          const FOCUSABLE = (
-            'button:not([disabled]), [href], input:not([disabled]), ' +
-            'select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
-          );
+          const FOCUSABLE =
+            "button:not([disabled]), [href], input:not([disabled]), " +
+            'select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
           modalFocusTrapHandler = (e) => {
             if (e.key === "Escape") {
               e.preventDefault();
@@ -165,8 +164,9 @@
               return;
             }
             if (e.key !== "Tab") return;
-            const focusable = Array.from(modal.querySelectorAll(FOCUSABLE))
-              .filter((el) => el.offsetParent !== null);
+            const focusable = Array.from(
+              modal.querySelectorAll(FOCUSABLE),
+            ).filter((el) => el.offsetParent !== null);
             if (focusable.length === 0) return;
             const first = focusable[0];
             const last = focusable[focusable.length - 1];
@@ -780,7 +780,9 @@
             const bVal = b.dataset[sortState.field] || "";
             let comparison = 0;
 
-            if (["objectives", "missing", "pending"].includes(sortState.field)) {
+            if (
+              ["objectives", "missing", "pending"].includes(sortState.field)
+            ) {
               comparison = Number(aVal) - Number(bVal);
             } else {
               comparison = String(aVal).localeCompare(String(bVal), undefined, {
@@ -1117,31 +1119,53 @@
               <thead class="table-light">
                 <tr>
                   <th scope="col">
-                    <button class="sortable-btn" type="button" data-sort-field="searchText">
+                    <button
+                      class="sortable-btn"
+                      type="button"
+                      data-sort-field="searchText"
+                    >
                       Question <i class="fas fa-sort"></i>
                     </button>
                   </th>
                   <th scope="col">
-                    <button class="sortable-btn" type="button" data-sort-field="objectives">
+                    <button
+                      class="sortable-btn"
+                      type="button"
+                      data-sort-field="objectives"
+                    >
                       Objectives <i class="fas fa-sort"></i>
                     </button>
                   </th>
                   <th scope="col">
-                    <button class="sortable-btn" type="button" data-sort-field="missing">
+                    <button
+                      class="sortable-btn"
+                      type="button"
+                      data-sort-field="missing"
+                    >
                       Missing Feedback <i class="fas fa-sort"></i>
                     </button>
                   </th>
                   <th scope="col">
-                    <button class="sortable-btn" type="button" data-sort-field="pending">
+                    <button
+                      class="sortable-btn"
+                      type="button"
+                      data-sort-field="pending"
+                    >
                       Pending Approval <i class="fas fa-sort"></i>
                     </button>
                   </th>
                   <th scope="col">
-                    <button class="sortable-btn" type="button" data-sort-field="created">
+                    <button
+                      class="sortable-btn"
+                      type="button"
+                      data-sort-field="created"
+                    >
                       Created <i class="fas fa-sort"></i>
                     </button>
                   </th>
-                  <th scope="col" class="text-end" style="width:6rem">Actions</th>
+                  <th scope="col" class="text-end" style="width: 6rem">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody id="questionsTableBody">
@@ -1156,19 +1180,30 @@
                   data-created="{{ question.created_at[:10] }}"
                 >
                   <td>
-                    <div class="question-preview">{{ question.question_text_html | safe }}</div>
+                    <div class="question-preview">
+                      {{ question.question_text_html | safe }}
+                    </div>
                   </td>
                   <td>
-                    <span class="badge bg-primary">{{ question.objective_count }}</span>
+                    <span class="badge bg-primary"
+                      >{{ question.objective_count }}</span
+                    >
                   </td>
                   <td>
-                    <span class="badge bg-warning text-dark">{{ question.answers_without_feedback_count }}</span>
+                    <span class="badge bg-warning text-dark"
+                      >{{ question.answers_without_feedback_count }}</span
+                    >
                   </td>
                   <td>
-                    <span class="badge bg-danger">{{ question.answers_with_feedback_pending_approval_count }}</span>
+                    <span class="badge bg-danger"
+                      >{{ question.answers_with_feedback_pending_approval_count
+                      }}</span
+                    >
                   </td>
                   <td>
-                    <small class="text-muted">{{ question.created_at[:10] }}</small>
+                    <small class="text-muted"
+                      >{{ question.created_at[:10] }}</small
+                    >
                   </td>
                   <td class="text-end">
                     <a
@@ -1176,14 +1211,17 @@
                       class="btn btn-sm btn-outline-secondary me-1"
                       aria-label="Edit question"
                       title="Edit"
-                    ><i class="fas fa-pencil-alt"></i></a>
+                      ><i class="fas fa-pencil-alt"></i
+                    ></a>
                     <button
                       type="button"
                       class="btn btn-sm btn-outline-danger delete-btn"
                       data-question-id="{{ question.id }}"
                       aria-label="Delete question"
                       title="Delete"
-                    ><i class="fas fa-trash"></i></button>
+                    >
+                      <i class="fas fa-trash"></i>
+                    </button>
                   </td>
                 </tr>
                 {% endfor %}
@@ -1255,8 +1293,14 @@
     </div>
 
     <!-- Delete Confirmation Modal -->
-    <div class="modal fade" id="deleteModal" tabindex="-1"
-         role="dialog" aria-modal="true" aria-labelledby="deleteModalTitle">
+    <div
+      class="modal fade"
+      id="deleteModal"
+      tabindex="-1"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="deleteModalTitle"
+    >
       <div class="modal-dialog">
         <div class="modal-content">
           <div class="modal-header">
