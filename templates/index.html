@@ -479,15 +479,6 @@
           }
         }, 100);
 
-        // Refresh button
-        const refreshBtn = document.getElementById("refreshBtn");
-        if (refreshBtn) {
-          refreshBtn.addEventListener("click", () => {
-            showAlert("info", "Refreshing question list...");
-            window.location.reload();
-          });
-        }
-
         // Fetch questions button
         const fetchBtn = document.getElementById("fetchBtn");
         if (fetchBtn) {
@@ -562,102 +553,6 @@
               showAlert("danger", "Error: " + error.message);
               loading.style.display = "none";
               fetchBtn.disabled = false;
-            }
-          });
-        }
-
-        // Create vector store
-        const createVectorStoreBtn = document.getElementById(
-          "createVectorStoreBtn",
-        );
-        if (createVectorStoreBtn) {
-          createVectorStoreBtn.addEventListener("click", async () => {
-            const originalText = createVectorStoreBtn.innerHTML;
-
-            // Show loading state
-            createVectorStoreBtn.disabled = true;
-            createVectorStoreBtn.innerHTML =
-              '<i class="fas fa-spinner fa-spin"></i> Creating Vector Store...';
-
-            try {
-              console.log("🔥 Starting vector store creation...");
-
-              const response = await fetch("/vector-store/create", {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-              });
-
-              const result = await response.json();
-              console.log("Vector store response:", result);
-
-              if (response.ok) {
-                console.log("✅ Vector store created successfully");
-                console.log("📊 Vector Store Stats:", result.stats);
-
-                // Log detailed statistics
-                if (result.stats) {
-                  console.log("🔢 === Vector Store Statistics ===");
-                  console.log(
-                    "📝 Total questions:",
-                    result.stats.total_questions,
-                  );
-                  console.log(
-                    "🎯 Total embeddings:",
-                    result.stats.total_embeddings,
-                  );
-                  console.log(
-                    "📐 Embedding dimension:",
-                    result.stats.embedding_dimension,
-                  );
-                  console.log(
-                    "📂 Storage path:",
-                    result.stats.vector_store_path,
-                  );
-                  console.log("🤖 Embedding model: Ollama nomic-embed-text");
-                  console.log("🏷️ Topics:", result.stats.topics);
-                  console.log(
-                    "❓ Question types:",
-                    result.stats.question_types,
-                  );
-                  console.log("🏷️ Tags:", result.stats.tags);
-                  console.log("================================");
-                }
-
-                showAlert(
-                  "success",
-                  `${result.message}<br><small>Using Ollama nomic-embed-text model • Check console for detailed statistics</small>`,
-                );
-              } else {
-                console.error(
-                  "❌ Vector store creation failed:",
-                  result.detail,
-                );
-
-                // Provide specific help for Ollama-related errors
-                let errorMessage =
-                  result.detail || "Failed to create vector store";
-                if (errorMessage.includes("Cannot connect to Ollama")) {
-                  errorMessage +=
-                    "<br><br><strong>Setup Instructions:</strong><br>" +
-                    "1. Install Ollama: <code>curl -fsSL https://ollama.ai/install.sh | sh</code><br>" +
-                    "2. Pull nomic-embed-text model: <code>ollama pull nomic-embed-text</code><br>" +
-                    "3. Ensure Ollama is running: <code>ollama serve</code>";
-                }
-
-                showAlert("danger", errorMessage);
-              }
-            } catch (error) {
-              console.error("💥 Vector store creation error:", error);
-              showAlert(
-                "danger",
-                "Error creating vector store: " + error.message,
-              );
-            } finally {
-              // Restore button state
-              createVectorStoreBtn.disabled = false;
-              createVectorStoreBtn.innerHTML = originalText;
             }
           });
         }
@@ -943,48 +838,6 @@
             <i class="fas fa-question-circle text-primary"></i> Canvas Quiz
             Manager
           </h1>
-          <div class="header-buttons">
-            <a href="/questions/new" class="btn btn-success">
-              <i class="fas fa-plus"></i> New Question
-            </a>
-            <a href="/chat" class="btn btn-outline-primary">
-              <i class="fas fa-comments"></i> Chat Assistant
-            </a>
-            <button id="refreshBtn" class="btn btn-outline-secondary">
-              <i class="fas fa-sync-alt"></i> Refresh List
-            </button>
-            <div class="dropdown">
-              <button
-                class="btn btn-outline-secondary dropdown-toggle"
-                type="button"
-                id="moreOptionsDropdown"
-                data-bs-toggle="dropdown"
-                aria-expanded="false"
-              >
-                <i class="fas fa-ellipsis-h"></i> More Options
-              </button>
-              <ul class="dropdown-menu" aria-labelledby="moreOptionsDropdown">
-                <li>
-                  <a class="dropdown-item" href="/objectives">
-                    <i class="fas fa-bullseye"></i> Learning Objectives
-                  </a>
-                </li>
-                <li>
-                  <a class="dropdown-item" href="/system-prompt">
-                    <i class="fas fa-cog"></i> Feedback System Prompt
-                  </a>
-                </li>
-                <li>
-                  <hr class="dropdown-divider" />
-                </li>
-                <li>
-                  <button class="dropdown-item" id="createVectorStoreBtn">
-                    <i class="fas fa-database"></i> Create Vector Store
-                  </button>
-                </li>
-              </ul>
-            </div>
-          </div>
         </div>
       </div>
     </div>
