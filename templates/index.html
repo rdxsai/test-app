@@ -22,21 +22,41 @@
     />
     <!-- All your <style> and <script> in the head are correct and unchanged -->
     <style>
-      .question-card {
-        transition: transform 0.2s;
-        cursor: pointer;
-        position: relative;
-      }
-
-      .question-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        z-index: 10;
-      }
-
       .question-text {
         max-height: 100px;
         overflow-y: auto;
+      }
+
+      .question-table-wrapper {
+        border: 1px solid #dee2e6;
+        border-radius: 0.5rem;
+        overflow: hidden;
+      }
+
+      .question-table {
+        margin-bottom: 0;
+      }
+
+      .question-row:hover {
+        background-color: #f8f9fa;
+      }
+
+      .question-preview {
+        max-height: 120px;
+        overflow-y: auto;
+      }
+
+      .sortable-btn {
+        border: 0;
+        background: transparent;
+        font-weight: 600;
+        color: inherit;
+        padding: 0;
+      }
+
+      .sortable-btn i {
+        margin-left: 0.3rem;
+        color: #6c757d;
       }
 
       .loading {
@@ -69,7 +89,7 @@
         flex-shrink: 0;
       }
 
-      .question-card .dropdown-menu {
+      .question-table .dropdown-menu {
         z-index: 1051;
       }
 
@@ -84,6 +104,8 @@
 
       // Global variables
       let questionToDelete = null;
+      let modalTriggerElement = null;
+      let modalFocusTrapHandler = null;
 
       // Helper functions
       function showAlert(type, message) {
@@ -106,24 +128,73 @@
       }
 
       // Simple modal functions
-      function showModal(modalId) {
+      function showModal(modalId, triggerEl) {
         const modal = document.getElementById(modalId);
         if (modal) {
+          // Remember what triggered the modal so we can return focus on close
+          modalTriggerElement = triggerEl || null;
+
           modal.style.display = "block";
           modal.classList.add("show");
           document.body.classList.add("modal-open");
+
           // Add backdrop
           if (!document.querySelector(".modal-backdrop")) {
             const backdrop = document.createElement("div");
             backdrop.className = "modal-backdrop fade show";
             document.body.appendChild(backdrop);
           }
+
+          // Move focus to the close button (first choice) or first focusable element
+          const closeBtn = modal.querySelector(".btn-close");
+          const firstFocusable = modal.querySelector(
+            'button:not([disabled]), [href], input:not([disabled]), ' +
+            'select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+          );
+          setTimeout(() => (closeBtn || firstFocusable)?.focus(), 20);
+
+          // Focus trap: Tab/Shift+Tab cycles within the dialog; Escape closes it
+          const FOCUSABLE = (
+            'button:not([disabled]), [href], input:not([disabled]), ' +
+            'select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+          );
+          modalFocusTrapHandler = (e) => {
+            if (e.key === "Escape") {
+              e.preventDefault();
+              hideModal(modalId);
+              return;
+            }
+            if (e.key !== "Tab") return;
+            const focusable = Array.from(modal.querySelectorAll(FOCUSABLE))
+              .filter((el) => el.offsetParent !== null);
+            if (focusable.length === 0) return;
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+            if (e.shiftKey) {
+              if (document.activeElement === first) {
+                e.preventDefault();
+                last.focus();
+              }
+            } else {
+              if (document.activeElement === last) {
+                e.preventDefault();
+                first.focus();
+              }
+            }
+          };
+          modal.addEventListener("keydown", modalFocusTrapHandler);
         }
       }
 
       function hideModal(modalId) {
         const modal = document.getElementById(modalId);
         if (modal) {
+          // Remove focus trap
+          if (modalFocusTrapHandler) {
+            modal.removeEventListener("keydown", modalFocusTrapHandler);
+            modalFocusTrapHandler = null;
+          }
+
           modal.style.display = "none";
           modal.classList.remove("show");
           document.body.classList.remove("modal-open");
@@ -131,6 +202,15 @@
           if (backdrop) {
             backdrop.remove();
           }
+
+          // Return focus: back to the trigger if it's still in the DOM,
+          // otherwise fall back to the search input
+          const returnTarget =
+            modalTriggerElement && document.body.contains(modalTriggerElement)
+              ? modalTriggerElement
+              : document.getElementById("searchInput");
+          returnTarget?.focus();
+          modalTriggerElement = null;
         }
       }
 
@@ -614,8 +694,15 @@
         // Search functionality
         const searchInput = document.getElementById("searchInput");
         const clearSearchBtn = document.getElementById("clearSearch");
+        const statusFilter = document.getElementById("statusFilter");
         const questionCount = document.getElementById("questionCount");
         const filteredCount = document.getElementById("filteredCount");
+        const sortableHeaders = document.querySelectorAll(".sortable-btn");
+
+        const sortState = {
+          field: "created",
+          direction: "desc",
+        };
 
         if (searchInput) {
           // Search input event listener
@@ -633,6 +720,12 @@
             });
           }
 
+          if (statusFilter) {
+            statusFilter.addEventListener("change", function () {
+              filterQuestions(searchInput.value.toLowerCase().trim());
+            });
+          }
+
           // Search on Enter key
           searchInput.addEventListener("keydown", function (e) {
             if (e.key === "Escape") {
@@ -642,34 +735,100 @@
           });
         }
 
+        sortableHeaders.forEach((headerBtn) => {
+          headerBtn.addEventListener("click", () => {
+            const field = headerBtn.dataset.sortField;
+
+            if (sortState.field === field) {
+              sortState.direction =
+                sortState.direction === "asc" ? "desc" : "asc";
+            } else {
+              sortState.field = field;
+              sortState.direction = "asc";
+            }
+
+            sortQuestionRows();
+            updateSortIcons();
+          });
+        });
+
+        function updateSortIcons() {
+          sortableHeaders.forEach((headerBtn) => {
+            const icon = headerBtn.querySelector("i");
+            if (!icon) return;
+
+            if (headerBtn.dataset.sortField !== sortState.field) {
+              icon.className = "fas fa-sort";
+              return;
+            }
+
+            icon.className =
+              sortState.direction === "asc"
+                ? "fas fa-sort-up"
+                : "fas fa-sort-down";
+          });
+        }
+
+        function sortQuestionRows() {
+          const tableBody = document.getElementById("questionsTableBody");
+          if (!tableBody) return;
+
+          const rows = Array.from(tableBody.querySelectorAll(".question-row"));
+
+          rows.sort((a, b) => {
+            const aVal = a.dataset[sortState.field] || "";
+            const bVal = b.dataset[sortState.field] || "";
+            let comparison = 0;
+
+            if (["objectives", "missing", "pending"].includes(sortState.field)) {
+              comparison = Number(aVal) - Number(bVal);
+            } else {
+              comparison = String(aVal).localeCompare(String(bVal), undefined, {
+                numeric: true,
+                sensitivity: "base",
+              });
+            }
+
+            return sortState.direction === "asc" ? comparison : -comparison;
+          });
+
+          rows.forEach((row) => tableBody.appendChild(row));
+        }
+
         // Filter questions function
         function filterQuestions(searchTerm) {
-          const questionCards = document.querySelectorAll(
-            "#questionsContainer [data-question-id]",
+          const questionRows = document.querySelectorAll(
+            "#questionsTableBody .question-row",
           );
+          const activeStatusFilter = statusFilter ? statusFilter.value : "all";
           let visibleCount = 0;
 
-          questionCards.forEach((card) => {
-            const questionText =
-              card.querySelector(".question-text")?.textContent.toLowerCase() ||
-              "";
+          questionRows.forEach((row) => {
+            const questionText = row.dataset.searchText || "";
+            const objectiveCount = row.dataset.objectives || "0";
+            const missingCount = Number(row.dataset.missing || "0");
+            const pendingCount = Number(row.dataset.pending || "0");
 
-            // --- FIX: Search question text *and* objective count ---
-            const objectiveCount =
-              card
-                .querySelector(".question-type-badge")
-                ?.textContent.toLowerCase() || "";
-
-            const matches =
+            const matchesSearch =
               searchTerm === "" ||
               questionText.includes(searchTerm) ||
-              objectiveCount.includes(searchTerm); // Use the new badge text
+              objectiveCount.includes(searchTerm);
+
+            const matchesStatus =
+              activeStatusFilter === "all" ||
+              (activeStatusFilter === "missing" && missingCount > 0) ||
+              (activeStatusFilter === "pending" && pendingCount > 0) ||
+              (activeStatusFilter === "clean" &&
+                missingCount === 0 &&
+                pendingCount === 0);
+
+            const matches = matchesSearch && matchesStatus;
 
             if (matches) {
-              card.style.display = "block";
+              row.style.display = "";
               visibleCount++;
             } else {
-              card.style.display = "none";
+              row.style.display = "none";
             }
           });
 
@@ -684,10 +843,15 @@
           }
         }
 
+        const tableBody = document.getElementById("questionsTableBody");
+        if (tableBody) {
+          updateSortIcons();
+          sortQuestionRows();
+        }
+
         // Delete functionality with Bootstrap fallback
         document.addEventListener("click", async (e) => {
           if (e.target.closest(".delete-btn")) {
-            e.preventDefault();
             const target = e.target.closest(".delete-btn");
             const questionId = target.dataset.questionId;
 
@@ -695,7 +859,7 @@
             if (typeof bootstrap !== "undefined" && bootstrap.Modal) {
               // Use Bootstrap modal
               questionToDelete = questionId;
-              showModal("deleteModal");
+              showModal("deleteModal", target);
             } else {
               // Fallback to native confirm dialog
               console.log(
@@ -729,13 +893,19 @@
                 "success",
                 result.message || "Question deleted successfully",
               );
-              // Remove the question card from the page
-              const questionCard = document.querySelector(
+              // Remove the question row from the page
+              const questionRow = document.querySelector(
                 `[data-question-id="${questionId}"]`,
               );
-              if (questionCard) {
-                questionCard.remove();
+              if (questionRow) {
+                questionRow.remove();
               }
+
+              filterQuestions(
+                (document.getElementById("searchInput")?.value || "")
+                  .toLowerCase()
+                  .trim(),
+              );
             } else {
               showAlert("danger", result.detail || "Failed to delete question");
             }
@@ -872,8 +1042,8 @@
       <!-- This will now work because 'questions' is a valid list -->
       {% if questions %}
       <div class="mb-3">
-        <div class="row">
-          <div class="col-md-6">
+        <div class="row g-2">
+          <div class="col-md-5">
             <div class="input-group">
               <span class="input-group-text">
                 <i class="fas fa-search"></i>
@@ -889,12 +1059,21 @@
                 class="btn btn-outline-secondary"
                 type="button"
                 id="clearSearch"
+                aria-label="Clear question search"
               >
                 <i class="fas fa-times"></i>
               </button>
             </div>
           </div>
-          <div class="col-md-6 d-flex align-items-center">
+          <div class="col-md-3">
+            <select id="statusFilter" class="form-select">
+              <option value="all" selected>All questions</option>
+              <option value="missing">Missing feedback</option>
+              <option value="pending">Pending approval</option>
+              <option value="clean">No issues</option>
+            </select>
+          </div>
+          <div class="col-md-4 d-flex align-items-center flex-wrap gap-2">
             <span class="badge bg-secondary" id="questionCount"
               >{{ questions|length }} questions loaded</span
             >
@@ -920,10 +1099,10 @@
       {% endif %}
 
       <!-- Questions list -->
-      <div class="row" id="questionsContainer">
+      <div id="questionsContainer">
         {% if not questions %}
         <!-- This 'if' block is unchanged and correct -->
-        <div class="col-12">
+        <div>
           <div class="alert alert-warning text-center">
             <i class="fas fa-exclamation-triangle"></i>
             No questions loaded. Your database is empty. (Note: The "Fetch
@@ -932,87 +1111,86 @@
         </div>
         {% else %}
 
-        <!-- --- === THIS IS THE CORE FIX === --- -->
-        {% for question in questions %}
-        <div
-          class="col-lg-6 col-xl-4 mb-4"
-          data-question-id="{{ question.id }}"
-        >
-          <div class="card question-card h-100">
-            <div
-              class="card-header d-flex justify-content-between align-items-center"
-            >
-              <!-- --- FIX 1 --- -->
-              <!-- Replaced 'question.question_type' with 'question.objective_count' -->
-              <span class="badge bg-primary question-type-badge">
-                {{ question.objective_count }} Objectives
-              </span>
-
-              <div class="dropdown">
-                <button
-                  class="btn btn-sm btn-outline-secondary dropdown-toggle"
-                  type="button"
-                  data-bs-toggle="dropdown"
-                  aria-expanded="false"
+        <div class="question-table-wrapper">
+          <div class="table-responsive">
+            <table class="table table-hover align-middle question-table">
+              <thead class="table-light">
+                <tr>
+                  <th scope="col">
+                    <button class="sortable-btn" type="button" data-sort-field="searchText">
+                      Question <i class="fas fa-sort"></i>
+                    </button>
+                  </th>
+                  <th scope="col">
+                    <button class="sortable-btn" type="button" data-sort-field="objectives">
+                      Objectives <i class="fas fa-sort"></i>
+                    </button>
+                  </th>
+                  <th scope="col">
+                    <button class="sortable-btn" type="button" data-sort-field="missing">
+                      Missing Feedback <i class="fas fa-sort"></i>
+                    </button>
+                  </th>
+                  <th scope="col">
+                    <button class="sortable-btn" type="button" data-sort-field="pending">
+                      Pending Approval <i class="fas fa-sort"></i>
+                    </button>
+                  </th>
+                  <th scope="col">
+                    <button class="sortable-btn" type="button" data-sort-field="created">
+                      Created <i class="fas fa-sort"></i>
+                    </button>
+                  </th>
+                  <th scope="col" class="text-end" style="width:6rem">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="questionsTableBody">
+                {% for question in questions %}
+                <tr
+                  class="question-row"
+                  data-question-id="{{ question.id }}"
+                  data-search-text="{{ (question.question_text_html | striptags | lower) }}"
+                  data-objectives="{{ question.objective_count }}"
+                  data-missing="{{ question.answers_without_feedback_count }}"
+                  data-pending="{{ question.answers_with_feedback_pending_approval_count }}"
+                  data-created="{{ question.created_at[:10] }}"
                 >
-                  <i class="fas fa-ellipsis-v"></i>
-                </button>
-                <ul class="dropdown-menu">
-                  <!-- This link is now correct and uses the UUID -->
-                  <li>
+                  <td>
+                    <div class="question-preview">{{ question.question_text_html | safe }}</div>
+                  </td>
+                  <td>
+                    <span class="badge bg-primary">{{ question.objective_count }}</span>
+                  </td>
+                  <td>
+                    <span class="badge bg-warning text-dark">{{ question.answers_without_feedback_count }}</span>
+                  </td>
+                  <td>
+                    <span class="badge bg-danger">{{ question.answers_with_feedback_pending_approval_count }}</span>
+                  </td>
+                  <td>
+                    <small class="text-muted">{{ question.created_at[:10] }}</small>
+                  </td>
+                  <td class="text-end">
                     <a
-                      class="dropdown-item"
                       href="/questions/{{ question.id }}"
-                    >
-                      <i class="fas fa-edit"></i> Edit
-                    </a>
-                  </li>
-                  <li>
-                    <hr class="dropdown-divider" />
-                  </li>
-                  <li>
-                    <a
-                      class="dropdown-item text-danger delete-btn"
-                      href="#"
+                      class="btn btn-sm btn-outline-secondary me-1"
+                      aria-label="Edit question"
+                      title="Edit"
+                    ><i class="fas fa-pencil-alt"></i></a>
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-outline-danger delete-btn"
                       data-question-id="{{ question.id }}"
-                    >
-                      <i class="fas fa-trash"></i> Delete
-                    </a>
-                  </li>
-                </ul>
-              </div>
-            </div>
-            <!-- This click handler is now correct and uses the UUID -->
-            <div
-              class="card-body"
-              onclick="window.location.href='/questions/{{ question.id }}'"
-            >
-              <div class="question-text">
-                {{ question.question_text_html | safe }}
-              </div>
-              <div class="mt-2 d-flex flex-wrap gap-2">
-                <span class="badge bg-warning text-dark">
-                  {{ question.answers_without_feedback_count }} answers without
-                  feedback
-                </span>
-                <span class="badge bg-danger">
-                  {{ question.answers_with_feedback_pending_approval_count }}
-                  pending approval
-                </span>
-              </div>
-              <div class="mt-2">
-                <small class="text-muted">
-                  <!-- --- FIX 3 --- -->
-                  <!-- Replaced 'points_possible' and 'answers' with 'created_at' -->
-                  <i class="fas fa-calendar-alt"></i> Created: {{
-                  question.created_at[:10] }}
-                </small>
-              </div>
-            </div>
+                      aria-label="Delete question"
+                      title="Delete"
+                    ><i class="fas fa-trash"></i></button>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
           </div>
         </div>
-        {% endfor %}
-        <!-- --- === END OF THE FIX === --- -->
 
         {% endif %}
       </div>
@@ -1031,6 +1209,7 @@
               type="button"
               class="btn-close"
               data-bs-dismiss="modal"
+              aria-label="Close system prompt modal"
             ></button>
           </div>
           <div class="modal-body">
@@ -1076,15 +1255,17 @@
     </div>
 
     <!-- Delete Confirmation Modal -->
-    <div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal fade" id="deleteModal" tabindex="-1"
+         role="dialog" aria-modal="true" aria-labelledby="deleteModalTitle">
       <div class="modal-dialog">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title">Confirm Delete</h5>
+            <h5 class="modal-title" id="deleteModalTitle">Confirm Delete</h5>
             <button
               type="button"
               class="btn-close"
               data-bs-dismiss="modal"
+              aria-label="Close delete confirmation modal"
             ></button>
           </div>
           <div class="modal-body">
