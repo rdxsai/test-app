@@ -11,171 +11,197 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.1/marked.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
   <style>
-    body { background-color: #f8f9fa; }
+    body { background-color: #f8f9fa; margin: 0; overflow: hidden; }
 
-    .sticky-header {
-      position: sticky; top: 0; z-index: 1000;
-      background-color: white; border-bottom: 1px solid #dee2e6;
-      padding: 1rem 0; margin-bottom: 0;
+    /* App layout — sidebar + main */
+    .app-layout { display: flex; height: 100vh; }
+
+    /* Student sidebar */
+    .student-sidebar {
+      width: 240px; min-width: 240px;
+      background: #fff; border-right: 1px solid #dee2e6;
+      display: flex; flex-direction: column;
     }
+    .sidebar-header {
+      padding: 0.75rem 1rem; border-bottom: 1px solid #dee2e6;
+      background: #f8f9fa;
+    }
+    .sidebar-header h6 { margin: 0 0 0.5rem 0; font-size: 0.9rem; }
+    .student-list { flex: 1; overflow-y: auto; padding: 0.4rem; }
+    .student-item {
+      padding: 0.55rem 0.7rem; border-radius: 8px;
+      cursor: pointer; margin-bottom: 0.3rem; border: 1px solid transparent;
+      transition: all 0.12s;
+    }
+    .student-item:hover { background: #f0f0f0; }
+    .student-item.active { background: #e7f1ff; border-color: #0d6efd; }
+    .student-item .student-label { font-weight: 600; font-size: 0.82rem; color: #212529; }
+    .student-item .student-meta { font-size: 0.7rem; color: #6c757d; line-height: 1.3; margin-top: 0.15rem; }
+    .student-item .student-level {
+      display: inline-block; font-size: 0.65rem; font-weight: 600;
+      padding: 0.05rem 0.4rem; border-radius: 3px; margin-top: 0.2rem;
+    }
+    .student-level.none { background: #e9ecef; color: #6c757d; }
+    .student-level.awareness, .student-level.working_knowledge { background: #cff4fc; color: #055160; }
+    .student-level.professional { background: #d1e7dd; color: #0f5132; }
+    .sidebar-footer { padding: 0.5rem; border-top: 1px solid #dee2e6; font-size: 0.7rem; color: #999; text-align: center; }
+    .sidebar-nav { padding: 0.5rem 1rem; border-top: 1px solid #dee2e6; display: flex; gap: 0.3rem; }
+    .sidebar-nav a { font-size: 0.75rem; }
+
+    /* Main content area */
+    .main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+
+    /* Header — inline in main content */
+    .main-header {
+      background-color: white; border-bottom: 1px solid #dee2e6;
+      padding: 0.6rem 1rem;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .main-header h1 { font-size: 1.2rem; margin: 0; }
 
     /* Stage bar */
     .stage-bar {
       background: linear-gradient(135deg, #0d6efd11, #6610f211);
       border-bottom: 1px solid #dee2e6;
-      padding: 0.5rem 1rem;
-      font-size: 0.85rem;
+      padding: 0.4rem 1rem; font-size: 0.82rem;
     }
     .stage-bar .stage-name { font-weight: 600; color: #0d6efd; text-transform: uppercase; }
     .stage-bar .objective-name { color: #495057; }
 
-    /* Assessment score display */
     .assessment-bar {
       background-color: #fff3cd; border-bottom: 1px solid #ffc107;
-      padding: 0.4rem 1rem; font-size: 0.82rem; display: none;
+      padding: 0.35rem 1rem; font-size: 0.8rem; display: none;
     }
     .assessment-bar .score { font-weight: 700; font-size: 1rem; }
 
-    /* Chat */
-    .chat-container {
-      height: calc(100vh - 210px);
-      display: flex; flex-direction: column;
-      background-color: #ffffff; border: 1px solid #dee2e6; border-radius: 0 0 8px 8px;
-    }
-    .chat-messages { flex-grow: 1; overflow-y: auto; padding: 1rem; }
+    /* Chat + progress grid */
+    .content-grid { flex: 1; display: flex; overflow: hidden; }
+    .chat-column { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+    .progress-column { width: 280px; min-width: 280px; border-left: 1px solid #dee2e6; display: flex; flex-direction: column; }
+
+    .chat-messages { flex: 1; overflow-y: auto; padding: 1rem; }
     .chat-input-area { border-top: 1px solid #dee2e6; padding: 0.75rem; background-color: #f8f9fa; }
     .chat-input-area textarea { resize: none; max-height: 10rem; }
 
     /* Message bubbles */
     .message-bubble { display: flex; align-items: flex-start; margin-bottom: 1.25rem; max-width: 85%; }
-    .avatar { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; flex-shrink: 0; }
+    .avatar { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; flex-shrink: 0; font-size: 0.8rem; }
     .avatar-tutor { background-color: #0d6efd; }
     .avatar-user { background-color: #6c757d; }
-    .message-content { padding: 0.75rem 1rem; border-radius: 12px; position: relative; }
+    .message-content { padding: 0.6rem 0.9rem; border-radius: 12px; position: relative; }
     .message-bubble.tutor { margin-right: auto; }
-    .message-bubble.tutor .message-content { background-color: #e9ecef; color: #212529; margin-left: 0.75rem; border-bottom-left-radius: 0; }
+    .message-bubble.tutor .message-content { background-color: #e9ecef; color: #212529; margin-left: 0.6rem; border-bottom-left-radius: 0; }
     .message-bubble.user { margin-left: auto; flex-direction: row-reverse; }
-    .message-bubble.user .message-content { background-color: #0d6efd; color: white; margin-right: 0.75rem; border-bottom-right-radius: 0; }
-    .message-timestamp { font-size: 0.75rem; color: #6c757d; margin-top: 0.25rem; }
+    .message-bubble.user .message-content { background-color: #0d6efd; color: white; margin-right: 0.6rem; border-bottom-right-radius: 0; }
+    .message-timestamp { font-size: 0.7rem; color: #6c757d; margin-top: 0.2rem; }
     .message-bubble.user .message-timestamp { text-align: right; }
 
-    /* Typing indicator */
+    /* Typing */
     .typing-indicator { display: none; align-items: flex-start; }
     .typing-content { display: flex; align-items: center; gap: 0.5rem; }
     .typing-dots { display: inline-block; }
-    .typing-dots span { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: #6c757d; margin: 0 2px; animation: typing 1.4s infinite ease-in-out; }
+    .typing-dots span { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background-color: #6c757d; margin: 0 2px; animation: typing 1.4s infinite ease-in-out; }
     .typing-dots span:nth-child(1) { animation-delay: -0.32s; }
     .typing-dots span:nth-child(2) { animation-delay: -0.16s; }
     @keyframes typing { 0%,80%,100% { transform: scale(0.8); opacity: 0.5; } 40% { transform: scale(1); opacity: 1; } }
-    .stage-label { font-size: 0.8rem; color: #6c757d; font-style: italic; }
-    .ws-status { font-size: 0.75rem; padding: 0.15rem 0.5rem; border-radius: 4px; }
+    .stage-label { font-size: 0.78rem; color: #6c757d; font-style: italic; }
+    .ws-status { font-size: 0.7rem; padding: 0.1rem 0.4rem; border-radius: 3px; }
     .ws-status.connected { color: #198754; }
     .ws-status.disconnected { color: #dc3545; }
 
-    /* Right panel — learning progress */
-    .progress-panel { height: calc(100vh - 210px); border: 1px solid #dee2e6; border-radius: 8px; background-color: #ffffff; }
-    .progress-header { padding: 1rem; border-bottom: 1px solid #dee2e6; }
-    .progress-content { height: calc(100% - 60px); overflow-y: auto; padding: 1rem; }
-
-    /* Mastery cards */
-    .mastery-card { padding: 0.5rem 0.75rem; border: 1px solid #e9ecef; border-radius: 6px; margin-bottom: 0.5rem; font-size: 0.82rem; }
+    /* Progress panel */
+    .progress-header { padding: 0.75rem 1rem; border-bottom: 1px solid #dee2e6; background: #f8f9fa; }
+    .progress-header h6 { margin: 0; font-size: 0.85rem; }
+    .progress-content { flex: 1; overflow-y: auto; padding: 0.75rem; }
+    .mastery-card { padding: 0.45rem 0.65rem; border: 1px solid #e9ecef; border-radius: 6px; margin-bottom: 0.4rem; font-size: 0.78rem; }
     .mastery-card .objective-text { font-weight: 500; }
-    .mastery-level { display: inline-block; padding: 0.1rem 0.5rem; border-radius: 4px; font-size: 0.72rem; font-weight: 600; }
+    .mastery-level { display: inline-block; padding: 0.05rem 0.4rem; border-radius: 4px; font-size: 0.68rem; font-weight: 600; }
     .mastery-level.mastered { background-color: #d1e7dd; color: #0f5132; }
     .mastery-level.partial { background-color: #fff3cd; color: #664d03; }
     .mastery-level.in_progress { background-color: #cff4fc; color: #055160; }
     .mastery-level.misconception { background-color: #f8d7da; color: #842029; }
     .mastery-level.not_attempted { background-color: #e9ecef; color: #6c757d; }
 
-    /* Markdown in messages */
-    .message-content p { margin-bottom: 0.5rem; }
-    .message-content p:last-child { margin-bottom: 0; }
-    .message-content ul, .message-content ol { padding-left: 1.5rem; margin-bottom: 0.5rem; }
-    .message-content code { background-color: rgba(0,0,0,0.06); padding: 0.15rem 0.35rem; border-radius: 3px; font-size: 0.88em; }
+    /* Markdown */
+    .message-content p { margin-bottom: 0.4rem; } .message-content p:last-child { margin-bottom: 0; }
+    .message-content ul, .message-content ol { padding-left: 1.5rem; margin-bottom: 0.4rem; }
+    .message-content code { background-color: rgba(0,0,0,0.06); padding: 0.12rem 0.3rem; border-radius: 3px; font-size: 0.86em; }
     .message-bubble.user .message-content code { background-color: rgba(255,255,255,0.2); }
-    .message-content pre { background-color: #1e1e1e; color: #d4d4d4; padding: 0.75rem 1rem; border-radius: 6px; overflow-x: auto; margin: 0.5rem 0; font-size: 0.85rem; line-height: 1.5; }
+    .message-content pre { background-color: #1e1e1e; color: #d4d4d4; padding: 0.6rem 0.8rem; border-radius: 6px; overflow-x: auto; margin: 0.4rem 0; font-size: 0.82rem; line-height: 1.5; }
     .message-content pre code { background: none; padding: 0; border-radius: 0; font-size: inherit; color: inherit; }
-    .message-content blockquote { border-left: 3px solid #0d6efd; margin: 0.5rem 0; padding: 0.25rem 0.75rem; color: #495057; background-color: rgba(13,110,253,0.04); border-radius: 0 4px 4px 0; }
-    .message-content table { width: 100%; border-collapse: collapse; margin: 0.5rem 0; font-size: 0.85rem; }
-    .message-content th, .message-content td { border: 1px solid #dee2e6; padding: 0.4rem 0.6rem; text-align: left; }
+    .message-content blockquote { border-left: 3px solid #0d6efd; margin: 0.4rem 0; padding: 0.2rem 0.6rem; color: #495057; background-color: rgba(13,110,253,0.04); border-radius: 0 4px 4px 0; }
+    .message-content table { width: 100%; border-collapse: collapse; margin: 0.4rem 0; font-size: 0.82rem; }
+    .message-content th, .message-content td { border: 1px solid #dee2e6; padding: 0.35rem 0.5rem; text-align: left; }
     .message-content th { background-color: rgba(0,0,0,0.04); font-weight: 600; }
 
-    /* Onboarding form cards */
-    .onboarding-card {
-      background: #fff; border: 1px solid #dee2e6; border-radius: 12px;
-      padding: 1.25rem; margin-bottom: 1rem; max-width: 85%;
-    }
-    .onboarding-card .question-text { font-weight: 600; font-size: 1rem; margin-bottom: 0.25rem; }
-    .onboarding-card .question-desc { font-size: 0.82rem; color: #6c757d; margin-bottom: 0.75rem; }
-    .onboarding-card .step-badge { font-size: 0.7rem; color: #6c757d; margin-bottom: 0.5rem; }
-    .onboarding-options { display: flex; flex-direction: column; gap: 0.5rem; }
-    .onboarding-option {
-      display: flex; align-items: center; gap: 0.75rem;
-      padding: 0.6rem 1rem; border: 2px solid #e9ecef; border-radius: 8px;
-      cursor: pointer; transition: all 0.15s; background: #fff;
-    }
+    /* Onboarding forms */
+    .onboarding-card { background: #fff; border: 1px solid #dee2e6; border-radius: 12px; padding: 1.1rem; margin-bottom: 1rem; max-width: 85%; }
+    .onboarding-card .question-text { font-weight: 600; font-size: 0.95rem; margin-bottom: 0.2rem; }
+    .onboarding-card .question-desc { font-size: 0.78rem; color: #6c757d; margin-bottom: 0.6rem; }
+    .onboarding-card .step-badge { font-size: 0.68rem; color: #6c757d; margin-bottom: 0.4rem; }
+    .onboarding-options { display: flex; flex-direction: column; gap: 0.4rem; }
+    .onboarding-option { display: flex; align-items: center; gap: 0.6rem; padding: 0.5rem 0.8rem; border: 2px solid #e9ecef; border-radius: 8px; cursor: pointer; transition: all 0.12s; background: #fff; }
     .onboarding-option:hover { border-color: #0d6efd; background: #f0f6ff; }
     .onboarding-option.selected { border-color: #0d6efd; background: #e7f1ff; }
-    .onboarding-option .opt-label { font-weight: 500; font-size: 0.9rem; }
-    .onboarding-option .opt-desc { font-size: 0.78rem; color: #6c757d; }
-    .onboarding-other {
-      display: none; margin-top: 0.5rem;
-    }
-    .onboarding-other.visible { display: flex; gap: 0.5rem; }
+    .onboarding-option .opt-label { font-weight: 500; font-size: 0.85rem; }
+    .onboarding-option .opt-desc { font-size: 0.74rem; color: #6c757d; }
+    .onboarding-other { display: none; margin-top: 0.4rem; }
+    .onboarding-other.visible { display: flex; gap: 0.4rem; }
     .onboarding-other input { flex: 1; }
-    .onboarding-submit {
-      margin-top: 0.75rem; width: 100%;
-    }
+    .onboarding-submit { margin-top: 0.6rem; width: 100%; }
   </style>
 </head>
 
 <body>
-  <!-- Header -->
-  <div class="sticky-header">
-    <div class="container-fluid">
-      <div class="d-flex justify-content-between align-items-center">
-        <h1 class="h3 mb-0">
-          <i class="fas fa-graduation-cap text-primary"></i> Guided Learning
-        </h1>
-        <div class="d-flex align-items-center gap-2">
-          <span id="wsStatus" class="ws-status disconnected">Connecting...</span>
-          <a href="/chat" class="btn btn-outline-secondary btn-sm">
-            <i class="fas fa-comments"></i> Q&A Mode
-          </a>
-          <a href="/" class="btn btn-outline-secondary btn-sm">
-            <i class="fas fa-arrow-left"></i> Home
-          </a>
+  <div class="app-layout">
+    <!-- ============ STUDENT SIDEBAR ============ -->
+    <div class="student-sidebar">
+      <div class="sidebar-header">
+        <h6><i class="fas fa-users"></i> Students</h6>
+        <button id="newStudentBtn" class="btn btn-primary btn-sm w-100">
+          <i class="fas fa-plus"></i> New Student
+        </button>
+      </div>
+      <div class="student-list" id="studentList"></div>
+      <div class="sidebar-nav">
+        <a href="/chat" class="btn btn-outline-secondary btn-sm flex-fill"><i class="fas fa-comments"></i> Q&A</a>
+        <a href="/" class="btn btn-outline-secondary btn-sm flex-fill"><i class="fas fa-home"></i> Home</a>
+      </div>
+    </div>
+
+    <!-- ============ MAIN CONTENT ============ -->
+    <div class="main-content">
+      <!-- Header -->
+      <div class="main-header">
+        <h1><i class="fas fa-graduation-cap text-primary"></i> Guided Learning</h1>
+        <span id="wsStatus" class="ws-status disconnected">Connecting...</span>
+      </div>
+
+      <!-- Stage bar -->
+      <div class="stage-bar" id="stageBar">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <span class="stage-name" id="currentStageDisplay">Connecting...</span>
+            <span class="objective-name ms-2" id="currentObjectiveDisplay"></span>
+          </div>
+          <div id="assessmentInfo" style="display:none;">
+            <span class="badge bg-warning text-dark" id="assessmentBadge"></span>
+          </div>
         </div>
       </div>
-    </div>
-  </div>
 
-  <!-- Stage bar -->
-  <div class="stage-bar" id="stageBar">
-    <div class="container-fluid d-flex justify-content-between align-items-center">
-      <div>
-        <span class="stage-name" id="currentStageDisplay">Connecting...</span>
-        <span class="objective-name ms-2" id="currentObjectiveDisplay"></span>
+      <!-- Assessment bar -->
+      <div class="assessment-bar" id="assessmentBar">
+        <div class="d-flex justify-content-between align-items-center">
+          <span>Assessment in progress</span>
+          <span>Score: <span class="score" id="assessmentScore">0/0</span></span>
+        </div>
       </div>
-      <div id="assessmentInfo" style="display:none;">
-        <span class="badge bg-warning text-dark" id="assessmentBadge"></span>
-      </div>
-    </div>
-  </div>
 
-  <!-- Assessment score bar (shown during assessments) -->
-  <div class="assessment-bar" id="assessmentBar">
-    <div class="container-fluid d-flex justify-content-between align-items-center">
-      <span>Assessment in progress</span>
-      <span>Score: <span class="score" id="assessmentScore">0/0</span></span>
-    </div>
-  </div>
-
-  <div class="container-fluid mt-2">
-    <div class="row">
-      <!-- Chat Panel (Left) -->
-      <div class="col-lg-8 mb-3 mb-lg-0">
-        <div class="chat-container">
+      <!-- Chat + Progress -->
+      <div class="content-grid">
+        <!-- Chat column -->
+        <div class="chat-column">
           <div class="chat-messages" id="chatMessages">
             <div class="message-bubble tutor typing-indicator" id="typingIndicator">
               <div class="avatar avatar-tutor"><i class="fas fa-robot"></i></div>
@@ -194,20 +220,18 @@
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- Learning Progress Panel (Right) -->
-      <div class="col-lg-4">
-        <div class="progress-panel">
+        <!-- Progress column -->
+        <div class="progress-column">
           <div class="progress-header">
-            <h6 class="mb-0"><i class="fas fa-chart-line"></i> Learning Progress</h6>
+            <h6><i class="fas fa-chart-line"></i> Learning Progress</h6>
           </div>
           <div class="progress-content" id="progressContent">
             <div id="masteryList">
-              <p class="text-muted" style="font-size:0.82rem;">Your mastery progress will appear here as you learn.</p>
+              <p class="text-muted" style="font-size:0.78rem;">Mastery progress appears here as you learn.</p>
             </div>
-            <div id="misconceptionsList" style="display:none;" class="mt-3">
-              <h6 class="mb-2" style="font-size:0.85rem;"><i class="fas fa-exclamation-triangle text-warning"></i> Active Misconceptions</h6>
+            <div id="misconceptionsList" style="display:none;" class="mt-2">
+              <h6 class="mb-1" style="font-size:0.8rem;"><i class="fas fa-exclamation-triangle text-warning"></i> Misconceptions</h6>
               <div id="misconceptionsContainer"></div>
             </div>
           </div>
@@ -232,11 +256,10 @@
       const assessmentBadge = document.getElementById("assessmentBadge");
       const assessmentInfo = document.getElementById("assessmentInfo");
       const masteryList = document.getElementById("masteryList");
-      const misconceptionsList = document.getElementById("misconceptionsList");
-      const misconceptionsContainer = document.getElementById("misconceptionsContainer");
+      const studentListEl = document.getElementById("studentList");
+      const newStudentBtn = document.getElementById("newStudentBtn");
 
       let isProcessing = false;
-      let studentId = "guided-student-" + Math.random().toString(36).substring(2, 8);
       let ws = null;
       let pingInterval = null;
       let streamingBubble = null;
@@ -244,272 +267,273 @@
       let currentStage = "connecting";
       let masteryData = {};
 
+      // ================================================================
+      // MULTI-STUDENT STATE (localStorage)
+      // ================================================================
+
+      let students = JSON.parse(localStorage.getItem("guided_students") || "[]");
+      let activeStudentId = localStorage.getItem("guided_active") || null;
+
+      function saveStudents() {
+        localStorage.setItem("guided_students", JSON.stringify(students));
+        localStorage.setItem("guided_active", activeStudentId || "");
+      }
+
+      function getStudent(id) {
+        return students.find(s => s.id === id) || null;
+      }
+
+      function updateStudentMeta(id, updates) {
+        const s = getStudent(id);
+        if (s) { Object.assign(s, updates); saveStudents(); renderStudentList(); }
+      }
+
+      // Save/restore chat HTML per student
+      function saveChatHistory() {
+        if (!activeStudentId) return;
+        const els = [];
+        chatMessages.querySelectorAll(".message-bubble, .onboarding-card, .text-center").forEach(el => els.push(el.outerHTML));
+        localStorage.setItem(`chat_${activeStudentId}`, JSON.stringify(els));
+        localStorage.setItem(`mastery_${activeStudentId}`, JSON.stringify(masteryData));
+      }
+
+      function loadChatHistory(id) {
+        chatMessages.innerHTML = "";
+        chatMessages.appendChild(typingIndicator);
+        const saved = JSON.parse(localStorage.getItem(`chat_${id}`) || "[]");
+        saved.forEach(html => {
+          const wrapper = document.createElement("div");
+          wrapper.innerHTML = html;
+          if (wrapper.firstChild) chatMessages.insertBefore(wrapper.firstChild, typingIndicator);
+        });
+        masteryData = JSON.parse(localStorage.getItem(`mastery_${id}`) || "{}");
+        renderMasteryList();
+        scrollToBottomIfNeeded();
+      }
+
+      function createNewStudent() {
+        saveChatHistory();
+        const id = "guided-student-" + Math.random().toString(36).substring(2, 8);
+        const num = students.length + 1;
+        students.push({ id, label: `Student ${num}`, level: "", objective: "", stage: "onboarding" });
+        activeStudentId = id;
+        saveStudents();
+        masteryData = {};
+        chatMessages.innerHTML = "";
+        chatMessages.appendChild(typingIndicator);
+        renderMasteryList();
+        renderStudentList();
+        disconnectWS();
+        connectWebSocket();
+      }
+
+      function switchStudent(id) {
+        if (id === activeStudentId) return;
+        saveChatHistory();
+        activeStudentId = id;
+        saveStudents();
+        loadChatHistory(id);
+        renderStudentList();
+        const s = getStudent(id);
+        updateStageDisplay(s?.stage || "connecting", s?.objective || "");
+        disconnectWS();
+        connectWebSocket();
+      }
+
+      function renderStudentList() {
+        studentListEl.innerHTML = "";
+        students.forEach(s => {
+          const item = document.createElement("div");
+          item.className = `student-item${s.id === activeStudentId ? " active" : ""}`;
+          const levelClass = s.level || "none";
+          const levelLabel = s.level ? s.level.replace("_", " ") : "New";
+          const objShort = s.objective ? s.objective.substring(0, 30) + "..." : "Onboarding";
+          item.innerHTML = `
+            <div class="student-label">${s.label}</div>
+            <div class="student-meta">${objShort}</div>
+            <span class="student-level ${levelClass}">${levelLabel}</span>
+          `;
+          item.addEventListener("click", () => switchStudent(s.id));
+          studentListEl.appendChild(item);
+        });
+      }
+
+      newStudentBtn.addEventListener("click", createNewStudent);
+
       const STAGE_LABELS = {
         loading: "Loading your profile...",
         searching: "Searching knowledge base...",
         composing: "Composing response...",
         classifying: "Understanding your response...",
       };
-
       const STAGE_DISPLAY = {
-        onboarding: "Onboarding",
-        introduction: "Introduction",
-        exploration: "Exploration",
-        readiness_check: "Readiness Check",
-        mini_assessment: "Mini Assessment",
-        final_assessment: "Final Assessment",
-        transition: "Transition",
+        onboarding: "Onboarding", introduction: "Introduction", exploration: "Exploration",
+        readiness_check: "Readiness Check", mini_assessment: "Mini Assessment",
+        final_assessment: "Final Assessment", transition: "Transition",
       };
 
       // ================================================================
       // WEBSOCKET
       // ================================================================
 
+      function disconnectWS() {
+        if (pingInterval) { clearInterval(pingInterval); pingInterval = null; }
+        if (ws) { ws.onclose = null; ws.close(); ws = null; }
+      }
+
       function connectWebSocket() {
+        if (!activeStudentId) return;
         if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) return;
 
         const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-        const url = `${protocol}//${window.location.host}/chat/guided/ws`;
-        ws = new WebSocket(url);
+        ws = new WebSocket(`${protocol}//${window.location.host}/chat/guided/ws`);
 
         ws.onopen = function () {
           wsStatus.textContent = "Connected";
           wsStatus.className = "ws-status connected";
-          ws.send(JSON.stringify({ type: "auth", student_id: studentId }));
-
+          ws.send(JSON.stringify({ type: "auth", student_id: activeStudentId }));
           if (pingInterval) clearInterval(pingInterval);
           pingInterval = setInterval(() => {
             if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: "ping" }));
           }, 30000);
         };
-
-        ws.onmessage = function (event) {
-          handleServerMessage(JSON.parse(event.data));
-        };
-
+        ws.onmessage = function (event) { handleServerMessage(JSON.parse(event.data)); };
         ws.onclose = function (event) {
           wsStatus.textContent = "Disconnected";
           wsStatus.className = "ws-status disconnected";
           if (pingInterval) clearInterval(pingInterval);
           if (event.code !== 1000) setTimeout(connectWebSocket, 3000);
         };
-
         ws.onerror = function (error) { console.error("WS error:", error); };
       }
 
       function handleServerMessage(msg) {
         switch (msg.type) {
-          case "connected":
-            break;
-
+          case "connected": break;
           case "authenticated":
-            studentId = msg.student_id;
             currentStage = msg.stage || "onboarding";
             updateStageDisplay(currentStage, msg.objective || "");
-            if (msg.has_profile) {
-              setProcessingState(false);
-            }
+            updateStudentMeta(msg.student_id, { stage: currentStage, objective: msg.objective || "" });
+            if (msg.has_profile) setProcessingState(false);
             break;
-
           case "welcome":
             addMessage("tutor", msg.content);
-            updateStageDisplay(msg.stage || "onboarding", "");
             setProcessingState(false);
             break;
-
           case "stage":
             stageLabel.textContent = msg.detail || STAGE_LABELS[msg.stage] || msg.stage;
             setProcessingState(true);
             break;
-
-          case "rag_chunks":
-            // Instance B doesn't show RAG chunks in sidebar — they're cached for teaching
-            break;
-
+          case "rag_chunks": break;
           case "stream_start":
-            typingIndicator.style.display = "none";
-            stageLabel.textContent = "";
+            typingIndicator.style.display = "none"; stageLabel.textContent = "";
             createStreamingBubble();
             break;
-
-          case "token":
-            appendToken(msg.content);
-            break;
-
-          case "stream_end":
-            finalizeStreamingBubble();
-            setProcessingState(false);
-            break;
-
-          // --- Instance B specific ---
-
+          case "token": appendToken(msg.content); break;
+          case "stream_end": finalizeStreamingBubble(); setProcessingState(false); break;
           case "stage_update":
             currentStage = msg.stage;
             updateStageDisplay(msg.stage, msg.objective || "");
-            if (msg.summary) {
-              addMessage("system", `Stage: ${STAGE_DISPLAY[msg.stage] || msg.stage}` +
-                (msg.summary ? ` — ${msg.summary}` : ""));
-            }
+            updateStudentMeta(activeStudentId, { stage: msg.stage, objective: msg.objective || "" });
+            if (msg.summary) addSystemNotice(`${STAGE_DISPLAY[msg.stage] || msg.stage} — ${msg.summary}`);
             break;
-
           case "mastery_update":
             updateMasteryCard(msg.objective_text || msg.objective_id, msg.new_level);
             break;
-
-          case "assessment_score":
-            updateAssessmentDisplay(msg);
-            break;
-
-          case "onboarding_question":
-            renderOnboardingQuestion(msg);
-            break;
-
+          case "assessment_score": updateAssessmentDisplay(msg); break;
+          case "onboarding_question": renderOnboardingQuestion(msg); break;
           case "onboarding_complete":
             updateStageDisplay("introduction", msg.first_objective || "");
+            updateStudentMeta(activeStudentId, {
+              level: msg.profile?.a11y_exposure || "", objective: msg.first_objective || "", stage: "introduction"
+            });
             addSystemNotice(`Profile created! Starting: ${msg.first_objective}`);
             setProcessingState(false);
             break;
-
           case "objective_complete":
             updateMasteryCard(msg.objective_id, msg.mastery_level);
-            if (msg.next_objective) {
-              addSystemNotice(`Objective complete! Next: ${msg.next_objective}`);
-            }
+            if (msg.next_objective) addSystemNotice(`Objective complete! Next: ${msg.next_objective}`);
             break;
-
-          case "error":
-            setProcessingState(false);
-            addMessage("system", "Error: " + msg.message);
-            break;
-
-          case "pong":
-            break;
-
-          default:
-            console.log("WS: unknown message type", msg.type, msg);
+          case "error": setProcessingState(false); addMessage("system", "Error: " + msg.message); break;
+          case "pong": break;
+          default: console.log("WS: unknown", msg.type, msg);
         }
       }
 
       // ================================================================
-      // STAGE & MASTERY UI
+      // STAGE & MASTERY
       // ================================================================
 
       function updateStageDisplay(stage, objective) {
         currentStageDisplay.textContent = STAGE_DISPLAY[stage] || stage;
         currentObjectiveDisplay.textContent = objective ? `— ${objective}` : "";
-
-        // Show/hide assessment bar
         if (stage === "mini_assessment" || stage === "final_assessment") {
-          assessmentBar.style.display = "block";
-          assessmentInfo.style.display = "inline";
+          assessmentBar.style.display = "block"; assessmentInfo.style.display = "inline";
           assessmentBadge.textContent = stage === "mini_assessment" ? "Mini (3 Qs)" : "Final (5 Qs)";
-        } else {
-          assessmentBar.style.display = "none";
-          assessmentInfo.style.display = "none";
-        }
+        } else { assessmentBar.style.display = "none"; assessmentInfo.style.display = "none"; }
       }
 
       function updateAssessmentDisplay(data) {
         assessmentScore.textContent = `${data.correct}/${data.asked}`;
-        if (data.passed === true) {
-          assessmentBar.style.backgroundColor = "#d1e7dd";
-          assessmentBar.style.borderColor = "#198754";
-        } else if (data.passed === false) {
-          assessmentBar.style.backgroundColor = "#f8d7da";
-          assessmentBar.style.borderColor = "#dc3545";
-        }
+        if (data.passed === true) { assessmentBar.style.backgroundColor = "#d1e7dd"; assessmentBar.style.borderColor = "#198754"; }
+        else if (data.passed === false) { assessmentBar.style.backgroundColor = "#f8d7da"; assessmentBar.style.borderColor = "#dc3545"; }
       }
 
-      function updateMasteryCard(objectiveId, level) {
-        masteryData[objectiveId] = level;
-        renderMasteryList();
-      }
+      function updateMasteryCard(id, level) { masteryData[id] = level; renderMasteryList(); }
 
       function renderMasteryList() {
         const ids = Object.keys(masteryData);
-        if (!ids.length) return;
-
+        if (!ids.length) { masteryList.innerHTML = '<p class="text-muted" style="font-size:0.78rem;">Mastery progress appears here as you learn.</p>'; return; }
         masteryList.innerHTML = "";
         ids.forEach(id => {
           const level = masteryData[id];
-          const card = document.createElement("div");
-          card.className = "mastery-card";
-          card.innerHTML = `
-            <div class="d-flex justify-content-between align-items-center">
-              <span class="objective-text">${id}</span>
-              <span class="mastery-level ${level}">${level.replace("_", " ")}</span>
-            </div>`;
+          const card = document.createElement("div"); card.className = "mastery-card";
+          card.innerHTML = `<div class="d-flex justify-content-between align-items-center"><span class="objective-text">${id}</span><span class="mastery-level ${level}">${level.replace("_"," ")}</span></div>`;
           masteryList.appendChild(card);
         });
       }
 
       function addSystemNotice(text) {
-        const el = document.createElement("div");
-        el.className = "text-center my-2";
+        const el = document.createElement("div"); el.className = "text-center my-2";
         el.innerHTML = `<small class="text-muted"><i class="fas fa-info-circle"></i> ${text}</small>`;
-        chatMessages.insertBefore(el, typingIndicator);
-        scrollToBottomIfNeeded();
+        chatMessages.insertBefore(el, typingIndicator); scrollToBottomIfNeeded();
       }
 
       // ================================================================
       // STREAMING
       // ================================================================
 
-      function isNearBottom() {
-        return chatMessages.scrollHeight - chatMessages.scrollTop - chatMessages.clientHeight < 100;
-      }
-      function scrollToBottomIfNeeded() {
-        if (isNearBottom()) chatMessages.scrollTop = chatMessages.scrollHeight;
-      }
+      function isNearBottom() { return chatMessages.scrollHeight - chatMessages.scrollTop - chatMessages.clientHeight < 100; }
+      function scrollToBottomIfNeeded() { if (isNearBottom()) chatMessages.scrollTop = chatMessages.scrollHeight; }
 
       function createStreamingBubble() {
-        const bubble = document.createElement("div");
-        bubble.className = "message-bubble tutor";
-        const avatar = document.createElement("div");
-        avatar.className = "avatar avatar-tutor";
-        avatar.innerHTML = '<i class="fas fa-robot"></i>';
-        const content = document.createElement("div");
-        content.className = "message-content";
-        const textEl = document.createElement("div");
-        textEl.className = "streaming-text";
-        content.appendChild(textEl);
-        bubble.appendChild(avatar);
-        bubble.appendChild(content);
+        const bubble = document.createElement("div"); bubble.className = "message-bubble tutor";
+        const av = document.createElement("div"); av.className = "avatar avatar-tutor"; av.innerHTML = '<i class="fas fa-robot"></i>';
+        const mc = document.createElement("div"); mc.className = "message-content";
+        const te = document.createElement("div"); te.className = "streaming-text";
+        mc.appendChild(te); bubble.appendChild(av); bubble.appendChild(mc);
         chatMessages.insertBefore(bubble, typingIndicator);
-        streamingBubble = bubble;
-        streamingTextEl = textEl;
-        scrollToBottomIfNeeded();
+        streamingBubble = bubble; streamingTextEl = te; scrollToBottomIfNeeded();
       }
 
-      let _markdownTimer = null;
+      let _mt = null;
       function appendToken(token) {
         if (!streamingTextEl) return;
         streamingTextEl._rawText = (streamingTextEl._rawText || "") + token;
-        if (!_markdownTimer) {
-          _markdownTimer = setTimeout(() => {
-            _markdownTimer = null;
-            if (streamingTextEl) {
-              streamingTextEl.innerHTML = formatMessage(streamingTextEl._rawText);
-              scrollToBottomIfNeeded();
-            }
-          }, 120);
-        }
+        if (!_mt) { _mt = setTimeout(() => { _mt = null; if (streamingTextEl) { streamingTextEl.innerHTML = formatMessage(streamingTextEl._rawText); scrollToBottomIfNeeded(); } }, 120); }
       }
 
       function finalizeStreamingBubble() {
-        if (_markdownTimer) { clearTimeout(_markdownTimer); _markdownTimer = null; }
+        if (_mt) { clearTimeout(_mt); _mt = null; }
         if (streamingBubble && streamingTextEl) {
-          // Strip any ```json eval block from displayed text
           let text = streamingTextEl._rawText || "";
           text = text.replace(/```json[\s\S]*?```/g, "").trim();
           streamingTextEl.innerHTML = formatMessage(text);
-          const ts = document.createElement("div");
-          ts.className = "message-timestamp";
+          const ts = document.createElement("div"); ts.className = "message-timestamp";
           ts.textContent = new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
           streamingTextEl.parentElement.appendChild(ts);
         }
-        streamingBubble = null;
-        streamingTextEl = null;
+        streamingBubble = null; streamingTextEl = null;
       }
 
       // ================================================================
@@ -519,19 +543,12 @@
       sendBtn.addEventListener("click", () => {
         const message = messageInput.value.trim();
         if (message && !isProcessing) {
-          addMessage("user", message);
-          setProcessingState(true);
-          if (ws && ws.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({ type: "message", content: message }));
-          }
-          messageInput.value = "";
-          autoResizeTextarea(messageInput);
+          addMessage("user", message); setProcessingState(true);
+          if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: "message", content: message }));
+          messageInput.value = ""; autoResizeTextarea(messageInput);
         }
       });
-
-      messageInput.addEventListener("keypress", function (e) {
-        if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendBtn.click(); }
-      });
+      messageInput.addEventListener("keypress", function (e) { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendBtn.click(); } });
       messageInput.addEventListener("input", () => autoResizeTextarea(messageInput));
 
       // ================================================================
@@ -539,58 +556,31 @@
       // ================================================================
 
       function addMessage(type, content) {
-        const bubble = document.createElement("div");
-        bubble.className = `message-bubble ${type}`;
-        const avatar = document.createElement("div");
-        avatar.className = `avatar avatar-${type}`;
-        avatar.innerHTML = `<i class="fas ${type === "user" ? "fa-user" : "fa-robot"}"></i>`;
-        const mc = document.createElement("div");
-        mc.className = "message-content";
-        const text = document.createElement("div");
-        text.innerHTML = formatMessage(content);
-        const ts = document.createElement("div");
-        ts.className = "message-timestamp";
+        const bubble = document.createElement("div"); bubble.className = `message-bubble ${type}`;
+        const av = document.createElement("div"); av.className = `avatar avatar-${type}`;
+        av.innerHTML = `<i class="fas ${type === "user" ? "fa-user" : "fa-robot"}"></i>`;
+        const mc = document.createElement("div"); mc.className = "message-content";
+        const te = document.createElement("div"); te.innerHTML = formatMessage(content);
+        const ts = document.createElement("div"); ts.className = "message-timestamp";
         ts.textContent = new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
-        mc.appendChild(text);
-        mc.appendChild(ts);
-        bubble.appendChild(avatar);
-        bubble.appendChild(mc);
-        chatMessages.insertBefore(bubble, typingIndicator);
-        scrollToBottomIfNeeded();
+        mc.appendChild(te); mc.appendChild(ts); bubble.appendChild(av); bubble.appendChild(mc);
+        chatMessages.insertBefore(bubble, typingIndicator); scrollToBottomIfNeeded();
       }
 
       function setProcessingState(processing) {
-        isProcessing = processing;
-        sendBtn.disabled = processing;
-        messageInput.disabled = processing;
+        isProcessing = processing; sendBtn.disabled = processing; messageInput.disabled = processing;
         typingIndicator.style.display = processing ? "flex" : "none";
-        if (processing) {
-          sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-          scrollToBottomIfNeeded();
-        } else {
-          sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
-          stageLabel.textContent = "";
-          messageInput.focus();
-        }
+        if (processing) { sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; scrollToBottomIfNeeded(); }
+        else { sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i>'; stageLabel.textContent = ""; messageInput.focus(); }
       }
 
-      function autoResizeTextarea(textarea) {
-        textarea.style.height = "auto";
-        textarea.style.height = `${Math.min(textarea.scrollHeight, 160)}px`;
-      }
+      function autoResizeTextarea(ta) { ta.style.height = "auto"; ta.style.height = `${Math.min(ta.scrollHeight, 160)}px`; }
 
       marked.setOptions({
-        highlight: function(code, lang) {
-          if (lang && hljs.getLanguage(lang)) return hljs.highlight(code, { language: lang }).value;
-          return hljs.highlightAuto(code).value;
-        },
+        highlight: function(code, lang) { if (lang && hljs.getLanguage(lang)) return hljs.highlight(code, { language: lang }).value; return hljs.highlightAuto(code).value; },
         breaks: true, gfm: true,
       });
-
-      function formatMessage(content) {
-        if (typeof content !== "string") return "";
-        return marked.parse(content);
-      }
+      function formatMessage(content) { if (typeof content !== "string") return ""; return marked.parse(content); }
 
       // ================================================================
       // ONBOARDING FORM
@@ -598,117 +588,55 @@
 
       function renderOnboardingQuestion(msg) {
         setProcessingState(false);
-
-        const card = document.createElement("div");
-        card.className = "onboarding-card";
-
-        // Step indicator
-        const step = document.createElement("div");
-        step.className = "step-badge";
-        step.textContent = `Step ${msg.step} of ${msg.total_steps}`;
-        card.appendChild(step);
-
-        // Question
-        const q = document.createElement("div");
-        q.className = "question-text";
-        q.textContent = msg.question;
-        card.appendChild(q);
-
-        if (msg.description) {
-          const desc = document.createElement("div");
-          desc.className = "question-desc";
-          desc.textContent = msg.description;
-          card.appendChild(desc);
-        }
-
-        // Options
-        const optionsDiv = document.createElement("div");
-        optionsDiv.className = "onboarding-options";
-        let selectedValue = null;
-
+        const card = document.createElement("div"); card.className = "onboarding-card";
+        const step = document.createElement("div"); step.className = "step-badge"; step.textContent = `Step ${msg.step} of ${msg.total_steps}`; card.appendChild(step);
+        const q = document.createElement("div"); q.className = "question-text"; q.textContent = msg.question; card.appendChild(q);
+        if (msg.description) { const desc = document.createElement("div"); desc.className = "question-desc"; desc.textContent = msg.description; card.appendChild(desc); }
+        const optionsDiv = document.createElement("div"); optionsDiv.className = "onboarding-options"; let selectedValue = null;
         (msg.options || []).forEach(opt => {
-          const optEl = document.createElement("div");
-          optEl.className = "onboarding-option";
-          optEl.dataset.value = opt.value;
-
-          let html = `<div><div class="opt-label">${opt.label}</div>`;
-          if (opt.description) html += `<div class="opt-desc">${opt.description}</div>`;
-          html += `</div>`;
-          optEl.innerHTML = html;
-
-          optEl.addEventListener("click", () => {
-            optionsDiv.querySelectorAll(".onboarding-option").forEach(o => o.classList.remove("selected"));
-            optEl.classList.add("selected");
-            selectedValue = opt.value;
-            otherDiv.classList.remove("visible");
-            otherInput.value = "";
-            submitBtn.disabled = false;
-          });
+          const optEl = document.createElement("div"); optEl.className = "onboarding-option"; optEl.dataset.value = opt.value;
+          let html = `<div><div class="opt-label">${opt.label}</div>`; if (opt.description) html += `<div class="opt-desc">${opt.description}</div>`; html += `</div>`; optEl.innerHTML = html;
+          optEl.addEventListener("click", () => { optionsDiv.querySelectorAll(".onboarding-option").forEach(o => o.classList.remove("selected")); optEl.classList.add("selected"); selectedValue = opt.value; otherDiv.classList.remove("visible"); otherInput.value = ""; submitBtn.disabled = false; });
           optionsDiv.appendChild(optEl);
         });
         card.appendChild(optionsDiv);
-
-        // "Other" option
-        const otherDiv = document.createElement("div");
-        otherDiv.className = "onboarding-other";
-        const otherInput = document.createElement("input");
-        otherInput.type = "text";
-        otherInput.className = "form-control form-control-sm";
-        otherInput.placeholder = "Type your answer...";
-        otherInput.addEventListener("input", () => {
-          if (otherInput.value.trim()) {
-            selectedValue = otherInput.value.trim();
-            submitBtn.disabled = false;
-          }
-        });
-        otherDiv.appendChild(otherInput);
-        card.appendChild(otherDiv);
-
+        const otherDiv = document.createElement("div"); otherDiv.className = "onboarding-other";
+        const otherInput = document.createElement("input"); otherInput.type = "text"; otherInput.className = "form-control form-control-sm"; otherInput.placeholder = "Type your answer...";
+        otherInput.addEventListener("input", () => { if (otherInput.value.trim()) { selectedValue = otherInput.value.trim(); submitBtn.disabled = false; } });
+        otherDiv.appendChild(otherInput); card.appendChild(otherDiv);
         if (msg.allow_other) {
-          const otherBtn = document.createElement("div");
-          otherBtn.className = "onboarding-option";
+          const otherBtn = document.createElement("div"); otherBtn.className = "onboarding-option";
           otherBtn.innerHTML = `<div><div class="opt-label">Other</div><div class="opt-desc">Type your own answer</div></div>`;
-          otherBtn.addEventListener("click", () => {
-            optionsDiv.querySelectorAll(".onboarding-option").forEach(o => o.classList.remove("selected"));
-            otherBtn.classList.add("selected");
-            selectedValue = null;
-            otherDiv.classList.add("visible");
-            otherInput.focus();
-            submitBtn.disabled = true;
-          });
+          otherBtn.addEventListener("click", () => { optionsDiv.querySelectorAll(".onboarding-option").forEach(o => o.classList.remove("selected")); otherBtn.classList.add("selected"); selectedValue = null; otherDiv.classList.add("visible"); otherInput.focus(); submitBtn.disabled = true; });
           optionsDiv.appendChild(otherBtn);
         }
-
-        // Submit button
-        const submitBtn = document.createElement("button");
-        submitBtn.className = "btn btn-primary onboarding-submit";
-        submitBtn.textContent = msg.step < msg.total_steps ? "Continue" : "Start Learning";
-        submitBtn.disabled = true;
+        const submitBtn = document.createElement("button"); submitBtn.className = "btn btn-primary onboarding-submit";
+        submitBtn.textContent = msg.step < msg.total_steps ? "Continue" : "Start Learning"; submitBtn.disabled = true;
         submitBtn.addEventListener("click", () => {
           if (!selectedValue) return;
-          // Show the answer as a user message
-          const displayLabel = selectedValue;
-          addMessage("user", displayLabel);
-          // Disable the card
-          card.style.opacity = "0.6";
-          card.style.pointerEvents = "none";
-          // Send the value
-          setProcessingState(true);
-          if (ws && ws.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({ type: "message", content: selectedValue }));
-          }
+          addMessage("user", selectedValue); card.style.opacity = "0.6"; card.style.pointerEvents = "none"; setProcessingState(true);
+          if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: "message", content: selectedValue }));
         });
         card.appendChild(submitBtn);
-
-        chatMessages.insertBefore(card, typingIndicator);
-        scrollToBottomIfNeeded();
+        chatMessages.insertBefore(card, typingIndicator); scrollToBottomIfNeeded();
       }
 
       // ================================================================
       // INIT
       // ================================================================
-      setProcessingState(true);
-      connectWebSocket();
+
+      // Save chat on page unload
+      window.addEventListener("beforeunload", () => saveChatHistory());
+
+      if (students.length === 0) {
+        createNewStudent();
+      } else {
+        if (!activeStudentId || !getStudent(activeStudentId)) activeStudentId = students[0].id;
+        loadChatHistory(activeStudentId);
+        renderStudentList();
+        setProcessingState(true);
+        connectWebSocket();
+      }
     });
   </script>
 </body>
