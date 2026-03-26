@@ -1465,14 +1465,21 @@ class HybridCrewAISocraticSystem:
         )
 
         # Notify frontend of onboarding completion and stage change
+        a11y_exposure = profile_data.get("a11y_exposure", "none")
         await ws_send({"type": "onboarding_complete", "profile": profile_data,
                        "first_objective": objective_text})
         await ws_send({"type": "stage_update", "stage": "introduction",
                        "objective": objective_text, "summary": ""})
 
+        # Send level-appropriate objective introduction
+        intro_text = self._OBJECTIVE_INTROS.get(a11y_exposure, self._OBJECTIVE_INTROS["none"])
+        intro_msg = f"{intro_text}\n\nLet's begin!"
+        await ws_send({"type": "stream_start"})
+        await self._progressive_send(intro_msg, ws_send)
+        await ws_send({"type": "stream_end", "metadata": {"stage": "introduction"}})
+        self.append_to_conversation(student_id, "assistant", intro_msg)
+
         # Automatically start the first teaching turn — the tutor drives Instance B.
-        # We call conduct_guided_session_streaming with a synthetic "start" message
-        # so the LLM opens with an introductory Socratic question about the objective.
         await self.conduct_guided_session_streaming(
             student_id=student_id,
             student_response=f"I'm ready to learn about {objective_text}. Please introduce this topic.",
@@ -1543,21 +1550,48 @@ class HybridCrewAISocraticSystem:
     # ------------------------------------------------------------------
 
     # Maps a11y_exposure from onboarding to a specific starting objective.
-    # Each objective has 2-3 associated quiz questions for rich assessment.
     _STARTING_OBJECTIVES = {
-        # Level 0: foundational — no prior accessibility knowledge
-        "none": "31bd3671-e8fa-45f5-9a71-3abe55d792e0",
-        # "Explain the five primary rules of ARIA usage" (2 questions)
+        # Level 0: no prior accessibility knowledge — start with WCAG structure
+        "none": "c3df6637-125f-4fbf-b4ab-1adc102b8641",
+        # "Explain the structure of WCAG 2.2 by identifying the four principles (POUR),
+        #  guidelines, and success criteria levels (A, AA, AAA)"
 
-        # Level 1: awareness/working knowledge — knows basics, needs applied concepts
+        # Level 1: some awareness / working knowledge — applied concepts
         "awareness": "653bc9b8-9cc2-42e8-aa4f-c94c21012f62",
         "working_knowledge": "653bc9b8-9cc2-42e8-aa4f-c94c21012f62",
         # "Understand how ARIA live region properties and values impact AT behavior" (3 questions)
 
-        # Level 2: professional — deep expertise, needs analysis-level challenges
+        # Level 2: professional — analysis-level challenges
         "professional": "07003c38-5181-4e6d-88ba-f22f198f4986",
         # "Analyze design elements (headings, landmarks, color contrast) to determine
         #  their impact on diverse user groups" (3 questions)
+    }
+
+    # Level-specific introductions — shown before the first teaching turn
+    _OBJECTIVE_INTROS = {
+        "none": (
+            "Since you're just getting started with accessibility, we'll begin with "
+            "the foundations — **the structure of WCAG 2.2**. This is the international "
+            "standard for web accessibility, and understanding how it's organized will "
+            "give you a framework for everything else you'll learn."
+        ),
+        "awareness": (
+            "You already have some familiarity with accessibility concepts, so let's "
+            "build on that with something practical — **ARIA live regions**. These are "
+            "how dynamic content updates get announced to screen reader users, and "
+            "they're one of the trickier parts of accessibility to get right."
+        ),
+        "working_knowledge": (
+            "With your hands-on experience, you're ready for a deeper dive. We'll "
+            "explore **ARIA live regions** — how different properties and values affect "
+            "what assistive technologies announce to users when content changes dynamically."
+        ),
+        "professional": (
+            "Given your expertise, let's go straight to analysis-level work. We'll "
+            "examine **how design elements like headings, landmarks, and color contrast "
+            "impact diverse user groups** — the kind of evaluation you'd do in a "
+            "real audit."
+        ),
     }
 
     async def _select_starting_objective(
