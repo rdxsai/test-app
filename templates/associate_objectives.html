@@ -1,390 +1,520 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Associate Learning Objectives - Socratic Tutor</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
     <style>
-        .question-preview {
-            background-color: #f8f9fa;
-            border-left: 4px solid #0d6efd;
-            padding: 1rem;
-            margin-bottom: 2rem;
+      .question-preview {
+        background-color: #f8f9fa;
+        border-left: 4px solid #0d6efd;
+        padding: 1rem;
+        margin-bottom: 2rem;
+      }
+
+      .objective-item {
+        transition: all 0.2s ease;
+      }
+
+      .objective-item:hover {
+        background-color: #f8f9fa;
+      }
+
+      .objective-text {
+        cursor: pointer;
+        user-select: none;
+      }
+
+      .objective-text:hover {
+        text-decoration: underline;
+      }
+
+      .high-score-objective {
+        border-left: 4px solid #198754;
+      }
+
+      /* Enhanced Progress Bar Styles */
+      #similarityProgress {
+        border-left: 4px solid #0dcaf0;
+        background: linear-gradient(135deg, #e7f6fd 0%, #ffffff 100%);
+      }
+
+      #progressBar {
+        transition: width 0.4s ease-in-out;
+        background: linear-gradient(90deg, #0dcaf0 0%, #0aa2c0 100%) !important;
+      }
+
+      #progressStage {
+        font-weight: 600;
+        color: #055160;
+      }
+
+      #progressMessage {
+        animation: fadeIn 0.3s ease-in;
+      }
+
+      #progressTip {
+        padding: 0.5rem;
+        background-color: rgba(13, 202, 240, 0.1);
+        border-radius: 4px;
+        animation: fadeIn 0.5s ease-in;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(-5px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.7;
+        }
+      }
+
+      .progress-bar-animated {
+        animation:
+          progress-bar-stripes 1s linear infinite,
+          pulse 2s ease-in-out infinite;
+      }
+
+      .loading-spinner {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 9999;
+      }
+
+      .overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 9998;
+        display: none;
+      }
+
+      .overlay.show {
+        display: block;
+      }
+
+      .highlight-new {
+        animation: highlightFade 2s ease-in-out;
+      }
+
+      @keyframes highlightFade {
+        0% {
+          background-color: #d1ecf1 !important;
+          transform: scale(1.02);
         }
 
-        .objective-item {
-            transition: all 0.2s ease;
+        50% {
+          background-color: #d1ecf1 !important;
         }
 
-        .objective-item:hover {
-            background-color: #f8f9fa;
+        100% {
+          background-color: transparent;
+          transform: scale(1);
         }
+      }
 
-        .objective-text {
-            cursor: pointer;
-            user-select: none;
-        }
+      /* WCAG AA compliant contrast for warning badges */
+      .badge.bg-warning {
+        background-color: #ffc107 !important;
+        color: #000000 !important;
+        /* Black text for 4.5:1 contrast ratio */
+      }
 
-        .objective-text:hover {
-            text-decoration: underline;
-        }
-
-        .high-score-objective {
-            border-left: 4px solid #198754;
-        }
-
-        /* Enhanced Progress Bar Styles */
-        #similarityProgress {
-            border-left: 4px solid #0dcaf0;
-            background: linear-gradient(135deg, #e7f6fd 0%, #ffffff 100%);
-        }
-
-        #progressBar {
-            transition: width 0.4s ease-in-out;
-            background: linear-gradient(90deg, #0dcaf0 0%, #0aa2c0 100%) !important;
-        }
-
-        #progressStage {
-            font-weight: 600;
-            color: #055160;
-        }
-
-        #progressMessage {
-            animation: fadeIn 0.3s ease-in;
-        }
-
-        #progressTip {
-            padding: 0.5rem;
-            background-color: rgba(13, 202, 240, 0.1);
-            border-radius: 4px;
-            animation: fadeIn 0.5s ease-in;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-5px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
-        }
-
-        .progress-bar-animated {
-            animation: progress-bar-stripes 1s linear infinite, pulse 2s ease-in-out infinite;
-        }
-
-        .loading-spinner {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 9999;
-        }
-
-        .overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            z-index: 9998;
-            display: none;
-        }
-
-        .overlay.show {
-            display: block;
-        }
-
-        .highlight-new {
-            animation: highlightFade 2s ease-in-out;
-        }
-
-        @keyframes highlightFade {
-            0% {
-                background-color: #d1ecf1 !important;
-                transform: scale(1.02);
-            }
-
-            50% {
-                background-color: #d1ecf1 !important;
-            }
-
-            100% {
-                background-color: transparent;
-                transform: scale(1);
-            }
-        }
-
-        /* WCAG AA compliant contrast for warning badges */
-        .badge.bg-warning {
-            background-color: #ffc107 !important;
-            color: #000000 !important;
-            /* Black text for 4.5:1 contrast ratio */
-        }
-
-        .badge.bg-warning .fas {
-            color: #000000 !important;
-        }
+      .badge.bg-warning .fas {
+        color: #000000 !important;
+      }
     </style>
-</head>
+  </head>
 
-<body>
+  <body>
     <!-- Loading Overlay -->
     <div class="overlay" id="loadingOverlay">
-        <div class="loading-spinner">
-            <div class="spinner-border text-light" role="status" style="width: 4rem; height: 4rem;">
-                <span class="visually-hidden">Loading...</span>
-            </div>
-            <p class="text-light mt-3 text-center">Loading objectives...</p>
+      <div class="loading-spinner">
+        <div
+          class="spinner-border text-light"
+          role="status"
+          style="width: 4rem; height: 4rem"
+        >
+          <span class="visually-hidden">Loading...</span>
         </div>
+        <p class="text-light mt-3 text-center">Loading objectives...</p>
+      </div>
     </div>
 
     <div class="container-fluid py-4">
-        <!-- Header -->
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h1 class="h2">
-                <i class="fas fa-lightbulb text-warning"></i> Associate Learning Objectives
-            </h1>
-            <div>
-                <a href="/questions/{{ question.id }}" class="btn btn-outline-secondary me-2">
-                    <i class="fas fa-times"></i> Cancel
-                </a>
-                <button type="button" id="deleteQuestionBtn" class="btn btn-danger me-2">
-                    <i class="fas fa-trash"></i> Delete Question
-                </button>
-                <button type="button" id="createObjectiveBtn" class="btn btn-success me-2">
-                    <i class="fas fa-plus"></i> Create New Objective
-                </button>
-                <button type="button" id="checkSimilarityBtn" class="btn btn-info me-2">
-                    <i class="fas fa-brain"></i> Check Similarity Score
-                </button>
-                <button type="button" id="saveBtn" class="btn btn-primary">
-                    <i class="fas fa-save"></i> Save Selection
-                </button>
-            </div>
+      <!-- Header -->
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h2">
+          <i class="fas fa-lightbulb text-warning"></i> Associate Learning
+          Objectives
+        </h1>
+        <div>
+          <a
+            href="/questions/{{ question.id }}"
+            class="btn btn-outline-secondary me-2"
+          >
+            <i class="fas fa-times"></i> Cancel
+          </a>
+          <button
+            type="button"
+            id="deleteQuestionBtn"
+            class="btn btn-danger me-2"
+          >
+            <i class="fas fa-trash"></i> Delete Question
+          </button>
+          <button
+            type="button"
+            id="createObjectiveBtn"
+            class="btn btn-success me-2"
+          >
+            <i class="fas fa-plus"></i> Create New Objective
+          </button>
+          <button
+            type="button"
+            id="checkSimilarityBtn"
+            class="btn btn-info me-2"
+          >
+            <i class="fas fa-brain"></i> Check Similarity Score
+          </button>
+          <button type="button" id="saveBtn" class="btn btn-primary">
+            <i class="fas fa-save"></i> Save Selection
+          </button>
         </div>
+      </div>
 
-        <!-- Question Preview -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="fas fa-question-circle"></i> Question</h5>
-            </div>
-            <div class="card-body">
-                <div class="question-preview">
-                    <strong>Question ID:</strong> {{ question.id }}<br>
-                    <strong>Question Text:</strong>
-                    <div class="mt-2">{{ question.question_text }}</div>
-                </div>
-                <div class="alert alert-info mb-0">
-                    <i class="fas fa-info-circle"></i>
-                    <strong>Instructions:</strong> Select the learning objectives that are relevant to this question.
-                    Click on objective text to expand/collapse full text.
-                </div>
-            </div>
+      <!-- Question Preview -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0"><i class="fas fa-question-circle"></i> Question</h5>
         </div>
-
-        <!-- Objectives List -->
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0">
-                    <i class="fas fa-list"></i> Learning Objectives
-                    <span class="badge bg-secondary ms-2" id="selectedCount">0 selected</span>
-                </h5>
-            </div>
-            <div class="card-body">
-                <!-- Enhanced Loading Progress for LLM Analysis -->
-                <div id="similarityProgress" class="alert alert-info mb-4" style="display: none;">
-                    <div class="mb-3">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <strong id="progressTitle">
-                                <i class="fas fa-brain"></i> <span id="progressStage">Initializing...</span>
-                            </strong>
-                            <span id="progressPercent" class="badge bg-primary">0%</span>
-                        </div>
-                        <div class="progress" style="height: 8px;">
-                            <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-info"
-                                 role="progressbar"
-                                 style="width: 0%"
-                                 aria-valuenow="0"
-                                 aria-valuemin="0"
-                                 aria-valuemax="100"></div>
-                        </div>
-                    </div>
-                    <p id="progressMessage" class="mb-0 text-muted small">
-                        <i class="fas fa-info-circle"></i> Preparing to analyze objectives...
-                    </p>
-                    <div id="progressTip" class="mt-2 text-muted small" style="font-style: italic;">
-                        💡 <strong>Tip:</strong> The AI analyzes each objective's relevance to your question, considering concept alignment and educational value.
-                    </div>
-                </div>
-
-                <!-- Warning message (hidden - AI disabled) -->
-                <div id="noSuggestionsWarning" class="alert alert-warning" style="display: none;">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    <strong>No objectives found.</strong>
-                    <p class="mb-0 mt-2">You can create a new objective using the "Create New Objective" button above.
-                    </p>
-                </div>
-
-                <div id="objectivesList">
-                    <!-- Objectives will be loaded here by JavaScript -->
-                </div>
-            </div>
+        <div class="card-body">
+          <div class="question-preview">
+            <strong>Question ID:</strong> {{ question.id }}<br />
+            <strong>Question Text:</strong>
+            <div class="mt-2">{{ question.question_text }}</div>
+          </div>
+          <div class="alert alert-info mb-0">
+            <i class="fas fa-info-circle"></i>
+            <strong>Instructions:</strong> Select the learning objectives that
+            are relevant to this question.
+          </div>
         </div>
+      </div>
+
+      <!-- Objectives List -->
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="fas fa-list"></i> Learning Objectives
+            <span class="badge bg-secondary ms-2" id="selectedCount"
+              >0 selected</span
+            >
+          </h5>
+        </div>
+        <div class="card-body">
+          <!-- Enhanced Loading Progress for LLM Analysis -->
+          <div
+            id="similarityProgress"
+            class="alert alert-info mb-4"
+            style="display: none"
+          >
+            <div class="mb-3">
+              <div
+                class="d-flex justify-content-between align-items-center mb-2"
+              >
+                <strong id="progressTitle">
+                  <i class="fas fa-brain"></i>
+                  <span id="progressStage">Initializing...</span>
+                </strong>
+                <span id="progressPercent" class="badge bg-primary">0%</span>
+              </div>
+              <div class="progress" style="height: 8px">
+                <div
+                  id="progressBar"
+                  class="progress-bar progress-bar-striped progress-bar-animated bg-info"
+                  role="progressbar"
+                  style="width: 0%"
+                  aria-valuenow="0"
+                  aria-valuemin="0"
+                  aria-valuemax="100"
+                ></div>
+              </div>
+            </div>
+            <p id="progressMessage" class="mb-0 text-muted small">
+              <i class="fas fa-info-circle"></i> Preparing to analyze
+              objectives...
+            </p>
+            <div
+              id="progressTip"
+              class="mt-2 text-muted small"
+              style="font-style: italic"
+            >
+              💡 <strong>Tip:</strong> The AI analyzes each objective's
+              relevance to your question, considering concept alignment and
+              educational value.
+            </div>
+          </div>
+
+          <!-- Warning message (hidden - AI disabled) -->
+          <div
+            id="noSuggestionsWarning"
+            class="alert alert-warning"
+            style="display: none"
+          >
+            <i class="fas fa-exclamation-triangle"></i>
+            <strong>No objectives found.</strong>
+            <p class="mb-0 mt-2">
+              You can create a new objective using the "Create New Objective"
+              button above.
+            </p>
+          </div>
+
+          <div id="objectivesList">
+            <!-- Objectives will be loaded here by JavaScript -->
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Configuration data -->
-    <div id="app-config" data-question-id="{{ question.id }}"
-        data-current-objectives='{{ current_objective_ids | tojson }}' style="display: none;">
-    </div>
+    <div
+      id="app-config"
+      data-question-id="{{ question.id }}"
+      data-current-objectives="{{ current_objective_ids | tojson }}"
+      style="display: none"
+    ></div>
 
     <!-- Create Objective Modal -->
-    <div class="modal fade" id="createObjectiveModal" tabindex="-1" aria-labelledby="createObjectiveModalLabel"
-        aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="createObjectiveModalLabel">
-                        <i class="fas fa-plus-circle text-success"></i> Create New Learning Objective
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    <div
+      class="modal fade"
+      id="createObjectiveModal"
+      tabindex="-1"
+      aria-labelledby="createObjectiveModalLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="createObjectiveModalLabel">
+              <i class="fas fa-plus-circle text-success"></i> Create New
+              Learning Objective
+            </h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <form id="createObjectiveForm">
+              <div class="mb-3">
+                <label for="objectiveText" class="form-label"
+                  >Objective Text
+                  <span class="text-danger" aria-label="required"
+                    >*</span
+                  ></label
+                >
+                <div class="mb-2 d-flex gap-2">
+                  <button
+                    type="button"
+                    id="generateObjectiveAIBtn"
+                    class="btn btn-sm btn-info"
+                    aria-label="Generate objective using AI"
+                  >
+                    <i class="fas fa-magic" aria-hidden="true"></i> Generate
+                    using AI
+                  </button>
+                  <button
+                    type="button"
+                    id="checkSimilarityObjectiveBtn"
+                    class="btn btn-sm btn-outline-secondary"
+                    disabled
+                    aria-label="Check similarity score"
+                    aria-describedby="similarityHelp"
+                  >
+                    <i class="fas fa-chart-line" aria-hidden="true"></i> Check
+                    Similarity
+                  </button>
                 </div>
-                <div class="modal-body">
-                    <form id="createObjectiveForm">
-                        <div class="mb-3">
-                            <label for="objectiveText" class="form-label">Objective Text <span class="text-danger"
-                                    aria-label="required">*</span></label>
-                            <div class="mb-2 d-flex gap-2">
-                                <button type="button" id="generateObjectiveAIBtn" class="btn btn-sm btn-info"
-                                    aria-label="Generate objective using AI">
-                                    <i class="fas fa-magic" aria-hidden="true"></i> Generate using AI
-                                </button>
-                                <button type="button" id="checkSimilarityObjectiveBtn"
-                                    class="btn btn-sm btn-outline-secondary" disabled
-                                    aria-label="Check similarity score" aria-describedby="similarityHelp">
-                                    <i class="fas fa-chart-line" aria-hidden="true"></i> Check Similarity
-                                </button>
-                            </div>
-                            <textarea class="form-control" id="objectiveText" rows="4"
-                                placeholder="Enter the learning objective text or generate using AI..."
-                                aria-describedby="objectiveHelp" required></textarea>
-                            <div id="objectiveHelp" class="form-text">Describe what students should be able to do or
-                                understand. Minimum 20 characters required to check similarity.</div>
-                        </div>
+                <textarea
+                  class="form-control"
+                  id="objectiveText"
+                  rows="4"
+                  placeholder="Enter the learning objective text or generate using AI..."
+                  aria-describedby="objectiveHelp"
+                  required
+                ></textarea>
+                <div id="objectiveHelp" class="form-text">
+                  Describe what students should be able to do or understand.
+                  Minimum 20 characters required to check similarity.
+                </div>
+              </div>
 
-                        <!-- Similarity Score Display Area -->
-                        <div id="similarityScoreArea" class="alert" role="status" aria-live="polite"
-                            style="display: none;">
-                            <div class="d-flex align-items-center">
-                                <div class="flex-grow-1">
-                                    <strong id="similarityScoreLabel">Similarity Score:</strong>
-                                    <span id="similarityScoreValue" class="fs-5 fw-bold"></span>
-                                    <span id="similarityScoreText"></span>
-                                </div>
-                            </div>
-                            <div id="lowScoreWarning" style="display: none;" class="mt-2">
-                                <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
-                                <strong>Warning:</strong> This objective has low relevance to the question. Consider
-                                revising or using a different objective.
-                            </div>
-                        </div>
-                    </form>
+              <!-- Similarity Score Display Area -->
+              <div
+                id="similarityScoreArea"
+                class="alert"
+                role="status"
+                aria-live="polite"
+                style="display: none"
+              >
+                <div class="d-flex align-items-center">
+                  <div class="flex-grow-1">
+                    <strong id="similarityScoreLabel">Similarity Score:</strong>
+                    <span id="similarityScoreValue" class="fs-5 fw-bold"></span>
+                    <span id="similarityScoreText"></span>
+                  </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                        <i class="fas fa-times"></i> Cancel
-                    </button>
-                    <button type="button" id="saveObjectiveBtn" class="btn btn-success">
-                        <i class="fas fa-save"></i> Save Objective
-                    </button>
+                <div id="lowScoreWarning" style="display: none" class="mt-2">
+                  <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
+                  <strong>Warning:</strong> This objective has low relevance to
+                  the question. Consider revising or using a different
+                  objective.
                 </div>
-            </div>
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              <i class="fas fa-times"></i> Cancel
+            </button>
+            <button type="button" id="saveObjectiveBtn" class="btn btn-success">
+              <i class="fas fa-save"></i> Save Objective
+            </button>
+          </div>
         </div>
+      </div>
     </div>
 
     <!-- Low Score Warning Modal -->
-    <div class="modal fade" id="lowScoreWarningModal" tabindex="-1" aria-labelledby="lowScoreWarningModalLabel"
-        aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content border-warning">
-                <div class="modal-header bg-warning bg-opacity-10">
-                    <h5 class="modal-title" id="lowScoreWarningModalLabel">
-                        <i class="fas fa-exclamation-triangle text-warning"></i> Low Similarity Score Warning
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="alert alert-warning mb-3">
-                        <strong id="lowScoreCount"></strong>
-                    </div>
-                    <p class="mb-2">These objectives may not be relevant to this question.</p>
-                    <p class="mb-0"><strong>Do you want to proceed anyway?</strong></p>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                        <i class="fas fa-times"></i> Cancel
-                    </button>
-                    <button type="button" id="proceedSaveBtn" class="btn btn-warning">
-                        <i class="fas fa-check"></i> Proceed Anyway
-                    </button>
-                </div>
+    <div
+      class="modal fade"
+      id="lowScoreWarningModal"
+      tabindex="-1"
+      aria-labelledby="lowScoreWarningModalLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-warning">
+          <div class="modal-header bg-warning bg-opacity-10">
+            <h5 class="modal-title" id="lowScoreWarningModalLabel">
+              <i class="fas fa-exclamation-triangle text-warning"></i> Low
+              Similarity Score Warning
+            </h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <div class="alert alert-warning mb-3">
+              <strong id="lowScoreCount"></strong>
             </div>
+            <p class="mb-2">
+              These objectives may not be relevant to this question.
+            </p>
+            <p class="mb-0"><strong>Do you want to proceed anyway?</strong></p>
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              <i class="fas fa-times"></i> Cancel
+            </button>
+            <button type="button" id="proceedSaveBtn" class="btn btn-warning">
+              <i class="fas fa-check"></i> Proceed Anyway
+            </button>
+          </div>
         </div>
+      </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', async function () {
-            const config = document.getElementById('app-config');
-            const questionId = config.dataset.questionId;
-            const currentObjectiveIds = JSON.parse(config.dataset.currentObjectives);
-            const overlay = document.getElementById('loadingOverlay');
-            const listDiv = document.getElementById('objectivesList');
+      document.addEventListener("DOMContentLoaded", async function () {
+        const config = document.getElementById("app-config");
+        const questionId = config.dataset.questionId;
+        const currentObjectiveIds = JSON.parse(
+          config.dataset.currentObjectives,
+        );
+        const overlay = document.getElementById("loadingOverlay");
+        const listDiv = document.getElementById("objectivesList");
 
-            // Show loading overlay
-            overlay.classList.add('show');
+        // Show loading overlay
+        overlay.classList.add("show");
 
+        try {
+          // Fetch all objectives with full text (NO AI suggestions)
+          console.log("🔍 Fetching all objectives...");
+          const objectivesResponse = await fetch("/objectives/list");
+          const objectivesData = await objectivesResponse.json();
+          const allObjectives = objectivesData.objectives || [];
+          console.log("✅ All objectives:", allObjectives.length);
+
+          // Hide warning message (not needed without AI)
+          const warningDiv = document.getElementById("noSuggestionsWarning");
+          warningDiv.style.display = "none";
+
+          // Sort objectives alphabetically
+          allObjectives.sort((a, b) => a.text.localeCompare(b.text));
+
+          // Render objectives
+          listDiv.innerHTML = "";
+          allObjectives.forEach((obj) => {
             try {
-                // Fetch all objectives with full text (NO AI suggestions)
-                console.log('🔍 Fetching all objectives...');
-                const objectivesResponse = await fetch('/objectives/list');
-                const objectivesData = await objectivesResponse.json();
-                const allObjectives = objectivesData.objectives || [];
-                console.log('✅ All objectives:', allObjectives.length);
+              // No AI recommendations - nothing is pre-checked
+              const shouldCheck = false;
 
-                // Hide warning message (not needed without AI)
-                const warningDiv = document.getElementById('noSuggestionsWarning');
-                warningDiv.style.display = 'none';
+              // Safely escape text for HTML
+              const escapedText = (obj.text || "")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;");
 
-                // Sort objectives alphabetically
-                allObjectives.sort((a, b) => a.text.localeCompare(b.text));
+              const itemDiv = document.createElement("div");
+              itemDiv.className = "objective-item p-3 mb-3 border rounded";
+              itemDiv.style.overflow = "visible";
 
-                // Render objectives
-                listDiv.innerHTML = '';
-                allObjectives.forEach(obj => {
-                    try {
-                        // No AI recommendations - nothing is pre-checked
-                        const shouldCheck = false;
-
-                        // Safely escape text for HTML
-                        const escapedText = (obj.text || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-
-                        const itemDiv = document.createElement('div');
-                        itemDiv.className = 'objective-item p-3 mb-3 border rounded';
-                        itemDiv.style.overflow = 'visible';
-
-                        itemDiv.innerHTML = `
+              itemDiv.innerHTML = `
                             <div class="d-flex align-items-start">
                                 <input class="form-check-input mt-1 me-3 flex-shrink-0" 
                                        type="checkbox" 
                                        value="${obj.id}" 
                                        id="obj_${obj.id}"
-                                       ${shouldCheck ? 'checked' : ''}
+                                       ${shouldCheck ? "checked" : ""}
                                        aria-labelledby="label_${obj.id}"
                                        onchange="updateSelectedCount()">
                                 <label class="flex-grow-1" 
@@ -396,584 +526,695 @@
                             </div>
                         `;
 
-                        listDiv.appendChild(itemDiv);
-                    } catch (objError) {
-                        console.warn('⚠️ Error rendering objective:', obj.id, objError);
-                        // Continue with next objective
-                    }
-                });
+              listDiv.appendChild(itemDiv);
+            } catch (objError) {
+              console.warn("⚠️ Error rendering objective:", obj.id, objError);
+              // Continue with next objective
+            }
+          });
 
-                // Update selected count
-                updateSelectedCount();
+          // Update selected count
+          updateSelectedCount();
 
-                // Hide loading overlay
-                overlay.classList.remove('show');
+          // Hide loading overlay
+          overlay.classList.remove("show");
+        } catch (error) {
+          console.error("❌ Error loading objectives:", error);
+          console.error("Error details:", error.message, error.stack);
+          overlay.classList.remove("show");
 
+          // Only show alert if the objectives list is actually empty
+          if (listDiv.children.length === 0) {
+            alert("Failed to load objectives. Please try again.");
+          }
+        }
+
+        // Update selected count function
+        window.updateSelectedCount = function () {
+          const checkedBoxes = document.querySelectorAll(
+            '#objectivesList input[type="checkbox"]:checked',
+          );
+          document.getElementById("selectedCount").textContent =
+            `${checkedBoxes.length} selected`;
+        };
+
+        // Function to actually save objectives (called after confirmation)
+        async function saveObjectives() {
+          const btn = document.getElementById("saveBtn");
+          const originalText = btn.innerHTML;
+
+          try {
+            // Get selected objective IDs
+            const checkboxes = document.querySelectorAll(
+              '#objectivesList input[type="checkbox"]:checked',
+            );
+            const selectedIds = Array.from(checkboxes).map((cb) => cb.value);
+
+            console.log("💾 Saving selected objectives:", selectedIds);
+
+            // Proceed with saving
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+
+            // Send to backend
+            const response = await fetch(
+              `/questions/${questionId}/associate-objectives`,
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ objective_ids: selectedIds }),
+              },
+            );
+
+            if (!response.ok) {
+              throw new Error("Failed to save objectives");
+            }
+
+            console.log("✅ Objectives saved successfully");
+
+            // Redirect back to edit question page
+            window.location.href = `/questions/${questionId}`;
+          } catch (error) {
+            console.error("❌ Error saving objectives:", error);
+            alert("Failed to save objectives. Please try again.");
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+          }
+        }
+
+        // Save button handler
+        document
+          .getElementById("saveBtn")
+          .addEventListener("click", async function () {
+            try {
+              // Get selected objective IDs
+              const checkboxes = document.querySelectorAll(
+                '#objectivesList input[type="checkbox"]:checked',
+              );
+
+              console.log("💾 Attempting to save selected objectives...");
+
+              // Check if any selected objectives have low scores (<60%)
+              const lowScoreSelected = [];
+              checkboxes.forEach((checkbox) => {
+                const badge = checkbox
+                  .closest(".objective-item")
+                  .querySelector(".similarity-badge");
+                if (badge) {
+                  const score = parseInt(badge.getAttribute("data-score"));
+                  if (score < 60) {
+                    lowScoreSelected.push({ id: checkbox.value, score });
+                  }
+                }
+              });
+
+              // Show warning modal if low-score objectives are selected
+              if (lowScoreSelected.length > 0) {
+                console.log(
+                  `⚠️ ${lowScoreSelected.length} low-score objectives selected`,
+                );
+
+                // Update modal content
+                const countText =
+                  lowScoreSelected.length === 1
+                    ? "1 selected objective has a similarity score below 60%."
+                    : `${lowScoreSelected.length} selected objectives have similarity scores below 60%.`;
+                document.getElementById("lowScoreCount").textContent =
+                  countText;
+
+                // Show the modal
+                const warningModal = new bootstrap.Modal(
+                  document.getElementById("lowScoreWarningModal"),
+                );
+                warningModal.show();
+
+                return; // Don't save yet, wait for user confirmation
+              }
+
+              // No low-score objectives, proceed directly
+              await saveObjectives();
             } catch (error) {
-                console.error('❌ Error loading objectives:', error);
-                console.error('Error details:', error.message, error.stack);
-                overlay.classList.remove('show');
+              console.error("❌ Error in save handler:", error);
+              alert("Failed to save objectives. Please try again.");
+            }
+          });
 
-                // Only show alert if the objectives list is actually empty
-                if (listDiv.children.length === 0) {
-                    alert('Failed to load objectives. Please try again.');
-                }
+        // Proceed button in warning modal
+        document
+          .getElementById("proceedSaveBtn")
+          .addEventListener("click", async function () {
+            // Close the modal
+            const warningModal = bootstrap.Modal.getInstance(
+              document.getElementById("lowScoreWarningModal"),
+            );
+            warningModal.hide();
+
+            // Proceed with saving
+            await saveObjectives();
+          });
+
+        // Check Similarity Score button handler — uses SSE
+        document
+          .getElementById("checkSimilarityBtn")
+          .addEventListener("click", function () {
+            const btn = this;
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML =
+              '<i class="fas fa-spinner fa-spin"></i> Analyzing...';
+
+            const loadingDiv = document.getElementById("similarityProgress");
+            const progressBar = document.getElementById("progressBar");
+            const progressPercent = document.getElementById("progressPercent");
+            const progressStage = document.getElementById("progressStage");
+            const progressMessage = document.getElementById("progressMessage");
+            const progressTip = document.getElementById("progressTip");
+
+            function updateProgress(percent, stage, message, tip) {
+              progressBar.style.width = `${percent}%`;
+              progressBar.setAttribute("aria-valuenow", percent);
+              progressPercent.textContent = `${percent}%`;
+              progressStage.textContent = stage;
+              progressMessage.innerHTML = `<i class="fas fa-cog fa-spin"></i> ${message}`;
+              progressTip.innerHTML = tip;
             }
 
-            // Update selected count function
-            window.updateSelectedCount = function () {
-                const checkedBoxes = document.querySelectorAll('#objectivesList input[type="checkbox"]:checked');
-                document.getElementById('selectedCount').textContent = `${checkedBoxes.length} selected`;
+            console.log("Opening SSE stream for objective similarity...");
+            loadingDiv.style.display = "block";
+            updateProgress(
+              0,
+              "Initializing",
+              "Starting AI analysis...",
+              "<strong>Please wait:</strong> This typically takes 5-15 seconds depending on the number of objectives.",
+            );
+
+            const evtSource = new EventSource(
+              `/questions/${questionId}/suggest-objectives-stream`,
+            );
+
+            evtSource.addEventListener("phase", function (e) {
+              const d = JSON.parse(e.data);
+              const tipMap = {
+                loading_question:
+                  "<strong>Step 1:</strong> Reading question from database.",
+                loading_objectives:
+                  "<strong>Step 2:</strong> Loading all learning objectives.",
+                objectives_loaded: `<strong>Step 3:</strong> ${d.total_objectives || "All"} objectives ready for AI analysis.`,
+                analyzing:
+                  "<strong>AI Analysis:</strong> GPT is evaluating each objective for relevance. This is the longest step.",
+              };
+              updateProgress(
+                d.percent,
+                d.message,
+                d.message,
+                tipMap[d.stage] || "",
+              );
+            });
+
+            evtSource.addEventListener("all_done", function (e) {
+              evtSource.close();
+              const d = JSON.parse(e.data);
+              const suggestions = d.suggestions || [];
+
+              updateProgress(
+                100,
+                "Complete!",
+                "Successfully ranked all objectives!",
+                `<strong>Done!</strong> Found ${d.high_score_count} highly relevant objective(s) out of ${d.total} total.`,
+              );
+
+              console.log("Received similarity scores:", suggestions.length);
+
+              // Create score map
+              const scoreMap = new Map(suggestions.map((s) => [s.id, s.score]));
+
+              // Get all objective items
+              const objectiveItems = Array.from(listDiv.children);
+
+              // Update each objective with score badge
+              objectiveItems.forEach((itemDiv) => {
+                const checkbox = itemDiv.querySelector(
+                  'input[type="checkbox"]',
+                );
+                const objectiveId = checkbox ? checkbox.value : null;
+
+                if (objectiveId) {
+                  // Remove existing badge if any
+                  const existingBadge =
+                    itemDiv.querySelector(".similarity-badge");
+                  if (existingBadge) {
+                    existingBadge.remove();
+                  }
+
+                  const score = scoreMap.get(objectiveId) || 0;
+                  const isHighScore = score >= 60;
+                  const isChecked = checkbox.checked;
+
+                  let badgeColor, badgeIcon;
+                  if (isHighScore) {
+                    badgeColor = "success";
+                    badgeIcon = "check-circle";
+                  } else {
+                    badgeColor = isChecked ? "danger" : "warning";
+                    badgeIcon = "exclamation-circle";
+                  }
+
+                  const badge = document.createElement("span");
+                  badge.className = `badge bg-${badgeColor} ms-3 flex-shrink-0 similarity-badge`;
+                  badge.innerHTML = `<i class="fas fa-${badgeIcon}"></i> ${score}% match`;
+                  badge.setAttribute("data-score", score);
+
+                  const flexDiv = itemDiv.querySelector(".d-flex");
+                  if (flexDiv) {
+                    flexDiv.appendChild(badge);
+                  }
+
+                  if (isHighScore) {
+                    itemDiv.classList.add("border-success");
+                    itemDiv.style.borderLeftWidth = "4px";
+                  } else {
+                    itemDiv.classList.remove("border-success");
+                    itemDiv.style.borderLeftWidth = "";
+                  }
+
+                  checkbox.addEventListener("change", function () {
+                    const badge =
+                      this.closest(".objective-item").querySelector(
+                        ".similarity-badge",
+                      );
+                    if (badge) {
+                      const score = parseInt(badge.getAttribute("data-score"));
+                      if (score < 60) {
+                        if (this.checked) {
+                          badge.classList.remove("bg-warning");
+                          badge.classList.add("bg-danger");
+                        } else {
+                          badge.classList.remove("bg-danger");
+                          badge.classList.add("bg-warning");
+                        }
+                      }
+                    }
+                  });
+                }
+              });
+
+              // Sort objectives by score (high to low)
+              const objectivesWithScores = Array.from(listDiv.children).map(
+                (itemDiv) => {
+                  const checkbox = itemDiv.querySelector(
+                    'input[type="checkbox"]',
+                  );
+                  const objectiveId = checkbox ? checkbox.value : null;
+                  const score = objectiveId
+                    ? scoreMap.get(objectiveId) || 0
+                    : 0;
+                  return { itemDiv, score };
+                },
+              );
+
+              objectivesWithScores.sort((a, b) => b.score - a.score);
+
+              listDiv.innerHTML = "";
+              objectivesWithScores.forEach(({ itemDiv }) => {
+                listDiv.appendChild(itemDiv);
+              });
+
+              console.log("Similarity scores displayed and sorted");
+
+              setTimeout(() => {
+                loadingDiv.style.transition = "opacity 0.5s";
+                loadingDiv.style.opacity = "0";
+                setTimeout(() => {
+                  loadingDiv.style.display = "none";
+                  loadingDiv.style.opacity = "1";
+                }, 500);
+              }, 1200);
+
+              listDiv.scrollIntoView({ behavior: "smooth", block: "nearest" });
+
+              btn.disabled = false;
+              btn.innerHTML = originalText;
+            });
+
+            evtSource.addEventListener("fatal_error", function (e) {
+              evtSource.close();
+              const d = JSON.parse(e.data);
+              console.error("Fatal error in objectives stream:", d.message);
+
+              updateProgress(
+                0,
+                "Error",
+                `Failed: ${d.message}`,
+                "<strong>Error:</strong> Please try again or check your connection.",
+              );
+              progressBar.classList.remove("bg-info");
+              progressBar.classList.add("bg-danger");
+
+              setTimeout(() => {
+                loadingDiv.style.display = "none";
+                progressBar.classList.remove("bg-danger");
+                progressBar.classList.add("bg-info");
+              }, 2500);
+
+              btn.disabled = false;
+              btn.innerHTML = originalText;
+            });
+
+            evtSource.onerror = function () {
+              evtSource.close();
+              console.error("SSE connection error during objective analysis");
+
+              updateProgress(
+                0,
+                "Connection Error",
+                "Lost connection to server.",
+                "<strong>Error:</strong> The connection was interrupted. Please try again.",
+              );
+              progressBar.classList.remove("bg-info");
+              progressBar.classList.add("bg-danger");
+
+              setTimeout(() => {
+                loadingDiv.style.display = "none";
+                progressBar.classList.remove("bg-danger");
+                progressBar.classList.add("bg-info");
+              }, 2500);
+
+              btn.disabled = false;
+              btn.innerHTML = originalText;
             };
+          });
 
-            // Function to actually save objectives (called after confirmation)
-            async function saveObjectives() {
-                const btn = document.getElementById('saveBtn');
-                const originalText = btn.innerHTML;
+        // Delete Question button handler
+        document
+          .getElementById("deleteQuestionBtn")
+          .addEventListener("click", async function () {
+            const confirmed = confirm(
+              "⚠️ Are you sure you want to delete this question?\n\n" +
+                "This action cannot be undone. All answers and feedback associated with this question will also be deleted.",
+            );
 
-                try {
-                    // Get selected objective IDs
-                    const checkboxes = document.querySelectorAll('#objectivesList input[type="checkbox"]:checked');
-                    const selectedIds = Array.from(checkboxes).map(cb => cb.value);
-
-                    console.log('💾 Saving selected objectives:', selectedIds);
-
-                    // Proceed with saving
-                    btn.disabled = true;
-                    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
-
-                    // Send to backend
-                    const response = await fetch(`/questions/${questionId}/associate-objectives`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ objective_ids: selectedIds })
-                    });
-
-                    if (!response.ok) {
-                        throw new Error('Failed to save objectives');
-                    }
-
-                    console.log('✅ Objectives saved successfully');
-
-                    // Redirect back to edit question page
-                    window.location.href = `/questions/${questionId}`;
-
-                } catch (error) {
-                    console.error('❌ Error saving objectives:', error);
-                    alert('Failed to save objectives. Please try again.');
-                    btn.disabled = false;
-                    btn.innerHTML = originalText;
-                }
+            if (!confirmed) {
+              return;
             }
 
-            // Save button handler
-            document.getElementById('saveBtn').addEventListener('click', async function () {
-                try {
-                    // Get selected objective IDs
-                    const checkboxes = document.querySelectorAll('#objectivesList input[type="checkbox"]:checked');
+            const btn = this;
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML =
+              '<i class="fas fa-spinner fa-spin"></i> Deleting...';
 
-                    console.log('💾 Attempting to save selected objectives...');
+            try {
+              console.log("🗑️ Deleting question:", questionId);
 
-                    // Check if any selected objectives have low scores (<60%)
-                    const lowScoreSelected = [];
-                    checkboxes.forEach(checkbox => {
-                        const badge = checkbox.closest('.objective-item').querySelector('.similarity-badge');
-                        if (badge) {
-                            const score = parseInt(badge.getAttribute('data-score'));
-                            if (score < 60) {
-                                lowScoreSelected.push({ id: checkbox.value, score });
-                            }
-                        }
-                    });
+              const response = await fetch(`/questions/${questionId}`, {
+                method: "DELETE",
+              });
 
-                    // Show warning modal if low-score objectives are selected
-                    if (lowScoreSelected.length > 0) {
-                        console.log(`⚠️ ${lowScoreSelected.length} low-score objectives selected`);
+              if (!response.ok) {
+                throw new Error("Failed to delete question");
+              }
 
-                        // Update modal content
-                        const countText = lowScoreSelected.length === 1
-                            ? '1 selected objective has a similarity score below 60%.'
-                            : `${lowScoreSelected.length} selected objectives have similarity scores below 60%.`;
-                        document.getElementById('lowScoreCount').textContent = countText;
+              console.log("✅ Question deleted successfully");
+              alert("Question deleted successfully");
 
-                        // Show the modal
-                        const warningModal = new bootstrap.Modal(document.getElementById('lowScoreWarningModal'));
-                        warningModal.show();
+              // Redirect to home page
+              window.location.href = "/";
+            } catch (error) {
+              console.error("❌ Error deleting question:", error);
+              alert("Failed to delete question. Please try again.");
+              btn.disabled = false;
+              btn.innerHTML = originalText;
+            }
+          });
 
-                        return; // Don't save yet, wait for user confirmation
-                    }
+        // Create New Objective button handler
+        document
+          .getElementById("createObjectiveBtn")
+          .addEventListener("click", function () {
+            // Clear the form and reset UI
+            document.getElementById("objectiveText").value = "";
+            document.getElementById("checkSimilarityObjectiveBtn").disabled =
+              true;
+            document.getElementById("similarityScoreArea").style.display =
+              "none";
 
-                    // No low-score objectives, proceed directly
-                    await saveObjectives();
+            // Show the modal
+            const modal = new bootstrap.Modal(
+              document.getElementById("createObjectiveModal"),
+            );
+            modal.show();
+          });
 
-                } catch (error) {
-                    console.error('❌ Error in save handler:', error);
-                    alert('Failed to save objectives. Please try again.');
-                }
-            });
+        // Character count validation for Check Similarity button
+        document
+          .getElementById("objectiveText")
+          .addEventListener("input", function () {
+            const text = this.value.trim();
+            const checkBtn = document.getElementById(
+              "checkSimilarityObjectiveBtn",
+            );
 
-            // Proceed button in warning modal
-            document.getElementById('proceedSaveBtn').addEventListener('click', async function () {
-                // Close the modal
-                const warningModal = bootstrap.Modal.getInstance(document.getElementById('lowScoreWarningModal'));
-                warningModal.hide();
+            // Enable button only if text is at least 20 characters
+            if (text.length >= 20) {
+              checkBtn.disabled = false;
+              checkBtn.setAttribute("aria-disabled", "false");
+            } else {
+              checkBtn.disabled = true;
+              checkBtn.setAttribute("aria-disabled", "true");
+            }
+          });
 
-                // Proceed with saving
-                await saveObjectives();
-            });
+        // Check Similarity button handler
+        document
+          .getElementById("checkSimilarityObjectiveBtn")
+          .addEventListener("click", async function () {
+            const btn = this;
+            const originalText = btn.innerHTML;
+            const textArea = document.getElementById("objectiveText");
+            const objectiveText = textArea.value.trim();
 
-            // Check Similarity Score button handler — uses SSE
-            document.getElementById('checkSimilarityBtn').addEventListener('click', function () {
-                const btn = this;
-                const originalText = btn.innerHTML;
-                btn.disabled = true;
-                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analyzing...';
+            if (objectiveText.length < 20) {
+              alert("Please enter at least 20 characters to check similarity.");
+              return;
+            }
 
-                const loadingDiv = document.getElementById('similarityProgress');
-                const progressBar = document.getElementById('progressBar');
-                const progressPercent = document.getElementById('progressPercent');
-                const progressStage = document.getElementById('progressStage');
-                const progressMessage = document.getElementById('progressMessage');
-                const progressTip = document.getElementById('progressTip');
+            try {
+              btn.disabled = true;
+              btn.innerHTML =
+                '<i class="fas fa-spinner fa-spin"></i> Checking...';
 
-                function updateProgress(percent, stage, message, tip) {
-                    progressBar.style.width = `${percent}%`;
-                    progressBar.setAttribute('aria-valuenow', percent);
-                    progressPercent.textContent = `${percent}%`;
-                    progressStage.textContent = stage;
-                    progressMessage.innerHTML = `<i class="fas fa-cog fa-spin"></i> ${message}`;
-                    progressTip.innerHTML = tip;
-                }
+              console.log("📊 Checking similarity score for objective...");
 
-                console.log('Opening SSE stream for objective similarity...');
-                loadingDiv.style.display = 'block';
-                updateProgress(0, 'Initializing', 'Starting AI analysis...', '<strong>Please wait:</strong> This typically takes 5-15 seconds depending on the number of objectives.');
+              const response = await fetch(
+                `/questions/${questionId}/check-objective-similarity`,
+                {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ objective_text: objectiveText }),
+                },
+              );
 
-                const evtSource = new EventSource(`/questions/${questionId}/suggest-objectives-stream`);
+              if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(
+                  errorData.detail || "Failed to check similarity",
+                );
+              }
 
-                evtSource.addEventListener('phase', function (e) {
-                    const d = JSON.parse(e.data);
-                    const tipMap = {
-                        'loading_question': '<strong>Step 1:</strong> Reading question from database.',
-                        'loading_objectives': '<strong>Step 2:</strong> Loading all learning objectives.',
-                        'objectives_loaded': `<strong>Step 3:</strong> ${d.total_objectives || 'All'} objectives ready for AI analysis.`,
-                        'analyzing': '<strong>AI Analysis:</strong> GPT is evaluating each objective for relevance. This is the longest step.',
-                    };
-                    updateProgress(d.percent, d.message, d.message, tipMap[d.stage] || '');
-                });
+              const data = await response.json();
+              const score = data.score;
+              console.log("✅ Similarity score:", score);
 
-                evtSource.addEventListener('all_done', function (e) {
-                    evtSource.close();
-                    const d = JSON.parse(e.data);
-                    const suggestions = d.suggestions || [];
+              // Display score
+              displaySimilarityScore(score);
 
-                    updateProgress(100, 'Complete!', 'Successfully ranked all objectives!', `<strong>Done!</strong> Found ${d.high_score_count} highly relevant objective(s) out of ${d.total} total.`);
+              btn.disabled = false;
+              btn.innerHTML = originalText;
+            } catch (error) {
+              console.error("❌ Error checking similarity:", error);
+              alert(`Failed to check similarity: ${error.message}`);
+              btn.disabled = false;
+              btn.innerHTML = originalText;
+            }
+          });
 
-                    console.log('Received similarity scores:', suggestions.length);
+        // Helper function to display similarity score
+        function displaySimilarityScore(score) {
+          const scoreArea = document.getElementById("similarityScoreArea");
+          const scoreValue = document.getElementById("similarityScoreValue");
+          const scoreText = document.getElementById("similarityScoreText");
+          const lowScoreWarning = document.getElementById("lowScoreWarning");
 
-                    // Create score map
-                    const scoreMap = new Map(suggestions.map(s => [s.id, s.score]));
+          scoreValue.textContent = `${score}%`;
 
-                    // Get all objective items
-                    const objectiveItems = Array.from(listDiv.children);
+          if (score >= 60) {
+            scoreArea.className = "alert alert-success";
+            scoreText.textContent = "- Good match!";
+            scoreValue.className = "fs-5 fw-bold text-success";
+            lowScoreWarning.style.display = "none";
+          } else {
+            scoreArea.className = "alert alert-warning";
+            scoreText.textContent = "- Low relevance";
+            scoreValue.className = "fs-5 fw-bold text-dark";
+            lowScoreWarning.style.display = "block";
+          }
 
-                    // Update each objective with score badge
-                    objectiveItems.forEach(itemDiv => {
-                        const checkbox = itemDiv.querySelector('input[type="checkbox"]');
-                        const objectiveId = checkbox ? checkbox.value : null;
+          scoreArea.style.display = "block";
+        }
 
-                        if (objectiveId) {
-                            // Remove existing badge if any
-                            const existingBadge = itemDiv.querySelector('.similarity-badge');
-                            if (existingBadge) {
-                                existingBadge.remove();
-                            }
+        // Generate Objective using AI button handler
+        document
+          .getElementById("generateObjectiveAIBtn")
+          .addEventListener("click", async function () {
+            const btn = this;
+            const originalText = btn.innerHTML;
+            const textArea = document.getElementById("objectiveText");
 
-                            const score = scoreMap.get(objectiveId) || 0;
-                            const isHighScore = score >= 60;
-                            const isChecked = checkbox.checked;
+            try {
+              btn.disabled = true;
+              btn.innerHTML =
+                '<i class="fas fa-spinner fa-spin"></i> Generating...';
 
-                            let badgeColor, badgeIcon;
-                            if (isHighScore) {
-                                badgeColor = 'success';
-                                badgeIcon = 'check-circle';
-                            } else {
-                                badgeColor = isChecked ? 'danger' : 'warning';
-                                badgeIcon = 'exclamation-circle';
-                            }
+              console.log(
+                "🤖 Generating objective using AI for question:",
+                questionId,
+              );
 
-                            const badge = document.createElement('span');
-                            badge.className = `badge bg-${badgeColor} ms-3 flex-shrink-0 similarity-badge`;
-                            badge.innerHTML = `<i class="fas fa-${badgeIcon}"></i> ${score}% match`;
-                            badge.setAttribute('data-score', score);
+              // Call backend to generate objective (now returns score too)
+              const response = await fetch(
+                `/questions/${questionId}/generate-objective`,
+                {
+                  method: "POST",
+                },
+              );
 
-                            const flexDiv = itemDiv.querySelector('.d-flex');
-                            if (flexDiv) {
-                                flexDiv.appendChild(badge);
-                            }
+              if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                console.error("❌ Server error:", errorData);
+                throw new Error(
+                  errorData.detail || "Failed to generate objective",
+                );
+              }
 
-                            if (isHighScore) {
-                                itemDiv.classList.add('border-success');
-                                itemDiv.style.borderLeftWidth = '4px';
-                            } else {
-                                itemDiv.classList.remove('border-success');
-                                itemDiv.style.borderLeftWidth = '';
-                            }
+              const data = await response.json();
+              console.log(
+                "✅ AI generated objective:",
+                data.objective,
+                "Score:",
+                data.score,
+              );
 
-                            checkbox.addEventListener('change', function () {
-                                const badge = this.closest('.objective-item').querySelector('.similarity-badge');
-                                if (badge) {
-                                    const score = parseInt(badge.getAttribute('data-score'));
-                                    if (score < 60) {
-                                        if (this.checked) {
-                                            badge.classList.remove('bg-warning');
-                                            badge.classList.add('bg-danger');
-                                        } else {
-                                            badge.classList.remove('bg-danger');
-                                            badge.classList.add('bg-warning');
-                                        }
-                                    }
-                                }
-                            });
-                        }
-                    });
+              // Populate the textarea with generated objective
+              textArea.value = data.objective;
 
-                    // Sort objectives by score (high to low)
-                    const objectivesWithScores = Array.from(listDiv.children).map(itemDiv => {
-                        const checkbox = itemDiv.querySelector('input[type="checkbox"]');
-                        const objectiveId = checkbox ? checkbox.value : null;
-                        const score = objectiveId ? (scoreMap.get(objectiveId) || 0) : 0;
-                        return { itemDiv, score };
-                    });
+              // Trigger input event to enable Check Similarity button
+              textArea.dispatchEvent(new Event("input"));
 
-                    objectivesWithScores.sort((a, b) => b.score - a.score);
+              // Automatically display similarity score
+              if (data.score !== undefined) {
+                displaySimilarityScore(data.score);
+              }
 
-                    listDiv.innerHTML = '';
-                    objectivesWithScores.forEach(({ itemDiv }) => {
-                        listDiv.appendChild(itemDiv);
-                    });
+              textArea.focus();
 
-                    console.log('Similarity scores displayed and sorted');
+              // Reset button
+              btn.disabled = false;
+              btn.innerHTML = originalText;
+            } catch (error) {
+              console.error("❌ Error generating objective:", error);
+              alert(
+                `Failed to generate objective using AI: ${error.message}\n\nPlease try again or enter manually.`,
+              );
+              btn.disabled = false;
+              btn.innerHTML = originalText;
+            }
+          });
 
-                    setTimeout(() => {
-                        loadingDiv.style.transition = 'opacity 0.5s';
-                        loadingDiv.style.opacity = '0';
-                        setTimeout(() => {
-                            loadingDiv.style.display = 'none';
-                            loadingDiv.style.opacity = '1';
-                        }, 500);
-                    }, 1200);
+        // Save Objective button handler (in modal)
+        document
+          .getElementById("saveObjectiveBtn")
+          .addEventListener("click", async function () {
+            const textArea = document.getElementById("objectiveText");
+            const objectiveText = textArea.value.trim();
 
-                    listDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            if (!objectiveText) {
+              alert("Please enter the objective text.");
+              textArea.focus();
+              return;
+            }
 
-                    btn.disabled = false;
-                    btn.innerHTML = originalText;
-                });
+            // Check if similarity score was displayed and is low
+            const scoreArea = document.getElementById("similarityScoreArea");
+            const scoreValue = document.getElementById("similarityScoreValue");
 
-                evtSource.addEventListener('fatal_error', function (e) {
-                    evtSource.close();
-                    const d = JSON.parse(e.data);
-                    console.error('Fatal error in objectives stream:', d.message);
+            if (scoreArea.style.display !== "none" && scoreValue.textContent) {
+              const score = parseFloat(scoreValue.textContent);
 
-                    updateProgress(0, 'Error', `Failed: ${d.message}`, '<strong>Error:</strong> Please try again or check your connection.');
-                    progressBar.classList.remove('bg-info');
-                    progressBar.classList.add('bg-danger');
-
-                    setTimeout(() => {
-                        loadingDiv.style.display = 'none';
-                        progressBar.classList.remove('bg-danger');
-                        progressBar.classList.add('bg-info');
-                    }, 2500);
-
-                    btn.disabled = false;
-                    btn.innerHTML = originalText;
-                });
-
-                evtSource.onerror = function () {
-                    evtSource.close();
-                    console.error('SSE connection error during objective analysis');
-
-                    updateProgress(0, 'Connection Error', 'Lost connection to server.', '<strong>Error:</strong> The connection was interrupted. Please try again.');
-                    progressBar.classList.remove('bg-info');
-                    progressBar.classList.add('bg-danger');
-
-                    setTimeout(() => {
-                        loadingDiv.style.display = 'none';
-                        progressBar.classList.remove('bg-danger');
-                        progressBar.classList.add('bg-info');
-                    }, 2500);
-
-                    btn.disabled = false;
-                    btn.innerHTML = originalText;
-                };
-            });
-
-            // Delete Question button handler
-            document.getElementById('deleteQuestionBtn').addEventListener('click', async function () {
+              if (score < 60) {
                 const confirmed = confirm(
-                    '⚠️ Are you sure you want to delete this question?\n\n' +
-                    'This action cannot be undone. All answers and feedback associated with this question will also be deleted.'
+                  `⚠️ Warning: Low Similarity Score (${score}%)\n\n` +
+                    "This objective has low relevance to the question. " +
+                    "It may not be a good fit.\n\n" +
+                    "Do you want to save it anyway?",
                 );
 
                 if (!confirmed) {
-                    return;
+                  console.log("❌ Save cancelled by user due to low score");
+                  return;
                 }
-
-                const btn = this;
-                const originalText = btn.innerHTML;
-                btn.disabled = true;
-                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deleting...';
-
-                try {
-                    console.log('🗑️ Deleting question:', questionId);
-
-                    const response = await fetch(`/questions/${questionId}`, {
-                        method: 'DELETE'
-                    });
-
-                    if (!response.ok) {
-                        throw new Error('Failed to delete question');
-                    }
-
-                    console.log('✅ Question deleted successfully');
-                    alert('Question deleted successfully');
-
-                    // Redirect to home page
-                    window.location.href = '/';
-
-                } catch (error) {
-                    console.error('❌ Error deleting question:', error);
-                    alert('Failed to delete question. Please try again.');
-                    btn.disabled = false;
-                    btn.innerHTML = originalText;
-                }
-            });
-
-            // Create New Objective button handler
-            document.getElementById('createObjectiveBtn').addEventListener('click', function () {
-                // Clear the form and reset UI
-                document.getElementById('objectiveText').value = '';
-                document.getElementById('checkSimilarityObjectiveBtn').disabled = true;
-                document.getElementById('similarityScoreArea').style.display = 'none';
-
-                // Show the modal
-                const modal = new bootstrap.Modal(document.getElementById('createObjectiveModal'));
-                modal.show();
-            });
-
-            // Character count validation for Check Similarity button
-            document.getElementById('objectiveText').addEventListener('input', function () {
-                const text = this.value.trim();
-                const checkBtn = document.getElementById('checkSimilarityObjectiveBtn');
-
-                // Enable button only if text is at least 20 characters
-                if (text.length >= 20) {
-                    checkBtn.disabled = false;
-                    checkBtn.setAttribute('aria-disabled', 'false');
-                } else {
-                    checkBtn.disabled = true;
-                    checkBtn.setAttribute('aria-disabled', 'true');
-                }
-            });
-
-            // Check Similarity button handler
-            document.getElementById('checkSimilarityObjectiveBtn').addEventListener('click', async function () {
-                const btn = this;
-                const originalText = btn.innerHTML;
-                const textArea = document.getElementById('objectiveText');
-                const objectiveText = textArea.value.trim();
-
-                if (objectiveText.length < 20) {
-                    alert('Please enter at least 20 characters to check similarity.');
-                    return;
-                }
-
-                try {
-                    btn.disabled = true;
-                    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking...';
-
-                    console.log('📊 Checking similarity score for objective...');
-
-                    const response = await fetch(`/questions/${questionId}/check-objective-similarity`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ objective_text: objectiveText })
-                    });
-
-                    if (!response.ok) {
-                        const errorData = await response.json().catch(() => ({}));
-                        throw new Error(errorData.detail || 'Failed to check similarity');
-                    }
-
-                    const data = await response.json();
-                    const score = data.score;
-                    console.log('✅ Similarity score:', score);
-
-                    // Display score
-                    displaySimilarityScore(score);
-
-                    btn.disabled = false;
-                    btn.innerHTML = originalText;
-
-                } catch (error) {
-                    console.error('❌ Error checking similarity:', error);
-                    alert(`Failed to check similarity: ${error.message}`);
-                    btn.disabled = false;
-                    btn.innerHTML = originalText;
-                }
-            });
-
-            // Helper function to display similarity score
-            function displaySimilarityScore(score) {
-                const scoreArea = document.getElementById('similarityScoreArea');
-                const scoreValue = document.getElementById('similarityScoreValue');
-                const scoreText = document.getElementById('similarityScoreText');
-                const lowScoreWarning = document.getElementById('lowScoreWarning');
-
-                scoreValue.textContent = `${score}%`;
-
-                if (score >= 60) {
-                    scoreArea.className = 'alert alert-success';
-                    scoreText.textContent = '- Good match!';
-                    scoreValue.className = 'fs-5 fw-bold text-success';
-                    lowScoreWarning.style.display = 'none';
-                } else {
-                    scoreArea.className = 'alert alert-warning';
-                    scoreText.textContent = '- Low relevance';
-                    scoreValue.className = 'fs-5 fw-bold text-dark';
-                    lowScoreWarning.style.display = 'block';
-                }
-
-                scoreArea.style.display = 'block';
+              }
             }
 
-            // Generate Objective using AI button handler
-            document.getElementById('generateObjectiveAIBtn').addEventListener('click', async function () {
-                const btn = this;
-                const originalText = btn.innerHTML;
-                const textArea = document.getElementById('objectiveText');
+            const btn = this;
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
 
-                try {
-                    btn.disabled = true;
-                    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+            try {
+              console.log("💾 Creating new objective:", objectiveText);
 
-                    console.log('🤖 Generating objective using AI for question:', questionId);
+              // Create the objective
+              const response = await fetch("/objectives/", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ text: objectiveText }),
+              });
 
-                    // Call backend to generate objective (now returns score too)
-                    const response = await fetch(`/questions/${questionId}/generate-objective`, {
-                        method: 'POST'
-                    });
+              if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                console.error("❌ Server error:", errorData);
+                throw new Error(
+                  errorData.detail || "Failed to create objective",
+                );
+              }
 
-                    if (!response.ok) {
-                        const errorData = await response.json().catch(() => ({}));
-                        console.error('❌ Server error:', errorData);
-                        throw new Error(errorData.detail || 'Failed to generate objective');
-                    }
+              const newObjective = await response.json();
+              console.log("✅ Objective created successfully:", newObjective);
 
-                    const data = await response.json();
-                    console.log('✅ AI generated objective:', data.objective, 'Score:', data.score);
+              // Validate response has required fields
+              if (!newObjective.id || !newObjective.text) {
+                console.error("❌ Invalid response format:", newObjective);
+                throw new Error("Invalid response from server");
+              }
 
-                    // Populate the textarea with generated objective
-                    textArea.value = data.objective;
+              // Close the modal smoothly
+              const modal = bootstrap.Modal.getInstance(
+                document.getElementById("createObjectiveModal"),
+              );
+              modal.hide();
 
-                    // Trigger input event to enable Check Similarity button
-                    textArea.dispatchEvent(new Event('input'));
+              // Add the new objective to the list (APPEND at bottom)
+              const escapedText = newObjective.text
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;");
 
-                    // Automatically display similarity score
-                    if (data.score !== undefined) {
-                        displaySimilarityScore(data.score);
-                    }
+              const itemDiv = document.createElement("div");
+              itemDiv.className =
+                "objective-item p-3 mb-3 border rounded border-primary";
+              itemDiv.style.overflow = "visible";
+              itemDiv.id = `objective-${newObjective.id}`;
 
-                    textArea.focus();
-
-                    // Reset button
-                    btn.disabled = false;
-                    btn.innerHTML = originalText;
-
-                } catch (error) {
-                    console.error('❌ Error generating objective:', error);
-                    alert(`Failed to generate objective using AI: ${error.message}\n\nPlease try again or enter manually.`);
-                    btn.disabled = false;
-                    btn.innerHTML = originalText;
-                }
-            });
-
-            // Save Objective button handler (in modal)
-            document.getElementById('saveObjectiveBtn').addEventListener('click', async function () {
-                const textArea = document.getElementById('objectiveText');
-                const objectiveText = textArea.value.trim();
-
-                if (!objectiveText) {
-                    alert('Please enter the objective text.');
-                    textArea.focus();
-                    return;
-                }
-
-                // Check if similarity score was displayed and is low
-                const scoreArea = document.getElementById('similarityScoreArea');
-                const scoreValue = document.getElementById('similarityScoreValue');
-
-                if (scoreArea.style.display !== 'none' && scoreValue.textContent) {
-                    const score = parseFloat(scoreValue.textContent);
-
-                    if (score < 60) {
-                        const confirmed = confirm(
-                            `⚠️ Warning: Low Similarity Score (${score}%)\n\n` +
-                            'This objective has low relevance to the question. ' +
-                            'It may not be a good fit.\n\n' +
-                            'Do you want to save it anyway?'
-                        );
-
-                        if (!confirmed) {
-                            console.log('❌ Save cancelled by user due to low score');
-                            return;
-                        }
-                    }
-                }
-
-                const btn = this;
-                const originalText = btn.innerHTML;
-                btn.disabled = true;
-                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
-
-                try {
-                    console.log('💾 Creating new objective:', objectiveText);
-
-                    // Create the objective
-                    const response = await fetch('/objectives/', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ text: objectiveText })
-                    });
-
-                    if (!response.ok) {
-                        const errorData = await response.json().catch(() => ({}));
-                        console.error('❌ Server error:', errorData);
-                        throw new Error(errorData.detail || 'Failed to create objective');
-                    }
-
-                    const newObjective = await response.json();
-                    console.log('✅ Objective created successfully:', newObjective);
-
-                    // Validate response has required fields
-                    if (!newObjective.id || !newObjective.text) {
-                        console.error('❌ Invalid response format:', newObjective);
-                        throw new Error('Invalid response from server');
-                    }
-
-                    // Close the modal smoothly
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('createObjectiveModal'));
-                    modal.hide();
-
-                    // Add the new objective to the list (APPEND at bottom)
-                    const escapedText = newObjective.text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-
-                    const itemDiv = document.createElement('div');
-                    itemDiv.className = 'objective-item p-3 mb-3 border rounded border-primary';
-                    itemDiv.style.overflow = 'visible';
-                    itemDiv.id = `objective-${newObjective.id}`;
-
-                    itemDiv.innerHTML = `
+              itemDiv.innerHTML = `
                         <div class="d-flex align-items-start">
                             <input class="form-check-input mt-1 me-3 flex-shrink-0" 
                                    type="checkbox" 
@@ -991,45 +1232,47 @@
                         </div>
                     `;
 
-                    // Append to the list (at bottom)
-                    listDiv.appendChild(itemDiv);
+              // Append to the list (at bottom)
+              listDiv.appendChild(itemDiv);
 
-                    // Update selected count
-                    updateSelectedCount();
+              // Update selected count
+              updateSelectedCount();
 
-                    // Smooth scroll to the new objective
-                    setTimeout(() => {
-                        itemDiv.scrollIntoView({
-                            behavior: 'smooth',
-                            block: 'center'
-                        });
+              // Smooth scroll to the new objective
+              setTimeout(() => {
+                itemDiv.scrollIntoView({
+                  behavior: "smooth",
+                  block: "center",
+                });
 
-                        // Add highlight animation
-                        itemDiv.classList.add('highlight-new');
+                // Add highlight animation
+                itemDiv.classList.add("highlight-new");
 
-                        // Remove highlight class after animation
-                        setTimeout(() => {
-                            itemDiv.classList.remove('highlight-new');
-                        }, 2000);
-                    }, 100);
+                // Remove highlight class after animation
+                setTimeout(() => {
+                  itemDiv.classList.remove("highlight-new");
+                }, 2000);
+              }, 100);
 
-                    // Reset button and form
-                    btn.disabled = false;
-                    btn.innerHTML = originalText;
-                    textArea.value = '';
+              // Reset button and form
+              btn.disabled = false;
+              btn.innerHTML = originalText;
+              textArea.value = "";
 
-                    console.log('✅ New objective added to list and scrolled into view');
-
-                } catch (error) {
-                    console.error('❌ Error creating objective:', error);
-                    console.error('Error details:', error.message, error.stack);
-                    alert(`Failed to create objective: ${error.message}\n\nPlease try again.`);
-                    btn.disabled = false;
-                    btn.innerHTML = originalText;
-                }
-            });
-        });
+              console.log(
+                "✅ New objective added to list and scrolled into view",
+              );
+            } catch (error) {
+              console.error("❌ Error creating objective:", error);
+              console.error("Error details:", error.message, error.stack);
+              alert(
+                `Failed to create objective: ${error.message}\n\nPlease try again.`,
+              );
+              btn.disabled = false;
+              btn.innerHTML = originalText;
+            }
+          });
+      });
     </script>
-</body>
-
+  </body>
 </html>
