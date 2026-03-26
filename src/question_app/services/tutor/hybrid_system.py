@@ -1189,11 +1189,14 @@ class HybridCrewAISocraticSystem:
             objective_id = session_state.get("active_objective_id", "")
             objective_text = ""
 
-            # Resolve objective text for the prompt
+            # Resolve objective text by looking up the active objective ID
             if objective_id:
-                obj_data = await self.student_mcp.get_recommended_next_objective(student_id)
-                if obj_data:
-                    objective_text = obj_data.get("objective_text", "")
+                try:
+                    obj = await asyncio.to_thread(self._fetch_objective_by_id, objective_id)
+                    if obj:
+                        objective_text = obj.get("text", "")
+                except Exception as e:
+                    logger.warning(f"Failed to fetch objective text for {objective_id}: {e}")
 
             # Check session content cache — retrieve only if needed
             if self._session_cache.needs_retrieval(session_id, objective_id):
