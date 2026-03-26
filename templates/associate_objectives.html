@@ -468,11 +468,32 @@
       document.addEventListener("DOMContentLoaded", async function () {
         const config = document.getElementById("app-config");
         const questionId = config.dataset.questionId;
-        const currentObjectiveIds = JSON.parse(
-          config.dataset.currentObjectives,
-        );
+        let currentObjectiveIds = [];
+        try {
+          const parsedObjectives = JSON.parse(
+            config.dataset.currentObjectives || "[]",
+          );
+          currentObjectiveIds = Array.isArray(parsedObjectives)
+            ? parsedObjectives.map((id) => String(id))
+            : [];
+        } catch (parseError) {
+          console.warn(
+            "⚠️ Could not parse current objective IDs, defaulting to empty list:",
+            parseError,
+          );
+          currentObjectiveIds = [];
+        }
         const overlay = document.getElementById("loadingOverlay");
         const listDiv = document.getElementById("objectivesList");
+
+        // Update selected count function
+        window.updateSelectedCount = function () {
+          const checkedBoxes = document.querySelectorAll(
+            '#objectivesList input[type="checkbox"]:checked',
+          );
+          document.getElementById("selectedCount").textContent =
+            `${checkedBoxes.length} selected`;
+        };
 
         // Show loading overlay
         overlay.classList.add("show");
@@ -482,7 +503,11 @@
           console.log("🔍 Fetching all objectives...");
           const objectivesResponse = await fetch("/objectives/list");
           const objectivesData = await objectivesResponse.json();
-          const allObjectives = objectivesData.objectives || [];
+          const allObjectives = Array.isArray(objectivesData?.objectives)
+            ? objectivesData.objectives
+            : Array.isArray(objectivesData)
+              ? objectivesData
+              : [];
           console.log("✅ All objectives:", allObjectives.length);
 
           // Hide warning message (not needed without AI)
@@ -490,14 +515,16 @@
           warningDiv.style.display = "none";
 
           // Sort objectives alphabetically
-          allObjectives.sort((a, b) => a.text.localeCompare(b.text));
+          allObjectives.sort((a, b) =>
+            String(a?.text || "").localeCompare(String(b?.text || "")),
+          );
 
           // Render objectives
           listDiv.innerHTML = "";
           allObjectives.forEach((obj) => {
             try {
-              // No AI recommendations - nothing is pre-checked
-              const shouldCheck = false;
+              // Keep previously associated objectives checked by default
+              const shouldCheck = currentObjectiveIds.includes(String(obj.id));
 
               // Safely escape text for HTML
               const escapedText = (obj.text || "")
@@ -548,15 +575,6 @@
             alert("Failed to load objectives. Please try again.");
           }
         }
-
-        // Update selected count function
-        window.updateSelectedCount = function () {
-          const checkedBoxes = document.querySelectorAll(
-            '#objectivesList input[type="checkbox"]:checked',
-          );
-          document.getElementById("selectedCount").textContent =
-            `${checkedBoxes.length} selected`;
-        };
 
         // Function to actually save objectives (called after confirmation)
         async function saveObjectives() {
