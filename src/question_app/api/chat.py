@@ -432,24 +432,44 @@ async def websocket_guided_chat(websocket: WebSocket):
                         "has_profile": False,
                     })
 
-                    # Send welcome message + first structured onboarding question
-                    await websocket.send_json({
-                        "type": "welcome",
-                        "content": "Welcome! I'm your web accessibility tutor. Let me learn a bit about you so I can personalize your learning.",
-                        "student_id": student_id,
-                        "stage": "onboarding",
-                    })
+                    # Check if this student has partial onboarding progress
+                    history = tutor_system.get_conversation_history(student_id)
+                    assistant_turns = sum(1 for m in history if m.get("role") == "assistant")
 
-                    first_question = tutor_system._ONBOARDING_QUESTIONS[0]
-                    await websocket.send_json({
-                        "type": "onboarding_question",
-                        "step": 1,
-                        "total_steps": 3,
-                        **first_question,
-                    })
-                    tutor_system.append_to_conversation(
-                        student_id, "assistant", tutor_system._ONBOARDING_PROMPTS[0]
-                    )
+                    if assistant_turns == 0:
+                        # Brand new — send welcome + first question
+                        await websocket.send_json({
+                            "type": "welcome",
+                            "content": "Welcome! I'm your web accessibility tutor. Let me learn a bit about you so I can personalize your learning.",
+                            "student_id": student_id,
+                            "stage": "onboarding",
+                        })
+                        first_question = tutor_system._ONBOARDING_QUESTIONS[0]
+                        await websocket.send_json({
+                            "type": "onboarding_question",
+                            "step": 1,
+                            "total_steps": 3,
+                            **first_question,
+                        })
+                        tutor_system.append_to_conversation(
+                            student_id, "assistant", tutor_system._ONBOARDING_PROMPTS[0]
+                        )
+                    else:
+                        # Returning mid-onboarding — send the next unanswered question
+                        next_step = min(assistant_turns, 2)
+                        question = tutor_system._ONBOARDING_QUESTIONS[next_step]
+                        await websocket.send_json({
+                            "type": "welcome",
+                            "content": "Welcome back! Let's continue where we left off.",
+                            "student_id": student_id,
+                            "stage": "onboarding",
+                        })
+                        await websocket.send_json({
+                            "type": "onboarding_question",
+                            "step": next_step + 1,
+                            "total_steps": 3,
+                            **question,
+                        })
 
             # --- CHAT MESSAGE ---
             elif msg_type == "message":
