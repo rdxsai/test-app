@@ -35,6 +35,37 @@
 
       .question-table {
         margin-bottom: 0;
+        width: 100%;
+        table-layout: fixed;
+      }
+
+      .question-table th,
+      .question-table td {
+        vertical-align: middle;
+      }
+
+      .question-column {
+        width: auto;
+      }
+
+      .objectives-column {
+        width: 7rem;
+      }
+
+      .feedback-column {
+        width: 10rem;
+      }
+
+      .created-column {
+        width: 8rem;
+      }
+
+      .actions-column {
+        width: 6rem;
+      }
+
+      .compact-column {
+        white-space: nowrap;
       }
 
       .question-row:hover {
@@ -49,14 +80,26 @@
       .sortable-btn {
         border: 0;
         background: transparent;
+        display: inline-flex;
+        align-items: center;
+        justify-content: flex-start;
         font-weight: 600;
         color: inherit;
         padding: 0;
+        width: 100%;
       }
 
       .sortable-btn i {
         margin-left: 0.3rem;
         color: #6c757d;
+      }
+
+      .question-table th.text-center .sortable-btn {
+        justify-content: center;
+      }
+
+      .question-table th.text-end .sortable-btn {
+        justify-content: flex-end;
       }
 
       .loading {
@@ -973,7 +1016,7 @@
             <table class="table table-hover align-middle question-table">
               <thead class="table-light">
                 <tr>
-                  <th scope="col">
+                  <th scope="col" class="question-column">
                     <button
                       class="sortable-btn"
                       type="button"
@@ -982,7 +1025,7 @@
                       Question <i class="fas fa-sort"></i>
                     </button>
                   </th>
-                  <th scope="col">
+                  <th scope="col" class="objectives-column compact-column text-center">
                     <button
                       class="sortable-btn"
                       type="button"
@@ -991,25 +1034,25 @@
                       Objectives <i class="fas fa-sort"></i>
                     </button>
                   </th>
-                  <th scope="col">
+                  <th scope="col" class="feedback-column compact-column text-center">
                     <button
                       class="sortable-btn"
                       type="button"
                       data-sort-field="missing"
                     >
-                      Missing Feedback <i class="fas fa-sort"></i>
+                      Feedback <i class="fas fa-sort"></i>
                     </button>
                   </th>
-                  <th scope="col">
+                  <th scope="col" class="feedback-column compact-column text-center">
                     <button
                       class="sortable-btn"
                       type="button"
                       data-sort-field="pending"
                     >
-                      Pending Approval <i class="fas fa-sort"></i>
+                      Feedback Approval <i class="fas fa-sort"></i>
                     </button>
                   </th>
-                  <th scope="col">
+                  <th scope="col" class="created-column compact-column">
                     <button
                       class="sortable-btn"
                       type="button"
@@ -1018,7 +1061,7 @@
                       Created <i class="fas fa-sort"></i>
                     </button>
                   </th>
-                  <th scope="col" class="text-end" style="width: 6rem">
+                  <th scope="col" class="actions-column compact-column text-end">
                     Actions
                   </th>
                 </tr>
@@ -1034,33 +1077,33 @@
                   data-pending="{{ question.answers_with_feedback_pending_approval_count }}"
                   data-created="{{ question.created_at[:10] }}"
                 >
-                  <td>
+                  <td class="question-column">
                     <div class="question-preview">
                       {{ question.question_text_html | safe }}
                     </div>
                   </td>
-                  <td>
+                  <td class="objectives-column compact-column text-center">
                     <span class="badge bg-primary"
-                      >{{ question.objective_count }}</span
+                      >{{ question.objective_count }} aligned</span
                     >
                   </td>
-                  <td>
+                  <td class="feedback-column compact-column text-center">
                     <span class="badge bg-warning text-dark"
-                      >{{ question.answers_without_feedback_count }}</span
+                      >{{ question.answers_without_feedback_count }} missing</span
                     >
                   </td>
-                  <td>
+                  <td class="feedback-column compact-column text-center">
                     <span class="badge bg-danger"
                       >{{ question.answers_with_feedback_pending_approval_count
-                      }}</span
+                      }} unapproved</span
                     >
                   </td>
-                  <td>
+                  <td class="created-column compact-column">
                     <small class="text-muted"
                       >{{ question.created_at[:10] }}</small
                     >
                   </td>
-                  <td class="text-end">
+                  <td class="actions-column compact-column text-end">
                     <a
                       href="/questions/{{ question.id }}"
                       class="btn btn-sm btn-outline-secondary me-1"
