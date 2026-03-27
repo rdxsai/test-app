@@ -1,841 +1,1090 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Edit Question - Socratic Tutor</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/simplemde/latest/simplemde.min.css">
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/simplemde/latest/simplemde.min.css"
+    />
     <style>
-        /* All your styles are correct and unchanged */
-        .form-control:focus {
-            border-color: #0d6efd;
-            box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
-        }
+      /* All your styles are correct and unchanged */
+      .form-control:focus {
+        border-color: #0d6efd;
+        box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+      }
 
-        .answer-item {
-            border: 1px solid #dee2e6;
-            border-radius: 0.375rem;
-            margin-bottom: 1rem;
-            background-color: #f8f9fa;
-        }
+      .answer-item {
+        border: 1px solid #dee2e6;
+        border-radius: 0.375rem;
+        margin-bottom: 1rem;
+        background-color: #f8f9fa;
+      }
 
-        .correct-answer {
-            border-left: 5px solid #198754;
-        }
+      .correct-answer {
+        border-left: 5px solid #198754;
+      }
 
-        .incorrect-answer {
-            border-left: 5px solid #dc3545;
-        }
+      .incorrect-answer {
+        border-left: 5px solid #dc3545;
+      }
 
-        .feedback-approved {
-            background-color: #e6f7ec;
-            border: 1px solid #b6e9c9;
-        }
+      .feedback-approved {
+        background-color: #e6f7ec;
+        border: 1px solid #b6e9c9;
+      }
 
-        .feedback-editor-area {
-            border-radius: 0.375rem;
-            padding: 1rem;
-            background-color: #ffffff;
-            border: 1px solid #dee2e6;
-        }
+      .feedback-editor-area {
+        border-radius: 0.375rem;
+        padding: 1rem;
+        background-color: #ffffff;
+        border: 1px solid #dee2e6;
+      }
 
-        #autoSaveIndicator {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 1100;
-            min-width: 250px;
-        }
+      #autoSaveIndicator {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 1100;
+        min-width: 250px;
+      }
 
-        .answer-text-editor .CodeMirror {
-            min-height: 80px;
-        }
+      .answer-text-editor .CodeMirror {
+        min-height: 80px;
+      }
 
-        .answer-feedback-editor .CodeMirror {
-            min-height: 100px;
-        }
+      .answer-feedback-editor .CodeMirror {
+        min-height: 100px;
+      }
 
-        .question-text-preview pre {
-            background-color: #eee;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            padding: 10px;
-            overflow-x: auto;
-        }
+      .question-text-preview pre {
+        background-color: #eee;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        padding: 10px;
+        overflow-x: auto;
+      }
 
-        .question-text-preview code {
-            font-family: monospace;
-            background-color: #eee;
-        }
+      .question-text-preview code {
+        font-family: monospace;
+        background-color: #eee;
+      }
 
-        .answer-preview-text pre {
-            background-color: #eee;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            padding: 10px;
-            overflow-x: auto;
-        }
+      .answer-preview-text pre {
+        background-color: #eee;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        padding: 10px;
+        overflow-x: auto;
+      }
 
-        .answer-preview-text code {
-            font-family: monospace;
-            background-color: #eee;
-        }
+      .answer-preview-text code {
+        font-family: monospace;
+        background-color: #eee;
+      }
 
-        /* Feedback Generation Progress Modal Styles */
-        #feedbackProgressModal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.7);
-            z-index: 9999;
-            backdrop-filter: blur(3px);
-        }
+      /* Feedback Generation Progress Modal Styles */
+      #feedbackProgressModal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.7);
+        z-index: 9999;
+        backdrop-filter: blur(3px);
+      }
 
-        #feedbackProgressModal.show {
-            display: flex !important;
-            align-items: center;
-            justify-content: center;
-            animation: fadeIn 0.3s ease-in;
-        }
+      #feedbackProgressModal.show {
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
+        animation: fadeIn 0.3s ease-in;
+      }
 
-        .feedback-progress-content {
-            background: white;
-            padding: 2.5rem;
-            border-radius: 12px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-            max-width: 600px;
-            width: 90%;
-            animation: slideUp 0.3s ease-out;
-        }
+      .feedback-progress-content {
+        background: white;
+        padding: 2.5rem;
+        border-radius: 12px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        max-width: 600px;
+        width: 90%;
+        animation: slideUp 0.3s ease-out;
+      }
 
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
         }
+        to {
+          opacity: 1;
+        }
+      }
 
-        @keyframes slideUp {
-            from { transform: translateY(30px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
+      @keyframes slideUp {
+        from {
+          transform: translateY(30px);
+          opacity: 0;
         }
+        to {
+          transform: translateY(0);
+          opacity: 1;
+        }
+      }
 
-        #feedbackProgressBar {
-            transition: width 0.5s ease-in-out;
-            background: linear-gradient(90deg, #ffc107 0%, #ff9800 100%) !important;
-        }
+      #feedbackProgressBar {
+        transition: width 0.5s ease-in-out;
+        background: linear-gradient(90deg, #ffc107 0%, #ff9800 100%) !important;
+      }
 
-        .feedback-progress-stage {
-            font-weight: 600;
-            color: #495057;
-            font-size: 1.1rem;
-        }
+      .feedback-progress-stage {
+        font-weight: 600;
+        color: #495057;
+        font-size: 1.1rem;
+      }
 
-        .feedback-progress-message {
-            animation: fadeIn 0.3s ease-in;
-        }
+      .feedback-progress-message {
+        animation: fadeIn 0.3s ease-in;
+      }
 
-        .feedback-progress-tip {
-            padding: 0.75rem;
-            background-color: rgba(255, 193, 7, 0.1);
-            border-radius: 6px;
-            border-left: 4px solid #ffc107;
-            animation: fadeIn 0.5s ease-in;
-        }
+      .feedback-progress-tip {
+        padding: 0.75rem;
+        background-color: rgba(255, 193, 7, 0.1);
+        border-radius: 6px;
+        border-left: 4px solid #ffc107;
+        animation: fadeIn 0.5s ease-in;
+      }
 
-        .feedback-progress-icon {
-            animation: pulse 2s ease-in-out infinite;
-        }
+      .feedback-progress-icon {
+        animation: pulse 2s ease-in-out infinite;
+      }
 
-        @keyframes pulse {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.8; transform: scale(1.05); }
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+          transform: scale(1);
         }
+        50% {
+          opacity: 0.8;
+          transform: scale(1.05);
+        }
+      }
     </style>
-</head>
+  </head>
 
-<body>
+  <body>
     {% include "_top_nav.html" %}
 
     <!-- Toast Notification (Unchanged) -->
-    <div id="autoSaveIndicator" class="toast align-items-center text-white bg-success border-0" role="alert"
-        aria-live="assertive" aria-atomic="true">
-        <div class="d-flex">
-            <div class="toast-body">
-                <i class="fas fa-check-circle"></i> <span id="toastMessage">Saved</span>
-            </div>
-            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"
-                aria-label="Close"></button>
+    <div
+      id="autoSaveIndicator"
+      class="toast align-items-center text-white bg-success border-0"
+      role="alert"
+      aria-live="assertive"
+      aria-atomic="true"
+    >
+      <div class="d-flex">
+        <div class="toast-body">
+          <i class="fas fa-check-circle"></i>
+          <span id="toastMessage">Saved</span>
         </div>
+        <button
+          type="button"
+          class="btn-close btn-close-white me-2 m-auto"
+          data-bs-dismiss="toast"
+          aria-label="Close"
+        ></button>
+      </div>
     </div>
 
     <!-- Feedback Generation Progress Modal -->
     <div id="feedbackProgressModal">
-        <div class="feedback-progress-content">
-            <div class="text-center mb-4">
-                <i class="fas fa-brain fa-3x text-warning feedback-progress-icon"></i>
-                <h4 class="mt-3 mb-0">Generating AI Feedback</h4>
-            </div>
-
-            <div class="mb-3">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <strong class="feedback-progress-stage">
-                        <i class="fas fa-cog fa-spin me-2"></i>
-                        <span id="feedbackProgressStage">Initializing...</span>
-                    </strong>
-                    <span id="feedbackProgressPercent" class="badge bg-warning text-dark">0%</span>
-                </div>
-                <div class="progress" style="height: 12px;">
-                    <div id="feedbackProgressBar"
-                         class="progress-bar progress-bar-striped progress-bar-animated"
-                         role="progressbar"
-                         style="width: 0%"
-                         aria-valuenow="0"
-                         aria-valuemin="0"
-                         aria-valuemax="100"></div>
-                </div>
-            </div>
-
-            <p id="feedbackProgressMessage" class="mb-3 text-muted feedback-progress-message">
-                <i class="fas fa-info-circle"></i> Preparing to generate feedback...
-            </p>
-
-            <div id="feedbackProgressTip" class="feedback-progress-tip text-muted small">
-                <strong>💡 What's happening:</strong> The AI is analyzing your question and generating personalized feedback for each answer option.
-            </div>
-
-            <div class="text-center mt-4">
-                <div class="spinner-border text-warning" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
-                <p class="text-muted small mt-2 mb-0">Please wait, do not close this page...</p>
-            </div>
+      <div class="feedback-progress-content">
+        <div class="text-center mb-4">
+          <i class="fas fa-brain fa-3x text-warning feedback-progress-icon"></i>
+          <h4 class="mt-3 mb-0">Generating AI Feedback</h4>
         </div>
+
+        <div class="mb-3">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <strong class="feedback-progress-stage">
+              <i class="fas fa-cog fa-spin me-2"></i>
+              <span id="feedbackProgressStage">Initializing...</span>
+            </strong>
+            <span
+              id="feedbackProgressPercent"
+              class="badge bg-warning text-dark"
+              >0%</span
+            >
+          </div>
+          <div class="progress" style="height: 12px">
+            <div
+              id="feedbackProgressBar"
+              class="progress-bar progress-bar-striped progress-bar-animated"
+              role="progressbar"
+              style="width: 0%"
+              aria-valuenow="0"
+              aria-valuemin="0"
+              aria-valuemax="100"
+            ></div>
+          </div>
+        </div>
+
+        <p
+          id="feedbackProgressMessage"
+          class="mb-3 text-muted feedback-progress-message"
+        >
+          <i class="fas fa-info-circle"></i> Preparing to generate feedback...
+        </p>
+
+        <div
+          id="feedbackProgressTip"
+          class="feedback-progress-tip text-muted small"
+        >
+          <strong>💡 What's happening:</strong> The AI is analyzing your
+          question and generating personalized feedback for each answer option.
+        </div>
+
+        <div class="text-center mt-4">
+          <div class="spinner-border text-warning" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+          <p class="text-muted small mt-2 mb-0">
+            Please wait, do not close this page...
+          </p>
+        </div>
+      </div>
     </div>
 
     <div class="container-fluid py-4">
-        <!-- Navigation Bar (Unchanged) -->
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h1 class="h2">
-                <i class="fas fa-edit text-primary"></i> Edit Question
-                <small class="text-muted fs-6">(ID: {{ question.id }})</small>
-            </h1>
-            <div class="btn-group navigation-buttons">
-                <a href="/" class="btn btn-outline-secondary">
-                    <i class="fas fa-list"></i> Back to List
-                </a>
-            </div>
+      <!-- Navigation Bar (Unchanged) -->
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h2">
+          <i class="fas fa-edit text-primary"></i> Edit Question
+          <small class="text-muted fs-6">(ID: {{ question.id }})</small>
+        </h1>
+        <div class="btn-group navigation-buttons">
+          <a href="/" class="btn btn-outline-secondary">
+            <i class="fas fa-list"></i> Back to List
+          </a>
         </div>
+      </div>
 
-        <!-- Question Preview (Unchanged) -->
+      <!-- Question Preview (Unchanged) -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="fas fa-eye text-info"></i> Question Preview
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="question-preview">
+            <div class="question-text-preview mb-3" id="questionTextPreview">
+              {{ question.question_text_html | safe }}
+            </div>
+            <div class="answers-preview" id="answersPreviewContainer">
+              <h6>Answer Options:</h6>
+              <div class="list-group" id="answersPreviewList">
+                {% for answer in question.answers %}
+                <div
+                  class="list-group-item d-flex justify-content-between align-items-start"
+                >
+                  <div class="ms-2 me-auto">
+                    <div class="fw-bold">
+                      {% if answer.is_correct %}
+                      <i class="fas fa-check-circle text-success"></i>
+                      {% else %}
+                      <i class="fas fa-circle text-muted"></i>
+                      {% endif %}
+                      <span
+                        class="answer-preview-text"
+                        data-answer-id="{{ answer.id }}"
+                      >
+                        {{ answer.text_html | safe }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Form (Unchanged) -->
+      <form id="questionForm" onsubmit="return false;">
+        <!-- Question Details Card (Unchanged) -->
         <div class="card mb-4">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="fas fa-eye text-info"></i> Question Preview</h5>
+          <div class="card-header">
+            <h5 class="mb-0">
+              <i class="fas fa-question-circle"></i> Question Details
+            </h5>
+          </div>
+          <div class="card-body">
+            <div class="mb-3">
+              <label for="questionText" class="form-label"
+                ><strong>Question Text:</strong></label
+              >
+              <textarea
+                id="questionText"
+                name="question_text"
+                class="form-control"
+                rows="4"
+              >
+{{ question.question_text }}</textarea
+              >
             </div>
-            <div class="card-body">
-                <div class="question-preview">
-                    <div class="question-text-preview mb-3" id="questionTextPreview">
-                        {{ question.question_text_html | safe }}
-                    </div>
-                    <div class="answers-preview" id="answersPreviewContainer">
-                        <h6>Answer Options:</h6>
-                        <div class="list-group" id="answersPreviewList">
-                            {% for answer in question.answers %}
-                            <div class="list-group-item d-flex justify-content-between align-items-start">
-                                <div class="ms-2 me-auto">
-                                    <div class="fw-bold">
-                                        {% if answer.is_correct %}
-                                        <i class="fas fa-check-circle text-success"></i>
-                                        {% else %}
-                                        <i class="fas fa-circle text-muted"></i>
-                                        {% endif %}
-                                        <span class="answer-preview-text" data-answer-id="{{ answer.id }}">
-                                            {{ answer.text_html | safe }}
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                            {% endfor %}
-                        </div>
-                    </div>
-                </div>
+            <div class="mb-3">
+              <div
+                class="d-flex justify-content-between align-items-center mb-2"
+              >
+                <label class="form-label mb-0"
+                  ><strong>Learning Objectives:</strong></label
+                >
+                <button
+                  type="button"
+                  id="associateObjectivesBtn"
+                  class="btn btn-sm btn-outline-primary"
+                >
+                  <i class="fas fa-magic"></i> Associate Objectives
+                </button>
+              </div>
+              {% if associated_objectives %}
+              <ul class="list-group">
+                {% for objective in associated_objectives %}
+                <li class="list-group-item">
+                  <i class="fas fa-check-circle text-success me-2"></i>
+                  {{ objective.text }}
+                </li>
+                {% endfor %}
+              </ul>
+              {% else %}
+              <div class="alert alert-info mb-0">
+                <i class="fas fa-info-circle"></i> No learning objectives
+                associated yet. Click "Associate Objectives" to add some.
+              </div>
+              {% endif %}
             </div>
+          </div>
         </div>
 
-        <!-- Form (Unchanged) -->
-        <form id="questionForm" onsubmit="return false;">
-            <!-- Question Details Card (Unchanged) -->
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="mb-0"><i class="fas fa-question-circle"></i> Question Details</h5>
-                </div>
-                <div class="card-body">
-                    <div class="mb-3">
-                        <label for="questionText" class="form-label"><strong>Question Text:</strong></label>
-                        <textarea id="questionText" name="question_text" class="form-control"
-                            rows="4">{{ question.question_text }}</textarea>
-                    </div>
-                    <div class="mb-3">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <label class="form-label mb-0"><strong>Learning Objectives:</strong></label>
-                            <button type="button" id="associateObjectivesBtn" class="btn btn-sm btn-outline-primary">
-                                <i class="fas fa-magic"></i> Associate Objectives
-                            </button>
-                        </div>
-                        {% if associated_objectives %}
-                        <ul class="list-group">
-                            {% for objective in associated_objectives %}
-                            <li class="list-group-item">
-                                <i class="fas fa-check-circle text-success me-2"></i>
-                                {{ objective.text }}
-                            </li>
-                            {% endfor %}
-                        </ul>
-                        {% else %}
-                        <div class="alert alert-info mb-0">
-                            <i class="fas fa-info-circle"></i> No learning objectives associated yet. Click "Associate
-                            Objectives" to add some.
-                        </div>
-                        {% endif %}
-                    </div>
-                </div>
+        <!-- AI Feedback Card (Unchanged) -->
+        <div class="card mb-4">
+          <div
+            class="card-header d-flex justify-content-between align-items-center"
+          >
+            <h5 class="mb-0">
+              <i class="fas fa-lightbulb text-warning"></i> AI Feedback
+              Generation
+            </h5>
+            <button
+              type="button"
+              id="generateAllUnapprovedBtn"
+              class="btn btn-success btn-sm"
+            >
+              <i class="fas fa-magic"></i> Generate All Unapproved Feedback
+            </button>
+          </div>
+          <div class="card-body">
+            <div class="alert alert-info">
+              This tool will generate Socratic hints for **incorrect** answers
+              and detailed explanations for the **correct** answer.
+              <br />It will **only** generate feedback for answers that do not
+              have the "Approved" box checked.
             </div>
+          </div>
+        </div>
 
-            <!-- AI Feedback Card (Unchanged) -->
-            <div class="card mb-4">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">
-                        <i class="fas fa-lightbulb text-warning"></i> AI Feedback Generation
-                    </h5>
-                    <button type="button" id="generateAllUnapprovedBtn" class="btn btn-success btn-sm">
-                        <i class="fas fa-magic"></i> Generate All Unapproved Feedback
-                    </button>
-                </div>
-                <div class="card-body">
-                    <div class="alert alert-info">
-                        This tool will generate Socratic hints for **incorrect** answers and detailed explanations for
-                        the **correct** answer.
-                        <br>It will **only** generate feedback for answers that do not have the "Approved" box checked.
+        <!-- Answers Card (Unchanged) -->
+        <div class="card mb-4">
+          <div class="card-header">
+            <h5 class="mb-0">
+              <i class="fas fa-list"></i> Answers ({{ question.answers|length
+              }})
+            </h5>
+          </div>
+          <div class="card-body">
+            <div id="answersContainer">
+              {% for answer in question.answers %}
+              <div
+                class="answer-item p-3 {% if answer.is_correct %}correct-answer{% else %}incorrect-answer{% endif %}"
+                data-answer-id="{{ answer.id }}"
+              >
+                <div class="row">
+                  <div class="col-md-1">
+                    <label class="form-label">Correct:</label>
+                    <div class="form-check form-switch fs-4">
+                      <input
+                        class="form-check-input correctness-toggle"
+                        type="checkbox"
+                        name="answer_is_correct_{{ answer.id }}"
+                        {%
+                        if
+                        answer.is_correct
+                        %}checked{%
+                        endif
+                        %}
+                      />
                     </div>
+                  </div>
+                  <div class="col-md-11">
+                    <label class="form-label">Answer Text:</label>
+                    <textarea
+                      name="answer_text_{{ answer.id }}"
+                      class="form-control answer-text-editor"
+                      rows="2"
+                    >
+{{ answer.text }}</textarea
+                    >
+                  </div>
                 </div>
+
+                <div
+                  class="mt-3 feedback-editor-area {% if answer.feedback_approved %}feedback-approved{% endif %}"
+                  id="feedback-area-{{ answer.id }}"
+                >
+                  <label class="form-label"
+                    ><strong>Answer Feedback:</strong></label
+                  >
+                  <textarea
+                    name="answer_feedback_{{ answer.id }}"
+                    class="form-control answer-feedback-editor"
+                    rows="3"
+                  >
+{{ answer.feedback_text }}</textarea
+                  >
+
+                  <div class="form-check mt-2">
+                    <input
+                      class="form-check-input feedback-approve-toggle"
+                      type="checkbox"
+                      name="answer_feedback_approved_{{ answer.id }}"
+                      id="approve_{{ answer.id }}"
+                      {%
+                      if
+                      answer.feedback_approved
+                      %}checked{%
+                      endif
+                      %}
+                    />
+                    <label
+                      class="form-check-label"
+                      for="approve_{{ answer.id }}"
+                    >
+                      Feedback Approved
+                    </label>
+                  </div>
+                </div>
+              </div>
+              {% endfor %}
             </div>
-
-            <!-- Answers Card (Unchanged) -->
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="mb-0"><i class="fas fa-list"></i> Answers ({{ question.answers|length }})</h5>
-                </div>
-                <div class="card-body">
-                    <div id="answersContainer">
-                        {% for answer in question.answers %}
-                        <div class="answer-item p-3 
-                                {% if answer.is_correct %}correct-answer{% else %}incorrect-answer{% endif %}"
-                            data-answer-id="{{ answer.id }}">
-
-                            <div class="row">
-                                <div class="col-md-1">
-                                    <label class="form-label">Correct:</label>
-                                    <div class="form-check form-switch fs-4">
-                                        <input class="form-check-input correctness-toggle" type="checkbox"
-                                            name="answer_is_correct_{{ answer.id }}" {% if answer.is_correct %}checked{%
-                                            endif %}>
-                                    </div>
-                                </div>
-                                <div class="col-md-11">
-                                    <label class="form-label">Answer Text:</label>
-                                    <textarea name="answer_text_{{ answer.id }}" class="form-control answer-text-editor"
-                                        rows="2">{{ answer.text }}</textarea>
-                                </div>
-                            </div>
-
-                            <div class="mt-3 feedback-editor-area 
-                                    {% if answer.feedback_approved %}feedback-approved{% endif %}"
-                                id="feedback-area-{{ answer.id }}">
-
-                                <label class="form-label"><strong>Answer Feedback:</strong></label>
-                                <textarea name="answer_feedback_{{ answer.id }}"
-                                    class="form-control answer-feedback-editor"
-                                    rows="3">{{ answer.feedback_text }}</textarea>
-
-                                <div class="form-check mt-2">
-                                    <input class="form-check-input feedback-approve-toggle" type="checkbox"
-                                        name="answer_feedback_approved_{{ answer.id }}" id="approve_{{ answer.id }}" {%
-                                        if answer.feedback_approved %}checked{% endif %}>
-                                    <label class="form-check-label" for="approve_{{ answer.id }}">
-                                        Feedback Approved
-                                    </label>
-                                </div>
-                            </div>
-                        </div>
-                        {% endfor %}
-                    </div>
-                </div>
-            </div>
-        </form>
+          </div>
+        </div>
+      </form>
     </div>
 
     <!-- Configuration data (Unchanged) -->
-    <div id="app-config" data-question-id="{{ question.id }}" style="display: none;"></div>
+    <div
+      id="app-config"
+      data-question-id="{{ question.id }}"
+      style="display: none"
+    ></div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/simplemde/latest/simplemde.min.js"></script>
 
     <!-- --- JAVASCRIPT "BRAIN" --- -->
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            // Config
-            const questionId = document.getElementById('app-config').dataset.questionId;
-            const isNewQuestion = questionId === 'new';  // Check if this is a new question
+      document.addEventListener("DOMContentLoaded", function () {
+        // Config
+        const questionId =
+          document.getElementById("app-config").dataset.questionId;
+        const isNewQuestion = questionId === "new"; // Check if this is a new question
 
-            let saveTimeout;
-            let isSaving = false;
-            const toastElement = document.getElementById('autoSaveIndicator');
-            const autoSaveToast = new bootstrap.Toast(toastElement, { delay: 2000 });
-            const toastMessage = document.getElementById('toastMessage');
+        let saveTimeout;
+        let isSaving = false;
+        const toastElement = document.getElementById("autoSaveIndicator");
+        const autoSaveToast = new bootstrap.Toast(toastElement, {
+          delay: 2000,
+        });
+        const toastMessage = document.getElementById("toastMessage");
 
-            // --- Initialize Editors ---
-            let simpleMDEConfig = {
-                spellChecker: false,
-                status: false,
-                toolbar: ["bold", "italic", "|", "quote", "code", "|", "unordered-list", "ordered-list", "|", "link", "preview"],
+        // --- Initialize Editors ---
+        let simpleMDEConfig = {
+          spellChecker: false,
+          status: false,
+          toolbar: [
+            "bold",
+            "italic",
+            "|",
+            "quote",
+            "code",
+            "|",
+            "unordered-list",
+            "ordered-list",
+            "|",
+            "link",
+            "preview",
+          ],
+        };
+
+        const questionTextEditor = new SimpleMDE({
+          element: document.getElementById("questionText"),
+          ...simpleMDEConfig,
+          status: ["lines", "words"],
+        });
+        questionTextEditor.codemirror.on("change", () => {
+          updateQuestionPreview();
+          if (!isNewQuestion) {
+            // Only auto-save for existing questions
+            scheduleAutoSave();
+          }
+        });
+
+        const answerTextEditors = [];
+        document.querySelectorAll(".answer-text-editor").forEach((textarea) => {
+          const editor = new SimpleMDE({
+            element: textarea,
+            ...simpleMDEConfig,
+          });
+          editor.codemirror.on("change", () => {
+            updateQuestionPreview();
+            if (!isNewQuestion) {
+              scheduleAutoSave();
+            }
+          });
+          // FIX: Get the answer ID from the parent answer-item element instead
+          const answerItem = textarea.closest(".answer-item");
+          const answerId = answerItem
+            ? answerItem.dataset.answerId
+            : textarea.name.split("_").pop();
+          answerTextEditors.push({
+            editor: editor,
+            name: textarea.name,
+            answerId: answerId,
+          });
+        });
+
+        const answerFeedbackEditors = [];
+        document
+          .querySelectorAll(".answer-feedback-editor")
+          .forEach((textarea) => {
+            const editor = new SimpleMDE({
+              element: textarea,
+              ...simpleMDEConfig,
+            });
+            editor.codemirror.on("change", () => {
+              if (!isNewQuestion) {
+                scheduleAutoSave();
+              }
+            });
+            // FIX: Get the answer ID from the parent answer-item element instead
+            const answerItem = textarea.closest(".answer-item");
+            const answerId = answerItem
+              ? answerItem.dataset.answerId
+              : textarea.name.split("_").pop();
+            answerFeedbackEditors.push({
+              editor: editor,
+              name: textarea.name,
+              answerId: answerId,
+            });
+          });
+
+        // --- NEW: Save Button for New Questions ---
+        if (isNewQuestion) {
+          // Hide the "Generate Feedback" button for new questions
+          const generateBtn = document.getElementById(
+            "generateAllUnapprovedBtn",
+          );
+          if (generateBtn) {
+            generateBtn.style.display = "none";
+          }
+
+          // Add a "Save Question" button
+          const navigationButtons = document.querySelector(
+            ".navigation-buttons",
+          );
+          const saveButton = document.createElement("button");
+          saveButton.className = "btn btn-primary";
+          saveButton.id = "saveNewQuestionBtn";
+          saveButton.innerHTML = '<i class="fas fa-save"></i> Save Question';
+          navigationButtons.insertBefore(
+            saveButton,
+            navigationButtons.firstChild,
+          );
+
+          // Save button click handler
+          saveButton.addEventListener("click", async () => {
+            await saveNewQuestion();
+          });
+        } else {
+          // Associate Objectives Button Handler - Redirect to new page
+          document
+            .getElementById("associateObjectivesBtn")
+            .addEventListener("click", function () {
+              window.location.href = `/questions/${questionId}/associate-objectives`;
+            });
+
+          // Generate Feedback Button (for existing questions only) — uses SSE
+          document
+            .getElementById("generateAllUnapprovedBtn")
+            .addEventListener("click", async () => {
+              const btn = document.getElementById("generateAllUnapprovedBtn");
+              const originalText = btn.innerHTML;
+              btn.disabled = true;
+              btn.innerHTML =
+                '<i class="fas fa-spinner fa-spin"></i> Generating...';
+
+              // Get modal elements
+              const modal = document.getElementById("feedbackProgressModal");
+              const progressBar = document.getElementById(
+                "feedbackProgressBar",
+              );
+              const progressPercent = document.getElementById(
+                "feedbackProgressPercent",
+              );
+              const progressStage = document.getElementById(
+                "feedbackProgressStage",
+              );
+              const progressMessage = document.getElementById(
+                "feedbackProgressMessage",
+              );
+              const progressTip = document.getElementById(
+                "feedbackProgressTip",
+              );
+
+              function updateProgress(percent, stage, message, tip) {
+                progressBar.style.width = `${percent}%`;
+                progressBar.setAttribute("aria-valuenow", percent);
+                progressPercent.textContent = `${percent}%`;
+                progressStage.textContent = stage;
+                progressMessage.innerHTML = `<i class="fas fa-cog fa-spin"></i> ${message}`;
+                progressTip.innerHTML = tip;
+              }
+
+              // Show modal and auto-save first
+              modal.classList.add("show");
+              updateProgress(
+                5,
+                "Saving Changes",
+                "Auto-saving your current edits...",
+                "<strong>Step 1:</strong> Ensuring all your changes are saved before generating feedback.",
+              );
+
+              try {
+                await autoSave(true);
+              } catch (e) {
+                // Continue even if auto-save fails
+                console.warn("Auto-save before feedback generation failed:", e);
+              }
+
+              updateProgress(
+                10,
+                "Connecting",
+                "Opening real-time stream to AI service...",
+                "<strong>Step 2:</strong> Establishing connection for live progress updates.",
+              );
+
+              // Open SSE stream
+              const evtSource = new EventSource(
+                `/questions/${questionId}/generate-feedback-stream`,
+              );
+              let total = 0;
+
+              evtSource.addEventListener("stream_start", function (e) {
+                const d = JSON.parse(e.data);
+                total = d.total;
+                updateProgress(
+                  15,
+                  "Starting",
+                  `Found ${total} answer(s) to process...`,
+                  `<strong>Processing:</strong> The AI will generate feedback for ${total} unapproved answer(s).`,
+                );
+              });
+
+              evtSource.addEventListener("answer_start", function (e) {
+                const d = JSON.parse(e.data);
+                const basePercent = 15 + ((d.index - 1) / total) * 75;
+                const preview = d.answer_text_preview || "...";
+                const type = d.is_correct ? "correct" : "incorrect";
+                updateProgress(
+                  Math.round(basePercent),
+                  `Processing Answer ${d.index} of ${total}`,
+                  `Generating ${type} feedback: "${preview.substring(0, 50)}..."`,
+                  `<strong>Answer ${d.index}/${total}:</strong> AI is crafting ${d.is_correct ? "a detailed explanation" : "Socratic questions"} for this ${type} answer.`,
+                );
+              });
+
+              evtSource.addEventListener("answer_complete", function (e) {
+                const d = JSON.parse(e.data);
+                const pct = 15 + (d.index / total) * 75;
+                updateProgress(
+                  Math.round(pct),
+                  `Completed Answer ${d.index} of ${total}`,
+                  `Feedback saved for answer ${d.index}.`,
+                  `<strong>Done ${d.index}/${total}:</strong> Feedback has been saved to the database.`,
+                );
+              });
+
+              evtSource.addEventListener("answer_error", function (e) {
+                const d = JSON.parse(e.data);
+                console.warn(`Error on answer ${d.index}/${total}:`, d.error);
+                const pct = 15 + (d.index / total) * 75;
+                updateProgress(
+                  Math.round(pct),
+                  `Warning: Answer ${d.index} of ${total}`,
+                  `Failed to generate feedback for answer ${d.index}: ${d.error}`,
+                  `<strong>Warning:</strong> Skipping this answer and continuing with the rest.`,
+                );
+              });
+
+              evtSource.addEventListener("all_done", function (e) {
+                evtSource.close();
+                const d = JSON.parse(e.data);
+                updateProgress(
+                  100,
+                  "Complete!",
+                  d.message,
+                  `<strong>Done!</strong> Generated feedback for ${d.processed} of ${d.total} answer(s). Reloading page...`,
+                );
+                progressBar.classList.remove("progress-bar-animated");
+
+                setTimeout(() => {
+                  window.location.reload();
+                }, 1500);
+              });
+
+              evtSource.addEventListener("fatal_error", function (e) {
+                evtSource.close();
+                const d = JSON.parse(e.data);
+                console.error("Fatal error in feedback stream:", d.message);
+
+                updateProgress(
+                  0,
+                  "Error",
+                  `Failed: ${d.message}`,
+                  "<strong>Error:</strong> Please try again or check your connection.",
+                );
+                progressBar.classList.remove("bg-warning");
+                progressBar.classList.add("bg-danger");
+
+                setTimeout(() => {
+                  modal.classList.remove("show");
+                  progressBar.classList.remove("bg-danger");
+                  progressBar.classList.add("bg-warning");
+                  showToast(d.message, "bg-danger");
+                }, 2500);
+
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+              });
+
+              evtSource.onerror = function () {
+                evtSource.close();
+                console.error(
+                  "SSE connection error during feedback generation",
+                );
+
+                updateProgress(
+                  0,
+                  "Connection Error",
+                  "Lost connection to server.",
+                  "<strong>Error:</strong> The connection was interrupted. Please try again.",
+                );
+                progressBar.classList.remove("bg-warning");
+                progressBar.classList.add("bg-danger");
+
+                setTimeout(() => {
+                  modal.classList.remove("show");
+                  progressBar.classList.remove("bg-danger");
+                  progressBar.classList.add("bg-warning");
+                  showToast(
+                    "Connection lost during feedback generation.",
+                    "bg-danger",
+                  );
+                }, 2500);
+
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+              };
+            });
+        }
+
+        // --- NEW: Save New Question Function ---
+        // --- NEW: Save New Question Function ---
+        // --- NEW: Save New Question Function ---
+        // --- NEW: Save New Question Function ---
+        async function saveNewQuestion() {
+          // Validate
+          const questionText = questionTextEditor.value().trim();
+          if (!questionText) {
+            showToast("Please enter question text", "bg-danger");
+            return;
+          }
+
+          const saveBtn = document.getElementById("saveNewQuestionBtn");
+          const originalText = saveBtn.innerHTML;
+          saveBtn.disabled = true;
+          saveBtn.innerHTML =
+            '<i class="fas fa-spinner fa-spin"></i> Saving...';
+
+          try {
+            const answers = [];
+
+            // Collect all answers with text - USE THE EDITORS DIRECTLY
+            answerTextEditors.forEach((editorObj) => {
+              const text = editorObj.editor.value().trim();
+              const answerId = editorObj.answerId;
+
+              if (text) {
+                // Find the corresponding answer item
+                const answerItem = document.querySelector(
+                  `[data-answer-id="${answerId}"]`,
+                );
+                if (answerItem) {
+                  const correctnessToggle = answerItem.querySelector(
+                    ".correctness-toggle",
+                  );
+                  if (correctnessToggle) {
+                    const isCorrect = correctnessToggle.checked;
+                    answers.push({
+                      text: text,
+                      is_correct: isCorrect,
+                    });
+                    console.log(`✓ Added answer ${answerId}:`, {
+                      text,
+                      isCorrect,
+                    });
+                  } else {
+                    console.error(
+                      `✗ Could not find correctness toggle for ${answerId}`,
+                    );
+                    // Add with default value
+                    answers.push({
+                      text: text,
+                      is_correct: false,
+                    });
+                  }
+                } else {
+                  console.error(`✗ Could not find answer item for ${answerId}`);
+                }
+              }
+            });
+
+            console.log(`Total answers collected: ${answers.length}`);
+
+            // Validate we have at least one answer
+            if (answers.length === 0) {
+              showToast("Please enter at least one answer", "bg-danger");
+              saveBtn.disabled = false;
+              saveBtn.innerHTML = originalText;
+              return;
+            }
+
+            const data = {
+              question_text: questionText,
+              answers: answers,
             };
 
-            const questionTextEditor = new SimpleMDE({
-                element: document.getElementById("questionText"),
-                ...simpleMDEConfig,
-                status: ["lines", "words"],
-            });
-            questionTextEditor.codemirror.on("change", () => {
-                updateQuestionPreview();
-                if (!isNewQuestion) {  // Only auto-save for existing questions
-                    scheduleAutoSave();
-                }
+            console.log("Sending data:", data);
+
+            const response = await fetch("/questions/", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(data),
             });
 
-            const answerTextEditors = [];
-            document.querySelectorAll('.answer-text-editor').forEach(textarea => {
-                const editor = new SimpleMDE({ element: textarea, ...simpleMDEConfig });
-                editor.codemirror.on("change", () => {
-                    updateQuestionPreview();
-                    if (!isNewQuestion) {
-                        scheduleAutoSave();
-                    }
-                });
-                // FIX: Get the answer ID from the parent answer-item element instead
-                const answerItem = textarea.closest('.answer-item');
-                const answerId = answerItem ? answerItem.dataset.answerId : textarea.name.split('_').pop();
-                answerTextEditors.push({ editor: editor, name: textarea.name, answerId: answerId });
+            const result = await response.json();
+
+            if (!response.ok) {
+              throw new Error(result.detail || "Failed to save question");
+            }
+
+            showToast(
+              "Question saved successfully! Redirecting...",
+              "bg-success",
+            );
+            setTimeout(() => {
+              window.location.href = `/questions/${result.question_id}`;
+            }, 1500);
+          } catch (error) {
+            console.error("Save error:", error);
+            showToast(error.message, "bg-danger");
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = originalText;
+          }
+        }
+        // Auto-Save Logic (only for existing questions)
+        function scheduleAutoSave() {
+          if (isSaving || isNewQuestion) return;
+          if (saveTimeout) clearTimeout(saveTimeout);
+          saveTimeout = setTimeout(() => autoSave(false), 2000);
+        }
+
+        async function autoSave(immediate = false) {
+          if ((isSaving && !immediate) || isNewQuestion) return;
+          isSaving = true;
+          clearTimeout(saveTimeout);
+
+          if (immediate) {
+            showToast("Saving...", "bg-info");
+          }
+
+          const formData = collectFormData();
+
+          try {
+            const response = await fetch(`/questions/${questionId}`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(formData),
             });
 
-            const answerFeedbackEditors = [];
-            document.querySelectorAll('.answer-feedback-editor').forEach(textarea => {
-                const editor = new SimpleMDE({ element: textarea, ...simpleMDEConfig });
-                editor.codemirror.on("change", () => {
-                    if (!isNewQuestion) {
-                        scheduleAutoSave();
-                    }
-                });
-                // FIX: Get the answer ID from the parent answer-item element instead
-                const answerItem = textarea.closest('.answer-item');
-                const answerId = answerItem ? answerItem.dataset.answerId : textarea.name.split('_').pop();
-                answerFeedbackEditors.push({ editor: editor, name: textarea.name, answerId: answerId });
+            if (!response.ok) {
+              const error = await response.json();
+              throw new Error(error.detail || "Save failed");
+            }
+
+            console.log("Auto-save successful");
+            if (!immediate) {
+              showToast("Saved", "bg-success");
+            }
+          } catch (error) {
+            console.error("Auto-save failed:", error);
+            showToast(error.message, "bg-danger");
+          } finally {
+            isSaving = false;
+          }
+        }
+
+        function collectFormData() {
+          const data = {
+            question_text: questionTextEditor.value() || "",
+            answers: [],
+          };
+
+          document.querySelectorAll(".answer-item").forEach((item) => {
+            const answerId = item.dataset.answerId;
+
+            const textEditor = answerTextEditors.find(
+              (e) => e.answerId === answerId,
+            );
+            const feedbackEditor = answerFeedbackEditors.find(
+              (e) => e.answerId === answerId,
+            );
+
+            data.answers.push({
+              id: answerId,
+              text: textEditor ? textEditor.editor.value() : "",
+              is_correct: item.querySelector(".correctness-toggle").checked,
+              feedback_text: feedbackEditor
+                ? feedbackEditor.editor.value()
+                : "",
+              feedback_approved: item.querySelector(".feedback-approve-toggle")
+                .checked,
             });
+          });
 
-            // --- NEW: Save Button for New Questions ---
-            if (isNewQuestion) {
-                // Hide the "Generate Feedback" button for new questions
-                const generateBtn = document.getElementById('generateAllUnapprovedBtn');
-                if (generateBtn) {
-                    generateBtn.style.display = 'none';
-                }
+          return data;
+        }
 
-                // Add a "Save Question" button
-                const navigationButtons = document.querySelector('.navigation-buttons');
-                const saveButton = document.createElement('button');
-                saveButton.className = 'btn btn-primary';
-                saveButton.id = 'saveNewQuestionBtn';
-                saveButton.innerHTML = '<i class="fas fa-save"></i> Save Question';
-                navigationButtons.insertBefore(saveButton, navigationButtons.firstChild);
+        // Toast Notification
+        function showToast(message, bgClass) {
+          toastMessage.textContent = message;
+          toastElement.classList.remove("bg-success", "bg-danger", "bg-info");
+          toastElement.classList.add(bgClass);
+          autoSaveToast.show();
+        }
 
-                // Save button click handler
-                saveButton.addEventListener('click', async () => {
-                    await saveNewQuestion();
-                });
-            } else {
-                // Associate Objectives Button Handler - Redirect to new page
-                document.getElementById('associateObjectivesBtn').addEventListener('click', function () {
-                    window.location.href = `/questions/${questionId}/associate-objectives`;
-                });
-
-                // Generate Feedback Button (for existing questions only) — uses SSE
-                document.getElementById('generateAllUnapprovedBtn').addEventListener('click', async () => {
-                    const btn = document.getElementById('generateAllUnapprovedBtn');
-                    const originalText = btn.innerHTML;
-                    btn.disabled = true;
-                    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
-
-                    // Get modal elements
-                    const modal = document.getElementById('feedbackProgressModal');
-                    const progressBar = document.getElementById('feedbackProgressBar');
-                    const progressPercent = document.getElementById('feedbackProgressPercent');
-                    const progressStage = document.getElementById('feedbackProgressStage');
-                    const progressMessage = document.getElementById('feedbackProgressMessage');
-                    const progressTip = document.getElementById('feedbackProgressTip');
-
-                    function updateProgress(percent, stage, message, tip) {
-                        progressBar.style.width = `${percent}%`;
-                        progressBar.setAttribute('aria-valuenow', percent);
-                        progressPercent.textContent = `${percent}%`;
-                        progressStage.textContent = stage;
-                        progressMessage.innerHTML = `<i class="fas fa-cog fa-spin"></i> ${message}`;
-                        progressTip.innerHTML = tip;
-                    }
-
-                    // Show modal and auto-save first
-                    modal.classList.add('show');
-                    updateProgress(5, 'Saving Changes', 'Auto-saving your current edits...', '<strong>Step 1:</strong> Ensuring all your changes are saved before generating feedback.');
-
-                    try {
-                        await autoSave(true);
-                    } catch (e) {
-                        // Continue even if auto-save fails
-                        console.warn('Auto-save before feedback generation failed:', e);
-                    }
-
-                    updateProgress(10, 'Connecting', 'Opening real-time stream to AI service...', '<strong>Step 2:</strong> Establishing connection for live progress updates.');
-
-                    // Open SSE stream
-                    const evtSource = new EventSource(`/questions/${questionId}/generate-feedback-stream`);
-                    let total = 0;
-
-                    evtSource.addEventListener('stream_start', function (e) {
-                        const d = JSON.parse(e.data);
-                        total = d.total;
-                        updateProgress(15, 'Starting', `Found ${total} answer(s) to process...`, `<strong>Processing:</strong> The AI will generate feedback for ${total} unapproved answer(s).`);
-                    });
-
-                    evtSource.addEventListener('answer_start', function (e) {
-                        const d = JSON.parse(e.data);
-                        const basePercent = 15 + ((d.index - 1) / total) * 75;
-                        const preview = d.answer_text_preview || '...';
-                        const type = d.is_correct ? 'correct' : 'incorrect';
-                        updateProgress(
-                            Math.round(basePercent),
-                            `Processing Answer ${d.index} of ${total}`,
-                            `Generating ${type} feedback: "${preview.substring(0, 50)}..."`,
-                            `<strong>Answer ${d.index}/${total}:</strong> AI is crafting ${d.is_correct ? 'a detailed explanation' : 'Socratic questions'} for this ${type} answer.`
-                        );
-                    });
-
-                    evtSource.addEventListener('answer_complete', function (e) {
-                        const d = JSON.parse(e.data);
-                        const pct = 15 + (d.index / total) * 75;
-                        updateProgress(
-                            Math.round(pct),
-                            `Completed Answer ${d.index} of ${total}`,
-                            `Feedback saved for answer ${d.index}.`,
-                            `<strong>Done ${d.index}/${total}:</strong> Feedback has been saved to the database.`
-                        );
-                    });
-
-                    evtSource.addEventListener('answer_error', function (e) {
-                        const d = JSON.parse(e.data);
-                        console.warn(`Error on answer ${d.index}/${total}:`, d.error);
-                        const pct = 15 + (d.index / total) * 75;
-                        updateProgress(
-                            Math.round(pct),
-                            `Warning: Answer ${d.index} of ${total}`,
-                            `Failed to generate feedback for answer ${d.index}: ${d.error}`,
-                            `<strong>Warning:</strong> Skipping this answer and continuing with the rest.`
-                        );
-                    });
-
-                    evtSource.addEventListener('all_done', function (e) {
-                        evtSource.close();
-                        const d = JSON.parse(e.data);
-                        updateProgress(100, 'Complete!', d.message, `<strong>Done!</strong> Generated feedback for ${d.processed} of ${d.total} answer(s). Reloading page...`);
-                        progressBar.classList.remove('progress-bar-animated');
-
-                        setTimeout(() => {
-                            window.location.reload();
-                        }, 1500);
-                    });
-
-                    evtSource.addEventListener('fatal_error', function (e) {
-                        evtSource.close();
-                        const d = JSON.parse(e.data);
-                        console.error('Fatal error in feedback stream:', d.message);
-
-                        updateProgress(0, 'Error', `Failed: ${d.message}`, '<strong>Error:</strong> Please try again or check your connection.');
-                        progressBar.classList.remove('bg-warning');
-                        progressBar.classList.add('bg-danger');
-
-                        setTimeout(() => {
-                            modal.classList.remove('show');
-                            progressBar.classList.remove('bg-danger');
-                            progressBar.classList.add('bg-warning');
-                            showToast(d.message, 'bg-danger');
-                        }, 2500);
-
-                        btn.disabled = false;
-                        btn.innerHTML = originalText;
-                    });
-
-                    evtSource.onerror = function () {
-                        evtSource.close();
-                        console.error('SSE connection error during feedback generation');
-
-                        updateProgress(0, 'Connection Error', 'Lost connection to server.', '<strong>Error:</strong> The connection was interrupted. Please try again.');
-                        progressBar.classList.remove('bg-warning');
-                        progressBar.classList.add('bg-danger');
-
-                        setTimeout(() => {
-                            modal.classList.remove('show');
-                            progressBar.classList.remove('bg-danger');
-                            progressBar.classList.add('bg-warning');
-                            showToast('Connection lost during feedback generation.', 'bg-danger');
-                        }, 2500);
-
-                        btn.disabled = false;
-                        btn.innerHTML = originalText;
-                    };
-                });
+        // Live UI Updates
+        document
+          .getElementById("questionForm")
+          .addEventListener("change", (e) => {
+            if (e.target.classList.contains("correctness-toggle")) {
+              const answerItem = e.target.closest(".answer-item");
+              if (e.target.checked) {
+                answerItem.classList.add("correct-answer");
+                answerItem.classList.remove("incorrect-answer");
+              } else {
+                answerItem.classList.add("incorrect-answer");
+                answerItem.classList.remove("correct-answer");
+              }
+              updateQuestionPreview();
+              if (!isNewQuestion) scheduleAutoSave();
             }
 
-            // --- NEW: Save New Question Function ---
-            // --- NEW: Save New Question Function ---
-            // --- NEW: Save New Question Function ---
-            // --- NEW: Save New Question Function ---
-            async function saveNewQuestion() {
-                // Validate
-                const questionText = questionTextEditor.value().trim();
-                if (!questionText) {
-                    showToast('Please enter question text', 'bg-danger');
-                    return;
-                }
-
-                const saveBtn = document.getElementById('saveNewQuestionBtn');
-                const originalText = saveBtn.innerHTML;
-                saveBtn.disabled = true;
-                saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
-
-                try {
-                    const answers = [];
-
-                    // Collect all answers with text - USE THE EDITORS DIRECTLY
-                    answerTextEditors.forEach(editorObj => {
-                        const text = editorObj.editor.value().trim();
-                        const answerId = editorObj.answerId;
-
-                        if (text) {
-                            // Find the corresponding answer item
-                            const answerItem = document.querySelector(`[data-answer-id="${answerId}"]`);
-                            if (answerItem) {
-                                const correctnessToggle = answerItem.querySelector('.correctness-toggle');
-                                if (correctnessToggle) {
-                                    const isCorrect = correctnessToggle.checked;
-                                    answers.push({
-                                        text: text,
-                                        is_correct: isCorrect
-                                    });
-                                    console.log(`✓ Added answer ${answerId}:`, { text, isCorrect });
-                                } else {
-                                    console.error(`✗ Could not find correctness toggle for ${answerId}`);
-                                    // Add with default value
-                                    answers.push({
-                                        text: text,
-                                        is_correct: false
-                                    });
-                                }
-                            } else {
-                                console.error(`✗ Could not find answer item for ${answerId}`);
-                            }
-                        }
-                    });
-
-                    console.log(`Total answers collected: ${answers.length}`);
-
-                    // Validate we have at least one answer
-                    if (answers.length === 0) {
-                        showToast('Please enter at least one answer', 'bg-danger');
-                        saveBtn.disabled = false;
-                        saveBtn.innerHTML = originalText;
-                        return;
-                    }
-
-                    const data = {
-                        question_text: questionText,
-                        answers: answers
-                    };
-
-                    console.log('Sending data:', data);
-
-                    const response = await fetch('/questions/', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(data)
-                    });
-
-                    const result = await response.json();
-
-                    if (!response.ok) {
-                        throw new Error(result.detail || 'Failed to save question');
-                    }
-
-                    showToast('Question saved successfully! Redirecting...', 'bg-success');
-                    setTimeout(() => {
-                        window.location.href = `/questions/${result.question_id}`;
-                    }, 1500);
-
-                } catch (error) {
-                    console.error('Save error:', error);
-                    showToast(error.message, 'bg-danger');
-                    saveBtn.disabled = false;
-                    saveBtn.innerHTML = originalText;
-                }
-            }
-            // Auto-Save Logic (only for existing questions)
-            function scheduleAutoSave() {
-                if (isSaving || isNewQuestion) return;
-                if (saveTimeout) clearTimeout(saveTimeout);
-                saveTimeout = setTimeout(() => autoSave(false), 2000);
+            if (e.target.classList.contains("feedback-approve-toggle")) {
+              const feedbackArea = e.target.closest(".feedback-editor-area");
+              if (e.target.checked) {
+                feedbackArea.classList.add("feedback-approved");
+              } else {
+                feedbackArea.classList.remove("feedback-approved");
+              }
+              if (!isNewQuestion) scheduleAutoSave();
             }
 
-            async function autoSave(immediate = false) {
-                if ((isSaving && !immediate) || isNewQuestion) return;
-                isSaving = true;
-                clearTimeout(saveTimeout);
+            // Objectives are now managed through associate page, no auto-save needed
+          });
 
-                if (immediate) {
-                    showToast('Saving...', 'bg-info');
-                }
+        // Update Preview Function
+        function updateQuestionPreview() {
+          const questionPreviewElement = document.getElementById(
+            "questionTextPreview",
+          );
+          if (questionPreviewElement) {
+            questionPreviewElement.innerHTML = SimpleMDE.prototype.markdown(
+              questionTextEditor.value(),
+            );
+          }
 
-                const formData = collectFormData();
+          const previewList = document.getElementById("answersPreviewList");
+          if (!previewList) return;
 
-                try {
-                    const response = await fetch(`/questions/${questionId}`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(formData)
-                    });
+          document.querySelectorAll(".answer-item").forEach((item) => {
+            const answerId = item.dataset.answerId;
+            const isCorrect = item.querySelector(".correctness-toggle").checked;
+            const textEditor = answerTextEditors.find(
+              (e) => e.answerId === answerId,
+            );
 
-                    if (!response.ok) {
-                        const error = await response.json();
-                        throw new Error(error.detail || 'Save failed');
-                    }
-
-                    console.log('Auto-save successful');
-                    if (!immediate) {
-                        showToast('Saved', 'bg-success');
-                    }
-
-                } catch (error) {
-                    console.error('Auto-save failed:', error);
-                    showToast(error.message, 'bg-danger');
-                } finally {
-                    isSaving = false;
-                }
+            let textHtml = "";
+            if (textEditor) {
+              textHtml = SimpleMDE.prototype.markdown(
+                textEditor.editor.value(),
+              );
             }
 
-            function collectFormData() {
-                const data = {
-                    question_text: questionTextEditor.value() || '',
-                    answers: []
-                };
+            const previewSpan = previewList.querySelector(
+              `.answer-preview-text[data-answer-id="${answerId}"]`,
+            );
 
-                document.querySelectorAll('.answer-item').forEach(item => {
-                    const answerId = item.dataset.answerId;
+            // FIX: Only update if the preview element exists
+            if (previewSpan) {
+              const previewIcon = previewSpan
+                .closest(".fw-bold")
+                ?.querySelector("i");
 
-                    const textEditor = answerTextEditors.find(e => e.answerId === answerId);
-                    const feedbackEditor = answerFeedbackEditors.find(e => e.answerId === answerId);
-
-                    data.answers.push({
-                        id: answerId,
-                        text: textEditor ? textEditor.editor.value() : '',
-                        is_correct: item.querySelector('.correctness-toggle').checked,
-                        feedback_text: feedbackEditor ? feedbackEditor.editor.value() : '',
-                        feedback_approved: item.querySelector('.feedback-approve-toggle').checked
-                    });
-                });
-
-                return data;
+              previewSpan.innerHTML = textHtml;
+              if (previewIcon) {
+                previewIcon.className = isCorrect
+                  ? "fas fa-check-circle text-success"
+                  : "fas fa-circle text-muted";
+              }
             }
-
-            // Toast Notification
-            function showToast(message, bgClass) {
-                toastMessage.textContent = message;
-                toastElement.classList.remove('bg-success', 'bg-danger', 'bg-info');
-                toastElement.classList.add(bgClass);
-                autoSaveToast.show();
-            }
-
-            // Live UI Updates
-            document.getElementById('questionForm').addEventListener('change', (e) => {
-                if (e.target.classList.contains('correctness-toggle')) {
-                    const answerItem = e.target.closest('.answer-item');
-                    if (e.target.checked) {
-                        answerItem.classList.add('correct-answer');
-                        answerItem.classList.remove('incorrect-answer');
-                    } else {
-                        answerItem.classList.add('incorrect-answer');
-                        answerItem.classList.remove('correct-answer');
-                    }
-                    updateQuestionPreview();
-                    if (!isNewQuestion) scheduleAutoSave();
-                }
-
-                if (e.target.classList.contains('feedback-approve-toggle')) {
-                    const feedbackArea = e.target.closest('.feedback-editor-area');
-                    if (e.target.checked) {
-                        feedbackArea.classList.add('feedback-approved');
-                    } else {
-                        feedbackArea.classList.remove('feedback-approved');
-                    }
-                    if (!isNewQuestion) scheduleAutoSave();
-                }
-
-                // Objectives are now managed through associate page, no auto-save needed
-            });
-
-            // Update Preview Function
-            function updateQuestionPreview() {
-                const questionPreviewElement = document.getElementById('questionTextPreview');
-                if (questionPreviewElement) {
-                    questionPreviewElement.innerHTML = SimpleMDE.prototype.markdown(questionTextEditor.value());
-                }
-
-                const previewList = document.getElementById('answersPreviewList');
-                if (!previewList) return;
-
-                document.querySelectorAll('.answer-item').forEach(item => {
-                    const answerId = item.dataset.answerId;
-                    const isCorrect = item.querySelector('.correctness-toggle').checked;
-                    const textEditor = answerTextEditors.find(e => e.answerId === answerId);
-
-                    let textHtml = '';
-                    if (textEditor) {
-                        textHtml = SimpleMDE.prototype.markdown(textEditor.editor.value());
-                    }
-
-                    const previewSpan = previewList.querySelector(`.answer-preview-text[data-answer-id="${answerId}"]`);
-
-                    // FIX: Only update if the preview element exists
-                    if (previewSpan) {
-                        const previewIcon = previewSpan.closest('.fw-bold')?.querySelector('i');
-
-                        previewSpan.innerHTML = textHtml;
-                        if (previewIcon) {
-                            previewIcon.className = isCorrect ? 'fas fa-check-circle text-success' : 'fas fa-circle text-muted';
-                        }
-                    }
-                });
-            }
-        });
+          });
+        }
+      });
     </script>
-</body>
-
+  </body>
 </html>
