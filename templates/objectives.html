@@ -1,598 +1,786 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Learning Objectives - Canvas Quiz Manager</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
     <style>
-        .sticky-header {
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-            background-color: white;
-            border-bottom: 1px solid #dee2e6;
-            padding: 1rem 0;
-            margin-bottom: 1rem;
-        }
+      .sticky-header {
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+        background-color: white;
+        border-bottom: 1px solid #dee2e6;
+        padding: 0.75rem 0;
+        margin-bottom: 0.75rem;
+      }
 
-        .objective-item {
-            border: 1px solid #dee2e6;
-            border-radius: 0.375rem;
-            margin-bottom: 1rem;
-            background-color: #f8f9fa;
-            transition: transform 0.2s;
-        }
+      .objective-item {
+        border: 1px solid #dee2e6;
+        border-radius: 0.375rem;
+        margin-bottom: 0.625rem;
+        background-color: #fff;
+        transition:
+          border-color 0.15s ease,
+          box-shadow 0.15s ease;
+      }
 
-        .objective-item:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        }
+      .objective-item:hover {
+        border-color: #b6d4fe;
+        box-shadow: 0 2px 8px rgba(13, 110, 253, 0.08);
+      }
 
-        .objective-number {
-            background-color: #0d6efd;
-            color: white;
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            flex-shrink: 0;
-        }
+      .objective-number {
+        background-color: #0d6efd;
+        color: white;
+        border-radius: 50%;
+        width: 28px;
+        height: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 0.8rem;
+        flex-shrink: 0;
+        margin-top: 0.35rem;
+      }
 
-        .auto-save-indicator {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 1050;
-        }
+      .auto-save-indicator {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 1050;
+      }
 
-        .objective-input {
-            border: none;
-            background: transparent;
-            resize: none;
-            min-height: 40px;
-            width: 100%;
-            /* Make sure it fills the container */
-        }
+      .objective-input {
+        border: 1px solid transparent;
+        background: transparent;
+        width: 100%;
+        font-size: 0.95rem;
+      }
 
-        .objective-input:focus {
-            border: 1px solid #0d6efd;
-            background: white;
-            border-radius: 0.375rem;
-            padding: 0.375rem;
-        }
+      .objective-input:focus {
+        border: 1px solid #0d6efd;
+        background: white;
+        border-radius: 0.375rem;
+        box-shadow: none;
+      }
 
-        /* Style for the new modal form */
-        #generateQuestionModal .form-check-input[type="radio"] {
-            margin-top: 0.9rem;
-        }
+      .objective-row {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.6rem;
+        flex-wrap: nowrap;
+      }
 
-        #generateQuestionModal .input-group-text {
-            width: 40px;
-            justify-content: center;
-        }
+      .objective-content {
+        min-width: 220px;
+        flex: 1 1 auto;
+      }
+
+      .objective-main-row {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        border: 1px solid #e9ecef;
+        border-radius: 0.35rem;
+        background: #fbfcfe;
+        padding: 0.35rem 0.45rem;
+        border-bottom-right-radius: 0;
+      }
+
+      .objective-main-row .objective-text-wrap {
+        flex: 1 1 auto;
+      }
+
+      .objective-actions-row {
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 0.45rem;
+        margin-top: 0;
+        margin-left: 1rem;
+        border: 1px solid #dbe7ff;
+        border-left: 3px solid #9ec5fe;
+        border-top: 0;
+        border-radius: 0.35rem;
+        background: #f4f8ff;
+        padding: 0.28rem 0.45rem;
+        border-top-left-radius: 0;
+        border-top-right-radius: 0;
+      }
+
+      .objective-actions-row .generate-question {
+        margin-left: auto;
+      }
+
+      .lane-label {
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        color: #6c757d;
+        flex-shrink: 0;
+        min-width: 74px;
+      }
+
+      .objective-actions-row .lane-label {
+        color: #0a58ca;
+      }
+
+      .page-subtitle {
+        color: #6c757d;
+        font-size: 0.92rem;
+        margin-top: 0.1rem;
+      }
+
+      .objective-total-badge {
+        font-size: 0.8rem;
+        vertical-align: middle;
+      }
+
+      .objectives-toolbar {
+        border: 1px solid #dbe7ff;
+        background: #f7faff;
+        border-radius: 0.5rem;
+        padding: 0.75rem;
+        margin-bottom: 0.75rem;
+      }
+
+      .compact-meta {
+        font-size: 0.85rem;
+      }
+
+      .objective-filter-wrap {
+        min-width: 280px;
+        max-width: 420px;
+        width: 100%;
+      }
+
+      .filter-status {
+        font-size: 0.8rem;
+        color: #6c757d;
+        white-space: nowrap;
+      }
+
+      .filter-empty-state {
+        border: 1px dashed #cbd5e1;
+        border-radius: 0.5rem;
+        background: #f8fafc;
+        color: #64748b;
+      }
+
+      /* Style for the new modal form */
+      #generateQuestionModal .form-check-input[type="radio"] {
+        margin-top: 0.9rem;
+      }
+
+      #generateQuestionModal .input-group-text {
+        width: 40px;
+        justify-content: center;
+      }
     </style>
-</head>
+  </head>
 
-<body>
+  <body>
     {% include "_top_nav.html" %}
 
     <!-- Auto-save indicator -->
-    <div id="autoSaveIndicator" class="auto-save-indicator" style="display: none;">
-        <div class="alert alert-success alert-sm mb-0">
-            <i class="fas fa-check"></i> Saved
-        </div>
+    <div
+      id="autoSaveIndicator"
+      class="auto-save-indicator"
+      style="display: none"
+    >
+      <div class="alert alert-success alert-sm mb-0">
+        <i class="fas fa-check"></i> Saved
+      </div>
     </div>
 
     <!-- Sticky Header -->
     <div class="sticky-header">
-        <div class="container-fluid">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h1 class="h3 mb-0">
-                        <i class="fas fa-bullseye text-warning"></i> Learning Objectives
-                    </h1>
-                </div>
-                <div>
-                    <button id="addObjectiveBtn" class="btn btn-success me-2">
-                        <i class="fas fa-plus"></i> Add Objective
-                    </button>
-                    <a href="/" class="btn btn-outline-secondary">
-                        <i class="fas fa-arrow-left"></i> Back to Questions
-                    </a>
-                </div>
+      <div class="container-fluid">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <h1 class="h3 mb-0">
+              <i class="fas fa-bullseye text-warning"></i> Learning Objectives
+            </h1>
+            <div class="page-subtitle">
+              Keep objectives concise, measurable, and question-ready.
+              <span
+                class="badge bg-secondary ms-2 objective-total-badge"
+                id="objectiveCount"
+              >
+                {{ objectives|length if objectives else 0 }} total
+              </span>
             </div>
+          </div>
+          <div>
+            <button id="addObjectiveBtn" class="btn btn-success me-2">
+              <i class="fas fa-plus"></i> Add Objective
+            </button>
+          </div>
         </div>
+      </div>
     </div>
 
     <div class="container-fluid">
-        <!-- Alert container -->
-        <div id="alertContainer"></div>
+      <!-- Alert container -->
+      <div id="alertContainer"></div>
 
-        <!-- Instructions -->
-        <div class="alert alert-info mb-4">
-            <h6 class="alert-heading"><i class="fas fa-info-circle"></i> About Learning Objectives</h6>
-            <p class="mb-2">Learning objectives define what students should be able to do. They help:</p>
-            <ul class="mb-2">
-                <li>Guide the development of quiz questions</li>
-                <li>Ensure alignment between content and evaluation</li>
-                <li>Provide clear expectations for students</li>
-            </ul>
-            <small class="text-muted">
-                <strong>Tips:</strong> Objectives with a <i class="fas fa-exclamation-triangle text-warning"></i>
-                icon have no questions. Use the <i class="fas fa-magic text-success"></i>
-                button to generate one.
-            </small>
+      <div
+        class="objectives-toolbar d-flex flex-wrap justify-content-between align-items-center gap-2"
+      >
+        <div class="compact-meta text-muted">
+          <i class="fas fa-circle-info me-1"></i>
+          Objectives marked with
+          <i class="fas fa-exclamation-triangle text-warning"></i> have no
+          linked questions.
         </div>
-
-        <!-- Learning Objectives List -->
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0">
-                    <i class="fas fa-list"></i> Course Learning Objectives
-                    <span class="badge bg-secondary ms-2" id="objectiveCount">
-                        {{ objectives|length if objectives else 0 }}
-                    </span>
-                </h5>
+        <div class="objective-filter-wrap">
+          <div class="d-flex align-items-center gap-2">
+            <div class="input-group input-group-sm">
+              <span class="input-group-text"
+                ><i class="fas fa-search"></i
+              ></span>
+              <input
+                id="objectiveFilterInput"
+                type="text"
+                class="form-control"
+                placeholder="Filter objectives..."
+                aria-label="Filter objectives"
+              />
+              <button
+                id="clearObjectiveFilterBtn"
+                class="btn btn-outline-secondary"
+                type="button"
+              >
+                Clear
+              </button>
             </div>
-            <div class="card-body">
-                <div id="objectivesList">
-                    <!-- 
+            <span id="filterResultCount" class="filter-status"
+              >Showing {{ objectives|length if objectives else 0 }}</span
+            >
+          </div>
+        </div>
+      </div>
+
+      <!-- Learning Objectives List -->
+      <div class="card">
+        <div class="card-body">
+          <div id="objectivesList">
+            <!-- 
                       This block now uses the data from the DB,
                       which includes 'id', 'question_count', etc.
                     -->
-                    {% if objectives and objectives|length > 0 %}
-                    {% for objective in objectives %}
-                    <div class="objective-item" data-objective-id="{{ objective.id }}">
-                        <div class="d-flex align-items-start p-3">
-                            <div class="objective-number me-3 mt-1">
-                                {{ loop.index }}
-                            </div>
-                            <div class="flex-grow-1">
-                                <textarea class="objective-input form-control"
-                                    placeholder="Enter learning objective here...">{{ objective.text }}</textarea>
-
-                                <!-- (Req 2.11 & 7.4) Warning Icon & Generate Button -->
-                                <div class="d-flex justify-content-between align-items-center mt-2">
-                                    <small class="text-muted">
-                                        Questions: <span class="badge bg-secondary">{{ objective.question_count
-                                            }}</span>
-
-                                        {% if objective.question_count == 0 %}
-                                        <span class="ms-2" title="No questions associated with this objective">
-                                            <i class="fas fa-exclamation-triangle text-warning"></i>
-                                        </span>
-                                        {% endif %}
-                                    </small>
-
-                                    <button class="btn btn-sm btn-outline-success generate-question"
-                                        data-objective-id="{{ objective.id }}" title="Generate Question with AI">
-                                        <i class="fas fa-magic"></i> Generate Question
-                                    </button>
-                                </div>
-
-                                <div class="row mt-2">
-                                    <div class="col-md-6">
-                                        <small class="text-muted">
-                                            <strong>Bloom's Level:</strong>
-                                            <select class="form-select form-select-sm blooms-level">
-                                                <option value="remember" {% if objective.blooms_level=='remember'
-                                                    %}selected{% endif %}>Remember</option>
-                                                <option value="understand" {% if objective.blooms_level=='understand'
-                                                    %}selected{% endif %}>Understand</option>
-                                                <option value="apply" {% if objective.blooms_level=='apply' %}selected{%
-                                                    endif %}>Apply</option>
-                                                <option value="analyze" {% if objective.blooms_level=='analyze'
-                                                    %}selected{% endif %}>Analyze</option>
-                                                <option value="evaluate" {% if objective.blooms_level=='evaluate'
-                                                    %}selected{% endif %}>Evaluate</option>
-                                                <option value="create" {% if objective.blooms_level=='create'
-                                                    %}selected{% endif %}>Create</option>
-                                            </select>
-                                        </small>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <small class="text-muted">
-                                            <strong>Priority:</strong>
-                                            <select class="form-select form-select-sm priority-level">
-                                                <option value="high" {% if objective.priority=='high' %}selected{% endif
-                                                    %}>High</option>
-                                                <option value="medium" {% if objective.priority=='medium' %}selected{%
-                                                    endif %}>Medium</option>
-                                                <option value="low" {% if objective.priority=='low' %}selected{% endif
-                                                    %}>Low</option>
-                                            </select>
-                                        </small>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="ms-3">
-                                <button class="btn btn-sm btn-outline-danger delete-objective" title="Delete objective">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </div>
-                        </div>
+            {% if objectives and objectives|length > 0 %} {% for objective in
+            objectives %}
+            <div
+              class="objective-item"
+              data-objective-id="{{ objective.id }}"
+              data-blooms-level="{{ objective.blooms_level or 'understand' }}"
+              data-priority-level="{{ objective.priority or 'medium' }}"
+            >
+              <div class="objective-row p-2">
+                <div class="objective-number">{{ loop.index }}</div>
+                <div class="objective-content">
+                  <div class="objective-main-row">
+                    <span class="lane-label">Objective</span>
+                    <div class="objective-text-wrap">
+                      <input
+                        type="text"
+                        class="objective-input form-control"
+                        placeholder="Write a measurable learning objective..."
+                        value="{{ objective.text }}"
+                      />
                     </div>
-                    {% endfor %}
-                    {% else %}
-                    <!-- This is the empty state -->
-                    <div class="text-center py-5" id="emptyState">
-                        <i class="fas fa-bullseye fa-3x text-muted mb-3"></i>
-                        <h5 class="text-muted">No Learning Objectives Yet</h5>
-                        <p class="text-muted">Click "Add Objective" to create your first one.</p>
-                    </div>
-                    {% endif %}
+                    <button
+                      class="btn btn-sm btn-outline-danger delete-objective text-nowrap"
+                      title="Delete objective"
+                    >
+                      <i class="fas fa-trash"></i> Delete Objective
+                    </button>
+                  </div>
+                  <div class="objective-actions-row">
+                    <span class="lane-label">Questions</span>
+                    <small class="text-muted compact-meta text-nowrap">
+                      <span class="badge bg-secondary"
+                        >{{ objective.question_count }}</span
+                      >
+                      linked {% if objective.question_count == 0 %}
+                      <span
+                        class="ms-1"
+                        title="No questions associated with this objective"
+                      >
+                        <i class="fas fa-exclamation-triangle text-warning"></i>
+                      </span>
+                      {% endif %}
+                    </small>
+                    <button
+                      class="btn btn-sm btn-outline-success generate-question text-nowrap"
+                      data-objective-id="{{ objective.id }}"
+                      title="Generate Question with AI"
+                    >
+                      <i class="fas fa-magic"></i> Generate Question
+                    </button>
+                  </div>
                 </div>
+              </div>
             </div>
+            {% endfor %} {% else %}
+            <!-- This is the empty state -->
+            <div class="text-center py-5" id="emptyState">
+              <i class="fas fa-bullseye fa-3x text-muted mb-3"></i>
+              <h5 class="text-muted">No Learning Objectives Yet</h5>
+              <p class="text-muted mb-0">
+                Click "Add Objective" to create your first one.
+              </p>
+            </div>
+            {% endif %}
+          </div>
+          <div
+            id="filterEmptyState"
+            class="filter-empty-state text-center py-4 mt-2"
+            style="display: none"
+          >
+            <i class="fas fa-search-minus fa-lg mb-2"></i>
+            <div>No objectives match your filter.</div>
+          </div>
         </div>
+      </div>
 
-        <!-- Bloom's Taxonomy Reference Card -->
-        <div class="card mt-4">
-            <div class="card-header">
-                <h6 class="mb-0">
-                    <i class="fas fa-graduation-cap"></i> Bloom's Taxonomy Reference
-                </h6>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-2"><strong class="text-primary">Remember</strong><br><small>Recall facts</small>
-                    </div>
-                    <div class="col-md-2"><strong class="text-info">Understand</strong><br><small>Explain ideas</small>
-                    </div>
-                    <div class="col-md-2"><strong class="text-success">Apply</strong><br><small>Use knowledge</small>
-                    </div>
-                    <div class="col-md-2"><strong class="text-warning">Analyze</strong><br><small>Break down</small>
-                    </div>
-                    <div class="col-md-2"><strong class="text-danger">Evaluate</strong><br><small>Judge,
-                            critique</small></div>
-                    <div class="col-md-2"><strong class="text-dark">Create</strong><br><small>Build, design</small>
-                    </div>
-                </div>
-            </div>
-        </div>
+      <!-- Instructional Card (moved to bottom by request) -->
+      <div class="alert alert-info mt-3 mb-0">
+        <h6 class="alert-heading mb-2">
+          <i class="fas fa-info-circle"></i> Creating Effective Learning
+          Objectives
+        </h6>
+        <p class="mb-2">
+          Well-written objectives help align content, assessment, and student
+          expectations.
+        </p>
+        <ul class="mb-2">
+          <li>Use clear, measurable verbs and specific outcomes.</li>
+          <li>Keep each objective focused on one skill or competency.</li>
+          <li>
+            Write objectives that can be directly assessed by quiz questions.
+          </li>
+        </ul>
+        <small class="text-muted">
+          Tip: Start with an action verb and describe what success looks like.
+        </small>
+      </div>
     </div>
 
     <!-- AI Question Generation Modal (Req 7.4) -->
-    <div class="modal fade" id="generateQuestionModal" tabindex="-1" aria-labelledby="generateModalLabel"
-        aria-hidden="true">
-        <div class="modal-dialog modal-lg modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="generateModalLabel">
-                        <i class="fas fa-magic text-success"></i> Generate New Question (AI Draft)
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <!-- JS will populate this with a spinner or the approval form -->
-                    <div id="generateModalBodyContent" class="text-center p-4">
-                        <i class="fas fa-spinner fa-spin fa-2x text-primary"></i>
-                        <p class="mt-2">Generating AI draft...</p>
-                    </div>
-                </div>
-                <div class="modal-footer" id="generateModalFooter">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <!-- This button is added/controlled by JS -->
-                </div>
+    <div
+      class="modal fade"
+      id="generateQuestionModal"
+      tabindex="-1"
+      aria-labelledby="generateModalLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="generateModalLabel">
+              <i class="fas fa-magic text-success"></i> Generate New Question
+              (AI Draft)
+            </h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <!-- JS will populate this with a spinner or the approval form -->
+            <div id="generateModalBodyContent" class="text-center p-4">
+              <i class="fas fa-spinner fa-spin fa-2x text-primary"></i>
+              <p class="mt-2">Generating AI draft...</p>
             </div>
+          </div>
+          <div class="modal-footer" id="generateModalFooter">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              Cancel
+            </button>
+            <!-- This button is added/controlled by JS -->
+          </div>
         </div>
+      </div>
     </div>
     <!-- === END OF NEW MODAL === -->
-
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/simplemde/latest/simplemde.min.js"></script>
     <script>
-        // --- THIS IS THE FULLY UPDATED JAVASCRIPT ---
+      // --- THIS IS THE FULLY UPDATED JAVASCRIPT ---
 
-        let saveTimeout;
-        let modalEditors = { question: null, answers: [] };
+      let saveTimeout;
+      let modalEditors = { question: null, answers: [] };
 
-        // DOM elements
-        const objectivesList = document.getElementById('objectivesList');
-        const objectiveCount = document.getElementById('objectiveCount');
-        const emptyState = document.getElementById('emptyState');
-        const addObjectiveBtn = document.getElementById('addObjectiveBtn');
+      // DOM elements
+      const objectivesList = document.getElementById("objectivesList");
+      const objectiveCount = document.getElementById("objectiveCount");
+      const emptyState = document.getElementById("emptyState");
+      const filterEmptyState = document.getElementById("filterEmptyState");
+      const objectiveFilterInput = document.getElementById(
+        "objectiveFilterInput",
+      );
+      const clearObjectiveFilterBtn = document.getElementById(
+        "clearObjectiveFilterBtn",
+      );
+      const filterResultCount = document.getElementById("filterResultCount");
+      const addObjectiveBtn = document.getElementById("addObjectiveBtn");
 
-        // New Modal elements
-        const generateQuestionModalEl = document.getElementById('generateQuestionModal');
-        const generateQuestionModal = new bootstrap.Modal(generateQuestionModalEl);
-        const generateModalBody = document.getElementById('generateModalBodyContent');
-        const generateModalFooter = document.getElementById('generateModalFooter');
+      // New Modal elements
+      const generateQuestionModalEl = document.getElementById(
+        "generateQuestionModal",
+      );
+      const generateQuestionModal = new bootstrap.Modal(
+        generateQuestionModalEl,
+      );
+      const generateModalBody = document.getElementById(
+        "generateModalBodyContent",
+      );
+      const generateModalFooter = document.getElementById(
+        "generateModalFooter",
+      );
 
-        // Initialize page
-        document.addEventListener('DOMContentLoaded', function () {
-            addEventListeners();
-            if (objectivesList.children.length === 0 && emptyState) {
-                emptyState.style.display = 'block';
-            }
+      // Initialize page
+      document.addEventListener("DOMContentLoaded", function () {
+        addEventListeners();
+        if (objectivesList.children.length === 0 && emptyState) {
+          emptyState.style.display = "block";
+        }
+      });
+
+      // Add event listeners
+      function addEventListeners() {
+        addObjectiveBtn.addEventListener("click", addNewObjective);
+        objectiveFilterInput.addEventListener("input", applyObjectiveFilter);
+        clearObjectiveFilterBtn.addEventListener("click", () => {
+          objectiveFilterInput.value = "";
+          applyObjectiveFilter();
+          objectiveFilterInput.focus();
         });
 
-        // Add event listeners
-        function addEventListeners() {
-            addObjectiveBtn.addEventListener('click', addNewObjective);
+        // Event delegation for all dynamic buttons/inputs
+        objectivesList.addEventListener("click", handleDynamicClicks);
+        objectivesList.addEventListener("input", handleDynamicInput);
+      }
 
-            // Event delegation for all dynamic buttons/inputs
-            objectivesList.addEventListener('click', handleDynamicClicks);
-            objectivesList.addEventListener('input', handleDynamicInput);
-            objectivesList.addEventListener('change', handleDynamicChange);
+      // Handle dynamic clicks
+      function handleDynamicClicks(e) {
+        const deleteBtn = e.target.closest(".delete-objective");
+        if (deleteBtn) {
+          const objectiveItem = deleteBtn.closest(".objective-item");
+          const objectiveId = objectiveItem.dataset.objectiveId;
+          deleteObjective(objectiveId, objectiveItem);
+          return;
         }
 
-        // Handle dynamic clicks
-        function handleDynamicClicks(e) {
-            const deleteBtn = e.target.closest('.delete-objective');
-            if (deleteBtn) {
-                const objectiveItem = deleteBtn.closest('.objective-item');
-                const objectiveId = objectiveItem.dataset.objectiveId;
-                deleteObjective(objectiveId, objectiveItem);
-                return;
-            }
+        // (Req 7.4) Listen for clicks on the new generate button
+        const generateBtn = e.target.closest(".generate-question");
+        if (generateBtn) {
+          const objectiveId = generateBtn.dataset.objectiveId;
+          handleGenerateQuestion(objectiveId, generateBtn);
+          return;
+        }
+      }
 
-            // (Req 7.4) Listen for clicks on the new generate button
-            const generateBtn = e.target.closest('.generate-question');
-            if (generateBtn) {
-                const objectiveId = generateBtn.dataset.objectiveId;
-                handleGenerateQuestion(objectiveId, generateBtn);
-                return;
-            }
+      // Handle typing in objective inputs
+      function handleDynamicInput(e) {
+        if (e.target.classList.contains("objective-input")) {
+          const objectiveItem = e.target.closest(".objective-item");
+          scheduleAutoSave(objectiveItem);
+          applyObjectiveFilter();
+        }
+      }
+
+      function applyObjectiveFilter() {
+        const query = (objectiveFilterInput.value || "").trim().toLowerCase();
+        const objectiveItems = Array.from(
+          objectivesList.querySelectorAll(".objective-item"),
+        );
+        let visibleCount = 0;
+
+        objectiveItems.forEach((item) => {
+          const input = item.querySelector(".objective-input");
+          const text = (input?.value || "").toLowerCase();
+          const isVisible = !query || text.includes(query);
+          item.style.display = isVisible ? "" : "none";
+          if (isVisible) visibleCount += 1;
+        });
+
+        if (filterResultCount) {
+          filterResultCount.textContent = query
+            ? `Showing ${visibleCount}`
+            : `Showing ${objectiveItems.length}`;
         }
 
-        // Handle typing in textareas
-        function handleDynamicInput(e) {
-            if (e.target.classList.contains('objective-input')) {
-                const objectiveItem = e.target.closest('.objective-item');
-                scheduleAutoSave(objectiveItem);
-            }
+        if (filterEmptyState) {
+          const hasObjectives = objectiveItems.length > 0;
+          const showFilterEmpty =
+            hasObjectives && query.length > 0 && visibleCount === 0;
+          filterEmptyState.style.display = showFilterEmpty ? "block" : "none";
         }
+      }
 
-        // Handle changing dropdowns
-        function handleDynamicChange(e) {
-            if (e.target.classList.contains('blooms-level') || e.target.classList.contains('priority-level')) {
-                const objectiveItem = e.target.closest('.objective-item');
-                scheduleAutoSave(objectiveItem);
-            }
+      // Add new objective
+      async function addNewObjective() {
+        addObjectiveBtn.disabled = true;
+        addObjectiveBtn.innerHTML =
+          '<i class="fas fa-spinner fa-spin"></i> Adding...';
+
+        try {
+          const response = await fetch("/objectives", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text: "" }), // Create a blank objective
+          });
+
+          const newObjective = await response.json();
+
+          if (response.ok) {
+            if (emptyState) emptyState.style.display = "none";
+            const newIndex = objectivesList.children.length + 1;
+            const newObjectiveHtml = createObjectiveHtml(
+              newObjective,
+              newIndex,
+            );
+            objectivesList.insertAdjacentHTML("beforeend", newObjectiveHtml);
+            updateObjectiveCount();
+            applyObjectiveFilter();
+
+            objectivesList
+              .querySelector(
+                `[data-objective-id="${newObjective.id}"] .objective-input`,
+              )
+              .focus();
+          } else {
+            showAlert(
+              "danger",
+              newObjective.detail || "Failed to add objective",
+            );
+          }
+        } catch (error) {
+          showAlert("danger", "Error adding objective: " + error.message);
+        } finally {
+          addObjectiveBtn.disabled = false;
+          addObjectiveBtn.innerHTML =
+            '<i class="fas fa-plus"></i> Add Objective';
         }
+      }
 
-        // Add new objective
-        async function addNewObjective() {
-            addObjectiveBtn.disabled = true;
-            addObjectiveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Adding...';
+      // Delete objective
+      async function deleteObjective(objectiveId, objectiveItem) {
+        if (
+          confirm(
+            "Are you sure you want to delete this learning objective? This will remove it from all associated questions.",
+          )
+        ) {
+          try {
+            const response = await fetch(`/objectives/${objectiveId}`, {
+              method: "DELETE",
+            });
 
-            try {
-                const response = await fetch('/objectives', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text: '' }) // Create a blank objective
-                });
-
-                const newObjective = await response.json();
-
-                if (response.ok) {
-                    if (emptyState) emptyState.style.display = 'none';
-                    const newIndex = objectivesList.children.length + 1;
-                    const newObjectiveHtml = createObjectiveHtml(newObjective, newIndex);
-                    objectivesList.insertAdjacentHTML('beforeend', newObjectiveHtml);
-                    updateObjectiveCount();
-
-                    objectivesList.querySelector(`[data-objective-id="${newObjective.id}"] .objective-input`).focus();
-                } else {
-                    showAlert('danger', newObjective.detail || 'Failed to add objective');
-                }
-
-            } catch (error) {
-                showAlert('danger', 'Error adding objective: ' + error.message);
-            } finally {
-                addObjectiveBtn.disabled = false;
-                addObjectiveBtn.innerHTML = '<i class="fas fa-plus"></i> Add Objective';
+            if (response.ok) {
+              objectiveItem.remove();
+              updateObjectiveNumbers();
+              updateObjectiveCount();
+              if (objectivesList.children.length === 0 && emptyState) {
+                emptyState.style.display = "block";
+              }
+              applyObjectiveFilter();
+              showAutoSaveIndicator("Objective deleted", "bg-danger");
+            } else {
+              const error = await response.json();
+              showAlert("danger", error.detail || "Failed to delete objective");
             }
+          } catch (error) {
+            showAlert("danger", "Error deleting objective: " + error.message);
+          }
         }
+      }
 
-        // Delete objective
-        async function deleteObjective(objectiveId, objectiveItem) {
-            if (confirm('Are you sure you want to delete this learning objective? This will remove it from all associated questions.')) {
-                try {
-                    const response = await fetch(`/objectives/${objectiveId}`, {
-                        method: 'DELETE'
-                    });
+      // Render objectives
+      function createObjectiveHtml(objective, index) {
+        const warningIcon =
+          (objective.question_count || 0) === 0
+            ? '<span class="ms-2" title="No questions associated"><i class="fas fa-exclamation-triangle text-warning"></i></span>'
+            : "";
 
-                    if (response.ok) {
-                        objectiveItem.remove();
-                        updateObjectiveNumbers();
-                        updateObjectiveCount();
-                        if (objectivesList.children.length === 0 && emptyState) {
-                            emptyState.style.display = 'block';
-                        }
-                        showAutoSaveIndicator('Objective deleted', 'bg-danger');
-                    } else {
-                        const error = await response.json();
-                        showAlert('danger', error.detail || 'Failed to delete objective');
-                    }
-                } catch (error) {
-                    showAlert('danger', 'Error deleting objective: ' + error.message);
-                }
-            }
-        }
-
-        // Render objectives
-        function createObjectiveHtml(objective, index) {
-            const warningIcon = (objective.question_count || 0) === 0
-                ? '<span class="ms-2" title="No questions associated"><i class="fas fa-exclamation-triangle text-warning"></i></span>'
-                : '';
-
-            return `
-                <div class="objective-item" data-objective-id="${objective.id}">
-                    <div class="d-flex align-items-start p-3">
-                        <div class="objective-number me-3 mt-1">${index}</div>
-                        <div class="flex-grow-1">
-                            <textarea class="objective-input form-control" 
-                                      placeholder="Enter learning objective here...">${objective.text || ''}</textarea>
-                            <div class="d-flex justify-content-between align-items-center mt-2">
-                                <small class="text-muted">
-                                    Questions: <span class="badge bg-secondary">${objective.question_count || 0}</span>
+        return `
+                <div class="objective-item" data-objective-id="${objective.id}" data-blooms-level="${objective.blooms_level || "understand"}" data-priority-level="${objective.priority || "medium"}">
+                    <div class="objective-row p-2">
+                        <div class="objective-number">${index}</div>
+                        <div class="objective-content">
+                            <div class="objective-main-row">
+                                <span class="lane-label">Objective</span>
+                                <div class="objective-text-wrap">
+                                    <input type="text" class="objective-input form-control" 
+                                              placeholder="Write a measurable learning objective..." value="${objective.text || ""}">
+                                </div>
+                                <button class="btn btn-sm btn-outline-danger delete-objective text-nowrap" title="Delete objective">
+                                    <i class="fas fa-trash"></i> Delete Objective
+                                </button>
+                            </div>
+                            <div class="objective-actions-row">
+                                <span class="lane-label">Questions</span>
+                                <small class="text-muted compact-meta text-nowrap">
+                                    <span class="badge bg-secondary">${objective.question_count || 0}</span> linked
                                     ${warningIcon}
                                 </small>
-                                <button class="btn btn-sm btn-outline-success generate-question" data-objective-id="${objective.id}" title="Generate Question with AI">
+                                <button class="btn btn-sm btn-outline-success generate-question text-nowrap" data-objective-id="${objective.id}" title="Generate Question with AI">
                                     <i class="fas fa-magic"></i> Generate Question
                                 </button>
                             </div>
-                            <div class="row mt-2">
-                                <div class="col-md-6">
-                                    <small class="text-muted"><strong>Bloom's Level:</strong>
-                                        <select class="form-select form-select-sm blooms-level">
-                                            <option value="remember" ${objective.blooms_level === 'remember' ? 'selected' : ''}>Remember</option>
-                                            <option value="understand" ${objective.blooms_level === 'understand' ? 'selected' : ''}>Understand</option>
-                                            <option value="apply" ${objective.blooms_level === 'apply' ? 'selected' : ''}>Apply</option>
-                                            <option value="analyze" ${objective.blooms_level === 'analyze' ? 'selected' : ''}>Analyze</option>
-                                            <option value="evaluate" ${objective.blooms_level === 'evaluate' ? 'selected' : ''}>Evaluate</option>
-                                            <option value="create" ${objective.blooms_level === 'create' ? 'selected' : ''}>Create</option>
-                                        </select>
-                                    </small>
-                                </div>
-                                <div class="col-md-6">
-                                    <small class="text-muted"><strong>Priority:</strong>
-                                        <select class="form-select form-select-sm priority-level">
-                                            <option value="high" ${objective.priority === 'high' ? 'selected' : ''}>High</option>
-                                            <option value="medium" ${objective.priority === 'medium' ? 'selected' : ''}>Medium</option>
-                                            <option value="low" ${objective.priority === 'low' ? 'selected' : ''}>Low</option>
-                                        </select>
-                                    </small>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="ms-3">
-                            <button class="btn btn-sm btn-outline-danger delete-objective" title="Delete objective">
-                                <i class="fas fa-trash"></i>
-                            </button>
                         </div>
                     </div>
                 </div>
             `;
+      }
+
+      function updateObjectiveNumbers() {
+        const numbers = document.querySelectorAll(".objective-number");
+        numbers.forEach((num, index) => {
+          num.textContent = index + 1;
+        });
+      }
+
+      function updateObjectiveCount() {
+        if (objectiveCount) {
+          objectiveCount.textContent = `${objectivesList.children.length} total`;
         }
+      }
 
-        function updateObjectiveNumbers() {
-            const numbers = document.querySelectorAll('.objective-number');
-            numbers.forEach((num, index) => {
-                num.textContent = index + 1;
-            });
+      function scheduleAutoSave(objectiveItem) {
+        if (saveTimeout) clearTimeout(saveTimeout);
+        saveTimeout = setTimeout(() => autoSave(objectiveItem), 1500);
+      }
+
+      async function autoSave(objectiveItem) {
+        const objectiveId = objectiveItem.dataset.objectiveId;
+        const data = {
+          text: objectiveItem.querySelector(".objective-input").value.trim(),
+          blooms_level: objectiveItem.dataset.bloomsLevel || "understand",
+          priority: objectiveItem.dataset.priorityLevel || "medium",
+        };
+
+        try {
+          const response = await fetch(`/objectives/${objectiveId}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data),
+          });
+          if (response.ok) {
+            showAutoSaveIndicator("Saved", "bg-success");
+          } else {
+            const error = await response.json();
+            showAutoSaveIndicator(`Error: ${error.detail}`, "bg-danger");
+          }
+        } catch (error) {
+          showAutoSaveIndicator("Error: " + error.message, "bg-danger");
         }
+      }
 
-        function updateObjectiveCount() {
-            if (objectiveCount) {
-                objectiveCount.textContent = objectivesList.children.length;
-            }
+      function showAutoSaveIndicator(message, bgClass) {
+        const indicator = document.getElementById("autoSaveIndicator");
+        if (!indicator) return;
+        const alert = indicator.querySelector(".alert");
+
+        alert.innerHTML = `<i class="fas ${bgClass === "bg-success" ? "fa-check" : "fa-exclamation-triangle"}"></i> ${message}`;
+        alert.className = `alert alert-sm mb-0 ${bgClass}`;
+
+        indicator.style.display = "block";
+        setTimeout(() => {
+          indicator.style.display = "none";
+        }, 2000);
+      }
+
+      function showAlert(type, message) {
+        const alertContainer = document.getElementById("alertContainer");
+        if (!alertContainer) return;
+        const alert = document.createElement("div");
+        alert.className = `alert alert-${type} alert-dismissible fade show`;
+        alert.innerHTML = `${message} <button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+        alertContainer.appendChild(alert);
+        setTimeout(() => {
+          alert.remove();
+        }, 5000);
+      }
+
+      // --- === === NEW AI GENERATION FUNCTIONS (Req 7.4) === === ---
+
+      /**
+       * User clicks "Generate Question".
+       * This generates the question with AI and redirects to edit page.
+       */
+      async function handleGenerateQuestion(objectiveId, btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+
+        try {
+          const response = await fetch(
+            `/objectives/${objectiveId}/generate-and-create-question`,
+            {
+              method: "POST",
+            },
+          );
+
+          const result = await response.json();
+
+          if (response.ok) {
+            // Redirect to edit question page
+            window.location.href = `/questions/${result.new_question_id}`;
+          } else {
+            throw new Error(result.detail || "Failed to generate question");
+          }
+        } catch (error) {
+          showAlert("danger", `Error: ${error.message}`);
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fas fa-magic"></i> Generate Question';
         }
+      }
 
-        function scheduleAutoSave(objectiveItem) {
-            if (saveTimeout) clearTimeout(saveTimeout);
-            saveTimeout = setTimeout(() => autoSave(objectiveItem), 1500);
+      /**
+       * Step 2: Renders the AI draft in an editable "Approval" form
+       * inside the modal.
+       */
+      /**
+       * Step 2: Renders the AI draft in an editable "Approval" form
+       * inside the modal.
+       */
+      function renderQuestionDraftForm(objectiveId, draft) {
+        // Clean up any existing editors
+        if (modalEditors.question) {
+          modalEditors.question.toTextArea();
+          modalEditors.question = null;
         }
+        modalEditors.answers.forEach((e) => {
+          if (e) e.toTextArea();
+        });
+        modalEditors.answers = [];
 
-        async function autoSave(objectiveItem) {
-            const objectiveId = objectiveItem.dataset.objectiveId;
-            const data = {
-                text: objectiveItem.querySelector('.objective-input').value.trim(),
-                blooms_level: objectiveItem.querySelector('.blooms-level').value,
-                priority: objectiveItem.querySelector('.priority-level').value
-            };
-
-            try {
-                const response = await fetch(`/objectives/${objectiveId}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
-                if (response.ok) {
-                    showAutoSaveIndicator('Saved', 'bg-success');
-                } else {
-                    const error = await response.json();
-                    showAutoSaveIndicator(`Error: ${error.detail}`, 'bg-danger');
-                }
-            } catch (error) {
-                showAutoSaveIndicator('Error: ' + error.message, 'bg-danger');
-            }
-        }
-
-        function showAutoSaveIndicator(message, bgClass) {
-            const indicator = document.getElementById('autoSaveIndicator');
-            if (!indicator) return;
-            const alert = indicator.querySelector('.alert');
-
-            alert.innerHTML = `<i class="fas ${bgClass === 'bg-success' ? 'fa-check' : 'fa-exclamation-triangle'}"></i> ${message}`;
-            alert.className = `alert alert-sm mb-0 ${bgClass}`;
-
-            indicator.style.display = 'block';
-            setTimeout(() => { indicator.style.display = 'none'; }, 2000);
-        }
-
-        function showAlert(type, message) {
-            const alertContainer = document.getElementById('alertContainer');
-            if (!alertContainer) return;
-            const alert = document.createElement('div');
-            alert.className = `alert alert-${type} alert-dismissible fade show`;
-            alert.innerHTML = `${message} <button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
-            alertContainer.appendChild(alert);
-            setTimeout(() => { alert.remove(); }, 5000);
-        }
-
-        // --- === === NEW AI GENERATION FUNCTIONS (Req 7.4) === === ---
-
-        /**
-         * User clicks "Generate Question".
-         * This generates the question with AI and redirects to edit page.
-         */
-        async function handleGenerateQuestion(objectiveId, btn) {
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
-
-            try {
-                const response = await fetch(`/objectives/${objectiveId}/generate-and-create-question`, {
-                    method: 'POST'
-                });
-
-                const result = await response.json();
-
-                if (response.ok) {
-                    // Redirect to edit question page
-                    window.location.href = `/questions/${result.new_question_id}`;
-                } else {
-                    throw new Error(result.detail || 'Failed to generate question');
-                }
-
-            } catch (error) {
-                showAlert('danger', `Error: ${error.message}`);
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-magic"></i> Generate Question';
-            }
-        }
-
-        /**
-         * Step 2: Renders the AI draft in an editable "Approval" form
-         * inside the modal.
-         */
-        /**
- * Step 2: Renders the AI draft in an editable "Approval" form
- * inside the modal.
- */
-        function renderQuestionDraftForm(objectiveId, draft) {
-            // Clean up any existing editors
-            if (modalEditors.question) {
-                modalEditors.question.toTextArea();
-                modalEditors.question = null;
-            }
-            modalEditors.answers.forEach(e => {
-                if (e) e.toTextArea();
-            });
-            modalEditors.answers = [];
-
-            // Build the HTML for the 4 answer inputs (plain textareas, no SimpleMDE)
-            const answersHtml = (draft.answers || []).slice(0, 4).map((answer, index) => {
-                const checked = answer.is_correct ? 'checked' : '';
-                return `
+        // Build the HTML for the 4 answer inputs (plain textareas, no SimpleMDE)
+        const answersHtml = (draft.answers || [])
+          .slice(0, 4)
+          .map((answer, index) => {
+            const checked = answer.is_correct ? "checked" : "";
+            return `
         <div class="mb-3">
             <div class="form-check">
                 <input class="form-check-input" type="radio" name="correctAnswer" 
@@ -605,10 +793,11 @@
                    id="modal-answer-text-${index}" rows="2" required>${escapeHtml(answer.text)}</textarea>
         </div>
         `;
-            }).join('');
+          })
+          .join("");
 
-            // Set the modal body to the new form (NO SimpleMDE)
-            generateModalBody.innerHTML = `
+        // Set the modal body to the new form (NO SimpleMDE)
+        generateModalBody.innerHTML = `
         <p class="text-muted">Review and edit the AI-generated draft below. 
            Mark the correct answer and click "Save".</p>
         <form id="aiQuestionForm">
@@ -623,106 +812,122 @@
         </form>
     `;
 
-            // Add the "Save" button to the footer
-            generateModalFooter.innerHTML = `
+        // Add the "Save" button to the footer
+        generateModalFooter.innerHTML = `
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
         <button type="button" class="btn btn-success" id="saveGeneratedQuestionBtn">
             <i class="fas fa-save"></i> Save to Database
         </button>
     `;
 
-            // Add a click listener for the new save button
-            document.getElementById('saveGeneratedQuestionBtn').addEventListener('click', (e) => {
-                handleSaveGeneratedQuestion(objectiveId, generateQuestionModalEl, e.target);
-            });
+        // Add a click listener for the new save button
+        document
+          .getElementById("saveGeneratedQuestionBtn")
+          .addEventListener("click", (e) => {
+            handleSaveGeneratedQuestion(
+              objectiveId,
+              generateQuestionModalEl,
+              e.target,
+            );
+          });
+      }
+
+      /**
+       * Step 3: User clicks "Save".
+       * This reads the (edited) form and sends it to the DB.
+       */
+      async function handleSaveGeneratedQuestion(
+        objectiveId,
+        modalEl,
+        saveBtn,
+      ) {
+        const form = document.getElementById("aiQuestionForm");
+        if (!form.checkValidity()) {
+          form.reportValidity();
+          return;
         }
 
-        /**
-         * Step 3: User clicks "Save".
-         * This reads the (edited) form and sends it to the DB.
-         */
-        async function handleSaveGeneratedQuestion(objectiveId, modalEl, saveBtn) {
-            const form = document.getElementById('aiQuestionForm');
-            if (!form.checkValidity()) {
-                form.reportValidity();
-                return;
-            }
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
 
-            saveBtn.disabled = true;
-            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+        // Collect the data from the form
+        const questionText = document
+          .getElementById("modal_question_text")
+          .value.trim();
+        const correctRadio = form.querySelector(
+          'input[name="correctAnswer"]:checked',
+        );
 
-            // Collect the data from the form
-            const questionText = document.getElementById('modal_question_text').value.trim();
-            const correctRadio = form.querySelector('input[name="correctAnswer"]:checked');
-
-            if (!correctRadio) {
-                showAlert('danger', 'You must select one answer as correct.');
-                saveBtn.disabled = false;
-                saveBtn.innerHTML = '<i class="fas fa-save"></i> Save to Database';
-                return;
-            }
-
-            // Get the correct answer index
-            const correctIndex = parseInt(correctRadio.value);
-
-            // Collect all answer texts
-            const answerTextareas = form.querySelectorAll('textarea[name="answer_text"]');
-            const answers = Array.from(answerTextareas).map((textarea, index) => {
-                return {
-                    text: textarea.value.trim(),
-                    is_correct: (index === correctIndex)
-                };
-            });
-
-            // Validate we have answers
-            if (answers.length === 0 || answers.some(a => !a.text)) {
-                showAlert('danger', 'All answer fields must be filled out.');
-                saveBtn.disabled = false;
-                saveBtn.innerHTML = '<i class="fas fa-save"></i> Save to Database';
-                return;
-            }
-
-            const questionDraft = {
-                question_text: questionText,
-                answers: answers
-            };
-
-            console.log('Sending question draft:', questionDraft); // Debug log
-
-            // Send the approved draft to the new API endpoint
-            try {
-                const response = await fetch(`/objectives/${objectiveId}/create-question-from-draft`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(questionDraft)
-                });
-
-                const result = await response.json();
-
-                if (response.ok) {
-                    // Success! Redirect the user to the new question's edit page
-                    window.location.href = `/questions/${result.new_question_id}`;
-                } else {
-                    console.error('Server error:', result); // Debug log
-                    throw new Error(result.detail || 'Failed to save question');
-                }
-
-            } catch (error) {
-                console.error('Save error:', error); // Debug log
-                showAlert('danger', `Error: ${error.message}`);
-                saveBtn.disabled = false;
-                saveBtn.innerHTML = '<i class="fas fa-save"></i> Save to Database';
-            }
+        if (!correctRadio) {
+          showAlert("danger", "You must select one answer as correct.");
+          saveBtn.disabled = false;
+          saveBtn.innerHTML = '<i class="fas fa-save"></i> Save to Database';
+          return;
         }
 
-        function escapeHtml(text) {
-            if (typeof text !== 'string') return '';
-            const div = document.createElement("div");
-            div.textContent = text;
-            return div.innerHTML;
+        // Get the correct answer index
+        const correctIndex = parseInt(correctRadio.value);
+
+        // Collect all answer texts
+        const answerTextareas = form.querySelectorAll(
+          'textarea[name="answer_text"]',
+        );
+        const answers = Array.from(answerTextareas).map((textarea, index) => {
+          return {
+            text: textarea.value.trim(),
+            is_correct: index === correctIndex,
+          };
+        });
+
+        // Validate we have answers
+        if (answers.length === 0 || answers.some((a) => !a.text)) {
+          showAlert("danger", "All answer fields must be filled out.");
+          saveBtn.disabled = false;
+          saveBtn.innerHTML = '<i class="fas fa-save"></i> Save to Database';
+          return;
         }
 
+        const questionDraft = {
+          question_text: questionText,
+          answers: answers,
+        };
+
+        console.log("Sending question draft:", questionDraft); // Debug log
+
+        // Send the approved draft to the new API endpoint
+        try {
+          const response = await fetch(
+            `/objectives/${objectiveId}/create-question-from-draft`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(questionDraft),
+            },
+          );
+
+          const result = await response.json();
+
+          if (response.ok) {
+            // Success! Redirect the user to the new question's edit page
+            window.location.href = `/questions/${result.new_question_id}`;
+          } else {
+            console.error("Server error:", result); // Debug log
+            throw new Error(result.detail || "Failed to save question");
+          }
+        } catch (error) {
+          console.error("Save error:", error); // Debug log
+          showAlert("danger", `Error: ${error.message}`);
+          saveBtn.disabled = false;
+          saveBtn.innerHTML = '<i class="fas fa-save"></i> Save to Database';
+        }
+      }
+
+      function escapeHtml(text) {
+        if (typeof text !== "string") return "";
+        const div = document.createElement("div");
+        div.textContent = text;
+        return div.innerHTML;
+      }
     </script>
-</body>
-
+  </body>
 </html>
