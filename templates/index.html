@@ -692,18 +692,38 @@
 
         function updateSortIcons() {
           sortableHeaders.forEach((headerBtn) => {
+            const headerCell = headerBtn.closest("th");
             const icon = headerBtn.querySelector("i");
-            if (!icon) return;
+            const sortLabel = headerBtn.dataset.sortLabel || "column";
+
+            if (!headerCell || !icon) return;
 
             if (headerBtn.dataset.sortField !== sortState.field) {
               icon.className = "fas fa-sort";
+              headerCell.setAttribute("aria-sort", "none");
+              headerBtn.removeAttribute("aria-label");
+              headerBtn.setAttribute(
+                "title",
+                `Sort by ${sortLabel}. Currently not sorted.`,
+              );
               return;
             }
 
-            icon.className =
-              sortState.direction === "asc"
-                ? "fas fa-sort-up"
-                : "fas fa-sort-down";
+            const isAscending = sortState.direction === "asc";
+            icon.className = isAscending
+              ? "fas fa-sort-up"
+              : "fas fa-sort-down";
+            headerCell.setAttribute(
+              "aria-sort",
+              isAscending ? "ascending" : "descending",
+            );
+            headerBtn.removeAttribute("aria-label");
+            headerBtn.setAttribute(
+              "title",
+              isAscending
+                ? `Sort by ${sortLabel}. Currently sorted ascending. Activate to sort descending.`
+                : `Sort by ${sortLabel}. Currently sorted descending. Activate to sort ascending.`,
+            );
           });
         }
 
@@ -1016,58 +1036,95 @@
             <table class="table table-hover align-middle question-table">
               <thead class="table-light">
                 <tr>
-                  <th scope="col" class="question-column">
+                  <th scope="col" class="question-column" aria-sort="none">
                     <button
                       class="sortable-btn"
                       type="button"
                       data-sort-field="searchText"
+                      data-sort-label="Question"
                     >
-                      Question <i class="fas fa-sort"></i>
+                      Question
+                      <i
+                        class="fas fa-sort"
+                        aria-hidden="true"
+                        focusable="false"
+                      ></i>
                     </button>
                   </th>
                   <th
                     scope="col"
                     class="objectives-column compact-column text-center"
+                    aria-sort="none"
                   >
                     <button
                       class="sortable-btn"
                       type="button"
                       data-sort-field="objectives"
+                      data-sort-label="Objectives"
                     >
-                      Objectives <i class="fas fa-sort"></i>
+                      Objectives
+                      <i
+                        class="fas fa-sort"
+                        aria-hidden="true"
+                        focusable="false"
+                      ></i>
                     </button>
                   </th>
                   <th
                     scope="col"
                     class="feedback-column compact-column text-center"
+                    aria-sort="none"
                   >
                     <button
                       class="sortable-btn"
                       type="button"
                       data-sort-field="missing"
+                      data-sort-label="Feedback"
                     >
-                      Feedback <i class="fas fa-sort"></i>
+                      Feedback
+                      <i
+                        class="fas fa-sort"
+                        aria-hidden="true"
+                        focusable="false"
+                      ></i>
                     </button>
                   </th>
                   <th
                     scope="col"
                     class="feedback-column compact-column text-center"
+                    aria-sort="none"
                   >
                     <button
                       class="sortable-btn"
                       type="button"
                       data-sort-field="pending"
+                      data-sort-label="Feedback approval"
                     >
-                      Feedback Approval <i class="fas fa-sort"></i>
+                      Feedback Approval
+                      <i
+                        class="fas fa-sort"
+                        aria-hidden="true"
+                        focusable="false"
+                      ></i>
                     </button>
                   </th>
-                  <th scope="col" class="created-column compact-column">
+                  <th
+                    scope="col"
+                    class="created-column compact-column"
+                    aria-sort="descending"
+                  >
                     <button
                       class="sortable-btn"
                       type="button"
                       data-sort-field="created"
+                      data-sort-label="Created"
                     >
-                      Created <i class="fas fa-sort"></i>
+                      Created
+                      <i
+                        class="fas fa-sort"
+                        aria-hidden="true"
+                        focusable="false"
+                      ></i>
                     </button>
                   </th>
                   <th
