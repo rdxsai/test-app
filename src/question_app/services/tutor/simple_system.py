@@ -142,9 +142,18 @@ class AzureAPIMClient:
         self.deployment = deployment
         self.api_key = api_key
         self.api_version = api_version
+        self._reasoning = self._is_reasoning_model()
+        if self._reasoning:
+            logger.info(f"Reasoning model detected: {deployment} — using max_completion_tokens + reasoning_effort")
+
+    def _is_reasoning_model(self) -> bool:
+        """Check if the deployment is a reasoning model (gpt-5, o-series)."""
+        d = self.deployment.lower()
+        return d.startswith("gpt-5") or d.startswith("o1") or d.startswith("o3") or d.startswith("o4")
 
     def chat(
-        self, messages: List[Dict], temperature: float = 0.7, max_tokens: int = 1000
+        self, messages: List[Dict], temperature: float = 0.7, max_tokens: int = 1000,
+        reasoning_effort: str = None,
     ) -> str:
         """
         Send a chat completion request to Azure OpenAI.
@@ -193,15 +202,20 @@ class AzureAPIMClient:
 
         params = {"api-version": self.api_version}
 
-        data = {
-            "messages": messages,
-            "max_tokens": max_tokens,
-            "temperature": temperature,
-        }
+        data = {"messages": messages}
+        if self._reasoning:
+            data["max_completion_tokens"] = max(max_tokens * 3, 1500)  # reasoning eats ~60-70%
+            if reasoning_effort:
+                data["reasoning_effort"] = reasoning_effort
+            else:
+                data["reasoning_effort"] = "low"  # default to low for speed
+        else:
+            data["max_tokens"] = max_tokens
+            data["temperature"] = temperature
 
         try:
             response = requests.post(
-                url, headers=headers, params=params, json=data, timeout=60
+                url, headers=headers, params=params, json=data, timeout=120
             )
             response.raise_for_status()
 
@@ -231,15 +245,18 @@ class AzureAPIMClient:
 
         params = {"api-version": self.api_version}
 
-        data = {
-            "messages": messages,
-            "max_tokens": max_tokens,
-            "temperature": temperature,
-            "stream": True,
-        }
+        data = {"messages": messages, "stream": True}
+        if self._reasoning:
+            data["max_completion_tokens"] = max(max_tokens * 3, 1500)
+            data["reasoning_effort"] = "low"
+            data["stream_options"] = {"include_usage": True}
+        else:
+            data["max_tokens"] = max_tokens
+            data["temperature"] = temperature
 
         try:
-            async with httpx.AsyncClient(timeout=90.0) as client:
+            timeout = httpx.Timeout(connect=10, read=120, write=10, pool=10)
+            async with httpx.AsyncClient(timeout=timeout) as client:
                 async with client.stream(
                     "POST", url, headers=headers, params=params, json=data
                 ) as response:
@@ -280,6 +297,7 @@ class AzureAPIMClient:
         temperature: float = 0.3,
         max_tokens: int = 300,
         tool_choice: str = "auto",
+        reasoning_effort: str = None,
     ) -> Dict[str, Any]:
         """
         Non-streaming chat completion with function calling (tools parameter).
@@ -298,11 +316,15 @@ class AzureAPIMClient:
             "messages": messages,
             "tools": tools,
             "tool_choice": tool_choice,
-            "max_tokens": max_tokens,
-            "temperature": temperature,
         }
+        if self._reasoning:
+            data["max_completion_tokens"] = max(max_tokens * 3, 1000)
+            data["reasoning_effort"] = reasoning_effort or "low"
+        else:
+            data["max_tokens"] = max_tokens
+            data["temperature"] = temperature
 
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with httpx.AsyncClient(timeout=60.0) as client:
             resp = await client.post(url, headers=headers, params=params, json=data)
             resp.raise_for_status()
             result = resp.json()
