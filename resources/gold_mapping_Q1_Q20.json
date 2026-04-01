@@ -1,0 +1,176 @@
+[
+  {
+    "question_id": "Q1",
+    "primary": "I.A.2",
+    "secondary": [
+      "II.B.7"
+    ],
+    "confidence": "High",
+    "rationale": "WCAG levels and structure; classify SC level"
+  },
+  {
+    "question_id": "Q2",
+    "primary": "I.D.2",
+    "secondary": [
+      "II.C.6"
+    ],
+    "confidence": "High",
+    "rationale": "Accessible link names; navigation usability"
+  },
+  {
+    "question_id": "Q3",
+    "primary": "I.D.8",
+    "secondary": [
+      "I.D.7"
+    ],
+    "confidence": "High",
+    "rationale": "Correct ARIA usage; ARIA vs HTML decision"
+  },
+  {
+    "question_id": "Q4",
+    "primary": "II.C.2",
+    "secondary": [
+      "I.B.5"
+    ],
+    "confidence": "High",
+    "rationale": "Keyboard operability/focus; JS/focus logic"
+  },
+  {
+    "question_id": "Q5",
+    "primary": "II.F.1",
+    "secondary": [
+      "I.H.1"
+    ],
+    "confidence": "High",
+    "rationale": "Screen reader behavior; user strategies"
+  },
+  {
+    "question_id": "Q6",
+    "primary": "II.G.6",
+    "secondary": [],
+    "confidence": "High",
+    "rationale": "Color contrast evaluation"
+  },
+  {
+    "question_id": "Q7",
+    "primary": "I.D.2",
+    "secondary": [
+      "II.C.7"
+    ],
+    "confidence": "High",
+    "rationale": "Form labeling/naming; form usability"
+  },
+  {
+    "question_id": "Q8",
+    "primary": "I.D.10",
+    "secondary": [
+      "I.G.1"
+    ],
+    "confidence": "High",
+    "rationale": "ARIA live regions; SPA updates"
+  },
+  {
+    "question_id": "Q9",
+    "primary": null,
+    "secondary": [],
+    "confidence": "High",
+    "rationale": "Law/regulation identification not in objectives"
+  },
+  {
+    "question_id": "Q10",
+    "primary": "II.C.5",
+    "secondary": [
+      "II.C.6"
+    ],
+    "confidence": "High",
+    "rationale": "Heading semantics; navigation structure"
+  },
+  {
+    "question_id": "Q11",
+    "primary": "I.A.1",
+    "secondary": [
+      "II.B.12"
+    ],
+    "confidence": "High",
+    "rationale": "Scope/relationship of standards"
+  },
+  {
+    "question_id": "Q12",
+    "primary": "I.A.2",
+    "secondary": [
+      "II.B.11"
+    ],
+    "confidence": "High",
+    "rationale": "POUR principles and impact"
+  },
+  {
+    "question_id": "Q13",
+    "primary": "II.C.2",
+    "secondary": [
+      "I.C.5"
+    ],
+    "confidence": "High",
+    "rationale": "Keyboard access; pointer/gesture equivalence"
+  },
+  {
+    "question_id": "Q14",
+    "primary": "II.F.1",
+    "secondary": [
+      "I.H.1"
+    ],
+    "confidence": "High",
+    "rationale": "Screen reader usage; user strategies"
+  },
+  {
+    "question_id": "Q15",
+    "primary": "I.D.6",
+    "secondary": [
+      "II.C.6"
+    ],
+    "confidence": "High",
+    "rationale": "Landmarks/roles; navigation usability"
+  },
+  {
+    "question_id": "Q16",
+    "primary": "I.D.2",
+    "secondary": [
+      "II.C.7"
+    ],
+    "confidence": "High",
+    "rationale": "Accessible names vs labels; forms"
+  },
+  {
+    "question_id": "Q17",
+    "primary": "I.D.10",
+    "secondary": [
+      "II.C.1"
+    ],
+    "confidence": "High",
+    "rationale": "Dynamic updates via live regions"
+  },
+  {
+    "question_id": "Q18",
+    "primary": "I.B.4",
+    "secondary": [
+      "II.C.5"
+    ],
+    "confidence": "High",
+    "rationale": "Semantic vs non-semantic HTML; structure"
+  },
+  {
+    "question_id": "Q19",
+    "primary": "I.D.3",
+    "secondary": [
+      "II.C.2"
+    ],
+    "confidence": "High",
+    "rationale": "Focus management in widgets; keyboard"
+  },
+  {
+    "question_id": "Q20",
+    "primary": "II.G.6",
+    "secondary": [],
+    "confidence": "High",
+    "rationale": "Visual contrast"
+  }
+]

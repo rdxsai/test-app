@@ -1,0 +1,69 @@
+{
+  "generated_at": "2026-03-23T00:54:24.967103Z",
+  "questions_processed": 5,
+  "total_prompt_tokens": 2570,
+  "total_completion_tokens": 310,
+  "total_tokens": 2880,
+  "results": [
+    {
+      "question_id": "0b784e75-8674-425f-aa83-45b8cd296bc2",
+      "question_text_markdown": "Which of the following is the best approach to ensure a web interface is interoperable across browsers, platforms, and assistive technologies?",
+      "matches": [
+        {
+          "objective_code": "III.B.10",
+          "reasoning": "The question assesses the importance of integrating accessibility practices, such as following WCAG guidelines and testing across platforms, during the design and development process to ensure interoperability."
+        }
+      ],
+      "prompt_tokens": 503,
+      "completion_tokens": 62
+    },
+    {
+      "question_id": "fd9e1240-f725-4d90-a38f-094f8d165c47",
+      "question_text_markdown": "Which of the following requirements listed in Annex A, Table A.1 of EN 301 549 goes beyond the scope of WCAG?",
+      "matches": [
+        {
+          "objective_code": "I.A.1",
+          "reasoning": "The question assesses the ability to compare the scope of EN 301 549 and WCAG by identifying a requirement in EN 301 549 that goes beyond WCAG."
+        }
+      ],
+      "prompt_tokens": 485,
+      "completion_tokens": 65
+    },
+    {
+      "question_id": "ae368cea-45d2-434c-a580-9e6aec829ece",
+      "question_text_markdown": "Which of the following is a key accessibility challenge associated with single-page applications (SPAs)?",
+      "matches": [
+        {
+          "objective_code": "I.B.1",
+          "reasoning": "The question addresses challenges in managing focus, dynamic content updates, and compatibility with assistive technologies in SPAs, which relates to making JavaScript event handlers and interactions device-independent."
+        }
+      ],
+      "prompt_tokens": 505,
+      "completion_tokens": 66
+    },
+    {
+      "question_id": "010c1ab4-d6aa-4450-b4c0-35a602456ef5",
+      "question_text_markdown": "When designing ARIA-based custom widgets, which of the following is a correct application of standard keyboard interaction models?",
+      "matches": [
+        {
+          "objective_code": "I.B.1",
+          "reasoning": "The question assesses knowledge of standard keyboard interaction models, which is directly related to making JavaScript event handlers device-independent by supporting keyboard input."
+        }
+      ],
+      "prompt_tokens": 520,
+      "completion_tokens": 58
+    },
+    {
+      "question_id": "30b30d17-ea7f-4c92-9013-5b005acf81de",
+      "question_text_markdown": "If a keyboard shortcut is implemented in content using only letter (including upper- and lower-case letters), punctuation, number, or symbol characters, how can you ensure accessibility requirements are met for such shortcuts? \n\n**Select all that apply.**",
+      "matches": [
+        {
+          "objective_code": "II.B.1",
+          "reasoning": "The question assesses understanding of WCAG success criteria related to keyboard shortcuts, which aligns with mapping accessibility barriers to the appropriate WCAG success criterion."
+        }
+      ],
+      "prompt_tokens": 557,
+      "completion_tokens": 59
+    }
+  ]
+}

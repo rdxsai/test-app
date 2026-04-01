@@ -174,6 +174,12 @@ class TestTextCleaning:
         assert "color: red" not in result
         assert "What is the capital?" in result
 
+    def test_clean_question_text_preserves_anchor_links(self):
+        """Test preserving anchor tags as markdown links."""
+        text = '<p>Read <a href="https://example.com/doc">the docs</a> first.</p>'
+        result = clean_question_text(text)
+        assert result == "Read [the docs](https://example.com/doc) first."
+
     def test_clean_html_for_vector_store_empty(self):
         """Test cleaning empty HTML for vector store"""
         result = clean_html_for_vector_store("")

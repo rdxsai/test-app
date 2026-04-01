@@ -1,0 +1,793 @@
+{
+  "range": "Q66-Q85",
+  "method": "Gold-standard semantic mapping using full question text, answer choices, correct answer selection, and available feedback.",
+  "results": [
+    {
+      "question_number": 66,
+      "question_id": "fd19caae-b5d6-4977-942a-6929e98f98de",
+      "question_text_markdown": "Which of the following is a way to navigate to the main content landmark using a screen reader?",
+      "answers": [
+        {
+          "answer_text_markdown": "In VoiceOver on macOS, press Control + Option + M",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "In Talkback, swipe left, then right",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "In NVDA, press the M key",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "In JAWS, press the Q key",
+          "is_correct": true,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "II.F.1",
+        "text": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments."
+      },
+      "secondary_objectives": [
+        {
+          "id": "II.C.6",
+          "text": "Evaluate navigation structures, headings, labels, and link descriptions to determine whether they support clear information architecture and efficient screen reader navigation."
+        },
+        {
+          "id": "I.H.1",
+          "text": "Describe strategies that people with blindness, low vision, motor disabilities, auditory disabilities, and cognitive or learning disabilities use to interact with web content."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "The correct answer depends on practical knowledge of how screen readers navigate landmark regions, specifically jumping to the main content landmark. This primarily assesses hands-on screen reader operation, with secondary relevance to understanding how landmark structures support efficient navigation and how blind users move through pages."
+    },
+    {
+      "question_number": 67,
+      "question_id": "7d822b18-dd3b-4bdf-8dc5-bb33bb3aca89",
+      "question_text_markdown": "Which of the following is **NOT** way to list all landmarks using a screen reader?",
+      "answers": [
+        {
+          "answer_text_markdown": "In JAWS press Insert + F3 and then select landmarks",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "In VoiceOver with Safari on iOS swipe up, then down",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "In NVDA press Insert + F7 and then select landmarks",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "In VoiceOver with Safari on macOS press Control + Option + U, then use left/right arrows to select landmarks",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "II.F.1",
+        "text": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments."
+      },
+      "secondary_objectives": [
+        {
+          "id": "II.C.6",
+          "text": "Evaluate navigation structures, headings, labels, and link descriptions to determine whether they support clear information architecture and efficient screen reader navigation."
+        },
+        {
+          "id": "I.H.1",
+          "text": "Describe strategies that people with blindness, low vision, motor disabilities, auditory disabilities, and cognitive or learning disabilities use to interact with web content."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "This asks which command is NOT a way to list landmarks, so the learner must know real landmark-listing features across screen readers. The construct is practical screen reader use, with secondary relevance to landmark-based navigation structures and user navigation strategies."
+    },
+    {
+      "question_number": 68,
+      "question_id": "1c33a8f9-15fb-4092-9131-a412c997ead5",
+      "question_text_markdown": "What does switching to the JAWS cursor allow you to do?",
+      "answers": [
+        {
+          "answer_text_markdown": "Start or stop JAWS",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Move between application regions",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Switch between JAWS and screen reader",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Move the mouse cursor using the arrow keys and have what is under it read",
+          "is_correct": true,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "II.F.1",
+        "text": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments."
+      },
+      "secondary_objectives": [
+        {
+          "id": "I.H.1",
+          "text": "Describe strategies that people with blindness, low vision, motor disabilities, auditory disabilities, and cognitive or learning disabilities use to interact with web content."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "The JAWS cursor question tests operational knowledge of a specific screen reader mode and what it enables a user to do. That is best understood as practical assistive technology usage rather than markup or WCAG conformance knowledge."
+    },
+    {
+      "question_number": 69,
+      "question_id": "d4730696-ccc6-46d5-ae5d-5bf25c1f38b3",
+      "question_text_markdown": "How do you navigate to a cell below the current one with JAWS?",
+      "answers": [
+        {
+          "answer_text_markdown": "Down Arrow",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Windows+Down Arrow",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Control+Down Arrow",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Control+Alt+Down Arrow",
+          "is_correct": true,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "II.F.1",
+        "text": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments."
+      },
+      "secondary_objectives": [],
+      "confidence": "High",
+      "rationale": "This is straightforward command knowledge for navigating tables in JAWS. The skill being assessed is practical screen reader operation in structured content such as data tables."
+    },
+    {
+      "question_number": 70,
+      "question_id": "a2bb2585-36e0-4970-b10a-8f5d6488e428",
+      "question_text_markdown": "Which of the following is a way to navigate between form elements on macOS VoiceOver?",
+      "answers": [
+        {
+          "answer_text_markdown": "Control+Option+Command+X",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Control+Option+Command+F",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Control+Option+Command+J",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Control+Option+J",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "II.F.1",
+        "text": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments."
+      },
+      "secondary_objectives": [
+        {
+          "id": "I.H.1",
+          "text": "Describe strategies that people with blindness, low vision, motor disabilities, auditory disabilities, and cognitive or learning disabilities use to interact with web content."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "The learner must know the VoiceOver command for moving between form elements. This is primarily operational screen reader knowledge, with secondary relevance to how blind users navigate form controls."
+    },
+    {
+      "question_number": 71,
+      "question_id": "935f1124-3bc8-44b3-b6e4-b23396593fd6",
+      "question_text_markdown": "Which of the following is true about accessibility APIs?  Choose all that apply.",
+      "answers": [
+        {
+          "answer_text_markdown": "They allow screen readers to access key information about the objects and events available to the user",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Screen readers never use information from more than one accessibility API",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Browsers only ever expose information to one accessibility API",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "They are only used by screen readers",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "I.E.1",
+        "text": "Identify how assistive technologies interact with browsers and other user agents, and explain what accessibility support means under WCAG."
+      },
+      "secondary_objectives": [
+        {
+          "id": "II.A.4",
+          "text": "Analyze how assistive technologies, adaptive strategies, and user agents interact to shape accessibility support."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "This question is about what accessibility APIs do, who uses them, and how browsers and assistive technologies expose and consume accessibility information. That is fundamentally about the interaction between assistive technologies, browsers, user agents, and accessibility support."
+    },
+    {
+      "question_number": 72,
+      "question_id": "110eb85b-04b2-49c9-9a9b-514a84315e57",
+      "question_text_markdown": "Which of the following is **NOT** a full-featured screen reader?",
+      "answers": [
+        {
+          "answer_text_markdown": "ChromeVox",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "NVDA",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "JAWS",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Narrator",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "II.F.1",
+        "text": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments."
+      },
+      "secondary_objectives": [
+        {
+          "id": "I.E.1",
+          "text": "Identify how assistive technologies interact with browsers and other user agents, and explain what accessibility support means under WCAG."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "To answer correctly, the learner must distinguish among common screen readers and know which ones are full-featured. That is primarily practical knowledge of assistive technologies, with secondary relevance to understanding the assistive technology ecosystem."
+    },
+    {
+      "question_number": 73,
+      "question_id": "89fb5493-095f-4e71-accf-4b07f489c69f",
+      "question_text_markdown": "How do you bring up the rotor on iOS VoiceOver?",
+      "answers": [
+        {
+          "answer_text_markdown": "swipe down, then right",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Trick question: The rotor is only something that is available on macOS",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "perform a twisting gesture with two fingers",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "swipe up, then right",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "II.F.1",
+        "text": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments."
+      },
+      "secondary_objectives": [
+        {
+          "id": "I.H.1",
+          "text": "Describe strategies that people with blindness, low vision, motor disabilities, auditory disabilities, and cognitive or learning disabilities use to interact with web content."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "The rotor is a core VoiceOver navigation tool. Knowing how to invoke it assesses practical operation of mobile screen readers and awareness of how users navigate content on touch devices."
+    },
+    {
+      "question_number": 74,
+      "question_id": "8c3ffc30-72ea-4cca-9206-ed43d8d9b602",
+      "question_text_markdown": "Which of the following key commands manually switches you to Focus mode from Browse mode in NVDA?",
+      "answers": [
+        {
+          "answer_text_markdown": "You cannot manually switch to Focus mode",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Pressing the Enter key when the reading cursor is over any non-form element",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Pressing the F key",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Pressing Insert+Spacebar",
+          "is_correct": true,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "II.F.1",
+        "text": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments."
+      },
+      "secondary_objectives": [
+        {
+          "id": "II.A.4",
+          "text": "Analyze how assistive technologies, adaptive strategies, and user agents interact to shape accessibility support."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "This question requires understanding a specific NVDA interaction mode and how to manually switch into it. That is hands-on knowledge of screen reader behavior and mode-based interaction patterns."
+    },
+    {
+      "question_number": 75,
+      "question_id": "cc2ff823-baa8-479d-8372-370e695691b0",
+      "question_text_markdown": "Which of the following should you do before commencing screen reader testing on a Mac?",
+      "answers": [
+        {
+          "answer_text_markdown": "In System Preferences, under Accessibility, make sure VoiceOver is chosen as the default screen reader",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "In Safari Preferences, under the Content tab, make sure the checkbox, \"Read alternative text,\" is checked",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "In Safari Preferences, under the Advanced tab, make sure the checkbox \"Enable VoiceOver support,\" is checked",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "In Safari Preferences, under the Advanced tab, make sure the checkbox labeled, \"Press Tab to highlight each item on a webpage,\" is checked",
+          "is_correct": true,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "II.F.1",
+        "text": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments."
+      },
+      "secondary_objectives": [
+        {
+          "id": "II.A.4",
+          "text": "Analyze how assistive technologies, adaptive strategies, and user agents interact to shape accessibility support."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "The question asks what setup step matters before doing screen reader testing on a Mac. That assesses practical testing workflow knowledge for a specific browser–screen reader environment, not just abstract accessibility principles."
+    },
+    {
+      "question_number": 76,
+      "question_id": "30a8c33d-f436-489d-a98f-552326256b53",
+      "question_text_markdown": "What does swiping down do on iOS VoiceOver?",
+      "answers": [
+        {
+          "answer_text_markdown": "It goes to the bottom of the page",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "It depends on what was last selected in the rotor",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "It goes to the next paragraph",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "It brings up the rotor",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "II.F.1",
+        "text": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments."
+      },
+      "secondary_objectives": [
+        {
+          "id": "I.H.1",
+          "text": "Describe strategies that people with blindness, low vision, motor disabilities, auditory disabilities, and cognitive or learning disabilities use to interact with web content."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "The correct answer depends on knowing that swipe-down behavior on iOS VoiceOver is determined by the rotor setting. This is practical operational knowledge of how users navigate with mobile screen readers."
+    },
+    {
+      "question_number": 77,
+      "question_id": "d88ab4ed-4146-4ff1-a2d4-46461c8cd510",
+      "question_text_markdown": "You are using JAWS and are not already in Forms mode.  Pressing the `Enter` key will switch to Forms mode when the Virtual PC Cursor is on which of the following elements?",
+      "answers": [
+        {
+          "answer_text_markdown": "a button",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "a checkbox",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "a text input element",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "a link",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "II.F.1",
+        "text": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments."
+      },
+      "secondary_objectives": [
+        {
+          "id": "I.H.1",
+          "text": "Describe strategies that people with blindness, low vision, motor disabilities, auditory disabilities, and cognitive or learning disabilities use to interact with web content."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "The learner must know when pressing Enter changes JAWS from virtual cursor/browse behavior into Forms mode. This is assistive technology operation knowledge tied to how blind users interact with form fields."
+    },
+    {
+      "question_number": 78,
+      "question_id": "8c319e6b-e78e-4e7d-8f66-e6463351be2f",
+      "question_text_markdown": "Which of the following is roughly analogous to Focus mode?",
+      "answers": [
+        {
+          "answer_text_markdown": "Scan mode",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Forms mode",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Table mode",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Browse mode",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "II.F.1",
+        "text": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments."
+      },
+      "secondary_objectives": [
+        {
+          "id": "II.A.4",
+          "text": "Analyze how assistive technologies, adaptive strategies, and user agents interact to shape accessibility support."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "This question compares terminology and interaction modes across screen readers. Although it is framed as analogy, it still primarily assesses practical understanding of screen reader behavior and mode concepts."
+    },
+    {
+      "question_number": 79,
+      "question_id": "3f1c4d74-2056-4d0b-8c69-0d6be0e6a187",
+      "question_text_markdown": "What is one way you can cycle through reading commands on TalkBack?",
+      "answers": [
+        {
+          "answer_text_markdown": "Swipe left, the right",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Swipe down, then right",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Make a twisting gesture with two fingers",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Swipe up, then down",
+          "is_correct": true,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "II.F.1",
+        "text": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments."
+      },
+      "secondary_objectives": [
+        {
+          "id": "I.H.1",
+          "text": "Describe strategies that people with blindness, low vision, motor disabilities, auditory disabilities, and cognitive or learning disabilities use to interact with web content."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "Cycling through reading commands on TalkBack is a mobile screen reader operation task. The question therefore assesses real user interaction knowledge for touch-based assistive technology."
+    },
+    {
+      "question_number": 80,
+      "question_id": "0dc1c02a-86bb-4373-ba91-a795f62a5264",
+      "question_text_markdown": "Which of the following is a way to navigate between images using a screen reader?",
+      "answers": [
+        {
+          "answer_text_markdown": "For NVDA, pressing the I key",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "For macOS VoiceOver, pressing Control+Option+Command+G",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "For JAWS, pressing I key",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "For macOS VoiceOver, pressing the Control+Option+Command+I",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "II.F.1",
+        "text": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments."
+      },
+      "secondary_objectives": [
+        {
+          "id": "II.C.6",
+          "text": "Evaluate navigation structures, headings, labels, and link descriptions to determine whether they support clear information architecture and efficient screen reader navigation."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "Navigating between images with a screen reader is practical command knowledge. It also secondarily relates to understanding how users navigate semantically distinct content types on a page."
+    },
+    {
+      "question_number": 81,
+      "question_id": "52a1895a-b0df-4710-95aa-527049c40c94",
+      "question_text_markdown": "Which of the following is **NOT** true?",
+      "answers": [
+        {
+          "answer_text_markdown": "It is possible to view the speech output of NVDA as text",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "It is possible to run JAWS on a Mac using VirtualBox",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Mac laptop keyboards have all the keys usually used to operate JAWS",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "It is possible to configure NVDA to use different keyboard shortcuts when using a laptop keyboard",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "II.F.1",
+        "text": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments."
+      },
+      "secondary_objectives": [
+        {
+          "id": "II.A.4",
+          "text": "Analyze how assistive technologies, adaptive strategies, and user agents interact to shape accessibility support."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "The learner must know platform and configuration realities for JAWS, NVDA, and Mac keyboards. That primarily assesses practical screen reader ecosystem knowledge, with secondary relevance to platform-specific interaction differences."
+    },
+    {
+      "question_number": 82,
+      "question_id": "3d61afb3-77c0-4ea7-868e-88f0d3c51313",
+      "question_text_markdown": "Which screen reader might you use on an Android device?",
+      "answers": [
+        {
+          "answer_text_markdown": "TalkBack",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Orca",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "JAWS",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "VoiceOver",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "II.F.1",
+        "text": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments."
+      },
+      "secondary_objectives": [
+        {
+          "id": "I.E.1",
+          "text": "Identify how assistive technologies interact with browsers and other user agents, and explain what accessibility support means under WCAG."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "This asks which screen reader is used on Android. The skill is practical familiarity with major assistive technologies and the environments they run in."
+    },
+    {
+      "question_number": 83,
+      "question_id": "41ef4b3a-52bb-4552-b594-2719fc0f39f3",
+      "question_text_markdown": "In which of the following circumstances would it likely be most important to perform testing with a screen reader?",
+      "answers": [
+        {
+          "answer_text_markdown": "When testing simple, well-structured HTML",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "When testing content created with an authoring tool that complied with ATAG",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "When developing custom widgets with ARIA",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Any time you are creating an intranet application",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "I.C.7",
+        "text": "Evaluate interactive components based on keyboard navigation and screen reader behavior."
+      },
+      "secondary_objectives": [
+        {
+          "id": "I.C.6",
+          "text": "Evaluate custom controls and widget implementations to determine whether they follow accessibility authoring practices and contain correct ARIA markup."
+        },
+        {
+          "id": "II.F.1",
+          "text": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "The correct answer is 'when developing custom widgets with ARIA,' which means the learner must understand when screen reader testing becomes especially important for interactive components. This is best matched to evaluating interactive components based on screen reader behavior, with secondary relevance to evaluating custom controls and practical screen reader testing."
+    },
+    {
+      "question_number": 84,
+      "question_id": "0e39fe4d-2af2-45d0-b77c-682099b9adbd",
+      "question_text_markdown": "Which of the following platforms can you use VoiceOver on?",
+      "answers": [
+        {
+          "answer_text_markdown": "Android",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Windows",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Linux",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "iOS",
+          "is_correct": true,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "II.F.1",
+        "text": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments."
+      },
+      "secondary_objectives": [
+        {
+          "id": "I.E.1",
+          "text": "Identify how assistive technologies interact with browsers and other user agents, and explain what accessibility support means under WCAG."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "This is direct knowledge of which platforms support VoiceOver. That is primarily practical screen reader familiarity, with secondary relevance to understanding assistive technologies and their environments."
+    },
+    {
+      "question_number": 85,
+      "question_id": "6f638067-7118-449a-b60d-ca66c2e9ed2f",
+      "question_text_markdown": "Which browser usually works best with VoiceOver?",
+      "answers": [
+        {
+          "answer_text_markdown": "Firefox",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Internet Explorer",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Safari",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Google Chrome",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "II.A.4",
+        "text": "Analyze how assistive technologies, adaptive strategies, and user agents interact to shape accessibility support."
+      },
+      "secondary_objectives": [
+        {
+          "id": "II.F.1",
+          "text": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "Asking which browser works best with VoiceOver assesses understanding of how a specific screen reader interacts with different user agents. The primary construct is interoperability and AT–browser interaction, while practical familiarity with common screen reader/browser combinations is secondary."
+    }
+  ]
+}

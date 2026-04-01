@@ -986,6 +986,12 @@
       "priority": "medium"
     },
     {
+      "id": "2fab6387-0621-4aec-8150-0c98daf1b36c",
+      "text": "Understand the principles of color contrast requirements in web accessibility and evaluate when and how they apply to ensure text and visual elements are perceivable to users with visual impairments.",
+      "blooms_level": "understand",
+      "priority": "medium"
+    },
+    {
       "id": "930af59f-e3fa-41b2-9562-70922a0dcb5f",
       "text": "Verify that error messages are programmatically associated with form fields and that clear instructions and suggestions for correction are provided.",
       "blooms_level": "apply",
@@ -1023,6 +1029,61 @@
     }
   ],
   "associations_by_canvas_id": [
+    {
+      "canvas_id": 8960110,
+      "question_preview": "Which of the following is **NOT** a problem with the accessibility of the follow",
+      "objective_text": "Identify accessibility issues related to reliance on color alone, images of text, or hover-only interactions."
+    },
+    {
+      "canvas_id": 8960110,
+      "question_preview": "Which of the following is **NOT** a problem with the accessibility of the follow",
+      "objective_text": "Identify accessibility issues related to sensory-dependent instructions, automatically playing audio, or moving content that may interfere with screen reader use."
+    },
+    {
+      "canvas_id": 8960112,
+      "question_preview": "In which instance must text meet the contrast requirement of 3:1 for SC 1.4.3 Co",
+      "objective_text": "Analyze examples of web content to determine whether they meet or fail specific WCAG success criteria."
+    },
+    {
+      "canvas_id": 8960112,
+      "question_preview": "In which instance must text meet the contrast requirement of 3:1 for SC 1.4.3 Co",
+      "objective_text": "Understand the principles of color contrast requirements in web accessibility and evaluate when and how they apply to ensure text and visual elements are perceivable to users with visual impairments."
+    },
+    {
+      "canvas_id": 8960115,
+      "question_preview": "Carrie is paralyzed and uses a power chair, from which she accesses the internet",
+      "objective_text": "Analyze accessibility issues to determine their potential impact on users with different types of disabilities."
+    },
+    {
+      "canvas_id": 8960116,
+      "question_preview": "Who would be **LEAST** likely to benefit when pages use the autocomplete attribu",
+      "objective_text": "Analyze accessibility issues to determine their potential impact on users with different types of disabilities."
+    },
+    {
+      "canvas_id": 8960116,
+      "question_preview": "Who would be **LEAST** likely to benefit when pages use the autocomplete attribu",
+      "objective_text": "Describe the accessibility needs associated with different types of disabilities and how these needs affect interaction with web technologies."
+    },
+    {
+      "canvas_id": 8960118,
+      "question_preview": "Under WCAG 2.1, which of the following would violate conformance level A or AA s",
+      "objective_text": "Identify accessibility issues related to reliance on color alone, images of text, or hover-only interactions."
+    },
+    {
+      "canvas_id": 8960118,
+      "question_preview": "Under WCAG 2.1, which of the following would violate conformance level A or AA s",
+      "objective_text": "Interpret the requirements of WCAG success criteria and their implications for accessible design and development."
+    },
+    {
+      "canvas_id": 8960119,
+      "question_preview": "Under WCAG 2.1, which of the following would **NOT** violate conformance level A",
+      "objective_text": "Identify relevant accessibility requirements in specifications such as WCAG 2.2, WAI-ARIA, and ATAG when evaluating accessibility issues."
+    },
+    {
+      "canvas_id": 8960119,
+      "question_preview": "Under WCAG 2.1, which of the following would **NOT** violate conformance level A",
+      "objective_text": "Summarize the major additions introduced in WCAG 2.1, particularly those addressing new input methods and improved support for low vision and cognitive disabilities."
+    },
     {
       "canvas_id": 8960120,
       "question_preview": "Excerpts of stories appear on a page, with links after each excerpt that have th",
@@ -1064,6 +1125,16 @@
       "objective_text": "Verify that gesture-based interactions provide accessible single-pointer alternatives."
     },
     {
+      "canvas_id": 8960124,
+      "question_preview": "Which of the following is **NOT** a main area of focus for WCAG 2.1?",
+      "objective_text": "Summarize the major additions introduced in WCAG 2.1, particularly those addressing new input methods and improved support for low vision and cognitive disabilities."
+    },
+    {
+      "canvas_id": 8960125,
+      "question_preview": "Which of the following statements is **FALSE** regarding what has changed betwee",
+      "objective_text": "Summarize the major additions introduced in WCAG 2.1, particularly those addressing new input methods and improved support for low vision and cognitive disabilities."
+    },
+    {
       "canvas_id": 8960126,
       "question_preview": "If a keyboard shortcut is implemented in content using only letter (including up",
       "objective_text": "Identify issues for users who use keyboard or alternative input devices."
@@ -1093,6 +1164,10 @@
     {
       "question_text": "Which of the following is a key accessibility challenge associated with single-page applications (SPAs)?",
       "objective_text": "Explain accessibility challenges associated with single-page applications (SPAs), including focus management, dynamic content updates, and assistive technology compatibility."
+    },
+    {
+      "question_text": "Which of the following is the best approach to ensure a web interface is interoperable across browsers, platforms, and assistive technologies?",
+      "objective_text": "Evaluate web interfaces for interoperability across browsers, platforms, and assistive technologies (e.g., JAWS, NVDA, VoiceOver, Chrome, Safari)."
     },
     {
       "question_text": "Which of the following requirements listed in Annex A, Table A.1 of EN 301 549 goes beyond the scope of WCAG?",

@@ -1,0 +1,648 @@
+{
+  "exported_at": "2026-03-23T00:22:23+00:00",
+  "source": "question_app_database",
+  "format": "questions_with_answers_markdown_v1",
+  "question_count": 16,
+  "questions": [
+    {
+      "question_id": "59901e38-4267-48d5-af32-2049d7bc4934",
+      "question_canvas_id": 8960023,
+      "question_created_at": "2026-03-05T22:00:40.891382",
+      "question_text_markdown": "Adding a link at the top of each page that goes directly to the main content area is an example of which web accessibility principle?",
+      "answers": [
+        {
+          "answer_id": "49c8e804-4c97-4697-ad98-7daf4c11cbf5",
+          "answer_canvas_id": 10771,
+          "answer_text_markdown": "Robust",
+          "is_correct": false,
+          "feedback_markdown": "I can see why you might connect a skip link with overall technical accessibility, but think about the barrier it is actually solving. Does a “skip to main content” link mainly improve compatibility with assistive technology, or does it let someone move past repeated navigation more efficiently? If a keyboard user has to tab through twenty links on every page before reaching the article, is the core problem about robustness, or about whether the interface can be operated efficiently?",
+          "feedback_approved": false
+        },
+        {
+          "answer_id": "62bbaa90-afd4-45a8-b6f3-ca15b65d508d",
+          "answer_canvas_id": 12490,
+          "answer_text_markdown": "Perceivable",
+          "is_correct": false,
+          "feedback_markdown": "That answer points toward visibility and access to information, but look closely at what the skip link changes. Does it make the main content newly perceivable, or was the content already there and detectable? Is the real benefit that the user can reach it without unnecessary keyboard effort?",
+          "feedback_approved": false
+        },
+        {
+          "answer_id": "64ae8ab6-49ed-4621-b3c1-cf5a1ff68a0d",
+          "answer_canvas_id": 12917,
+          "answer_text_markdown": "Operable",
+          "is_correct": true,
+          "feedback_markdown": "### What this question is assessing\nThis question is assessing whether you understand the **Operable** principle in POUR. In WCAG, content is operable when people can navigate it and use its interactive features without getting blocked by the interface itself.\n\n### Why your answer is correct\nA “skip to main content” link is a classic example of making a page more **operable**. It helps keyboard users bypass repeated blocks such as site navigation, utility links, and banners and move directly to the primary content. That directly supports **WCAG 2.4.1 Bypass Blocks**.\n\nThis matters most for people who navigate sequentially with the keyboard, switch devices, or some assistive technologies. Without a skip link, a user may have to tab through the same long navigation on every page before reaching the content they came for. The page may still technically exist and be perceivable, but it is inefficient and burdensome to operate.\n\n### Why the other answers are incorrect\n- **Robust**  \n  This reflects a misconception that any accessibility enhancement is about technical compatibility. Robustness is about content working reliably with browsers and assistive technologies, such as exposing correct semantics and names programmatically. A skip link primarily solves a **navigation** problem, not a compatibility problem.\n\n- **Perceivable**  \n  This reflects a common misconception that anything helping users find content is perceivability. Perceivable is about whether users can detect and receive information at all. A skip link does not mainly make hidden information perceivable; it makes navigation to that information more efficient.\n\n- **Understandable**  \n  This choice confuses clarity with operability. Understandable addresses comprehension, predictability, and helpful input guidance. A skip link does not chiefly clarify meaning; it improves the ability to move through the interface.\n\n### References\n- https://www.w3.org/WAI/WCAG21/Understanding/bypass-blocks.html\n- https://www.w3.org/WAI/WCAG21/quickref/?showtechniques=241#navigable",
+          "feedback_approved": false
+        },
+        {
+          "answer_id": "c663099a-2ef2-4255-bb81-29f3e94a1bcf",
+          "answer_canvas_id": 316,
+          "answer_text_markdown": "Understandable",
+          "is_correct": false,
+          "feedback_markdown": "I can see the logic, because a skip link can make a page feel easier to use. But ask yourself: does it primarily help users understand the page, or does it help them move through it? Which POUR principle is most concerned with keyboard navigation and bypassing repeated blocks?",
+          "feedback_approved": false
+        }
+      ]
+    },
+    {
+      "question_id": "a3818d0c-33b1-4bea-9fb0-71f16bb15c23",
+      "question_canvas_id": 8960022,
+      "question_created_at": "2026-03-05T22:00:40.890895",
+      "question_text_markdown": "Ensuring that nothing in a page flashes more than three times in any one second period is an example of which web accessibility principle?",
+      "answers": [
+        {
+          "answer_id": "05a078d6-f117-49ac-ad8e-9e1fe84b83ce",
+          "answer_canvas_id": 98151,
+          "answer_text_markdown": "Operable",
+          "is_correct": true,
+          "feedback_markdown": "### What this question is assessing\nThis question is assessing whether you can connect seizure-safety requirements to the correct POUR principle. It is about protecting users from content that can cause physical harm or make the interface unsafe to use.\n\n### Why your answer is correct\nThe correct answer is **Operable** because limiting flashing content is part of making the interface safe and usable for people with photosensitive seizure disorders. **WCAG 2.3.1 Three Flashes or Below Threshold** sits under the **Operable** principle, not Perceivable.\n\nThis is an important nuance. Something can be visible and technically present, yet still be unsafe to operate. If content flashes rapidly, a user may not just be inconvenienced; they may be put at real risk. WCAG treats that as an operability issue because the content interferes with safe use of the page.\n\n### Why the other answers are incorrect\n- **Robust**  \n  This choice confuses technical interoperability with user safety. Robustness is about whether content works reliably with user agents and assistive technologies. Flashing limits are not about code interpretation; they are about preventing harmful visual stimuli.\n\n- **Understandable**  \n  This reflects the misconception that any user problem involving cognition or comfort belongs under Understandable. Here the main issue is not whether the content makes sense. The issue is whether the user can safely use the page at all.\n\n- **Perceivable**  \n  This is the most tempting distractor because flashing is visual. But the success criterion is not about making content easier to see. It is about avoiding a dangerous presentation pattern that can trigger seizures.\n\n### References\n- https://www.w3.org/WAI/WCAG21/Understanding/three-flashes-or-below-threshold.html\n- https://www.w3.org/WAI/WCAG21/#operable",
+          "feedback_approved": false
+        },
+        {
+          "answer_id": "5fed41be-e165-4f5f-a21e-5ae1f1c78674",
+          "answer_canvas_id": 52497,
+          "answer_text_markdown": "Robust",
+          "is_correct": false,
+          "feedback_markdown": "I can see why you might think of this as a technical requirement, but ask yourself what the real harm is. Is rapid flashing mainly a compatibility problem between code and assistive technology, or is it a problem because some users may not be able to use the page safely? Which POUR principle includes seizure-related and physical-interaction concerns?",
+          "feedback_approved": false
+        },
+        {
+          "answer_id": "8526673f-a2cc-484d-bd47-e4301a3f1dae",
+          "answer_canvas_id": 65320,
+          "answer_text_markdown": "Understandable",
+          "is_correct": false,
+          "feedback_markdown": "That choice suggests you may be thinking about user difficulty in a broad sense. But is the issue here that users do not understand the content, or that the presentation itself may create a health risk? Which principle covers whether people can safely use the content without being harmed by the interaction?",
+          "feedback_approved": false
+        },
+        {
+          "answer_id": "a97bd43c-ee35-458d-982b-ebd4169fad29",
+          "answer_canvas_id": 44564,
+          "answer_text_markdown": "Perceivable",
+          "is_correct": false,
+          "feedback_markdown": "It makes sense to notice that flashing is visual, but is this rule really about helping users perceive content better? Or is it about preventing a dangerous visual effect that can make the page unsafe to use? What does that suggest about whether this belongs under Perceivable or another POUR principle?",
+          "feedback_approved": false
+        }
+      ]
+    },
+    {
+      "question_id": "81e1c4be-f3b1-4743-b87d-2dddc4be37fb",
+      "question_canvas_id": 8960021,
+      "question_created_at": "2026-03-05T22:00:40.890330",
+      "question_text_markdown": "Allowing the content to be paused and restarted from where it was paused is an example of which accessibility principle?",
+      "answers": [
+        {
+          "answer_id": "0e849735-dcf2-46ac-84f0-5f8b9f79cf21",
+          "answer_canvas_id": 27013,
+          "answer_text_markdown": "Understandable",
+          "is_correct": false,
+          "feedback_markdown": "I can see why you might connect pausing content with comprehension. But ask yourself: is the requirement mainly about making the meaning clearer, or about letting the user control content that moves or updates automatically? Which principle is most concerned with whether users can manage timing and interaction?",
+          "feedback_approved": false
+        },
+        {
+          "answer_id": "6229b77b-d674-4e54-b37c-7c8d31183055",
+          "answer_canvas_id": 20641,
+          "answer_text_markdown": "Robust",
+          "is_correct": false,
+          "feedback_markdown": "That answer suggests a technical-compatibility lens, but what is the actual barrier here? If content keeps moving until the user can pause it, is the problem that assistive technology cannot interpret the code, or that the user cannot control the interaction on their own terms?",
+          "feedback_approved": false
+        },
+        {
+          "answer_id": "88d345ba-5b90-4abc-8080-667091ad1c2a",
+          "answer_canvas_id": 4043,
+          "answer_text_markdown": "Perceivable",
+          "is_correct": false,
+          "feedback_markdown": "It’s reasonable to think pausing helps people perceive content, but is perception the core requirement here? If the content is already visible, what extra capability does the user need: access to the information, or control over the timing and movement of the presentation?",
+          "feedback_approved": false
+        },
+        {
+          "answer_id": "f2c46894-d666-45ed-97d2-125009271d74",
+          "answer_canvas_id": 41490,
+          "answer_text_markdown": "Operable",
+          "is_correct": true,
+          "feedback_markdown": "### What this question is assessing\nThis question is assessing whether you recognize that giving users control over moving, blinking, scrolling, or auto-updating content is part of the **Operable** principle.\n\n### Why your answer is correct\nAllowing content to be paused and then restarted from the same point is an **Operable** design pattern because it gives users control over time-based behavior. This aligns with **WCAG 2.2.2 Pause, Stop, Hide**. Users need to be able to stop or pause content that moves or updates automatically when it interferes with reading, concentration, or interaction.\n\nThis is especially important for people with attention-related disabilities, cognitive fatigue, vestibular sensitivities, low vision, and screen magnifier users. Moving or auto-advancing content can pull attention away, disappear before a user is ready, or force a user to start over. Giving pause-and-resume control removes that barrier and makes the interaction more manageable.\n\n### Why the other answers are incorrect\n- **Understandable**  \n  This choice reflects a partial truth: pausing content may make it easier to comprehend. But the primary requirement is about **user control over interaction**, not explanation or clarity.\n\n- **Robust**  \n  Robustness concerns whether semantics and states are reliably exposed to technologies. Pause-and-resume functionality is not mainly about compatibility; it is about allowing users to manage dynamic behavior.\n\n- **Perceivable**  \n  Perceivability is about whether users can obtain the information. Here, the key issue is that users need to **control** the content’s timing and movement, which is an operability concern.\n\n### References\n- https://www.w3.org/WAI/WCAG21/Understanding/pause-stop-hide.html\n- https://www.w3.org/WAI/WCAG21/#operable",
+          "feedback_approved": false
+        }
+      ]
+    },
+    {
+      "question_id": "56ca92f8-0ad8-49f6-bd84-a713ba5d3dfd",
+      "question_canvas_id": 8960020,
+      "question_created_at": "2026-03-05T22:00:40.889864",
+      "question_text_markdown": "Providing a way for the user to turn the time limit off is an example of which web accessibility principle?",
+      "answers": [
+        {
+          "answer_id": "212790af-7204-4a6c-b5d3-8590094962c2",
+          "answer_canvas_id": 46425,
+          "answer_text_markdown": "Understandable",
+          "is_correct": false,
+          "feedback_markdown": "I can see the connection you may be making, because extra time can help people understand information. But is this requirement only about comprehension? What about a user who understands the task perfectly well but cannot physically or technically complete it before the time expires? Which principle focuses on whether the interaction can actually be completed?",
+          "feedback_approved": false
+        },
+        {
+          "answer_id": "3dc3c328-95fe-46ae-9f33-c534a0394d21",
+          "answer_canvas_id": 96909,
+          "answer_text_markdown": "Perceivable",
+          "is_correct": false,
+          "feedback_markdown": "That answer points toward receiving information, but think about what the time limit interferes with. Does it stop the user from perceiving the content, or from having enough time to act on it? If the system times out before the user can submit a form, what kind of barrier is that?",
+          "feedback_approved": false
+        },
+        {
+          "answer_id": "a95bb359-4623-495a-9866-2ad701b445c8",
+          "answer_canvas_id": 12861,
+          "answer_text_markdown": "Operable",
+          "is_correct": true,
+          "feedback_markdown": "### What this question is assessing\nThis question is assessing whether you can identify timing-adjustment requirements as part of the **Operable** principle.\n\n### Why your answer is correct\nProviding a way to turn off a time limit is an example of **Operable** because it supports users who need more time to read, think, enter data, or complete a task. This is covered by **WCAG 2.2.1 Timing Adjustable**.\n\nMany users are affected by time limits: screen reader users who need more time to navigate, people with dexterity impairments who type slowly, users with cognitive disabilities who need more processing time, and people using speech input or magnification who may move through interfaces more slowly. If a process expires before they can act, the content is not truly operable for them.\n\n### Why the other answers are incorrect\n- **Understandable**  \n  This choice assumes that needing more time is mainly a comprehension issue. Sometimes it is, but the SC is broader than comprehension. The central requirement is to let users successfully complete the interaction.\n\n- **Perceivable**  \n  Time limits do not primarily prevent users from perceiving information; they prevent some users from completing an interaction before the system cuts them off.\n\n- **Robust**  \n  This is not mainly about whether code is exposed correctly to browsers or assistive technology. It is about whether the interface can be used within constraints that are fair to different users.\n\n### References\n- https://www.w3.org/WAI/WCAG21/Understanding/timing-adjustable.html\n- https://www.w3.org/WAI/WCAG21/#operable",
+          "feedback_approved": false
+        },
+        {
+          "answer_id": "d0ec57ec-27cd-48fe-8236-a3ce88048a5e",
+          "answer_canvas_id": 97108,
+          "answer_text_markdown": "Robust",
+          "is_correct": false,
+          "feedback_markdown": "It makes sense to think about accessibility in technical terms, but what is the real problem with an unadjustable time limit? Is it that assistive technologies cannot interpret the content, or that some users cannot use the interface successfully within the imposed time?",
+          "feedback_approved": false
+        }
+      ]
+    },
+    {
+      "question_id": "b054d26b-0c99-4920-8449-6b5c663cbb7c",
+      "question_canvas_id": 8960019,
+      "question_created_at": "2026-03-05T22:00:40.889363",
+      "question_text_markdown": "Ensuring that users are not trapped in content is an example of which web accessibility principle?",
+      "answers": [
+        {
+          "answer_id": "0d021b20-6a51-470f-b405-bc896599bf11",
+          "answer_canvas_id": 83052,
+          "answer_text_markdown": "Operable",
+          "is_correct": true,
+          "feedback_markdown": "### What this question is assessing\nThis question is assessing whether you understand that users must be able to move into and out of interface components without getting stuck. That is a core **Operable** concern.\n\n### Why your answer is correct\nPreventing users from becoming trapped in content is an example of **Operable** because it directly relates to keyboard access and control. This is addressed by **WCAG 2.1.2 No Keyboard Trap**. If a user can tab into a widget, dialog, embedded component, or player but cannot tab back out using standard methods, the interface has failed a basic operability requirement.\n\nThe user impact is significant. Keyboard users, screen reader users, switch users, and many people with motor disabilities may be unable to continue using the page at all once trapped. This is not just an inconvenience; it can make part or all of the page functionally unusable.\n\n### Why the other answers are incorrect\n- **Perceivable**  \n  The problem is not that information cannot be sensed. Users may perceive the content perfectly well and still be unable to move away from it.\n\n- **Robust**  \n  A keyboard trap can exist even when the content is technically exposed to assistive technologies. The issue is control of navigation, not semantic compatibility.\n\n- **Understandable**  \n  Users might fully understand what is happening and still be stuck. The failure is about operation, not clarity or predictability.\n\n### References\n- https://www.w3.org/WAI/WCAG21/Understanding/no-keyboard-trap.html\n- https://www.w3.org/WAI/WCAG21/#operable",
+          "feedback_approved": false
+        },
+        {
+          "answer_id": "b4dbba51-a767-47aa-b213-628b86f7df00",
+          "answer_canvas_id": 66292,
+          "answer_text_markdown": "Perceivable",
+          "is_correct": false,
+          "feedback_markdown": "I can see why you might think of access in general, but ask yourself what being “trapped” actually means. Is the user failing to perceive the content, or are they unable to move focus away from it? Which principle is most directly concerned with keyboard navigation and control?",
+          "feedback_approved": false
+        },
+        {
+          "answer_id": "cc9fadd0-d2b0-4bf1-9e9f-a710d1ced1e6",
+          "answer_canvas_id": 63625,
+          "answer_text_markdown": "Robust",
+          "is_correct": false,
+          "feedback_markdown": "That choice suggests a compatibility issue, but is a keyboard trap mainly about whether assistive technology can interpret the component? Or is it about whether the user can enter and exit it using standard keyboard operation? What does that point to?",
+          "feedback_approved": false
+        },
+        {
+          "answer_id": "e9e38500-d0b8-47fe-95dd-88e08e405933",
+          "answer_canvas_id": 21558,
+          "answer_text_markdown": "Understandable",
+          "is_correct": false,
+          "feedback_markdown": "It’s possible to think a confusing interface might trap people, but in WCAG terms, what does a keyboard trap specifically describe? Is it mainly a misunderstanding, or an inability to operate focus and navigation?",
+          "feedback_approved": false
+        }
+      ]
+    },
+    {
+      "question_id": "7bfcbb3c-3f40-46f3-a000-6e4a6cb4bcc6",
+      "question_canvas_id": 8960018,
+      "question_created_at": "2026-03-05T22:00:40.888860",
+      "question_text_markdown": "Ensuring keyboard control for all functionality is an example of which accessibility principle?",
+      "answers": [
+        {
+          "answer_id": "732f0317-4a4d-4bde-87c3-8f5ad50d74af",
+          "answer_canvas_id": 33601,
+          "answer_text_markdown": "Perceivable",
+          "is_correct": false,
+          "feedback_markdown": "That answer suggests you may be thinking about access to information, but ask yourself this: if a user can see a button yet cannot activate it without a mouse, is the main barrier about perception or about use? Which principle addresses whether functionality can be operated from the keyboard?",
+          "feedback_approved": false
+        },
+        {
+          "answer_id": "733f9f4f-4d37-4930-8e5d-e2d85fc44b7d",
+          "answer_canvas_id": 66623,
+          "answer_text_markdown": "Robust",
+          "is_correct": false,
+          "feedback_markdown": "It makes sense to think about accessibility in technical terms, but does keyboard control primarily depend on interoperability, or on whether the user can actually perform the action without a pointer? What is the more direct issue here?",
+          "feedback_approved": false
+        },
+        {
+          "answer_id": "be56f682-1fab-4ed6-b3fd-f319aedf1765",
+          "answer_canvas_id": 72216,
+          "answer_text_markdown": "Understandable",
+          "is_correct": false,
+          "feedback_markdown": "I can see why you might connect usable design with understandability. But if instructions are clear and the control still cannot be used from the keyboard, what kind of barrier remains? Is that about understanding, or about operation?",
+          "feedback_approved": false
+        },
+        {
+          "answer_id": "c20cfd8d-ce5d-40af-9e12-60598455c6ec",
+          "answer_canvas_id": 20590,
+          "answer_text_markdown": "Operable",
+          "is_correct": true,
+          "feedback_markdown": "### What this question is assessing\nThis question is assessing whether you can connect full keyboard access with the **Operable** principle.\n\n### Why your answer is correct\nEnsuring keyboard control for all functionality is a foundational **Operable** requirement. This aligns with **WCAG 2.1.1 Keyboard** and, where relevant, **2.1.3 Keyboard (No Exception)**. If a function can only be performed with a mouse, touch gesture, or drag action, many users are excluded.\n\nThe affected users include blind screen reader users, people with motor impairments, switch-device users, some speech-input users, and power users who rely on the keyboard for efficiency. Full keyboard access means the interface can be used without requiring fine pointer control or a specific input modality.\n\n### Why the other answers are incorrect\n- **Perceivable**  \n  This is not mainly about whether information can be seen, heard, or otherwise detected. A user may perceive the control but still be unable to activate it without keyboard support.\n\n- **Robust**  \n  This reflects the misconception that keyboard access is primarily a technical compatibility issue. While semantics help, the central problem is whether the function can actually be performed.\n\n- **Understandable**  \n  A control can be perfectly understandable and still inaccessible if it cannot be reached or activated from the keyboard.\n\n### References\n- https://www.w3.org/WAI/WCAG21/Understanding/keyboard.html\n- https://www.w3.org/WAI/WCAG21/#operable",
+          "feedback_approved": false
+        }
+      ]
+    },
+    {
+      "question_id": "e47d3381-deb5-4edc-9cbb-df6c12b7206d",
+      "question_canvas_id": 8960017,
+      "question_created_at": "2026-03-05T22:00:40.888382",
+      "question_text_markdown": "Providing a control near the beginning of the Web page that turns off sounds that play automatically is an example of which accessibility principle?",
+      "answers": [
+        {
+          "answer_id": "3826bfe9-499f-47ed-bab6-929f5e5f00ee",
+          "answer_canvas_id": 31474,
+          "answer_text_markdown": "Perceivable",
+          "is_correct": true,
+          "feedback_markdown": "### What this question is assessing\nThis question is assessing whether you understand that users must be able to perceive content without interference from unexpected audio. It targets the **Perceivable** principle.\n\n### Why your answer is correct\nProviding a control near the beginning of the page to turn off sounds that play automatically is an example of **Perceivable** because autoplay audio can interfere with a user’s ability to perceive other content, especially speech output from assistive technologies. This is addressed by **WCAG 1.4.2 Audio Control**.\n\nFor screen reader users, autoplay audio can mask synthesized speech and make the page effectively unreadable. For users with cognitive disabilities or attention challenges, unexpected sound can be distracting and disorienting. Requiring the control to be available near the beginning of the page is important because the user needs to stop the interference quickly, before it prevents access to the rest of the content.\n\n### Why the other answers are incorrect\n- **Robust**  \n  This is not mainly about technical compatibility. The problem is that the audio interferes with the user’s ability to access other information.\n\n- **Understandable**  \n  Unexpected sound may make content harder to follow, but the primary issue addressed by the SC is that users may not be able to perceive other audio content or assistive technology output.\n\n- **Operable**  \n  Users do need a control, but the reason that control is required is rooted in perception: the autoplay audio blocks or competes with access to information.\n\n### References\n- https://www.w3.org/WAI/WCAG21/Understanding/audio-control.html\n- https://www.w3.org/WAI/WCAG21/#perceivable",
+          "feedback_approved": false
+        },
+        {
+          "answer_id": "4f349b76-438a-4c1d-92bd-a7a069b36354",
+          "answer_canvas_id": 47061,
+          "answer_text_markdown": "Robust",
+          "is_correct": false,
+          "feedback_markdown": "I can see why you might think any accessibility feature is about technical support, but ask yourself what autoplay audio actually disrupts. Is the main problem that browsers or assistive technologies cannot interpret the content, or that users cannot clearly perceive other audio information once sound starts playing automatically?",
+          "feedback_approved": false
+        },
+        {
+          "answer_id": "567c89b5-a73f-491a-bd77-ceb556164803",
+          "answer_canvas_id": 41685,
+          "answer_text_markdown": "Understandable",
+          "is_correct": false,
+          "feedback_markdown": "That choice makes some sense because unwanted sound can certainly be distracting. But what is the more direct barrier: confusion about meaning, or interference with hearing the page content or a screen reader? Which principle deals with whether users can receive the information in the first place?",
+          "feedback_approved": false
+        },
+        {
+          "answer_id": "89867013-b696-4629-b8d3-a50a92ea1a86",
+          "answer_canvas_id": 73861,
+          "answer_text_markdown": "Operable",
+          "is_correct": false,
+          "feedback_markdown": "It’s true that the user needs a control, but why is that control required? Is the underlying problem mainly that the interface cannot be operated, or that automatic audio blocks access to speech and other information the user needs to perceive?",
+          "feedback_approved": false
+        }
+      ]
+    },
+    {
+      "question_id": "d2eab354-a511-45b6-a90e-b39f78997bb7",
+      "question_canvas_id": 8960016,
+      "question_created_at": "2026-03-05T22:00:40.887919",
+      "question_text_markdown": "Embedding informative text into a JPG image file is a violation of which web accessibility principle?",
+      "answers": [
+        {
+          "answer_id": "246e0f51-ebc1-4dba-87c3-f68f5446b6d3",
+          "answer_canvas_id": 36911,
+          "answer_text_markdown": "Understandable",
+          "is_correct": false,
+          "feedback_markdown": "I can see why you might think about clarity of communication, but ask yourself this: if the wording itself is clear, what makes text embedded in a JPG inaccessible? Is the central problem that users do not understand the message, or that some users cannot access the text in a flexible, perceivable way?",
+          "feedback_approved": false
+        },
+        {
+          "answer_id": "4fa3047e-cce5-4e1e-bfc5-aebc4e84baf7",
+          "answer_canvas_id": 14413,
+          "answer_text_markdown": "Operable",
+          "is_correct": false,
+          "feedback_markdown": "That answer points toward interaction, but is there actually an operation problem here? Or is the bigger issue that the text is locked inside an image and may not be readable, resizable, or available to assistive technology? Which principle fits that kind of barrier more directly?",
+          "feedback_approved": false
+        },
+        {
+          "answer_id": "69360805-5141-4c78-b30e-1b12ce4ee6f3",
+          "answer_canvas_id": 17640,
+          "answer_text_markdown": "Perceivable",
+          "is_correct": true,
+          "feedback_markdown": "### What this question is assessing\nThis question is assessing whether you understand why putting meaningful text inside an image undermines the **Perceivable** principle.\n\n### Why your answer is correct\nEmbedding informative text into a JPG image is primarily a **Perceivable** problem because text that exists only as pixels is not available in the same flexible, perceivable ways as real text. It cannot be reliably resized, restyled, reflowed, selected, or read by assistive technologies unless equivalent text is provided. This touches multiple requirements, including **WCAG 1.1.1 Non-text Content** and **1.4.5 Images of Text**.\n\nReal user impact is substantial. Screen reader users may miss the information entirely if there is no equivalent text. Low-vision users may not be able to enlarge or restyle the text effectively. Users who need custom colors, spacing, or line length also lose critical adaptability when text is flattened into an image.\n\n### Why the other answers are incorrect\n- **Understandable**  \n  The content may be perfectly understandable in wording, yet still inaccessible because users cannot perceive it in a usable form.\n\n- **Operable**  \n  The main issue is not whether the user can activate or navigate something. It is that the information is presented in a form many users cannot adequately access.\n\n- **Robust**  \n  There can be robustness implications too, but the most immediate failure is perceptual: the information is not exposed like normal text and is often unavailable to users in alternative forms.\n\n### References\n- https://www.w3.org/WAI/WCAG21/Understanding/non-text-content.html\n- https://www.w3.org/WAI/WCAG21/Understanding/images-of-text.html",
+          "feedback_approved": false
+        },
+        {
+          "answer_id": "fb11435d-bb67-4064-b90b-1170d271b6b2",
+          "answer_canvas_id": 55904,
+          "answer_text_markdown": "Robust",
+          "is_correct": false,
+          "feedback_markdown": "There is a technical aspect to exposing information, so I can see the appeal of this choice. But before thinking about compatibility, ask: what is the first barrier users encounter when meaningful text is flattened into an image? Is it mainly that the content is not reliably interpreted, or that it is not perceivable like real text?",
+          "feedback_approved": false
+        }
+      ]
+    },
+    {
+      "question_id": "53afed55-80ec-44d9-b7c3-3a9c82a26e69",
+      "question_canvas_id": 8960015,
+      "question_created_at": "2026-03-05T22:00:40.887458",
+      "question_text_markdown": "If increasing the size of the text 175% causes that text to be obscured by a picture on the page which accessibility principle would that violate?",
+      "answers": [
+        {
+          "answer_id": "9bddeca6-c0b8-4d84-b92e-c2e1c3a1197f",
+          "answer_canvas_id": 69204,
+          "answer_text_markdown": "Operable",
+          "is_correct": false,
+          "feedback_markdown": "I can see why you might connect accessibility problems with general usability, but ask yourself what actually fails when enlarged text is covered by an image. Is the user unable to operate a control, or unable to visually access the text itself? Which principle is most concerned with making information available to be perceived?",
+          "feedback_approved": false
+        },
+        {
+          "answer_id": "a8b1d743-8f52-4ca4-839c-540330802d39",
+          "answer_canvas_id": 88583,
+          "answer_text_markdown": "Robust",
+          "is_correct": false,
+          "feedback_markdown": "That answer suggests a compatibility issue, but imagine a low-vision user zooming or resizing text in a regular browser. If the text gets covered up, is the main problem about technical interpretation, or about the user being unable to see the content anymore?",
+          "feedback_approved": false
+        },
+        {
+          "answer_id": "d2f29faf-5920-4b54-97b8-04b3af46540d",
+          "answer_canvas_id": 39896,
+          "answer_text_markdown": "Understandable",
+          "is_correct": false,
+          "feedback_markdown": "It makes sense to think about readability and understanding together, but is the text hard to understand because of wording, or because it has been visually obscured? Which principle addresses whether users can actually perceive the text once they enlarge it?",
+          "feedback_approved": false
+        },
+        {
+          "answer_id": "d8cbdcec-f7af-4915-a36a-f2e753fdecde",
+          "answer_canvas_id": 52341,
+          "answer_text_markdown": "Perceivable",
+          "is_correct": true,
+          "feedback_markdown": "### What this question is assessing\nThis question is assessing whether you can identify text-resizing failures as a **Perceivable** issue.\n\n### Why your answer is correct\nIf text enlarged to 175% becomes obscured by an image, that violates the **Perceivable** principle because users can no longer visually access the text once they apply a common accommodation. This relates most directly to **WCAG 1.4.4 Resize Text**, which requires text to remain readable and functional when resized up to 200 percent without assistive technology.\n\nThis matters particularly for users with low vision, older users, and some users with reading disabilities who increase text size for legibility. A common failure pattern is absolute positioning or rigid containers that allow images or other elements to overlap enlarged text. The information still exists in the DOM, but it is no longer effectively perceivable to the user.\n\n### Why the other answers are incorrect\n- **Operable**  \n  The problem is not primarily about activating controls or moving through the interface. It is that the text becomes visually inaccessible.\n\n- **Robust**  \n  This is not chiefly about whether assistive technologies can interpret the content. The failure occurs even for sighted users who simply enlarge text in the browser.\n\n- **Understandable**  \n  The text may remain logically clear, but if it is obscured, users cannot access it well enough to benefit from that clarity.\n\n### References\n- https://www.w3.org/WAI/WCAG21/Understanding/resize-text.html\n- https://www.w3.org/WAI/WCAG21/#perceivable",
+          "feedback_approved": false
+        }
+      ]
+    },
+    {
+      "question_id": "87196052-f17b-46d7-9f7f-05e374594280",
+      "question_canvas_id": 8960014,
+      "question_created_at": "2026-03-05T22:00:40.886957",
+      "question_text_markdown": "The following example violates which accessibility principle?\n\nComplete the assignments below. They will be graded as per the policy outlined in our syllabus.\n\nEverything in **red** is due tomorrow:\n\n- List of group members\n- Project proposal\n- Discussion forum assignment 4\n- Quiz 4\n\nAnd don't forget the game this Friday.  **Go Hokies!**",
+      "answers": [
+        {
+          "answer_id": "7c3d76d9-d516-4a7b-96d2-76525e5af341",
+          "answer_canvas_id": 1352,
+          "answer_text_markdown": "Perceivable",
+          "is_correct": true,
+          "feedback_markdown": "### What this question is assessing\nThis question is assessing whether you recognize when information is communicated only through visual characteristics such as color. That is a **Perceivable** issue.\n\n### Why your answer is correct\nThe example violates **Perceivable** because the instruction “Everything in red is due tomorrow” relies on color alone to identify which items are urgent. This is a classic failure of **WCAG 1.4.1 Use of Color**. Users who are blind, color-blind, using monochrome displays, or accessing the content through screen readers may not be able to determine which items are due tomorrow from color alone.\n\nThere is an additional nuance here: the visual styling may be perfectly obvious to some sighted users, but accessibility requires that the information not depend solely on a sensory cue. A better pattern would be to add text such as “Due tomorrow” beside each relevant item, use an icon plus text, or restructure the list so the due items are explicitly grouped and labeled.\n\n### Why the other answers are incorrect\n- **Operable**  \n  Nothing in the example suggests users are unable to navigate or activate something. The barrier is in perceiving critical information embedded only in a visual cue.\n\n- **Robust**  \n  The issue is not primarily about technical compatibility, although programmatic exposure can matter. The immediate failure is that the meaning is not available without seeing and distinguishing color.\n\n- **Understandable**  \n  This distractor reflects the misconception that unclear instructions always fall under Understandable. The phrasing may be easy to understand for someone who can perceive red. The problem is that not everyone can perceive the cue the instruction depends on.\n\n### References\n- https://www.w3.org/WAI/WCAG21/Understanding/use-of-color.html\n- https://www.w3.org/WAI/WCAG21/#perceivable",
+          "feedback_approved": false
+        },
+        {
+          "answer_id": "829f12ca-b9a5-4cf4-b16a-617162c6e5f6",
+          "answer_canvas_id": 10529,
+          "answer_text_markdown": "Operable",
+          "is_correct": false,
+          "feedback_markdown": "I can see why you might think of usability broadly, but what actually makes this example inaccessible? Is anyone prevented from moving through the page or activating a feature? Or is the real problem that essential information is conveyed only through the visual cue of red text?",
+          "feedback_approved": false
+        },
+        {
+          "answer_id": "98af1ebb-e809-4899-bff5-37de39f18ae7",
+          "answer_canvas_id": 25218,
+          "answer_text_markdown": "Robust",
+          "is_correct": false,
+          "feedback_markdown": "That choice points toward technical support, but look closely at the failure pattern. Is the main issue that browsers or assistive technologies cannot parse the content, or that a user who cannot distinguish color misses the meaning of the instruction entirely?",
+          "feedback_approved": false
+        },
+        {
+          "answer_id": "dc0cff5d-5180-4081-a285-3c7849853071",
+          "answer_canvas_id": 37344,
+          "answer_text_markdown": "Understandable",
+          "is_correct": false,
+          "feedback_markdown": "I can understand why you might focus on the instruction itself. But if a sighted user who can distinguish color reads the sentence, is it actually confusing? Or does the barrier arise because some users cannot perceive the color cue that the instruction depends on?",
+          "feedback_approved": false
+        }
+      ]
+    },
+    {
+      "question_id": "05693e34-02fa-43bd-b99b-d333be4f3977",
+      "question_canvas_id": 8960013,
+      "question_created_at": "2026-03-05T22:00:40.886480",
+      "question_text_markdown": "Providing instructions to the user to click on a link to the right of another element on the page is a violation of which web accessibility principle?",
+      "answers": [
+        {
+          "answer_id": "06070fd9-b310-44f2-ba0a-d3c89fb6efb0",
+          "answer_canvas_id": 28603,
+          "answer_text_markdown": "Robust",
+          "is_correct": false,
+          "feedback_markdown": "I can see why you might think of accessibility in technical terms, but what is the actual barrier in the instruction “click the link to the right”? Is the problem that assistive technology cannot interpret the code, or that the instruction depends on a visual relationship not every user can perceive?",
+          "feedback_approved": false
+        },
+        {
+          "answer_id": "2f0342e9-14a0-4302-bef6-293f81c18ced",
+          "answer_canvas_id": 3482,
+          "answer_text_markdown": "Perceivable",
+          "is_correct": true,
+          "feedback_markdown": "### What this question is assessing\nThis question is assessing whether you can spot instructions that depend on sensory characteristics such as position. That belongs under the **Perceivable** principle.\n\n### Why your answer is correct\nTelling users to “click the link to the right” violates **Perceivable** because it relies on spatial position as the key identifying cue. This is the kind of problem addressed by **WCAG 1.3.3 Sensory Characteristics**. Not all users can perceive layout relationships in the same way, and those relationships may also change across responsive breakpoints, zoom levels, or screen-reader reading order.\n\nReal user impact is easy to see. A blind screen reader user may never experience the content as something “to the right.” A magnifier user may only see a small portion of the screen at once. On a narrow mobile layout, the item that was once to the right may appear below instead. A better instruction would identify the target by its text, purpose, or programmatic label.\n\n### Why the other answers are incorrect\n- **Robust**  \n  This is not mainly about semantic compatibility. The failure is that the instruction assumes a particular visual/spatial perception.\n\n- **Understandable**  \n  The sentence itself may be simple, but it is not universally usable because it depends on a sensory characteristic some users cannot access.\n\n- **Operable**  \n  The user may be fully able to click links. The problem is identifying the correct link from the instruction provided.\n\n### References\n- https://www.w3.org/WAI/WCAG21/Understanding/sensory-characteristics.html\n- https://www.w3.org/WAI/WCAG21/#perceivable",
+          "feedback_approved": false
+        },
+        {
+          "answer_id": "348b4387-8e36-4857-99e7-65abec101eef",
+          "answer_canvas_id": 91029,
+          "answer_text_markdown": "Understandable",
+          "is_correct": false,
+          "feedback_markdown": "That answer makes some sense because instructions are involved. But ask yourself: is the wording inherently confusing, or does it become inaccessible because it relies on a sensory cue such as position? Which principle addresses instructions that depend on shape, size, location, or color?",
+          "feedback_approved": false
+        },
+        {
+          "answer_id": "feec3e60-466e-4bac-8b93-2255f7ef8818",
+          "answer_canvas_id": 39870,
+          "answer_text_markdown": "Operable",
+          "is_correct": false,
+          "feedback_markdown": "It’s true the instruction is about clicking, but is the user unable to operate the link itself? Or is the bigger issue that the user may not know which link is meant because “to the right” is not a reliable cue for everyone?",
+          "feedback_approved": false
+        }
+      ]
+    },
+    {
+      "question_id": "0cf1e292-421b-4909-ab99-1ea0dfcf7468",
+      "question_canvas_id": 8960012,
+      "question_created_at": "2026-03-05T22:00:40.885976",
+      "question_text_markdown": "Ensuring content is presented in a meaningful sequence when accessed with a screen reader is an example of which web accessibility principle?",
+      "answers": [
+        {
+          "answer_id": "1befc84a-9647-4ef9-bf25-8b12a3a62e0f",
+          "answer_canvas_id": 4625,
+          "answer_text_markdown": "Robust",
+          "is_correct": false,
+          "feedback_markdown": "I can see why you might think about screen readers and compatibility. But ask yourself: is the main problem that the content cannot be interpreted by assistive technology at all, or that it is presented in the wrong order for the user? Which principle is concerned with preserving meaning in the presented sequence?",
+          "feedback_approved": false
+        },
+        {
+          "answer_id": "2882ad84-e942-4cf2-847b-08fcbea8da84",
+          "answer_canvas_id": 38530,
+          "answer_text_markdown": "Understandable",
+          "is_correct": false,
+          "feedback_markdown": "That answer is tempting because sequence definitely affects comprehension. But what comes first here: a problem with understanding the wording, or a problem with how the content is presented to assistive technology users? Which POUR principle includes meaningful sequence as an information-and-structure issue?",
+          "feedback_approved": false
+        },
+        {
+          "answer_id": "5ac36598-c2eb-4703-a86e-2dc7667b3811",
+          "answer_canvas_id": 9007,
+          "answer_text_markdown": "Perceivable",
+          "is_correct": true,
+          "feedback_markdown": "### What this question is assessing\nThis question is assessing whether you understand meaningful reading order and structure as part of the **Perceivable** principle.\n\n### Why your answer is correct\nEnsuring that content is presented in a meaningful sequence to screen reader users is an example of **Perceivable** because users must be able to receive information in an order that preserves its meaning. This aligns with **WCAG 1.3.2 Meaningful Sequence**.\n\nA common misconception is that sequence is mainly about understanding. In practice, the first problem is that the information is not being presented in a perceivable form that preserves relationships. If the DOM order, reading order, or programmatic structure scrambles content that visually appears in a meaningful arrangement, screen reader users may encounter instructions, labels, data, or steps out of order. That can completely distort the content.\n\n### Why the other answers are incorrect\n- **Robust**  \n  Robustness helps content work with assistive technologies, but this question is specifically about whether the content is presented in a sequence that preserves meaning for the user.\n\n- **Understandable**  \n  This is a tempting distractor because sequence affects comprehension. But the SC lives under Perceivable because the issue is with how the content is **presented** to users through assistive technology.\n\n- **Operable**  \n  The problem is not primarily about navigating or activating controls. It is about the order in which information is conveyed.\n\n### References\n- https://www.w3.org/WAI/WCAG21/Understanding/meaningful-sequence.html\n- https://www.w3.org/WAI/WCAG21/#perceivable",
+          "feedback_approved": false
+        },
+        {
+          "answer_id": "ce311346-d121-4dbc-8835-c3c40f8ab93a",
+          "answer_canvas_id": 99659,
+          "answer_text_markdown": "Operable",
+          "is_correct": false,
+          "feedback_markdown": "It makes sense to think about users interacting with screen readers, but is this scenario really about operating controls? Or is it about receiving content in an order that preserves its meaning? What kind of accessibility problem is that?",
+          "feedback_approved": false
+        }
+      ]
+    },
+    {
+      "question_id": "9709fd0b-4905-4349-8c48-bff71b6cd005",
+      "question_canvas_id": 8960011,
+      "question_created_at": "2026-03-05T22:00:40.885517",
+      "question_text_markdown": "Using label elements to associate text labels with form controls is an example of which web accessibility principles? **Check all that apply.**",
+      "answers": [
+        {
+          "answer_id": "7b28d946-618b-4520-96fc-d74c31bb1635",
+          "answer_canvas_id": 43108,
+          "answer_text_markdown": "Perceivable",
+          "is_correct": true,
+          "feedback_markdown": "### What this question is assessing\nThis question is assessing whether you understand that correctly associated form labels support more than one WCAG principle. It is testing your ability to see how a single implementation choice can improve perception, comprehension, and technical exposure.\n\n### Why your answer is correct\n**Perceivable** is a correct answer because labels make form controls identifiable to users. A visible text label next to a field helps sighted users know what information is expected, and a properly associated `<label>` helps assistive technology users receive that same information in a reliable way. This supports requirements such as **WCAG 1.3.1 Info and Relationships**, because the relationship between the prompt and the control is conveyed programmatically rather than left to visual proximity alone.\n\nFor example, if a text input visually appears under the words “Email address” but is not actually associated with that text, a screen reader user may simply hear “edit text” with no meaningful context. The label association helps make the control’s purpose perceivable.\n\n### Why the other answers are incorrect\n- **Operable**  \n  Labels do not usually make an otherwise unreachable control keyboard-operable. They support identification and comprehension more directly than operation.\n\n- **Robust**  \n  Robust is also a correct answer in this question, because the label-control relationship is exposed programmatically in a way assistive technologies can use.\n\n- **Understandable**  \n  Understandable is also a correct answer here, because labels help users know what information to enter and reduce ambiguity.\n\n### References\n- https://www.w3.org/WAI/WCAG21/Understanding/info-and-relationships.html\n- https://www.w3.org/WAI/WCAG21/Understanding/labels-or-instructions.html",
+          "feedback_approved": false
+        },
+        {
+          "answer_id": "839a6f60-64d5-4e04-ac7a-e3eb78002b4e",
+          "answer_canvas_id": 91685,
+          "answer_text_markdown": "Operable",
+          "is_correct": false,
+          "feedback_markdown": "I can see why you might think labels help people use forms, but ask yourself what problem the `<label>` element is mainly solving. Does it chiefly make the control keyboard-accessible, or does it make the control’s purpose clearer and programmatically associated? Which POUR principles are more directly tied to meaning and semantic exposure here?",
+          "feedback_approved": false
+        },
+        {
+          "answer_id": "931d6525-a22e-4187-b69f-28c318254ed1",
+          "answer_canvas_id": 29088,
+          "answer_text_markdown": "Robust",
+          "is_correct": true,
+          "feedback_markdown": "### What this question is assessing\nThis question is assessing whether you understand that correctly associated form labels support more than one WCAG principle. It is testing your ability to see how a single implementation choice can improve perception, comprehension, and technical exposure.\n\n### Why your answer is correct\n**Robust** is a correct answer because using actual `<label>` elements creates a programmatic relationship between the text label and the form control that browsers and assistive technologies can reliably interpret. That is exactly the kind of semantic exposure the **Robust** principle is concerned with. When the relationship is coded correctly, screen readers can announce the field name when the input receives focus.\n\nThis matters because many failure patterns rely only on visual placement. Developers may put text near a field or style a placeholder to look like a label, but if the control lacks a true associated label, the name may not be exposed correctly to assistive technologies. Using `<label>` markup makes the implementation more dependable across user agents.\n\n### Why the other answers are incorrect\n- **Perceivable**  \n  Perceivable is also a correct answer in this question, because labels help users identify what a control is for.\n\n- **Operable**  \n  Operable is not the best fit here. A label may increase the clickable target in some cases, but the main accessibility value of label association is not keyboard or navigation control.\n\n- **Understandable**  \n  Understandable is also a correct answer because labels clarify expected input and reduce user confusion.\n\n### References\n- https://www.w3.org/WAI/WCAG21/Understanding/name-role-value.html\n- https://www.w3.org/WAI/WCAG21/Understanding/info-and-relationships.html",
+          "feedback_approved": false
+        },
+        {
+          "answer_id": "c8d26965-4097-4570-9bdd-6f268db05f35",
+          "answer_canvas_id": 89692,
+          "answer_text_markdown": "Understandable",
+          "is_correct": true,
+          "feedback_markdown": "### What this question is assessing\nThis question is assessing whether you understand that correctly associated form labels support more than one WCAG principle. It is testing your ability to see how a single implementation choice can improve perception, comprehension, and technical exposure.\n\n### Why your answer is correct\n**Understandable** is a correct answer because labels tell users what a field is for and what kind of input is expected. Properly associated labels reduce ambiguity, lower memory burden, and support accurate form completion. This relates to **WCAG 3.3.2 Labels or Instructions**.\n\nFor instance, a form field without a clear label may force users to infer meaning from context, placeholder text, or nearby layout. That is error-prone for everyone, especially users with cognitive disabilities, screen reader users navigating field by field, and users returning to a form after interruption. A real label helps make the task clearer and more predictable.\n\n### Why the other answers are incorrect\n- **Perceivable**  \n  Perceivable is also a correct answer in this question, because labels help users perceive the purpose of the field.\n\n- **Operable**  \n  Operable is not the best fit here because the main benefit of labels is not about enabling the interaction method itself.\n\n- **Robust**  \n  Robust is also a correct answer because proper label association is exposed programmatically to assistive technologies.\n\n### References\n- https://www.w3.org/WAI/WCAG21/Understanding/labels-or-instructions.html\n- https://www.w3.org/WAI/WCAG21/Understanding/name-role-value.html",
+          "feedback_approved": false
+        }
+      ]
+    },
+    {
+      "question_id": "a74ae067-b7f0-43cc-9717-65f8288b07b6",
+      "question_canvas_id": 8960010,
+      "question_created_at": "2026-03-05T22:00:40.885047",
+      "question_text_markdown": "Using table markup to present tabular information is an example of which web accessibility principle?",
+      "answers": [
+        {
+          "answer_id": "4bea469b-f676-4eee-9d8b-02e5ae6bf494",
+          "answer_canvas_id": 23991,
+          "answer_text_markdown": "Perceivable",
+          "is_correct": true,
+          "feedback_markdown": "### What this question is assessing\nThis question is assessing whether you understand why using semantic table markup for actual tabular data supports the **Perceivable** principle.\n\n### Why your answer is correct\nUsing table markup for tabular information is an example of **Perceivable** because it conveys the relationships among rows, columns, and headers in a way users can access. This aligns with **WCAG 1.3.1 Info and Relationships**. Proper table structure helps screen reader users understand which header applies to which cell, and it preserves the meaning of the data rather than forcing users to infer relationships from visual layout alone.\n\nFor example, in a grade table or schedule grid, users need to know that a given cell belongs to a particular row header and column header. When the content is marked up semantically, assistive technologies can announce those relationships. Without that structure, the data may still be visible but not meaningfully perceivable.\n\n### Why the other answers are incorrect\n- **Robust**  \n  There is some technical exposure involved, but the primary accessibility goal is preserving the information relationships so users can perceive the structure of the data.\n\n- **Understandable**  \n  Tables can improve comprehension, but the core principle being tested here is whether the relationships are presented in a way users can access.\n\n- **Operable**  \n  A table is not primarily an interaction mechanism. The main issue is not operation, but access to structured information.\n\n### References\n- https://www.w3.org/WAI/WCAG21/Understanding/info-and-relationships.html\n- https://www.w3.org/WAI/tutorials/tables/",
+          "feedback_approved": false
+        },
+        {
+          "answer_id": "5f2af633-bc6a-4f99-97f2-3c110fddb512",
+          "answer_canvas_id": 99754,
+          "answer_text_markdown": "Robust",
+          "is_correct": false,
+          "feedback_markdown": "I can see why you might think semantic markup belongs under robustness. But what is the immediate accessibility value of table markup for real data tables? Is it mainly technical compatibility, or is it that users can perceive the relationships between headers and data cells?",
+          "feedback_approved": false
+        },
+        {
+          "answer_id": "dce1545a-6da9-44c1-ae3d-f9e0d2ad457d",
+          "answer_canvas_id": 59917,
+          "answer_text_markdown": "Understandable",
+          "is_correct": false,
+          "feedback_markdown": "That answer makes some sense because good tables can make data easier to understand. But ask yourself what the markup itself is doing. Is it chiefly clarifying the language, or preserving row-and-column relationships so they are available beyond the visual layout?",
+          "feedback_approved": false
+        },
+        {
+          "answer_id": "e0734df4-5f9d-4723-a4ec-7e0b22d9eb6d",
+          "answer_canvas_id": 2273,
+          "answer_text_markdown": "Operable",
+          "is_correct": false,
+          "feedback_markdown": "It’s true users interact with pages, but is a data table mainly about operation? Or is the important part that the information is structured so users can access the relationships within the data? Which principle fits that more directly?",
+          "feedback_approved": false
+        }
+      ]
+    },
+    {
+      "question_id": "f2101e4e-b786-4abc-9731-58f3c7465e59",
+      "question_canvas_id": 8960009,
+      "question_created_at": "2026-03-05T22:00:40.884598",
+      "question_text_markdown": "Providing audio descriptions for a prerecorded video with an audio track is an example of which web accessibility principle?",
+      "answers": [
+        {
+          "answer_id": "07811526-b50f-46c5-b980-1ceb9fee4f27",
+          "answer_canvas_id": 92649,
+          "answer_text_markdown": "Operable",
+          "is_correct": false,
+          "feedback_markdown": "I can see why you might think about accessibility in terms of usability, but what does audio description actually provide? Does it help the user operate the player, or does it give access to visual information that would otherwise be missed? Which principle covers that kind of access?",
+          "feedback_approved": false
+        },
+        {
+          "answer_id": "08db2dbb-3651-4279-89d8-d9940f6aa923",
+          "answer_canvas_id": 69140,
+          "answer_text_markdown": "Understandable",
+          "is_correct": false,
+          "feedback_markdown": "That answer is tempting because description can certainly improve understanding. But before a user can understand the visual content, what must happen first? Do they need clearer instructions, or do they need the missing visual information conveyed through another channel?",
+          "feedback_approved": false
+        },
+        {
+          "answer_id": "21c3f596-157c-4ccd-b15c-7a5629dd3e66",
+          "answer_canvas_id": 54264,
+          "answer_text_markdown": "Robust",
+          "is_correct": false,
+          "feedback_markdown": "I can see the appeal of choosing robustness when assistive technologies are involved. But is audio description mainly about semantic compatibility, or about making video information available to users who cannot see the visuals? What principle does that point to?",
+          "feedback_approved": false
+        },
+        {
+          "answer_id": "ae0ea1c3-ba89-46e5-b8f9-65969c066a81",
+          "answer_canvas_id": 65449,
+          "answer_text_markdown": "Perceivable",
+          "is_correct": true,
+          "feedback_markdown": "### What this question is assessing\nThis question is assessing whether you can identify alternatives for visual-only information in time-based media as part of the **Perceivable** principle.\n\n### Why your answer is correct\nProviding audio description for a prerecorded video is an example of **Perceivable** because it makes visual information available to users who cannot see it. This is covered by **WCAG 1.2.5 Audio Description (Prerecorded)** at Level AA.\n\nAudio description is not just a nice enhancement. It communicates important visual details that may not be present in the existing soundtrack: on-screen text, gestures, scene changes, facial expressions, or actions essential to understanding the content. Without description, a blind user may hear dialogue but miss the actual meaning of what is happening on screen.\n\n### Why the other answers are incorrect\n- **Operable**  \n  Audio description does not primarily help users navigate or control the interface. It provides access to information.\n\n- **Understandable**  \n  Description may support comprehension, but its primary role in WCAG is to make visual content perceivable to users who cannot see it.\n\n- **Robust**  \n  This is not mainly about technical compatibility between code and assistive technology. It is about supplying an equivalent sensory channel for information.\n\n### References\n- https://www.w3.org/WAI/WCAG21/Understanding/audio-description-prerecorded.html\n- https://www.w3.org/WAI/WCAG21/#perceivable",
+          "feedback_approved": false
+        }
+      ]
+    },
+    {
+      "question_id": "75946d4b-944d-431c-a67a-23e70a1ec213",
+      "question_canvas_id": 8960008,
+      "question_created_at": "2026-03-05T22:00:40.884137",
+      "question_text_markdown": "Providing a text transcript for a an audio recording of an interview is an example of which web accessibility principle?",
+      "answers": [
+        {
+          "answer_id": "1d2921fb-66c4-4012-8a3f-5f2da1e58c0a",
+          "answer_canvas_id": 25956,
+          "answer_text_markdown": "Operable",
+          "is_correct": false,
+          "feedback_markdown": "I can see why you might think transcripts help people use content, but ask yourself what problem a transcript is mainly solving. Is it about controlling the audio player, or about giving access to the spoken information without requiring hearing? Which principle covers that?",
+          "feedback_approved": false
+        },
+        {
+          "answer_id": "3d08c67a-0e9a-4de6-b9a1-dd27bad3583a",
+          "answer_canvas_id": 36764,
+          "answer_text_markdown": "Understandable",
+          "is_correct": false,
+          "feedback_markdown": "That answer makes some sense because text can make content easier to review. But why does WCAG require transcripts for audio-only content in the first place? Is it mainly to clarify confusing ideas, or to make information perceivable in another form for users who cannot hear the recording?",
+          "feedback_approved": false
+        },
+        {
+          "answer_id": "5c5f6545-b353-48ac-99a4-e69dae4f73cb",
+          "answer_canvas_id": 40384,
+          "answer_text_markdown": "Robust",
+          "is_correct": false,
+          "feedback_markdown": "It’s understandable to think about assistive technology support, but is a transcript mainly a technical interoperability feature? Or is it an alternative representation of the information so users can access the content through text instead of sound?",
+          "feedback_approved": false
+        },
+        {
+          "answer_id": "85b92f9d-19fe-4692-8d75-d8a70687bc05",
+          "answer_canvas_id": 70866,
+          "answer_text_markdown": "Perceivable",
+          "is_correct": true,
+          "feedback_markdown": "### What this question is assessing\nThis question is assessing whether you recognize transcripts as a way of making audio information available under the **Perceivable** principle.\n\n### Why your answer is correct\nProviding a text transcript for an audio recording is an example of **Perceivable** because it offers an alternative form of the information for users who cannot hear the audio or who need text for another reason. This aligns with **WCAG 1.2.1 Audio-only and Video-only (Prerecorded)**.\n\nTranscripts benefit a wide range of users: deaf and hard-of-hearing users, people in noisy or quiet environments, users who process information better in text, people using translation tools, and anyone who wants to skim, search, quote, or review the content. The transcript makes the audio’s informational content accessible through another sensory modality.\n\n### Why the other answers are incorrect\n- **Operable**  \n  A transcript does not mainly make the interface easier to operate. It makes the content available in an alternative format.\n\n- **Understandable**  \n  Transcripts can help comprehension, but their primary WCAG role is to provide access to information that would otherwise be available only through sound.\n\n- **Robust**  \n  The issue is not mainly whether code is technically compatible. It is whether the user can perceive the interview content without relying on hearing.\n\n### References\n- https://www.w3.org/WAI/WCAG21/Understanding/audio-only-and-video-only-prerecorded.html\n- https://www.w3.org/WAI/WCAG21/#perceivable",
+          "feedback_approved": false
+        }
+      ]
+    }
+  ]
+}

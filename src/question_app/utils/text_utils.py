@@ -133,7 +133,7 @@ def clean_question_text(text: str) -> str:
             tag.insert_after('\n\n')
             tag.unwrap()
 
-        # 6. Inline Formatting (same as before, plus unwrap for span/a)
+        # 6. Inline Formatting (preserve hyperlinks as markdown links)
         # ... (strong, em, code handlers) ...
         for tag in soup.find_all(['strong', 'b']):
             tag.insert_before('**')
@@ -151,7 +151,16 @@ def clean_question_text(text: str) -> str:
             tag.insert_before('`')
             tag.insert_after('`')
             tag.unwrap()
-        for tag in soup.find_all(['span', 'a']):
+        # Keep Canvas hyperlinks by converting anchors to markdown links.
+        for tag in soup.find_all('a'):
+            href = (tag.get('href') or '').strip()
+            label = tag.get_text(strip=True)
+            if href:
+                tag.replace_with(f"[{label or href}]({href})")
+            else:
+                tag.unwrap()
+
+        for tag in soup.find_all(['span']):
             tag.unwrap()
 
         # 7. Final Conversion and Cleanup (MODIFIED)
@@ -178,6 +187,13 @@ def _convert_inline(element):
     for child in element.children:
         if isinstance(child, NavigableString):
             parts.append(str(child))
+        elif getattr(child, "name", None) == "a":
+            href = (child.get("href") or "").strip()
+            label = child.get_text(strip=True)
+            if href:
+                parts.append(f"[{label or href}]({href})")
+            else:
+                parts.append(label)
         elif child.name in ("code", "kbd"):
             parts.append("`" + child.get_text() + "`")
         elif child.name == "br":
@@ -228,8 +244,12 @@ def html_to_markdown(html_str):
             inline_buf.append("`" + element.get_text() + "`")
         elif element.name == "br":
             inline_buf.append("\n")
-        elif element.name in ("strong", "b", "em", "i", "span", "a"):
+        elif element.name in ("strong", "b", "em", "i", "span"):
             inline_buf.append(element.get_text())
+        elif element.name == "a":
+            href = (element.get("href") or "").strip()
+            label = element.get_text(strip=True)
+            inline_buf.append(f"[{label or href}]({href})" if href else label)
         elif hasattr(element, "get_text"):
             text = element.get_text().strip()
             if text:

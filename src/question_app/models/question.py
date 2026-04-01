@@ -30,8 +30,9 @@ class QuestionUpdate(BaseModel):
     
     question_text: str
     
-    # It now expects 'objective_ids' as a list of strings
-    objective_ids: List[str] = Field(default_factory=list)
+    # Optional: when None (not provided by the client), objectives are left untouched.
+    # Only update associations when objective_ids is explicitly sent.
+    objective_ids: Optional[List[str]] = Field(default=None)
     
     # It now expects a list of the new 'AnswerUpdate' models
     answers: List[AnswerUpdate]

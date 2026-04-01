@@ -1,0 +1,2304 @@
+{
+  "method": "manual semantic interpretation using question intent (stem + correct answer + feedback)",
+  "results": [
+    {
+      "question_id": "0b784e75-8674-425f-aa83-45b8cd296bc2",
+      "question_text": "Which of the following is the best approach to ensure a web interface is interoperable across browsers, platforms, and assistive technologies?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "fd9e1240-f725-4d90-a38f-094f8d165c47",
+      "question_text": "Which of the following requirements listed in Annex A, Table A.1 of EN 301 549 goes beyond the scope of WCAG?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "ae368cea-45d2-434c-a580-9e6aec829ece",
+      "question_text": "Which of the following is a key accessibility challenge associated with single-page applications (SPAs)?",
+      "matched_objectives": [
+        "II.C.2"
+      ],
+      "objective_text": {
+        "II.C.2": "Demonstrate manual keyboard testing to detect missing focus indicators, incorrect tab order, keyboard traps, and other keyboard-operability issues."
+      },
+      "rationale": [
+        "Question assesses keyboard operability or focus behavior."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "010c1ab4-d6aa-4450-b4c0-35a602456ef5",
+      "question_text": "When designing ARIA-based custom widgets, which of the following is a correct application of standard keyboard interaction models?",
+      "matched_objectives": [
+        "II.C.2"
+      ],
+      "objective_text": {
+        "II.C.2": "Demonstrate manual keyboard testing to detect missing focus indicators, incorrect tab order, keyboard traps, and other keyboard-operability issues."
+      },
+      "rationale": [
+        "Question assesses keyboard operability or focus behavior."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "30b30d17-ea7f-4c92-9013-5b005acf81de",
+      "question_text": "If a keyboard shortcut is implemented in content using only letter (including upper- and lower-case letters), punctuation, number, or symbol characters, how can you ensure accessibility requirements are met for such shortcuts?\u00a0\n\n**Select all that apply.**",
+      "matched_objectives": [
+        "II.C.2"
+      ],
+      "objective_text": {
+        "II.C.2": "Demonstrate manual keyboard testing to detect missing focus indicators, incorrect tab order, keyboard traps, and other keyboard-operability issues."
+      },
+      "rationale": [
+        "Question assesses keyboard operability or focus behavior."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "aa6806a5-62e9-4e08-ac3d-edac2cba9c73",
+      "question_text": "Which of the following statements is **FALSE** regarding what has changed between WCAG 2.0 and 2.1?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "c94b0de1-b8d0-4348-bb83-19f5afdf4d62",
+      "question_text": "Which of the following is **NOT** a main area of focus for WCAG 2.1?",
+      "matched_objectives": [
+        "II.C.2"
+      ],
+      "objective_text": {
+        "II.C.2": "Demonstrate manual keyboard testing to detect missing focus indicators, incorrect tab order, keyboard traps, and other keyboard-operability issues."
+      },
+      "rationale": [
+        "Question assesses keyboard operability or focus behavior."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "df2b6148-d746-41b2-8913-a37849c69bd0",
+      "question_text": "Hakeem uses a web app which requires him to draw a circle around items with the pointer to select them. He has trouble doing this because he has poor fine motor control. Of the following strategies for reworking this pattern, which would allow the largest range of users to meet the goal of selecting multiple items?",
+      "matched_objectives": [
+        "II.C.2"
+      ],
+      "objective_text": {
+        "II.C.2": "Demonstrate manual keyboard testing to detect missing focus indicators, incorrect tab order, keyboard traps, and other keyboard-operability issues."
+      },
+      "rationale": [
+        "Question assesses keyboard operability or focus behavior."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "3bd0f883-06ab-49ff-b0c7-684c2ea459aa",
+      "question_text": "Which of the following is **NOT** considered a \"status message\" according to WCAG 2.1?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "8e5b75e6-5b9f-460c-b5ee-b269f04004d9",
+      "question_text": "When a user hovers over a button (but not when it receives keyboard focus), text appears beside it.\u00a0 When the mouse cursor leaves the button, the text's `display` property is set to `none`, making it disappear.\u00a0 Which users would be **LEAST** likely to experience a barrier from this pattern?",
+      "matched_objectives": [
+        "II.C.2"
+      ],
+      "objective_text": {
+        "II.C.2": "Demonstrate manual keyboard testing to detect missing focus indicators, incorrect tab order, keyboard traps, and other keyboard-operability issues."
+      },
+      "rationale": [
+        "Question assesses keyboard operability or focus behavior."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "53feba68-45c1-46d4-bbad-f5c22d8ba278",
+      "question_text": "Excerpts of stories appear on a page, with links after each excerpt that have the visible text \"More\".\u00a0 However, for each of these links, the `aria-label` attribute has been set to \"Read [whatever the title of the story is in each instance]\".\u00a0 Which users would be most likely to be inconvenienced by this pattern?",
+      "matched_objectives": [
+        "I.D.2"
+      ],
+      "objective_text": {
+        "I.D.2": "Implement accessible names and descriptions for interactive controls using appropriate naming and description techniques."
+      },
+      "rationale": [
+        "Question assesses accessible naming or labeling."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "32285693-acb3-42a1-b258-de799c60986d",
+      "question_text": "Under WCAG 2.1, which of the following would **NOT** violate conformance level A or AA success criteria?",
+      "matched_objectives": [
+        "I.A.2"
+      ],
+      "objective_text": {
+        "I.A.2": "Explain the structure of WCAG 2.2, including the POUR principles, guidelines, success criteria, and conformance levels A, AA, and AAA."
+      },
+      "rationale": [
+        "Question assesses understanding of WCAG structure and levels."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "ff4e3f2b-0cb9-4ffb-b211-471b0b673700",
+      "question_text": "Under WCAG 2.1, which of the following would violate conformance level A or AA success criteria?",
+      "matched_objectives": [
+        "I.A.2"
+      ],
+      "objective_text": {
+        "I.A.2": "Explain the structure of WCAG 2.2, including the POUR principles, guidelines, success criteria, and conformance levels A, AA, and AAA."
+      },
+      "rationale": [
+        "Question assesses understanding of WCAG structure and levels."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "79fc2404-319f-451a-a500-9a327979a84d",
+      "question_text": "Under WCAG 2.1, which of the following would violate conformance level A or AA success criteria?",
+      "matched_objectives": [
+        "I.A.2",
+        "II.G.6"
+      ],
+      "objective_text": {
+        "I.A.2": "Explain the structure of WCAG 2.2, including the POUR principles, guidelines, success criteria, and conformance levels A, AA, and AAA.",
+        "II.G.6": "Evaluate the effects of contrast modes, text and non-text contrast, and color-contrast requirements on accessibility."
+      },
+      "rationale": [
+        "Question assesses understanding of WCAG structure and levels.",
+        "Question assesses visual contrast requirements."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "6afdd222-4d18-4eba-84a4-865b59487c74",
+      "question_text": "Who would be **LEAST** likely to benefit when pages use the autocomplete attribute on form fields?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "14f7d534-9aeb-43b6-a4e4-08210b004e8c",
+      "question_text": "Carrie is paralyzed and uses a power chair, from which she accesses the internet through a tablet mounted to her chair's arm. She controls the tablet using a sip-and-puff device. Which of the following would be **LEAST** likely to present a barrier for her:",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "f4dd205f-c4bb-45f1-8032-a2a4a5ab65ed",
+      "question_text": "When is it acceptable to use CSS-generated content, using the `content` property with the `::before` or `::after` pseudo-elements.",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "b641ca5c-2dd1-4f03-8ab7-2eda5df1e488",
+      "question_text": "In which instance must text meet the contrast requirement of 3:1 for SC 1.4.3 Contrast (Minimum) ?",
+      "matched_objectives": [
+        "II.G.6"
+      ],
+      "objective_text": {
+        "II.G.6": "Evaluate the effects of contrast modes, text and non-text contrast, and color-contrast requirements on accessibility."
+      },
+      "rationale": [
+        "Question assesses visual contrast requirements."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "e08eaf70-8652-490d-a5f0-2f3a5adf8dae",
+      "question_text": "For the following code, which of the following is **NOT** true?\n\n```\n\n#steps a { float:right; padding: 0 .5em }\n\nStep 3\nStep 2\nStep 1\n\n```",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "f3535518-ec50-4d4d-bc45-abfb8ed9feef",
+      "question_text": "Which of the following is **NOT** a problem with the accessibility of the following code?\n\n```\n\nThe [syllabus](syllabus.html) has all the information you need.\n\np {color:#000000; background-color:#4DB396; font-size:1em}\na {color:#6A2C3E}\na:hover, a:active, a:focus { outline: none; border: 0; }\n\n```\n\nSee the code in JSBin",
+      "matched_objectives": [
+        "II.C.2",
+        "II.G.6"
+      ],
+      "objective_text": {
+        "II.C.2": "Demonstrate manual keyboard testing to detect missing focus indicators, incorrect tab order, keyboard traps, and other keyboard-operability issues.",
+        "II.G.6": "Evaluate the effects of contrast modes, text and non-text contrast, and color-contrast requirements on accessibility."
+      },
+      "rationale": [
+        "Question assesses keyboard operability or focus behavior.",
+        "Question assesses visual contrast requirements."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "80d729ed-4b07-4634-9cc4-e2343f21fa17",
+      "question_text": "Which method can be used as a visual cue along with color, so that color is not the only means of conveying information?\u00a0 *Make sure to read all options before answering.*",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "d36867eb-c9be-4041-9989-694caec278df",
+      "question_text": "Generally speaking, which of the following code examples is **MOST** accessible?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "47412bfa-21f2-43e5-ba07-33001742199d",
+      "question_text": "The following code on a web page describes how to wash your hands.\u00a0 Which of the following users might be confused by the instructions?\n\n```\n\nRepeat\n\nRinse\n\nLather\n\n```",
+      "matched_objectives": [
+        "II.F.1"
+      ],
+      "objective_text": {
+        "II.F.1": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments."
+      },
+      "rationale": [
+        "Question relies on knowledge of screen reader behavior."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "b1d11e5f-8bab-47f0-a8f3-dbeea1b7a0dc",
+      "question_text": "Which of the following is true regarding bypass blocks?",
+      "matched_objectives": [
+        "II.C.2"
+      ],
+      "objective_text": {
+        "II.C.2": "Demonstrate manual keyboard testing to detect missing focus indicators, incorrect tab order, keyboard traps, and other keyboard-operability issues."
+      },
+      "rationale": [
+        "Question assesses keyboard operability or focus behavior."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "57778c37-ce35-4172-a088-81e6ae21069c",
+      "question_text": "Which of the following is **NOT** true?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "6b63203f-f2f3-4506-afad-8a3b2b491e48",
+      "question_text": "Which of the following is **NOT** a way to navigate to the next visited link using a screen reader?",
+      "matched_objectives": [
+        "II.F.1"
+      ],
+      "objective_text": {
+        "II.F.1": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments."
+      },
+      "rationale": [
+        "Question relies on knowledge of screen reader behavior."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "54e5c37d-f39d-489d-954a-5a989c00a224",
+      "question_text": "Which of the following is a way to navigate to the next unvisited link using a screen reader?",
+      "matched_objectives": [
+        "II.F.1"
+      ],
+      "objective_text": {
+        "II.F.1": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments."
+      },
+      "rationale": [
+        "Question relies on knowledge of screen reader behavior."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "936efd90-7f92-448e-b174-b6d75a4e967a",
+      "question_text": "Which of the following is **NOT** a way to navigate from one link to the next using a screen reader?",
+      "matched_objectives": [
+        "II.F.1"
+      ],
+      "objective_text": {
+        "II.F.1": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments."
+      },
+      "rationale": [
+        "Question relies on knowledge of screen reader behavior."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "4628b74a-14be-404c-8c83-2aa818884a83",
+      "question_text": "Which of the following is a way to list all links using a screen reader?",
+      "matched_objectives": [
+        "II.F.1"
+      ],
+      "objective_text": {
+        "II.F.1": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments."
+      },
+      "rationale": [
+        "Question relies on knowledge of screen reader behavior."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "ed07e266-c587-4dd8-9c4d-329d6a299fa7",
+      "question_text": "Why is it important not to remove visual focus indicators from links and controls, for instance, by setting the outline CSS property for the focus pseudo-class to none?",
+      "matched_objectives": [
+        "II.C.2"
+      ],
+      "objective_text": {
+        "II.C.2": "Demonstrate manual keyboard testing to detect missing focus indicators, incorrect tab order, keyboard traps, and other keyboard-operability issues."
+      },
+      "rationale": [
+        "Question assesses keyboard operability or focus behavior."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "5e1bdf61-fb21-4f24-beb9-40eb1f07a9f2",
+      "question_text": "Where the contrast ratio between color codes #990033 and #000000 is 2.4:1, which of the following code snippets is the **LEAST** preferable, assuming no other styles have been applied than what is apparent in the code?",
+      "matched_objectives": [
+        "II.G.6"
+      ],
+      "objective_text": {
+        "II.G.6": "Evaluate the effects of contrast modes, text and non-text contrast, and color-contrast requirements on accessibility."
+      },
+      "rationale": [
+        "Question assesses visual contrast requirements."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "143d3179-a057-4986-af8d-6bbbf15009b9",
+      "question_text": "From an accessibility perspective, which of the following is the **LEAST** preferred means of coding a link to a site that opens in a new window?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "8e947866-3e94-401e-98ff-45eeb974c8e7",
+      "question_text": "Which link text below would be preferable in most circumstances?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "f0f366e1-8fc0-47f8-9fed-32565fbb40f6",
+      "question_text": "Assuming there are no elements on the page that have an `id` attribute set, which of the following would **NOT** provide programmatically-discernable text for a link?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "6209b9a0-bcc1-4df5-8744-13f24ae10c0e",
+      "question_text": "The image in the following code is an icon of a printer styled to look like a button.\u00a0 Assuming no other styling or scripting has been applied, which of the following would **NOT** be a problem with this code?\n\n`[print-version.html](print-version.html)`",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "74a046b8-1ab1-4aac-baea-b2969fd9edb3",
+      "question_text": "Assuming no other styling or scripting has been applied, which of the following is **NOT** a problem with the following code?\n\n`Virginia Tech`",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "716c6dd1-82ea-4390-a630-86cc12ff4733",
+      "question_text": "Which of the following is a way to navigate to headings of a certain level using a screen reader?",
+      "matched_objectives": [
+        "II.F.1"
+      ],
+      "objective_text": {
+        "II.F.1": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments."
+      },
+      "rationale": [
+        "Question relies on knowledge of screen reader behavior."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "0412ed6d-50c5-4cd5-b0a8-82313ae8890c",
+      "question_text": "Which of the following is **NOT** a way to navigate from one heading to the next using a screen reader?",
+      "matched_objectives": [
+        "II.F.1"
+      ],
+      "objective_text": {
+        "II.F.1": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments."
+      },
+      "rationale": [
+        "Question relies on knowledge of screen reader behavior."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "807ce516-02bf-41c0-af25-8fd6ac87667d",
+      "question_text": "Which of the following is **NOT** way to list all headings using a screen reader?",
+      "matched_objectives": [
+        "II.F.1"
+      ],
+      "objective_text": {
+        "II.F.1": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments."
+      },
+      "rationale": [
+        "Question relies on knowledge of screen reader behavior."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "8e6cf6af-7584-4ad9-b824-70b4ec5966b0",
+      "question_text": "Which of the following is **NOT** true?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "cceefb58-6b91-4d30-a7b4-79cdbfded4b6",
+      "question_text": "Which of the following is the best way of indicating that content in a paragraph is important?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "9f5b9d66-31b8-4119-8bc2-44f2d5eaa58d",
+      "question_text": "Which of the following is a reason why this code is a bad way of communicating to all users that something is a heading?\n\n`\n\n**A section about a topic**\n\n`",
+      "matched_objectives": [
+        "II.F.1"
+      ],
+      "objective_text": {
+        "II.F.1": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments."
+      },
+      "rationale": [
+        "Question relies on knowledge of screen reader behavior."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "67e8adc9-b1c8-48ff-986c-adcce8847e54",
+      "question_text": "Which of the following is **NOT** a valid way of programmatically communicating that something is a heading?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "b749ad76-5e05-45fd-b64b-1058fb2e8763",
+      "question_text": "Which of the following is **NOT** a benefit of using headings on web pages?",
+      "matched_objectives": [
+        "II.C.2"
+      ],
+      "objective_text": {
+        "II.C.2": "Demonstrate manual keyboard testing to detect missing focus indicators, incorrect tab order, keyboard traps, and other keyboard-operability issues."
+      },
+      "rationale": [
+        "Question assesses keyboard operability or focus behavior."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "a191298e-2229-46be-a53d-d0b2bb427fd3",
+      "question_text": "Which of the following is a way to navigate to the main content landmark using a screen reader?",
+      "matched_objectives": [
+        "II.F.1"
+      ],
+      "objective_text": {
+        "II.F.1": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments."
+      },
+      "rationale": [
+        "Question relies on knowledge of screen reader behavior."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "6a8a749c-012b-4378-af07-8570c086b355",
+      "question_text": "Which of the following is **NOT** a way to navigate from one landmark to the next using a screen reader?",
+      "matched_objectives": [
+        "II.F.1"
+      ],
+      "objective_text": {
+        "II.F.1": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments."
+      },
+      "rationale": [
+        "Question relies on knowledge of screen reader behavior."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "e156fcde-a608-4c9e-b1ae-c0a11d32ec87",
+      "question_text": "Which of the following is **NOT** way to list all landmarks using a screen reader?",
+      "matched_objectives": [
+        "II.F.1"
+      ],
+      "objective_text": {
+        "II.F.1": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments."
+      },
+      "rationale": [
+        "Question relies on knowledge of screen reader behavior."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "b09c3bf1-2850-4a6d-8bf5-da3a1a393f2f",
+      "question_text": "Which of the following landmarks is it okay to have more than one of on a page?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "cf582497-1251-42b0-8ca7-cf933bf66a64",
+      "question_text": "In a site with two regions for navigation, one for navigating the site and one for navigating a section of the site, which of the following would be the best way to code the part of the page with the site navigation?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "b4e57d17-fccf-43a5-90d2-e447a58dbe31",
+      "question_text": "Which of the following is **NOT** listed among landmarks by most screen readers?",
+      "matched_objectives": [
+        "II.F.1"
+      ],
+      "objective_text": {
+        "II.F.1": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments."
+      },
+      "rationale": [
+        "Question relies on knowledge of screen reader behavior."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "46a5d52f-0efc-4179-8fcc-217f2bdfef0f",
+      "question_text": "What is the purpose of landmark regions?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "cd0737ab-2f7f-47fc-9a5a-b2231ff6f404",
+      "question_text": "Why is it inadvisable to rely *solely* on landmark regions as a means of bypassing repetitive content?",
+      "matched_objectives": [
+        "II.C.2"
+      ],
+      "objective_text": {
+        "II.C.2": "Demonstrate manual keyboard testing to detect missing focus indicators, incorrect tab order, keyboard traps, and other keyboard-operability issues."
+      },
+      "rationale": [
+        "Question assesses keyboard operability or focus behavior."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "5ea09fbf-862d-433c-9842-f585837fdcfc",
+      "question_text": "What WCAG conformance level are the success criteria having to do with the language of the page and the language of parts of the page?",
+      "matched_objectives": [
+        "I.A.2"
+      ],
+      "objective_text": {
+        "I.A.2": "Explain the structure of WCAG 2.2, including the POUR principles, guidelines, success criteria, and conformance levels A, AA, and AAA."
+      },
+      "rationale": [
+        "Question assesses understanding of WCAG structure and levels."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "1a3d9823-0173-47b5-a412-9d079eed7b08",
+      "question_text": "Which of the following is **NOT** a valid way of programmatically indicating the language of a page or content on that page?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "ff0e151c-a056-431d-a3cc-ca1ae0ec77e0",
+      "question_text": "Which of the following is **NOT** a valid value for the `lang` attribute?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "1fec6d7f-ae84-4c78-80b3-50bc25431b67",
+      "question_text": "Which of the following would be the best text to put in the\n\ntag of the accessibility policy page at a university with the top-level heading, \u201cAccessibility Policy\u201d?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "7ac44269-e225-4a0f-8326-1bd29095ada5",
+      "question_text": "A user has just entered the text string \"registration deadline\" in a site search field on a university website and hit the submit button.\u00a0 What would be most likely to be the best title for the results page that loads?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "7b16d10a-72c8-4957-aefb-d78c385b6a72",
+      "question_text": "Which of the following is a WCAG 2.0 Level A requirement?",
+      "matched_objectives": [
+        "I.A.2"
+      ],
+      "objective_text": {
+        "I.A.2": "Explain the structure of WCAG 2.2, including the POUR principles, guidelines, success criteria, and conformance levels A, AA, and AAA."
+      },
+      "rationale": [
+        "Question assesses understanding of WCAG structure and levels."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "ebbfe1c6-6150-4bff-b0c0-764515b115ab",
+      "question_text": "Which of the following is **NOT** a way to navigate to the next visited link using a screen reader?",
+      "matched_objectives": [
+        "II.F.1"
+      ],
+      "objective_text": {
+        "II.F.1": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments."
+      },
+      "rationale": [
+        "Question relies on knowledge of screen reader behavior."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "7915e141-294d-44ee-8fee-e9b211b73e1e",
+      "question_text": "Which of the following is a way to navigate to the next unvisited link using a screen reader?",
+      "matched_objectives": [
+        "II.F.1"
+      ],
+      "objective_text": {
+        "II.F.1": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments."
+      },
+      "rationale": [
+        "Question relies on knowledge of screen reader behavior."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "927535a1-f331-43cc-9b3c-ae733453b854",
+      "question_text": "Which of the following is **NOT** a way to navigate from one link to the next using a screen reader?",
+      "matched_objectives": [
+        "II.F.1"
+      ],
+      "objective_text": {
+        "II.F.1": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments."
+      },
+      "rationale": [
+        "Question relies on knowledge of screen reader behavior."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "fd9dbd48-151c-4374-ae63-4f8eb0808449",
+      "question_text": "Which of the following is a way to list all links using a screen reader?",
+      "matched_objectives": [
+        "II.F.1"
+      ],
+      "objective_text": {
+        "II.F.1": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments."
+      },
+      "rationale": [
+        "Question relies on knowledge of screen reader behavior."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "ef5ba151-f683-40d9-92e5-ba0a9a35f36a",
+      "question_text": "Which of the following is a way to navigate to headings of a certain level using a screen reader?",
+      "matched_objectives": [
+        "II.F.1"
+      ],
+      "objective_text": {
+        "II.F.1": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments."
+      },
+      "rationale": [
+        "Question relies on knowledge of screen reader behavior."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "6689da99-4c5d-4787-845d-688a94f0e38a",
+      "question_text": "Which of the following is **NOT** a way to navigate from one heading to the next using a screen reader?",
+      "matched_objectives": [
+        "II.F.1"
+      ],
+      "objective_text": {
+        "II.F.1": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments."
+      },
+      "rationale": [
+        "Question relies on knowledge of screen reader behavior."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "248ac2f8-87a3-4110-9f5d-831fc9100f32",
+      "question_text": "Which of the following is **NOT** a way to navigate from one landmark to the next using a screen reader?",
+      "matched_objectives": [
+        "II.F.1"
+      ],
+      "objective_text": {
+        "II.F.1": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments."
+      },
+      "rationale": [
+        "Question relies on knowledge of screen reader behavior."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "fd19caae-b5d6-4977-942a-6929e98f98de",
+      "question_text": "Which of the following is a way to navigate to the main content landmark using a screen reader?",
+      "matched_objectives": [
+        "II.F.1"
+      ],
+      "objective_text": {
+        "II.F.1": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments."
+      },
+      "rationale": [
+        "Question relies on knowledge of screen reader behavior."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "7d822b18-dd3b-4bdf-8dc5-bb33bb3aca89",
+      "question_text": "Which of the following is **NOT** way to list all landmarks using a screen reader?",
+      "matched_objectives": [
+        "II.F.1"
+      ],
+      "objective_text": {
+        "II.F.1": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments."
+      },
+      "rationale": [
+        "Question relies on knowledge of screen reader behavior."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "1c33a8f9-15fb-4092-9131-a412c997ead5",
+      "question_text": "What does switching to the JAWS cursor allow you to do?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "d4730696-ccc6-46d5-ae5d-5bf25c1f38b3",
+      "question_text": "How do you navigate to a cell below the current one with JAWS?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "a2bb2585-36e0-4970-b10a-8f5d6488e428",
+      "question_text": "Which of the following is a way to navigate between form elements on macOS VoiceOver?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "935f1124-3bc8-44b3-b6e4-b23396593fd6",
+      "question_text": "Which of the following is true about accessibility APIs?\u00a0 Choose all that apply.",
+      "matched_objectives": [
+        "II.F.1"
+      ],
+      "objective_text": {
+        "II.F.1": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments."
+      },
+      "rationale": [
+        "Question relies on knowledge of screen reader behavior."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "110eb85b-04b2-49c9-9a9b-514a84315e57",
+      "question_text": "Which of the following is **NOT** a full-featured screen reader?",
+      "matched_objectives": [
+        "II.F.1"
+      ],
+      "objective_text": {
+        "II.F.1": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments."
+      },
+      "rationale": [
+        "Question relies on knowledge of screen reader behavior."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "89fb5493-095f-4e71-accf-4b07f489c69f",
+      "question_text": "How do you bring up the rotor on iOS VoiceOver?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "8c3ffc30-72ea-4cca-9206-ed43d8d9b602",
+      "question_text": "Which of the following key commands manually switches you to Focus mode from Browse mode in NVDA?",
+      "matched_objectives": [
+        "II.C.2"
+      ],
+      "objective_text": {
+        "II.C.2": "Demonstrate manual keyboard testing to detect missing focus indicators, incorrect tab order, keyboard traps, and other keyboard-operability issues."
+      },
+      "rationale": [
+        "Question assesses keyboard operability or focus behavior."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "cc2ff823-baa8-479d-8372-370e695691b0",
+      "question_text": "Which of the following should you do before commencing screen reader testing on a Mac?",
+      "matched_objectives": [
+        "II.F.1",
+        "I.D.2"
+      ],
+      "objective_text": {
+        "II.F.1": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments.",
+        "I.D.2": "Implement accessible names and descriptions for interactive controls using appropriate naming and description techniques."
+      },
+      "rationale": [
+        "Question relies on knowledge of screen reader behavior.",
+        "Question assesses accessible naming or labeling."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "30a8c33d-f436-489d-a98f-552326256b53",
+      "question_text": "What does swiping down do on iOS VoiceOver?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "d88ab4ed-4146-4ff1-a2d4-46461c8cd510",
+      "question_text": "You are using JAWS and are not already in Forms mode.\u00a0 Pressing the `Enter` key will switch to Forms mode when the Virtual PC Cursor is on which of the following elements?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "8c319e6b-e78e-4e7d-8f66-e6463351be2f",
+      "question_text": "Which of the following is roughly analogous to Focus mode?",
+      "matched_objectives": [
+        "II.C.2"
+      ],
+      "objective_text": {
+        "II.C.2": "Demonstrate manual keyboard testing to detect missing focus indicators, incorrect tab order, keyboard traps, and other keyboard-operability issues."
+      },
+      "rationale": [
+        "Question assesses keyboard operability or focus behavior."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "3f1c4d74-2056-4d0b-8c69-0d6be0e6a187",
+      "question_text": "What is one way you can cycle through reading commands on TalkBack?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "0dc1c02a-86bb-4373-ba91-a795f62a5264",
+      "question_text": "Which of the following is a way to navigate between images using a screen reader?",
+      "matched_objectives": [
+        "II.F.1"
+      ],
+      "objective_text": {
+        "II.F.1": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments."
+      },
+      "rationale": [
+        "Question relies on knowledge of screen reader behavior."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "52a1895a-b0df-4710-95aa-527049c40c94",
+      "question_text": "Which of the following is\u00a0**NOT** true?",
+      "matched_objectives": [
+        "II.C.2"
+      ],
+      "objective_text": {
+        "II.C.2": "Demonstrate manual keyboard testing to detect missing focus indicators, incorrect tab order, keyboard traps, and other keyboard-operability issues."
+      },
+      "rationale": [
+        "Question assesses keyboard operability or focus behavior."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "3d61afb3-77c0-4ea7-868e-88f0d3c51313",
+      "question_text": "Which screen reader might you use on an Android device?",
+      "matched_objectives": [
+        "II.F.1"
+      ],
+      "objective_text": {
+        "II.F.1": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments."
+      },
+      "rationale": [
+        "Question relies on knowledge of screen reader behavior."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "41ef4b3a-52bb-4552-b594-2719fc0f39f3",
+      "question_text": "In which of the following circumstances would it likely be most important to perform testing with a screen reader?",
+      "matched_objectives": [
+        "II.F.1"
+      ],
+      "objective_text": {
+        "II.F.1": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments."
+      },
+      "rationale": [
+        "Question relies on knowledge of screen reader behavior."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "0e39fe4d-2af2-45d0-b77c-682099b9adbd",
+      "question_text": "Which of the following platforms can you use VoiceOver on?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "6f638067-7118-449a-b60d-ca66c2e9ed2f",
+      "question_text": "Which browser usually works best with VoiceOver?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "8066217b-f5d6-4842-a1cf-c9cc6709098f",
+      "question_text": "Which of the following is\u00a0**NOT** a reason why someone with a cognitive disability might use a screen reader?",
+      "matched_objectives": [
+        "II.F.1"
+      ],
+      "objective_text": {
+        "II.F.1": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments."
+      },
+      "rationale": [
+        "Question relies on knowledge of screen reader behavior."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "37c95829-d4bc-4a6a-a398-4972b74d77ac",
+      "question_text": "Which of the following is\u00a0**NOT** true about Braille devices?",
+      "matched_objectives": [
+        "II.F.1"
+      ],
+      "objective_text": {
+        "II.F.1": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments."
+      },
+      "rationale": [
+        "Question relies on knowledge of screen reader behavior."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "684fd327-1803-4251-a516-e83ac2523f30",
+      "question_text": "For a show/hide pattern, appropriately setting the `aria-expanded` state of a button that hides and reveals content would be an example of which web accessibility principle?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "9c726b85-83c4-46a9-91f9-9937b9251a71",
+      "question_text": "The following code would be an example of a violation of which web accessibility principle?\n\n```\n\nitem 1\nitem2\n\n```",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "859332d9-39d2-4190-9639-6b5591f95690",
+      "question_text": "For web pages that causes legal commitments, providing a mechanism for reviewing, confirming, and correcting information before finalizing the submission is an example of which web accessibility principle?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "ac72dc34-33e1-4475-80f2-246313253434",
+      "question_text": "Alerting users to errors in their input is an example of which web accessibility principle?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "b3314734-4102-4ef7-aaa0-7a62a0a3483a",
+      "question_text": "Providing instructions when content requires input is an example of which web accessibility principle?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "a87ef773-0a92-4c81-a977-1e04586932b9",
+      "question_text": "Providing text descriptions to identify fields that were not completed is an example of which web accessibility principle?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "5b5e7d7f-2012-4b95-ae6d-cc34509ecea4",
+      "question_text": "If you opened a new window as soon as a new page is loaded, which web accessibility principle would this violate?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "dce7fa82-e692-438e-9ef0-ae655c2118cc",
+      "question_text": "If you used different icons on different pages that initiated the same action when pressed, this would be a violation of which web accessibility principle?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "24309e3f-9db0-44a5-9e6b-0aaf97a079c0",
+      "question_text": "Presenting navigation links in a different relative order on different pages in a set of web pages would be a violation of which web accessibility principle?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "dcbbf48a-d66c-49a0-8574-0ad77b03614e",
+      "question_text": "Opening a new browser window without warning when changing the selected option in a select list would be a violation of which web accessibility principle?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "b9a3d9b0-05f6-4604-962e-a8deba82825c",
+      "question_text": "If a new browser window opened when a link received focus, which web accessibility principle would be violated?",
+      "matched_objectives": [
+        "II.C.2"
+      ],
+      "objective_text": {
+        "II.C.2": "Demonstrate manual keyboard testing to detect missing focus indicators, incorrect tab order, keyboard traps, and other keyboard-operability issues."
+      },
+      "rationale": [
+        "Question assesses keyboard operability or focus behavior."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "4c2f7dd8-fc99-4aed-b6e3-94e3bb077190",
+      "question_text": "Ensuring that any changes to the human language of the page can be programmatically determined by using the `lang` attribute on any element where the language has *changed* is an example of which web accessibility principle?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "42137472-0cb5-4713-8ace-b4a68f5d9b19",
+      "question_text": "Ensuring that the default human language of each Web page can be programmatically determined by using the `lang` attribute on the `html` element is an example of which web accessibility principle?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "ccb5eccb-5459-4022-9b4e-11f253e62fcb",
+      "question_text": "Providing a visible focus indicator for all focusable elements on a page is an example of which web accessibility principle?",
+      "matched_objectives": [
+        "II.C.2"
+      ],
+      "objective_text": {
+        "II.C.2": "Demonstrate manual keyboard testing to detect missing focus indicators, incorrect tab order, keyboard traps, and other keyboard-operability issues."
+      },
+      "rationale": [
+        "Question assesses keyboard operability or focus behavior."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "207edd41-87a2-4757-b5f5-40f3f8d1fa6e",
+      "question_text": "If headings on a page fail to describe a topic or purpose, which web accessibility principle is violated?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "aa12de8c-0dda-4459-ad70-f8c99fe76ad4",
+      "question_text": "Providing a main navigation menu, breadcrumb trail, and search functionality on every page is an example of which web accessibility principle?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "c258ef47-54bf-45cf-95e5-2937857f3923",
+      "question_text": "Providing link text that describes the purpose of a link is an example of which accessibility principle?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "3d9a0c41-6c25-4f97-8959-74389b3982d5",
+      "question_text": "Ensuring focusable components receive focus in an order that preserves meaning and operability is an example of which accessibility principle?",
+      "matched_objectives": [
+        "II.C.2"
+      ],
+      "objective_text": {
+        "II.C.2": "Demonstrate manual keyboard testing to detect missing focus indicators, incorrect tab order, keyboard traps, and other keyboard-operability issues."
+      },
+      "rationale": [
+        "Question assesses keyboard operability or focus behavior."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "8820472d-90f5-41a2-a2b4-1829efe493cc",
+      "question_text": "Providing a page title using the `title` element is an example of which web accessibility principle?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "59901e38-4267-48d5-af32-2049d7bc4934",
+      "question_text": "Adding a link at the top of each page that goes directly to the main content area is an example of which web accessibility principle?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "a3818d0c-33b1-4bea-9fb0-71f16bb15c23",
+      "question_text": "Ensuring that nothing in a page flashes more than three times in any one second period is an example of which web accessibility principle?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "81e1c4be-f3b1-4743-b87d-2dddc4be37fb",
+      "question_text": "Allowing the content to be paused and restarted from where it was paused is an example of which accessibility principle?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "56ca92f8-0ad8-49f6-bd84-a713ba5d3dfd",
+      "question_text": "Providing a way for the user to turn the time limit off is an example of which web accessibility principle?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "b054d26b-0c99-4920-8449-6b5c663cbb7c",
+      "question_text": "Ensuring that users are not trapped in content is an example of which web accessibility principle?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "7bfcbb3c-3f40-46f3-a000-6e4a6cb4bcc6",
+      "question_text": "Ensuring keyboard control for all functionality is an example of which accessibility principle?",
+      "matched_objectives": [
+        "II.C.2"
+      ],
+      "objective_text": {
+        "II.C.2": "Demonstrate manual keyboard testing to detect missing focus indicators, incorrect tab order, keyboard traps, and other keyboard-operability issues."
+      },
+      "rationale": [
+        "Question assesses keyboard operability or focus behavior."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "e47d3381-deb5-4edc-9cbb-df6c12b7206d",
+      "question_text": "Providing a control near the beginning of the Web page that turns off sounds that play automatically is an example of which accessibility principle?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "d2eab354-a511-45b6-a90e-b39f78997bb7",
+      "question_text": "Embedding informative text into a JPG image file is a violation of which web accessibility principle?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "53afed55-80ec-44d9-b7c3-3a9c82a26e69",
+      "question_text": "If increasing the size of the text 175% causes that text to be obscured by a picture on the page which accessibility principle would that violate?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "87196052-f17b-46d7-9f7f-05e374594280",
+      "question_text": "The following example violates which accessibility principle?\n\nComplete the assignments below. They will be graded as per the policy outlined in our\u00a0syllabus.\n\nEverything in **red** is due tomorrow:\n\n- List of group members\n- Project proposal\n- Discussion forum assignment 4\n- Quiz 4\n\nAnd don't forget the game this Friday.\u00a0 **Go Hokies!**",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "05693e34-02fa-43bd-b99b-d333be4f3977",
+      "question_text": "Providing instructions to the user to click on a link to the right of another element on the page is a violation of which web accessibility principle?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "0cf1e292-421b-4909-ab99-1ea0dfcf7468",
+      "question_text": "Ensuring content is presented in a meaningful sequence when accessed with a screen reader is an example of which web accessibility principle?",
+      "matched_objectives": [
+        "II.F.1"
+      ],
+      "objective_text": {
+        "II.F.1": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments."
+      },
+      "rationale": [
+        "Question relies on knowledge of screen reader behavior."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "9709fd0b-4905-4349-8c48-bff71b6cd005",
+      "question_text": "Using label elements to associate text labels with form controls is an example of which web accessibility principles? **Check all that apply.**",
+      "matched_objectives": [
+        "I.D.2"
+      ],
+      "objective_text": {
+        "I.D.2": "Implement accessible names and descriptions for interactive controls using appropriate naming and description techniques."
+      },
+      "rationale": [
+        "Question assesses accessible naming or labeling."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "a74ae067-b7f0-43cc-9717-65f8288b07b6",
+      "question_text": "Using table markup to present tabular information is an example of which web accessibility principle?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "f2101e4e-b786-4abc-9731-58f3c7465e59",
+      "question_text": "Providing audio descriptions for a prerecorded video with an audio track is an example of which web accessibility principle?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "75946d4b-944d-431c-a67a-23e70a1ec213",
+      "question_text": "Providing a text transcript for a an audio recording of an interview is an example of which web accessibility principle?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "554b7fb9-0c40-408c-8f50-143da065e1fe",
+      "question_text": "Providing closed captions for a prerecorded video with an audio track is an example of which web accessibility principle?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "2474f786-3812-417b-b040-e5e8629b1948",
+      "question_text": "A web-based email service allows users to delete messages by clicking an icon button whose `aria-label` attribute is set to \"Delete Message\".\u00a0 The icon chosen looks like the null symbol, which is a circle with a diagonal slash through it (\u00d8). Which of the following is a reason why this might present a barrier?",
+      "matched_objectives": [
+        "I.D.2"
+      ],
+      "objective_text": {
+        "I.D.2": "Implement accessible names and descriptions for interactive controls using appropriate naming and description techniques."
+      },
+      "rationale": [
+        "Question assesses accessible naming or labeling."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "0f7dd21b-89df-450c-bb3e-de0ed6440b12",
+      "question_text": "Which of the following techniques would **BEST**\u00a0ensure that *all* users know which fields in a form are required?",
+      "matched_objectives": [
+        "I.D.2"
+      ],
+      "objective_text": {
+        "I.D.2": "Implement accessible names and descriptions for interactive controls using appropriate naming and description techniques."
+      },
+      "rationale": [
+        "Question assesses accessible naming or labeling."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "9056c9c7-910d-44a9-8d01-b9ca4d40abe9",
+      "question_text": "Which of the following provides the **BEST** accessible name for a submit button for a search form that looks like a magnifying glass icon?",
+      "matched_objectives": [
+        "I.D.2"
+      ],
+      "objective_text": {
+        "I.D.2": "Implement accessible names and descriptions for interactive controls using appropriate naming and description techniques."
+      },
+      "rationale": [
+        "Question assesses accessible naming or labeling."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "872c29cd-27e9-4b50-9cd4-06a5605cf04e",
+      "question_text": "Which of the following provides the **BEST** label for a select box (`\n\n`) that displays a list of color options to choose from?",
+      "matched_objectives": [
+        "I.D.2"
+      ],
+      "objective_text": {
+        "I.D.2": "Implement accessible names and descriptions for interactive controls using appropriate naming and description techniques."
+      },
+      "rationale": [
+        "Question assesses accessible naming or labeling."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "62e5bf53-385b-415b-8cba-b95b03b3c654",
+      "question_text": "Why should you avoid using images of text as programmatically-associated labels for form controls?",
+      "matched_objectives": [
+        "I.D.2"
+      ],
+      "objective_text": {
+        "I.D.2": "Implement accessible names and descriptions for interactive controls using appropriate naming and description techniques."
+      },
+      "rationale": [
+        "Question assesses accessible naming or labeling."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "8f5608c1-1485-4124-a735-ca5d9e1abde3",
+      "question_text": "Which of the following is **NOT** a reason for avoiding the use of the `placeholder` attribute as the label for a text field?",
+      "matched_objectives": [
+        "II.F.1",
+        "I.D.2"
+      ],
+      "objective_text": {
+        "II.F.1": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments.",
+        "I.D.2": "Implement accessible names and descriptions for interactive controls using appropriate naming and description techniques."
+      },
+      "rationale": [
+        "Question relies on knowledge of screen reader behavior.",
+        "Question assesses accessible naming or labeling."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "07768003-aa3a-4c2d-b7f5-2a55311e48cc",
+      "question_text": "Which of the following is the **BEST** way of labelling a form control?",
+      "matched_objectives": [
+        "I.D.2"
+      ],
+      "objective_text": {
+        "I.D.2": "Implement accessible names and descriptions for interactive controls using appropriate naming and description techniques."
+      },
+      "rationale": [
+        "Question assesses accessible naming or labeling."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "9290ff25-f2a7-47d8-8bd2-1779e0973102",
+      "question_text": "Which of the following is a valid way to provide a programmatically-associated label for a form control?",
+      "matched_objectives": [
+        "I.D.2"
+      ],
+      "objective_text": {
+        "I.D.2": "Implement accessible names and descriptions for interactive controls using appropriate naming and description techniques."
+      },
+      "rationale": [
+        "Question assesses accessible naming or labeling."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "9b1353e1-47a7-41b3-8837-a1aeab01da3c",
+      "question_text": "Which of the following is **NOT** a reason to programmatically associate a label with its associated form control?",
+      "matched_objectives": [
+        "II.C.2",
+        "I.D.2"
+      ],
+      "objective_text": {
+        "II.C.2": "Demonstrate manual keyboard testing to detect missing focus indicators, incorrect tab order, keyboard traps, and other keyboard-operability issues.",
+        "I.D.2": "Implement accessible names and descriptions for interactive controls using appropriate naming and description techniques."
+      },
+      "rationale": [
+        "Question assesses keyboard operability or focus behavior.",
+        "Question assesses accessible naming or labeling."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "0e468dca-04b6-4bd5-9e38-75ee52283d1d",
+      "question_text": "Which is usually the preferred strategy for dealing with lazy-loading content?",
+      "matched_objectives": [
+        "II.F.1"
+      ],
+      "objective_text": {
+        "II.F.1": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments."
+      },
+      "rationale": [
+        "Question relies on knowledge of screen reader behavior."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "e3426260-4489-4be8-910d-ae1ff94a0bff",
+      "question_text": "You want a screen reader to announce new content that has been added through an AJAX call by setting focus to it when the user clicks a button, but it is not being voiced.\u00a0 According to Deque University, what might you have to do to fix this?",
+      "matched_objectives": [
+        "II.C.2",
+        "II.F.1"
+      ],
+      "objective_text": {
+        "II.C.2": "Demonstrate manual keyboard testing to detect missing focus indicators, incorrect tab order, keyboard traps, and other keyboard-operability issues.",
+        "II.F.1": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments."
+      },
+      "rationale": [
+        "Question assesses keyboard operability or focus behavior.",
+        "Question relies on knowledge of screen reader behavior."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "7a024e96-5705-437a-a988-55b8d15b32e5",
+      "question_text": "Beside each item listed on the checkout page is a `select` element labelled, \u201cQuantity,\u201d that, when changed, dynamically updates the part of the page where the subtotal is displayed.\u00a0 Which of the following is the best way to ensure blind users are notified of the change?",
+      "matched_objectives": [
+        "I.D.2"
+      ],
+      "objective_text": {
+        "I.D.2": "Implement accessible names and descriptions for interactive controls using appropriate naming and description techniques."
+      },
+      "rationale": [
+        "Question assesses accessible naming or labeling."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "ef47b108-b08b-4bf5-8ab3-c07282dcd07e",
+      "question_text": "A user has just entered the text string \u201cregistration deadline\u201d in a site search field on a university website and hit the submit button.\u00a0 What would be most likely to be the best title for the results page that loads?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "16951573-b9dd-4d6a-8598-fe7fe695ccec",
+      "question_text": "Which of the following is screen reading software likely to do automatically upon loading a new page?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "ef02502c-e978-49c3-9090-05fe288f7f9b",
+      "question_text": "Which of the following is **NOT** a way to reliably notify blind users of dynamic changes to content on a page?",
+      "matched_objectives": [
+        "II.C.2"
+      ],
+      "objective_text": {
+        "II.C.2": "Demonstrate manual keyboard testing to detect missing focus indicators, incorrect tab order, keyboard traps, and other keyboard-operability issues."
+      },
+      "rationale": [
+        "Question assesses keyboard operability or focus behavior."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "6b487d84-1e76-441e-ab6f-176141c272a5",
+      "question_text": "Which of the following is a way that you can activate a link using Dragon Naturally Speaking?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "87a3dd1c-c886-4afc-8a71-5f322884ae6c",
+      "question_text": "Which of the following is a way that you can activate a button using Dragon Naturally Speaking?",
+      "matched_objectives": [
+        "I.D.2"
+      ],
+      "objective_text": {
+        "I.D.2": "Implement accessible names and descriptions for interactive controls using appropriate naming and description techniques."
+      },
+      "rationale": [
+        "Question assesses accessible naming or labeling."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "1c4c2de9-e8e6-400e-a1ed-32f625fbc29c",
+      "question_text": "How should the user navigate within a composite ARIA widget using the keyboard?",
+      "matched_objectives": [
+        "II.C.2"
+      ],
+      "objective_text": {
+        "II.C.2": "Demonstrate manual keyboard testing to detect missing focus indicators, incorrect tab order, keyboard traps, and other keyboard-operability issues."
+      },
+      "rationale": [
+        "Question assesses keyboard operability or focus behavior."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "0e4a50d9-c11f-4586-9448-7930736aae8e",
+      "question_text": "Are there any exceptions to the rule that functionality available through a mouse must always also be made available through a keyboard?",
+      "matched_objectives": [
+        "II.C.2"
+      ],
+      "objective_text": {
+        "II.C.2": "Demonstrate manual keyboard testing to detect missing focus indicators, incorrect tab order, keyboard traps, and other keyboard-operability issues."
+      },
+      "rationale": [
+        "Question assesses keyboard operability or focus behavior."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "070a3768-dfdd-4743-85a3-620081ba0aea",
+      "question_text": "Which of the following is true regarding the order in which items receive focus?",
+      "matched_objectives": [
+        "II.C.2"
+      ],
+      "objective_text": {
+        "II.C.2": "Demonstrate manual keyboard testing to detect missing focus indicators, incorrect tab order, keyboard traps, and other keyboard-operability issues."
+      },
+      "rationale": [
+        "Question assesses keyboard operability or focus behavior."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "2857168b-c15d-45cd-a97a-80f841cdfd93",
+      "question_text": "According to Deque University, which of the following is true regarding focus?",
+      "matched_objectives": [
+        "II.C.2"
+      ],
+      "objective_text": {
+        "II.C.2": "Demonstrate manual keyboard testing to detect missing focus indicators, incorrect tab order, keyboard traps, and other keyboard-operability issues."
+      },
+      "rationale": [
+        "Question assesses keyboard operability or focus behavior."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "a091da1c-2f83-4f07-9dbf-e48bca02c6d0",
+      "question_text": "Where is the best place to look for keyboard best practices for different kinds of widgets?",
+      "matched_objectives": [
+        "II.C.2"
+      ],
+      "objective_text": {
+        "II.C.2": "Demonstrate manual keyboard testing to detect missing focus indicators, incorrect tab order, keyboard traps, and other keyboard-operability issues."
+      },
+      "rationale": [
+        "Question assesses keyboard operability or focus behavior."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "8e50610c-ca7b-483a-b60b-f85957a90506",
+      "question_text": "Which of the following live region types are set to `aria-live=\"off\"` by default?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "e78b6b1e-0bf9-4614-9a9e-348804b11de2",
+      "question_text": "Which of the following live region types are set to `aria-live=\"polite\"` by default?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "3d2b1c1e-7447-4396-b4c2-dd18d6da8ab1",
+      "question_text": "Which of the following live region types are set to `aria-live=\"assertive\"` by default?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "e87a4619-0d1b-4d96-8a94-4632a8ac327c",
+      "question_text": "If that same chat region only keeps the last 10 messages, removing a message every time it adds one, what should the value of `aria-relevant` be?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "4d063a9e-f5f1-4eb4-84ec-c3ee00700245",
+      "question_text": "What value should you set `aria-atomic` to for a region that dynamically displays chat messages?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "b1fa8350-24cf-436c-a025-6a213bed67b8",
+      "question_text": "Will a live region with text in it on page load reliably be read automatically by screen readers?",
+      "matched_objectives": [
+        "II.F.1"
+      ],
+      "objective_text": {
+        "II.F.1": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments."
+      },
+      "rationale": [
+        "Question relies on knowledge of screen reader behavior."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "439d06f2-6bd7-477a-92e5-cb303e2a6a0f",
+      "question_text": "What would **NOT** be an appropriate use for `aria-describedby`?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "02db71a3-938a-48fc-bf58-602f689e94df",
+      "question_text": "Should you ever assign an abstract role to an element in a web page?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "3834de1a-74e2-46d0-ad2d-5e699d1bbc00",
+      "question_text": "What is the difference between the `note` role and the `complementary` role?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "65234301-33fb-4708-a564-05db64d00643",
+      "question_text": "Which of the following code examples would **NOT** be announced as a heading by a screen reader?",
+      "matched_objectives": [
+        "II.F.1"
+      ],
+      "objective_text": {
+        "II.F.1": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments."
+      },
+      "rationale": [
+        "Question relies on knowledge of screen reader behavior."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "18aa61a9-e927-433b-b3ff-f3a33442ed9c",
+      "question_text": "Which of the following code examples would **NOT** result in content being ignored by a screen reader?",
+      "matched_objectives": [
+        "II.F.1"
+      ],
+      "objective_text": {
+        "II.F.1": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments."
+      },
+      "rationale": [
+        "Question relies on knowledge of screen reader behavior."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "682a47f9-71d6-45a5-a8cf-ebfc5b235c9c",
+      "question_text": "Without further modification, why would the following code be problematic?\n\n```\n[Home](index.html)\n```",
+      "matched_objectives": [
+        "II.F.1"
+      ],
+      "objective_text": {
+        "II.F.1": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments."
+      },
+      "rationale": [
+        "Question relies on knowledge of screen reader behavior."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "1cd37ebf-8ca2-44d9-b432-1d3694e90e7a",
+      "question_text": "Which of the following roles would automatically invoke Application mode in a screen reader?",
+      "matched_objectives": [
+        "II.F.1"
+      ],
+      "objective_text": {
+        "II.F.1": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments."
+      },
+      "rationale": [
+        "Question relies on knowledge of screen reader behavior."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "812dfb85-0d4f-42aa-977a-37386e3f7c00",
+      "question_text": "Which of the following is **NOT** a reason why you should generally avoid making a lengthy paragraph focusable solely for the purpose of making it readable to screen readers?",
+      "matched_objectives": [
+        "II.C.2",
+        "II.F.1"
+      ],
+      "objective_text": {
+        "II.C.2": "Demonstrate manual keyboard testing to detect missing focus indicators, incorrect tab order, keyboard traps, and other keyboard-operability issues.",
+        "II.F.1": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments."
+      },
+      "rationale": [
+        "Question assesses keyboard operability or focus behavior.",
+        "Question relies on knowledge of screen reader behavior."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "2e60f7fd-b2ea-4429-9fee-bbdd9a75ee43",
+      "question_text": "Which of the following is a way to make paragraph text that appears inside of an `application` region readable by screen reader users?",
+      "matched_objectives": [
+        "II.F.1"
+      ],
+      "objective_text": {
+        "II.F.1": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments."
+      },
+      "rationale": [
+        "Question relies on knowledge of screen reader behavior."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "4fe85ef2-2b2b-445b-a1d1-fb1458feb489",
+      "question_text": "Which of the following statements is **NOT** true regarding the `application` role?",
+      "matched_objectives": [
+        "II.C.2"
+      ],
+      "objective_text": {
+        "II.C.2": "Demonstrate manual keyboard testing to detect missing focus indicators, incorrect tab order, keyboard traps, and other keyboard-operability issues."
+      },
+      "rationale": [
+        "Question assesses keyboard operability or focus behavior."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "4b4451e5-3b3f-405e-b5dd-697161bb6dc8",
+      "question_text": "Which of the following is true regarding the `document` role?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "bd8f1029-c5a5-4016-b197-8c0b1fbd8dc4",
+      "question_text": "What is one reason why it would usually be better to use a `\n\n` tag, rather than assign the `button` ARIA role to a `` tag?",
+      "matched_objectives": [
+        "I.D.4"
+      ],
+      "objective_text": {
+        "I.D.4": "Explain how WAI-ARIA communicates semantics to assistive technologies, including roles, states, properties, and the accessibility tree."
+      },
+      "rationale": [
+        "Question tests understanding of how ARIA conveys semantics."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "78e44c38-5c14-49c0-8667-af7333f80d4f",
+      "question_text": "Which of the following is an ARIA widget role?",
+      "matched_objectives": [
+        "I.D.4"
+      ],
+      "objective_text": {
+        "I.D.4": "Explain how WAI-ARIA communicates semantics to assistive technologies, including roles, states, properties, and the accessibility tree."
+      },
+      "rationale": [
+        "Question tests understanding of how ARIA conveys semantics."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "873f9e68-55eb-404f-b51a-53bd025a5086",
+      "question_text": "What is one reason why is it important to use the appropriate ARIA roles when creating custom widgets, such as tabbed interfaces?",
+      "matched_objectives": [
+        "I.D.4",
+        "II.F.1"
+      ],
+      "objective_text": {
+        "I.D.4": "Explain how WAI-ARIA communicates semantics to assistive technologies, including roles, states, properties, and the accessibility tree.",
+        "II.F.1": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments."
+      },
+      "rationale": [
+        "Question tests understanding of how ARIA conveys semantics.",
+        "Question relies on knowledge of screen reader behavior."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "11a520a1-5862-40ff-9beb-58091984c8e6",
+      "question_text": "When scoped to the `\n\n` tag, which HTML tag is equivalent to `role=\"contentinfo\"`?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "254d144e-9535-4a48-9e8f-39a29776a2bd",
+      "question_text": "When scoped to the `\n\n` tag, which HTML tag is equivalent to `role=\"banner\"`?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "66aef1d6-4537-4c18-a28e-f502274472c2",
+      "question_text": "Which HTML tag is equivalent to the `complementary` role?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "2f7aac73-7572-45b7-a88c-f5717bf64bd8",
+      "question_text": "Which HTML tag is equivalent to the `navigation` role?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "63e4766b-233e-4ca2-8dc5-2fb99d8fda91",
+      "question_text": "Which of the following HTML tags is\u00a0a landmark region?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "8b65adff-e182-4fdc-9350-971ecf0a7b5b",
+      "question_text": "Which of the following HTML tags is **ALWAYS** a landmark region?\u00a0 Check all that apply.",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "60a85743-7c93-4366-bae7-d5a6ef716c4b",
+      "question_text": "Which of the following is **NEVER** a valid landmark role?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "6c25e59d-c04e-4370-8b3c-bba39dcd06d1",
+      "question_text": "Which of the following is a reason why should you usually avoid using `role=\"application\"`?",
+      "matched_objectives": [
+        "II.C.2",
+        "II.F.1"
+      ],
+      "objective_text": {
+        "II.C.2": "Demonstrate manual keyboard testing to detect missing focus indicators, incorrect tab order, keyboard traps, and other keyboard-operability issues.",
+        "II.F.1": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments."
+      },
+      "rationale": [
+        "Question assesses keyboard operability or focus behavior.",
+        "Question relies on knowledge of screen reader behavior."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "71844a30-372e-43d5-ae7e-b776466cc5d4",
+      "question_text": "A web page has two different navigation regions that both use the `\n\n` tag.\u00a0 Which of the following should you do to ensure these are optimally accessible?",
+      "matched_objectives": [
+        "I.D.2"
+      ],
+      "objective_text": {
+        "I.D.2": "Implement accessible names and descriptions for interactive controls using appropriate naming and description techniques."
+      },
+      "rationale": [
+        "Question assesses accessible naming or labeling."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "5fd33c40-913a-45ca-8d7a-669dd012c8db",
+      "question_text": "What is wrong with the following code?\n\n```\n\nCapital:\n\n```",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "a30a1024-a65f-4e6f-8763-e55f27507398",
+      "question_text": "With all else being equal, which of the following would be the best way of creating a level 1 heading?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "b605efc2-7465-48db-aa90-0828ae86c4c1",
+      "question_text": "According to the Accessible Name and Description Computation algorithm, what should be the accessible name for the checkbox in the following code snippet?\n\n```\nRob ...\nAgree ...\n\n```",
+      "matched_objectives": [
+        "I.D.2"
+      ],
+      "objective_text": {
+        "I.D.2": "Implement accessible names and descriptions for interactive controls using appropriate naming and description techniques."
+      },
+      "rationale": [
+        "Question assesses accessible naming or labeling."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "397f7f8e-ae29-43c0-b0fc-8d265f2209c9",
+      "question_text": "According to the Accessible Name and Description Computation algorithm, what should the accessible name for the link be in the following code snippet?\n\n```\n[Virginia Tech](index.html)\n```",
+      "matched_objectives": [
+        "I.D.2"
+      ],
+      "objective_text": {
+        "I.D.2": "Implement accessible names and descriptions for interactive controls using appropriate naming and description techniques."
+      },
+      "rationale": [
+        "Question assesses accessible naming or labeling."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "2d9ee875-c8c9-40ea-a90d-5e5383b8d070",
+      "question_text": "According to the Accessible Name and Description Computation algorithm, what should be the accessible name for the link in the following code snippet?\n\n```\n[Acme widgets](acme.html)\n```",
+      "matched_objectives": [
+        "I.D.2"
+      ],
+      "objective_text": {
+        "I.D.2": "Implement accessible names and descriptions for interactive controls using appropriate naming and description techniques."
+      },
+      "rationale": [
+        "Question assesses accessible naming or labeling."
+      ],
+      "no_match": false
+    },
+    {
+      "question_id": "5ca19cf2-36e6-4e69-8ec9-03949c363b76",
+      "question_text": "The 21st Century Communications and Video Accessibility Act (CVAA) applies to which of the following?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "7fbba681-21ed-4037-82b8-881df74eb9a1",
+      "question_text": "The Air Carrier Access Act (ACAA) applies to which of the following?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "8dbfb978-26c1-4eb3-a956-33056505ebef",
+      "question_text": "How is the Americans with Disabilities Act (ADA) enforced?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "a66adf84-1298-4ad6-8cfc-95d1e1a29d0b",
+      "question_text": "The Americans with Disabilities Act (ADA) applies to which groups?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "7914c0c5-dd70-414b-9faa-178603b1a888",
+      "question_text": "The *R\u00e9f\u00e9rentiel G\u00e9n\u00e9ral d'Accessibilit\u00e9 pour les Administrations* (RGAA) sets accessibility standards for which province or country?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "062f5538-b7ba-4d01-a43a-493820078da0",
+      "question_text": "Which of the following could best be described as a domain-specific law or regulation?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "a479214f-f486-48f8-8dfe-3b585f53ebc4",
+      "question_text": "Which of the following is an example of a procurement law?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "a1aef298-039c-4389-939f-a195855b80d4",
+      "question_text": "Which of the following could best be described as a\u00a0multi-national standard?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "e55a54df-5e82-4383-aa0c-0b244744f9b6",
+      "question_text": "Which of the following could best be described as a\u00a0civil rights or non-discrimination law?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "e0b1d265-0ab1-4fa2-8111-8fb63c1c4b45",
+      "question_text": "Which of the following could best be described as a civil rights or non-discrimination law?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    },
+    {
+      "question_id": "19c2f47a-0524-440c-9535-718f03731f7f",
+      "question_text": "What is the primary purpose of WAI-ARIA in web accessibility?",
+      "matched_objectives": [],
+      "objective_text": {},
+      "rationale": [
+        "No clear objective match after semantic interpretation"
+      ],
+      "no_match": true
+    }
+  ]
+}

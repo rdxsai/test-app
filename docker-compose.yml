@@ -18,6 +18,7 @@ services:
 
       # Bind mounts for persistent data (always on host machine)
       - ./data:/app/data # Data files (quiz_questions.json, etc.)
+      - ./exports:/app/exports # Exported files (question/objective exports)
       - ./logs:/app/logs # Application logs
       - ./scripts:/app/scripts:ro # One-time scripts (export/import)
     environment:

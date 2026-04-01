@@ -1,0 +1,1102 @@
+{
+  "schema": "prod",
+  "objectives": [
+    {
+      "id": "4fe23a23-efe7-4a81-859a-595535da0b8a",
+      "text": "Analyze accessibility implications of complex web applications and determine how ARIA roles, states, and properties can communicate interface changes to assistive technologies.",
+      "blooms_level": "analyze",
+      "priority": "medium"
+    },
+    {
+      "id": "fbec8c75-48ec-4297-96ba-111e5174cbce",
+      "text": "Analyze accessibility issues identified by testing tools and determine appropriate follow-up manual testing strategies.",
+      "blooms_level": "analyze",
+      "priority": "medium"
+    },
+    {
+      "id": "03f094e6-406d-4d54-8f74-dc83a2692552",
+      "text": "Analyze accessibility issues to determine their potential impact on users with different types of disabilities.",
+      "blooms_level": "analyze",
+      "priority": "medium"
+    },
+    {
+      "id": "ef879cb1-186a-4bbf-944e-b434d1677745",
+      "text": "Analyze accessibility issues to determine their severity based on user impact, legal risk, and implementation effort.",
+      "blooms_level": "analyze",
+      "priority": "medium"
+    },
+    {
+      "id": "5d1090ee-3f8a-4907-a8b0-8c8bc0cbd44f",
+      "text": "Analyze accessibility issues to determine whether they represent failures of WCAG Success Criteria or broader usability or accessibility concerns not explicitly covered by the specifications.",
+      "blooms_level": "analyze",
+      "priority": "medium"
+    },
+    {
+      "id": "961cbb19-0982-4229-9c74-5b52777c9a0e",
+      "text": "Analyze accessibility issues to determine whether they result from design or implementation flaws versus limitations in browser or assistive technology support.",
+      "blooms_level": "analyze",
+      "priority": "medium"
+    },
+    {
+      "id": "56642910-6bfa-4ac5-86b0-d7e48822adff",
+      "text": "Analyze accessibility of interactive components and ARIA-based widgets based on expected keyboard and screen reader behavior.",
+      "blooms_level": "analyze",
+      "priority": "medium"
+    },
+    {
+      "id": "687e5e14-8f5d-4328-8281-1f7fa03f48e6",
+      "text": "Analyze automated accessibility testing results to identify false positives, omissions, and issues requiring manual verification.",
+      "blooms_level": "analyze",
+      "priority": "medium"
+    },
+    {
+      "id": "190af391-bc91-4b5f-aa0b-3c6d3da90b8a",
+      "text": "Analyze compatibility issues that occur across different combinations of assistive technologies, browsers, and operating systems.",
+      "blooms_level": "analyze",
+      "priority": "medium"
+    },
+    {
+      "id": "87948c5d-fb73-4bb3-8ddf-304fa8533370",
+      "text": "Analyze development workflows to determine how accessibility practices can be incorporated into ongoing quality assurance and regression testing processes.",
+      "blooms_level": "analyze",
+      "priority": "medium"
+    },
+    {
+      "id": "eec20bee-ba5f-4d21-847c-f1e689095fac",
+      "text": "Analyze differences in how assistive technology users may interact with web content based on skill level, navigation strategies, and personal preferences.",
+      "blooms_level": "analyze",
+      "priority": "medium"
+    },
+    {
+      "id": "a10aa220-b5ea-4a95-93d3-779f2acf53bc",
+      "text": "Analyze dynamic content updates in SPAs to determine whether users should be notified when new content is loaded.",
+      "blooms_level": "analyze",
+      "priority": "medium"
+    },
+    {
+      "id": "3dedc40c-5583-4e1e-9115-fcb6932eed5b",
+      "text": "Analyze dynamic content updates to determine when keyboard focus should be moved to newly loaded content.",
+      "blooms_level": "analyze",
+      "priority": "medium"
+    },
+    {
+      "id": "eb6418e2-9674-446b-9c7e-580a16cb2067",
+      "text": "Analyze examples of web content to determine whether they meet or fail specific WCAG success criteria.",
+      "blooms_level": "analyze",
+      "priority": "medium"
+    },
+    {
+      "id": "400b6478-a872-4f1d-92e3-9d4aa6a12db2",
+      "text": "Analyze how accessibility support changes when assistive technologies are combined with different user agents.",
+      "blooms_level": "analyze",
+      "priority": "medium"
+    },
+    {
+      "id": "72cbad52-fe90-4f07-a4c7-95595e69041f",
+      "text": "Analyze how accessibility testing tools can be applied at different stages of the web development lifecycle, including design, development, and testing.",
+      "blooms_level": "analyze",
+      "priority": "medium"
+    },
+    {
+      "id": "7af792d3-8465-468c-8bf3-104f4c9b04a0",
+      "text": "Analyze how accessibility testing tools can be integrated at different stages of the web development lifecycle, including design, development, and testing.",
+      "blooms_level": "analyze",
+      "priority": "medium"
+    },
+    {
+      "id": "2cc0b439-9a99-4325-9f54-34c282263ba7",
+      "text": "Analyze how design and implementation decisions affect accessibility for users with disabilities.",
+      "blooms_level": "analyze",
+      "priority": "medium"
+    },
+    {
+      "id": "1a978f58-891e-4b8d-927a-5a3d141b64bd",
+      "text": "Analyze how JavaScript implementations can either improve or reduce accessibility and usability for people using assistive technologies.",
+      "blooms_level": "analyze",
+      "priority": "medium"
+    },
+    {
+      "id": "7f1ac4c3-a42c-4947-a636-4aad6d683bf2",
+      "text": "Analyze how users with disabilities interact with web content using assistive technologies, adaptive strategies, and user agents.",
+      "blooms_level": "analyze",
+      "priority": "medium"
+    },
+    {
+      "id": "1f346222-1a3a-4207-ac9c-f760a98c4930",
+      "text": "Analyze interactive components to ensure they support single-pointer alternatives for gesture-based interactions.",
+      "blooms_level": "analyze",
+      "priority": "medium"
+    },
+    {
+      "id": "eda0a877-422b-4f03-8688-3aca3b72dd85",
+      "text": "Analyze results from automated and manual testing tools to determine appropriate follow-up testing or remediation steps.",
+      "blooms_level": "analyze",
+      "priority": "medium"
+    },
+    {
+      "id": "6fe06d96-d264-4154-86a9-3db1d063257a",
+      "text": "Analyze the scope and intent of the requirements listed in Annex A, Table A.1 in EN 301 549 that go beyond WCAG.",
+      "blooms_level": "analyze",
+      "priority": "medium"
+    },
+    {
+      "id": "6a8ca270-7ec3-4bc7-b6f5-71ebc405bf99",
+      "text": "Analyze web interface patterns to determine when WAI-ARIA is appropriate.",
+      "blooms_level": "analyze",
+      "priority": "medium"
+    },
+    {
+      "id": "f1ff5abd-51aa-42f8-bf57-860681bfe5e5",
+      "text": "Analyze widget implementations to determine whether appropriate WAI-ARIA roles, states, and properties are applied correctly.",
+      "blooms_level": "analyze",
+      "priority": "medium"
+    },
+    {
+      "id": "b509fb31-938e-4778-93c2-4adab1286115",
+      "text": "Apply ARIA live region properties to announce dynamically added content without moving keyboard focus when appropriate.",
+      "blooms_level": "apply",
+      "priority": "medium"
+    },
+    {
+      "id": "9761f205-a7f5-425b-b763-0110c6539526",
+      "text": "Apply ARIA properties and states to communicate widget state and dynamic changes in user interfaces (e.g., checked, expanded).",
+      "blooms_level": "apply",
+      "priority": "medium"
+    },
+    {
+      "id": "e6953668-0019-41d2-afd2-83b167797cbd",
+      "text": "Apply established keyboard interaction conventions when testing ARIA-based custom widgets.",
+      "blooms_level": "apply",
+      "priority": "medium"
+    },
+    {
+      "id": "865a7889-4fb8-48d2-af01-15887845fa78",
+      "text": "Apply established keyboard interaction models when implementing ARIA-based custom widgets, including the use of Tab to enter widgets and arrow keys to navigate within them.",
+      "blooms_level": "apply",
+      "priority": "medium"
+    },
+    {
+      "id": "c8072b23-3970-465d-aa47-e56b15f1e114",
+      "text": "Apply standard keyboard interaction models when designing and implementing ARIA-based custom widgets.",
+      "blooms_level": "apply",
+      "priority": "medium"
+    },
+    {
+      "id": "628ca4ab-f082-4e7e-95bc-8c158357e177",
+      "text": "Apply standard keyboard interaction patterns to test native HTML interactive elements.",
+      "blooms_level": "apply",
+      "priority": "medium"
+    },
+    {
+      "id": "e6b37cf1-0e68-4c3e-b7db-c8af5b0854ac",
+      "text": "Apply techniques for providing accessible names and descriptions to interactive controls and widgets.",
+      "blooms_level": "apply",
+      "priority": "medium"
+    },
+    {
+      "id": "c34c7fd5-20c9-4853-8c7e-1ad6be58855f",
+      "text": "Apply the WCAG Evaluation Methodology (WCAG-EM) to systematically evaluate the accessibility of web content.",
+      "blooms_level": "apply",
+      "priority": "medium"
+    },
+    {
+      "id": "2fb6be4b-2ca7-4b76-a6d3-cb43c4bf03a9",
+      "text": "Apply user-centered evaluation approaches, including involving users with disabilities, to identify accessibility and usability issues in web solutions.",
+      "blooms_level": "apply",
+      "priority": "medium"
+    },
+    {
+      "id": "ee85e57d-9f7a-4083-b0a9-b08ebccd547a",
+      "text": "Assess caption accuracy and completeness to ensure that automatic captioning errors have been corrected.",
+      "blooms_level": "evaluate",
+      "priority": "medium"
+    },
+    {
+      "id": "22e0fb5e-e3a3-4cf1-809b-f06cf6f834f7",
+      "text": "Assess form fields to ensure appropriate autocomplete attributes are implemented where relevant.",
+      "blooms_level": "evaluate",
+      "priority": "medium"
+    },
+    {
+      "id": "010b7599-3131-4a9f-9ee6-87ace719f4b3",
+      "text": "Assess remediation strategies to determine whether an ideal solution or a “good enough” solution is appropriate given project constraints, target users, and available resources.",
+      "blooms_level": "evaluate",
+      "priority": "medium"
+    },
+    {
+      "id": "9e6d04d5-f3cb-4084-ba38-10ab9ee2b561",
+      "text": "Assess the feasibility of proposed remediation solutions across different project contexts and technical environments.",
+      "blooms_level": "evaluate",
+      "priority": "medium"
+    },
+    {
+      "id": "be00400c-94e3-4ffe-8ad8-582f39e773a3",
+      "text": "Assess the severity and user impact of accessibility barriers, recognizing that some issues create greater barriers than others.",
+      "blooms_level": "evaluate",
+      "priority": "medium"
+    },
+    {
+      "id": "42c9d9a7-5abe-4620-9555-819ae7f44e3d",
+      "text": "Assess web interfaces for both accessibility conformance and usability to determine whether they effectively support users with disabilities.",
+      "blooms_level": "evaluate",
+      "priority": "medium"
+    },
+    {
+      "id": "819c8d5c-defb-4ae6-a9d9-dc2509903823",
+      "text": "Classify WCAG 2.2 Success Criteria according to their conformance levels (A, AA, AAA).",
+      "blooms_level": "understand",
+      "priority": "medium"
+    },
+    {
+      "id": "9ade013b-7bf6-41d5-a729-72a975d004fa",
+      "text": "Communicate remediation strategies, including the purpose, approach, and expected outcomes, to relevant stakeholders.",
+      "blooms_level": "understand",
+      "priority": "medium"
+    },
+    {
+      "id": "d3207e89-3c1f-4b6a-b683-75ad941eb827",
+      "text": "Communicate the purpose, approach, and expected outcomes of accessibility remediation strategies to relevant stakeholders.",
+      "blooms_level": "understand",
+      "priority": "medium"
+    },
+    {
+      "id": "286fe697-ea60-457f-b780-3fc331f0ee3f",
+      "text": "Compare Agile and Waterfall project management methodologies and analyze how each approach incorporates accessibility quality assurance activities.",
+      "blooms_level": "analyze",
+      "priority": "medium"
+    },
+    {
+      "id": "f2f0a9df-40d3-4329-9b08-a8544373c570",
+      "text": "Compare different assistive technologies and adaptive strategies used to navigate and interact with web interfaces.",
+      "blooms_level": "analyze",
+      "priority": "medium"
+    },
+    {
+      "id": "192f4035-1fc1-48fe-9e46-2351085c8d74",
+      "text": "Compare how assistive technologies behave across different platforms, devices, and operating systems.",
+      "blooms_level": "analyze",
+      "priority": "medium"
+    },
+    {
+      "id": "41bd150e-bbb5-40af-8e4c-f211e5d93b19",
+      "text": "Compare interaction methods used by assistive technologies across platforms, including keyboard-based navigation on desktop and gesture-based navigation on mobile devices.",
+      "blooms_level": "analyze",
+      "priority": "medium"
+    },
+    {
+      "id": "059a8b3f-eb54-4bee-b29b-cbe818b0e2ff",
+      "text": "Compare the accessibility benefits and limitations of native HTML controls and custom WAI-ARIA widgets.",
+      "blooms_level": "analyze",
+      "priority": "medium"
+    },
+    {
+      "id": "e0bc129b-f205-4389-8c54-c914aee36bef",
+      "text": "Compare the accessibility implications of applying JavaScript event handlers (such as onclick) to semantic elements (e.g., `<a>` or `<button>`) versus non-semantic elements (e.g., `<div>`).",
+      "blooms_level": "analyze",
+      "priority": "medium"
+    },
+    {
+      "id": "2846b727-5bcf-47da-bc9c-dd3446f72251",
+      "text": "Compare the accessibility requirements in EN 301 549 with those defined in WCAG.",
+      "blooms_level": "analyze",
+      "priority": "medium"
+    },
+    {
+      "id": "3b964461-840b-4ed4-a9ca-34482dc23ffc",
+      "text": "Define the terms assistive technology and adaptive strategies in the context of digital accessibility.",
+      "blooms_level": "remember",
+      "priority": "medium"
+    },
+    {
+      "id": "f2d95161-eb50-4278-9ee8-18b26468c694",
+      "text": "Describe common navigation strategies used by screen reader users, including navigation by headings, landmarks, and other semantic structures.",
+      "blooms_level": "understand",
+      "priority": "medium"
+    },
+    {
+      "id": "31c3f71d-f0f2-444f-be6f-1441436e5d68",
+      "text": "Describe how assistive technologies interact with user agents, including browsers and applications.",
+      "blooms_level": "understand",
+      "priority": "medium"
+    },
+    {
+      "id": "177ac930-ef2d-465c-9c60-21b82db2e14a",
+      "text": "Describe how device-independent event handlers support accessibility across keyboard, mouse, touch, and assistive technology interactions.",
+      "blooms_level": "understand",
+      "priority": "medium"
+    },
+    {
+      "id": "3847129d-265d-4911-8cfd-b369bc544545",
+      "text": "Describe the accessibility needs associated with different types of disabilities and how these needs affect interaction with web technologies.",
+      "blooms_level": "understand",
+      "priority": "medium"
+    },
+    {
+      "id": "6d6988cb-129f-4082-bff5-0416dd1a8302",
+      "text": "Describe the purpose and scope of the two primary sections of ATAG 2.0.",
+      "blooms_level": "understand",
+      "priority": "medium"
+    },
+    {
+      "id": "7a21582c-d5a9-43e1-81f3-c8af17b32be1",
+      "text": "Describe the relationship between WCAG principles, guidelines, and success criteria.",
+      "blooms_level": "understand",
+      "priority": "medium"
+    },
+    {
+      "id": "ce63681d-1698-42fc-a07a-239587cc6733",
+      "text": "Describe the semantic structure of ARIA roles, including required parent roles, child roles, and associated attributes.",
+      "blooms_level": "understand",
+      "priority": "medium"
+    },
+    {
+      "id": "2d49ef08-4113-4bf8-b840-706ba261a5ad",
+      "text": "Describe the WAI-ARIA roles, states, and properties model and how it communicates semantics to assistive technologies.",
+      "blooms_level": "understand",
+      "priority": "medium"
+    },
+    {
+      "id": "16d229da-c128-4422-b4c5-3ef8c6b965c6",
+      "text": "Determine appropriate focus management techniques for moving focus to newly revealed or dynamically generated content.",
+      "blooms_level": "apply",
+      "priority": "medium"
+    },
+    {
+      "id": "6efe2cf2-b9e7-4329-bffa-848953232034",
+      "text": "Determine appropriate use of ARIA live regions to notify assistive technologies of dynamic content updates.",
+      "blooms_level": "apply",
+      "priority": "medium"
+    },
+    {
+      "id": "63b102b9-d1a9-42be-9d5a-b5da3da0ff57",
+      "text": "Differentiate between accessibility issues that can be detected by automated tools and those that require manual evaluation.",
+      "blooms_level": "analyze",
+      "priority": "medium"
+    },
+    {
+      "id": "2cd97aca-1c46-4226-9906-15db60b95fb2",
+      "text": "Differentiate between sufficient techniques, advisory techniques, and failures associated with WCAG success criteria.",
+      "blooms_level": "analyze",
+      "priority": "medium"
+    },
+    {
+      "id": "c084ccd3-2fc5-4d76-b42b-7b884d639b77",
+      "text": "Differentiate between targeted accessibility fixes and broader redesign approaches when addressing accessibility barriers.",
+      "blooms_level": "analyze",
+      "priority": "medium"
+    },
+    {
+      "id": "e253be44-d310-4646-8382-8fcba676fb12",
+      "text": "Differentiate between the disciplines of accessibility and user experience (UX) design, including their goals, assumptions, and areas of overlap.",
+      "blooms_level": "analyze",
+      "priority": "medium"
+    },
+    {
+      "id": "be416ec1-7db4-450a-bb53-f6f01e913c4c",
+      "text": "Differentiate between types of Accessibility Conformance Reports (ACRs) and interpret the accessibility information they provide.",
+      "blooms_level": "analyze",
+      "priority": "medium"
+    },
+    {
+      "id": "fcffa520-898c-4bf8-a401-e76dec174ed4",
+      "text": "Distinguish between accessibility features that can be implemented automatically by authoring tools and those requiring author input.",
+      "blooms_level": "analyze",
+      "priority": "medium"
+    },
+    {
+      "id": "38597928-4665-479f-94b7-ad1dcc942226",
+      "text": "Distinguish between normative and non-normative information  within accessibility specifications.",
+      "blooms_level": "analyze",
+      "priority": "medium"
+    },
+    {
+      "id": "bab5a3bf-99cc-4c8a-8f27-48af4ada23e6",
+      "text": "Evaluate accessibility claims and documented conformance statements within procurement documentation.",
+      "blooms_level": "evaluate",
+      "priority": "medium"
+    },
+    {
+      "id": "72236c72-e041-4337-96b7-e00081402382",
+      "text": "Evaluate accessibility of interactive components based on keyboard navigation and screen reader behavior.",
+      "blooms_level": "evaluate",
+      "priority": "medium"
+    },
+    {
+      "id": "52005f3d-e455-4c13-9966-2cff4912b2c5",
+      "text": "Evaluate design decisions related to selecting technologies that support accessibility across platforms and assistive technologies.",
+      "blooms_level": "evaluate",
+      "priority": "medium"
+    },
+    {
+      "id": "67e902d0-6ca5-4be0-af15-f5c6dd2ce8ff",
+      "text": "Evaluate different techniques for notifying assistive technologies when dynamic content changes occur, including the use of ARIA live regions and related mechanisms.",
+      "blooms_level": "evaluate",
+      "priority": "medium"
+    },
+    {
+      "id": "44f5df70-d689-4159-beed-25715e83742e",
+      "text": "Evaluate focus management, focus order, and visibility of focus indicators during keyboard navigation.",
+      "blooms_level": "evaluate",
+      "priority": "medium"
+    },
+    {
+      "id": "41427ca3-25f9-412d-adbb-ae5256aefe63",
+      "text": "Evaluate form implementations based on expected screen reader interaction patterns.",
+      "blooms_level": "evaluate",
+      "priority": "medium"
+    },
+    {
+      "id": "4a5a4e93-30fa-49c2-918d-edd5c2b788a6",
+      "text": "Evaluate HTML markup to verify that semantic structure (e.g., headings, lists, tables, and landmarks) correctly conveys meaning to assistive technologies.",
+      "blooms_level": "evaluate",
+      "priority": "medium"
+    },
+    {
+      "id": "8b0ead78-3638-492d-b871-b56a0bd22e57",
+      "text": "Evaluate implementations of custom widgets to determine whether they follow established accessibility authoring practices.",
+      "blooms_level": "evaluate",
+      "priority": "medium"
+    },
+    {
+      "id": "3f1f6660-a7d1-4970-ac76-55e3a9be3afa",
+      "text": "Evaluate keyboard operability, focus order, and link descriptions to ensure they support effective screen reader navigation.",
+      "blooms_level": "evaluate",
+      "priority": "medium"
+    },
+    {
+      "id": "0d72954e-5b57-4388-9b5f-f063bd9f5010",
+      "text": "Evaluate motion-based interactions to ensure they can be disabled and replaced with accessible controls.",
+      "blooms_level": "evaluate",
+      "priority": "medium"
+    },
+    {
+      "id": "84926e4c-aadb-41de-a881-91cc876d4161",
+      "text": "Evaluate multimedia content to verify that captions are provided for video and transcripts are available for audio-only content.",
+      "blooms_level": "evaluate",
+      "priority": "medium"
+    },
+    {
+      "id": "946c2179-7270-4d3b-914b-0477534ce654",
+      "text": "Evaluate navigation structures, headings, and labels to determine whether they provide clear and consistent information architecture.",
+      "blooms_level": "evaluate",
+      "priority": "medium"
+    },
+    {
+      "id": "3d6e7806-44fa-4563-8ad3-3b4e449c5af4",
+      "text": "Evaluate remediation options to determine whether a targeted fix or a broader redesign is the most appropriate solution.",
+      "blooms_level": "evaluate",
+      "priority": "medium"
+    },
+    {
+      "id": "3f412b14-e2a3-4d98-941d-a1541386a5f9",
+      "text": "Evaluate remediation strategies to determine the most practical and widely applicable solution for a given accessibility issue.",
+      "blooms_level": "evaluate",
+      "priority": "medium"
+    },
+    {
+      "id": "4e719075-0bc9-4dda-8625-6a41b16cd03e",
+      "text": "Evaluate responsive behavior to ensure content adapts to different viewport sizes without requiring two-dimensional scrolling.",
+      "blooms_level": "evaluate",
+      "priority": "medium"
+    },
+    {
+      "id": "bcdf1051-9a7e-4419-87e0-c45634416bf5",
+      "text": "Evaluate scenarios where it may be appropriate to supplement or override browser or assistive technology behavior to improve accessibility, while considering potential risks and compatibility impacts.",
+      "blooms_level": "evaluate",
+      "priority": "medium"
+    },
+    {
+      "id": "586f65ad-c77e-4fc8-be75-58ff26b715c3",
+      "text": "Evaluate scenarios where the application role may be used and justify when it should be avoided due to its impact on assistive technology keyboard navigation.",
+      "blooms_level": "evaluate",
+      "priority": "medium"
+    },
+    {
+      "id": "516381e0-df8c-41f4-aa07-450c54d91914",
+      "text": "Evaluate the benefits of integrating accessibility during design and development compared to addressing accessibility through post-development remediation.",
+      "blooms_level": "evaluate",
+      "priority": "medium"
+    },
+    {
+      "id": "6d481a1a-abb5-4d5c-bfd6-ade6b975cd16",
+      "text": "Evaluate the capabilities and limitations of automated accessibility support within authoring tools.",
+      "blooms_level": "evaluate",
+      "priority": "medium"
+    },
+    {
+      "id": "19ddfadc-9c0d-43b5-beee-898b39968465",
+      "text": "Evaluate the impact of contrast enhancement modes (such as Windows High Contrast Mode) on the presentation and usability of web interfaces.",
+      "blooms_level": "evaluate",
+      "priority": "medium"
+    },
+    {
+      "id": "a47dce3f-49c8-4d0a-b502-f94dba1b0888",
+      "text": "Evaluate the importance and urgency of dynamically loaded content to determine the most appropriate notification strategy for assistive technology users.",
+      "blooms_level": "evaluate",
+      "priority": "medium"
+    },
+    {
+      "id": "e3570ea2-86a2-44bb-9dd8-3190220426aa",
+      "text": "Evaluate the limitations of accessibility guidelines, principles, and techniques when assessing real-world accessibility issues.",
+      "blooms_level": "evaluate",
+      "priority": "medium"
+    },
+    {
+      "id": "0210f96a-4951-4887-a69e-c5a7bdb4126e",
+      "text": "Evaluate the strengths and limitations of automated accessibility testing tools.",
+      "blooms_level": "evaluate",
+      "priority": "medium"
+    },
+    {
+      "id": "978a2dfc-9306-4763-8feb-f44220492803",
+      "text": "Evaluate time limits, moving content, and automatically playing media to determine whether users can control or disable them.",
+      "blooms_level": "evaluate",
+      "priority": "medium"
+    },
+    {
+      "id": "b5c3d668-151c-4696-a0c7-97e1efca2330",
+      "text": "Evaluate touch interfaces to confirm that touch targets are large enough and sufficiently spaced.",
+      "blooms_level": "evaluate",
+      "priority": "medium"
+    },
+    {
+      "id": "e1965333-fdfa-4595-a02e-1b13d9f93ce8",
+      "text": "Evaluate unexpected screen reader behavior to determine whether it results from accessibility issues in the web content, limitations in assistive technology support, or incorrect testing techniques.",
+      "blooms_level": "evaluate",
+      "priority": "medium"
+    },
+    {
+      "id": "c4395c94-f1c8-469f-8ea2-52386fbcaa0c",
+      "text": "Evaluate web content to determine whether text alternatives are provided for images, video, and other non-text content.",
+      "blooms_level": "evaluate",
+      "priority": "medium"
+    },
+    {
+      "id": "b6885ce7-64bd-4312-ad7d-aa89cbd636e9",
+      "text": "Evaluate web implementations to ensure accessibility solutions follow established web standards rather than relying on technology-specific quirks.",
+      "blooms_level": "evaluate",
+      "priority": "medium"
+    },
+    {
+      "id": "47f8700b-c37f-462f-a0f0-41b580f992a7",
+      "text": "Evaluate web interfaces for interoperability across browsers, platforms, and assistive technologies (e.g., JAWS, NVDA, VoiceOver, Chrome, Safari).",
+      "blooms_level": "evaluate",
+      "priority": "medium"
+    },
+    {
+      "id": "2322baec-1023-42cc-acab-21b0e4a0ff4f",
+      "text": "Evaluate when native HTML controls should be used instead of custom ARIA widgets based on accessibility best practices and implementation complexity.",
+      "blooms_level": "evaluate",
+      "priority": "medium"
+    },
+    {
+      "id": "ca603f19-6f63-4dc4-b077-24220312d810",
+      "text": "Evaluate whether interactive elements are implemented using native controls or appropriate ARIA semantics to support voice control and alternative input devices.",
+      "blooms_level": "evaluate",
+      "priority": "medium"
+    },
+    {
+      "id": "47838335-0a76-46e8-8274-603ec7b1b482",
+      "text": "Evaluate whether native HTML semantics or WAI-ARIA should be used in a given implementation scenario.",
+      "blooms_level": "evaluate",
+      "priority": "medium"
+    },
+    {
+      "id": "77d2413f-ec25-4163-bdfe-c435e2651ab5",
+      "text": "Explain accessibility challenges associated with single-page applications (SPAs), including focus management, dynamic content updates, and assistive technology compatibility.",
+      "blooms_level": "understand",
+      "priority": "medium"
+    },
+    {
+      "id": "49f2e8cb-5046-449b-a771-471f34d592fb",
+      "text": "Explain factors that influence the selection of a target accessibility conformance level (e.g., legal requirements, organizational policies, or project goals).",
+      "blooms_level": "understand",
+      "priority": "medium"
+    },
+    {
+      "id": "6a639695-36a9-457c-9e8c-e5a15cb7cf43",
+      "text": "Explain how accessibility considerations should be integrated throughout the product development lifecycle, including concept, requirements, design, prototyping, development, quality assurance, user testing, support, and regression testing.",
+      "blooms_level": "understand",
+      "priority": "medium"
+    },
+    {
+      "id": "fc89b7e6-57d1-454d-aca6-133bc458fbb6",
+      "text": "Explain how accessibility maturity models and assessment tools can be used to measure progress and support long-term accessibility sustainability.",
+      "blooms_level": "understand",
+      "priority": "medium"
+    },
+    {
+      "id": "457695dc-9f76-4216-98b1-f8ce9cdef4bf",
+      "text": "Explain how accessibility requirements can be incorporated into organizational procurement processes.",
+      "blooms_level": "understand",
+      "priority": "medium"
+    },
+    {
+      "id": "0a15b9f7-d2f5-4aeb-a49c-ae33a111a8c6",
+      "text": "Explain how ARIA can enhance assistive technology support for dynamic content and custom user interface components.",
+      "blooms_level": "understand",
+      "priority": "medium"
+    },
+    {
+      "id": "eeb5707e-0ccd-4936-9cb7-2f1f6372c6cb",
+      "text": "Explain how assigning an ARIA role overrides the native semantic role of an HTML element and the implications this has for accessibility APIs and assistive technologies.",
+      "blooms_level": "understand",
+      "priority": "medium"
+    },
+    {
+      "id": "65a683f5-99b2-4a4d-b754-f51a2581da92",
+      "text": "Explain how ATAG 2.0 applies to web content authoring tools and development environments.",
+      "blooms_level": "understand",
+      "priority": "medium"
+    },
+    {
+      "id": "3774f429-3ad6-4bd8-a08e-760b21f178cb",
+      "text": "Explain how simplifying event handling can improve accessibility and reduce interaction barriers.",
+      "blooms_level": "understand",
+      "priority": "medium"
+    },
+    {
+      "id": "22914a9b-6935-418c-81d5-9bffd7c8949c",
+      "text": "Explain how touch-based interactions change when screen readers are enabled on mobile devices.",
+      "blooms_level": "understand",
+      "priority": "medium"
+    },
+    {
+      "id": "15bde492-77ab-4d40-b174-f4a405195c63",
+      "text": "Explain how WCAG requirements are incorporated into EN 301 549.",
+      "blooms_level": "understand",
+      "priority": "medium"
+    },
+    {
+      "id": "394a662a-ab33-4307-a0f4-ffe0d7eb6483",
+      "text": "Explain how web content, user agents (browsers and media players), assistive technologies, and authoring tools interact to provide an accessible web experience.",
+      "blooms_level": "understand",
+      "priority": "medium"
+    },
+    {
+      "id": "013a37c8-0b9c-41d5-bff9-5c69d069b1ed",
+      "text": "Explain key accessible design principles and relate them to the needs of users with disabilities.",
+      "blooms_level": "understand",
+      "priority": "medium"
+    },
+    {
+      "id": "a2059702-c1ee-41e4-a6d6-e0d18bec126e",
+      "text": "Explain the concept of progressive enhancement and its role in supporting accessible web experiences.",
+      "blooms_level": "understand",
+      "priority": "medium"
+    },
+    {
+      "id": "a14fb39d-32c3-47bc-b65f-c65a492e7105",
+      "text": "Explain the different interaction modes used by screen readers and analyze how these modes affect user interaction with web content.",
+      "blooms_level": "understand",
+      "priority": "medium"
+    },
+    {
+      "id": "f0bf5dd9-53cc-44de-b07c-93f7de07216b",
+      "text": "Explain the five rules for using ARIA and their importance in accessible interface design.",
+      "blooms_level": "understand",
+      "priority": "medium"
+    },
+    {
+      "id": "b142a5d2-a686-4808-99bb-0f86d63c966a",
+      "text": "Explain the intent and accessibility impact of each WCAG principle.",
+      "blooms_level": "understand",
+      "priority": "medium"
+    },
+    {
+      "id": "ac3253fb-aab3-4351-b488-adad3e41a931",
+      "text": "Explain the purpose of Accessibility Conformance Testing (ACT) Rules and their role in standardizing automated accessibility testing.",
+      "blooms_level": "understand",
+      "priority": "medium"
+    },
+    {
+      "id": "cdfdf72c-f234-477a-8b1e-05071a9dc25d",
+      "text": "Explain the purpose of WAI-ARIA and its role in improving accessibility for dynamic web content and custom interface components.",
+      "blooms_level": "understand",
+      "priority": "medium"
+    },
+    {
+      "id": "a8ce71f7-45a6-48d6-b17e-e4220754c5d4",
+      "text": "Explain the role of accessibility experts in evaluating vendors and advising on accessibility requirements during procurement.",
+      "blooms_level": "understand",
+      "priority": "medium"
+    },
+    {
+      "id": "a6e8bf10-fd86-4d0f-8a18-28609d032622",
+      "text": "Explain the role of the accessibility tree in conveying semantic information from web content to assistive technologies.",
+      "blooms_level": "understand",
+      "priority": "medium"
+    },
+    {
+      "id": "8667f6c3-9d45-4f82-9e96-8f6b5a02d5dd",
+      "text": "Explain the value of usability testing with participants who have a variety of disabilities.",
+      "blooms_level": "understand",
+      "priority": "medium"
+    },
+    {
+      "id": "f4727cea-dd87-41b5-9e54-d04868e5c5a7",
+      "text": "Explain the W3C vetting process used to evaluate and publish accessibility techniques.",
+      "blooms_level": "understand",
+      "priority": "medium"
+    },
+    {
+      "id": "8a0e15c9-a532-4083-8b31-354aa01547ec",
+      "text": "Explain WCAG conformance requirements and how they apply to evaluating web content.",
+      "blooms_level": "understand",
+      "priority": "medium"
+    },
+    {
+      "id": "4aac080b-4fca-44cb-ad49-b3151027b258",
+      "text": "Identify accessibility issues related to reliance on color alone, images of text, or hover-only interactions.",
+      "blooms_level": "remember",
+      "priority": "medium"
+    },
+    {
+      "id": "7be71dcc-5a44-4a0a-acdf-0b08be032fc1",
+      "text": "Identify accessibility issues related to sensory-dependent instructions, automatically playing audio, or moving content that may interfere with screen reader use.",
+      "blooms_level": "remember",
+      "priority": "medium"
+    },
+    {
+      "id": "d7fcf2ed-fad1-425e-8db6-6ed9ff2f830f",
+      "text": "Identify accessibility issues that arise when web content fails to support common methods, technologies, or strategies used by people with disabilities.",
+      "blooms_level": "analyze",
+      "priority": "medium"
+    },
+    {
+      "id": "ee641c1c-02f4-4e78-abf2-d97d6a263703",
+      "text": "Identify accessibility risks and issues raised during procurement evaluations.",
+      "blooms_level": "remember",
+      "priority": "medium"
+    },
+    {
+      "id": "4bdd960e-3d54-4ca0-8058-ec42885176cd",
+      "text": "Identify additional accessibility requirements in EN 301 549 that extend beyond WCAG.",
+      "blooms_level": "remember",
+      "priority": "medium"
+    },
+    {
+      "id": "574f9420-a5f2-4f72-a381-165844e772f9",
+      "text": "Identify appropriate ARIA roles used to describe interactive widgets (e.g., menu, treeitem, slider, progressbar) and structural elements of a page (e.g., headings, regions, tables).",
+      "blooms_level": "remember",
+      "priority": "medium"
+    },
+    {
+      "id": "63d336ad-35c8-474a-ae75-6b3c2a7cd1bc",
+      "text": "Identify appropriate stakeholders and engage them in planning and implementing accessibility remediation efforts.",
+      "blooms_level": "remember",
+      "priority": "medium"
+    },
+    {
+      "id": "10d89292-7f52-4588-badb-891ccbe35efa",
+      "text": "Identify common assistive technologies and describe how they support users in accessing web content.",
+      "blooms_level": "remember",
+      "priority": "medium"
+    },
+    {
+      "id": "e4447c3d-2e3b-416e-807e-eaac91e7e58b",
+      "text": "Identify common categories of accessibility testing tools, including site-wide scanning tools, server-based analysis tools, unit and integration testing tools, browser developer tools, browser extensions, simulators, and guided manual testing tools.",
+      "blooms_level": "remember",
+      "priority": "medium"
+    },
+    {
+      "id": "174c4d9e-c292-41a6-ae17-b1c0b2ad577b",
+      "text": "Identify common types of disabilities and describe the accessibility needs associated with each.",
+      "blooms_level": "remember",
+      "priority": "medium"
+    },
+    {
+      "id": "79d7376e-ba37-4ab8-950c-4f5462185563",
+      "text": "Identify interface behaviors that cause unexpected context changes during focus or input.",
+      "blooms_level": "remember",
+      "priority": "medium"
+    },
+    {
+      "id": "e0a37df2-af29-4c27-8d77-59615820eea0",
+      "text": "Identify issues for users who use keyboard or alternative input devices.",
+      "blooms_level": "understand",
+      "priority": "medium"
+    },
+    {
+      "id": "5b03f19d-d041-4a86-bdb2-7349afc1ea2f",
+      "text": "Identify key stakeholders involved in accessibility remediation and engage them in planning and implementing solutions.",
+      "blooms_level": "remember",
+      "priority": "medium"
+    },
+    {
+      "id": "3aa7f6d8-d0ef-4a3b-899f-170f942bee66",
+      "text": "Identify opportunities for different roles within the product lifecycle (e.g., designers, developers, testers, content creators, project managers) to contribute to accessibility outcomes.",
+      "blooms_level": "remember",
+      "priority": "medium"
+    },
+    {
+      "id": "7c1d7a41-e297-4238-8b5f-86f50dbcfbac",
+      "text": "Identify relevant accessibility requirements in specifications such as WCAG 2.2, WAI-ARIA, and ATAG when evaluating accessibility issues.",
+      "blooms_level": "remember",
+      "priority": "medium"
+    },
+    {
+      "id": "c66296c9-3f4d-4d41-8963-400b34f8c662",
+      "text": "Identify the technologies and digital products addressed by EN 301 549.",
+      "blooms_level": "remember",
+      "priority": "medium"
+    },
+    {
+      "id": "43f0051c-5613-493c-bf1b-e84b625f47b2",
+      "text": "Identify user expectations regarding keyboard focus behavior in interactive web interfaces.",
+      "blooms_level": "remember",
+      "priority": "medium"
+    },
+    {
+      "id": "cde8a227-0c00-42e1-a2eb-74605377f104",
+      "text": "Identify WCAG 2.2 Success Criteria and their associated conformance levels (A, AA, AAA).",
+      "blooms_level": "remember",
+      "priority": "medium"
+    },
+    {
+      "id": "a67b574e-3758-4403-a3e9-bbf21fb07a9a",
+      "text": "Identify widely used screen readers and select common browser and platform combinations used for accessibility testing.",
+      "blooms_level": "remember",
+      "priority": "medium"
+    },
+    {
+      "id": "e5546c16-0288-4557-a0ec-d75c7518bf23",
+      "text": "Incorporate feedback from users with disabilities to validate and improve remediation approaches.",
+      "blooms_level": "apply",
+      "priority": "medium"
+    },
+    {
+      "id": "cb4dda99-bc50-4c45-aa6d-bf79f4a47a99",
+      "text": "Incorporate feedback from users with disabilities to validate and refine remediation strategies.",
+      "blooms_level": "apply",
+      "priority": "medium"
+    },
+    {
+      "id": "5ad1aceb-ee2b-4ba3-8581-aeff082b5473",
+      "text": "Inspect HTML structure and accessibility attributes using browser developer tools to identify potential accessibility issues.",
+      "blooms_level": "apply",
+      "priority": "medium"
+    },
+    {
+      "id": "f734b7aa-c471-4e36-a19d-7cf10a674f60",
+      "text": "Inspect HTML structure and accessibility-related attributes using browser developer tools.",
+      "blooms_level": "apply",
+      "priority": "medium"
+    },
+    {
+      "id": "63b9324f-6d35-4fa2-8e1c-8d37b331deb6",
+      "text": "Interpret the intent and requirements of ATAG principles, guidelines, and success criteria.",
+      "blooms_level": "understand",
+      "priority": "medium"
+    },
+    {
+      "id": "8c403cb7-d3c7-4b0e-9a08-f9aaa5a02b25",
+      "text": "Interpret the requirements of WCAG success criteria and their implications for accessible design and development.",
+      "blooms_level": "understand",
+      "priority": "medium"
+    },
+    {
+      "id": "e46a0927-0b98-49a1-ae09-98f2cd9a0a4b",
+      "text": "Prioritize accessibility remediation tasks using cost–benefit considerations and the potential impact on users with disabilities.",
+      "blooms_level": "evaluate",
+      "priority": "medium"
+    },
+    {
+      "id": "037d86e7-b036-4129-86b7-9882a5c33b32",
+      "text": "Recommend mitigation strategies to address accessibility gaps identified during the procurement process.",
+      "blooms_level": "evaluate",
+      "priority": "medium"
+    },
+    {
+      "id": "ff43c81c-8df4-4910-8851-d5a0fe5e86b7",
+      "text": "Recommend practical remediation techniques that improve accessibility while minimizing disruption to existing systems.",
+      "blooms_level": "evaluate",
+      "priority": "medium"
+    },
+    {
+      "id": "6665f1e1-5aeb-4fe7-9cc9-05c1b5f9eccc",
+      "text": "Recommend practical techniques that improve accessibility while minimizing disruption to existing systems.",
+      "blooms_level": "evaluate",
+      "priority": "medium"
+    },
+    {
+      "id": "e7027cee-09ef-49c7-95ba-5e653ac653f6",
+      "text": "Summarize the major additions introduced in WCAG 2.1, particularly those addressing new input methods and improved support for low vision and cognitive disabilities.",
+      "blooms_level": "understand",
+      "priority": "medium"
+    },
+    {
+      "id": "ea094fe8-6e92-48e3-95d0-57dea8fcda87",
+      "text": "Test character-key shortcuts to ensure they can be disabled, remapped, or activated only when the relevant component has focus.",
+      "blooms_level": "apply",
+      "priority": "medium"
+    },
+    {
+      "id": "9bc3d4c8-c014-4e05-ad92-a9ecb8cfecc5",
+      "text": "Test device orientation support to ensure content and functionality are available in both portrait and landscape orientations.",
+      "blooms_level": "apply",
+      "priority": "medium"
+    },
+    {
+      "id": "e086d527-b545-4e83-a95e-ab306374e418",
+      "text": "Test dynamic content updates to confirm that roles, names, values, and status messages are communicated to screen readers using appropriate ARIA attributes or live regions.",
+      "blooms_level": "apply",
+      "priority": "medium"
+    },
+    {
+      "id": "60e9ea92-8dad-4c7e-be7a-6f2eeeb3ca05",
+      "text": "Test interactive components for accessibility across multiple browsers, platforms, and assistive technologies.",
+      "blooms_level": "apply",
+      "priority": "medium"
+    },
+    {
+      "id": "3b92ba93-3187-4591-8fa5-7de1850e53be",
+      "text": "Test mobile interfaces to confirm that all functionality available on desktop viewports is also accessible on smaller touch screens.",
+      "blooms_level": "apply",
+      "priority": "medium"
+    },
+    {
+      "id": "9f83d388-5e05-462a-9599-3f7a95d258c4",
+      "text": "Test single-page application behaviors with screen readers to verify that asynchronous content updates are correctly announced and accessible.",
+      "blooms_level": "apply",
+      "priority": "medium"
+    },
+    {
+      "id": "7b7c597e-ef40-4e46-b556-8895eeaf0467",
+      "text": "Test the reading order of web content to confirm that the programmatic order is meaningful and consistent with the intended visual presentation.",
+      "blooms_level": "apply",
+      "priority": "medium"
+    },
+    {
+      "id": "5ebdc7c9-63e6-4925-9841-a31a5e4180fb",
+      "text": "Test web interfaces for sufficient text and non-text contrast.",
+      "blooms_level": "apply",
+      "priority": "medium"
+    },
+    {
+      "id": "25a0fe2e-5506-4bc9-9710-d5048944f839",
+      "text": "Test web interfaces to confirm that all functionality can be operated using a keyboard without keyboard traps.",
+      "blooms_level": "apply",
+      "priority": "medium"
+    },
+    {
+      "id": "d1e3465d-1d4e-4570-b25d-e81975f33bdd",
+      "text": "Test whether focus indicators, labels, and instructions remain visible and usable at increased zoom levels or modified text spacing.",
+      "blooms_level": "apply",
+      "priority": "medium"
+    },
+    {
+      "id": "930af59f-e3fa-41b2-9562-70922a0dcb5f",
+      "text": "Verify that error messages are programmatically associated with form fields and that clear instructions and suggestions for correction are provided.",
+      "blooms_level": "apply",
+      "priority": "medium"
+    },
+    {
+      "id": "a355187f-441c-4a71-a521-e9226f11f8fa",
+      "text": "Verify that gesture-based interactions provide accessible single-pointer alternatives.",
+      "blooms_level": "apply",
+      "priority": "medium"
+    },
+    {
+      "id": "ae276df3-9bcf-443c-bc6b-64fe0f81a46f",
+      "text": "Verify that motion-based or device-motion interactions provide accessible alternative controls.",
+      "blooms_level": "apply",
+      "priority": "medium"
+    },
+    {
+      "id": "1a11f3dc-7578-4b55-aea0-77a80303ba7f",
+      "text": "Verify that page language, form errors, and component states are programmatically conveyed to assistive technologies.",
+      "blooms_level": "apply",
+      "priority": "medium"
+    },
+    {
+      "id": "fc0d936c-692e-4826-9d77-f0f227e04620",
+      "text": "Verify that page titles, headings, landmarks, and skip mechanisms allow screen reader users to efficiently navigate and bypass repeated content.",
+      "blooms_level": "apply",
+      "priority": "medium"
+    },
+    {
+      "id": "66dbdde2-f79a-41c0-ab21-c6d020f36fc3",
+      "text": "Verify that text can be resized up to 200% without loss of functionality or content.",
+      "blooms_level": "apply",
+      "priority": "medium"
+    }
+  ],
+  "associations_by_canvas_id": [
+    {
+      "canvas_id": 8960120,
+      "question_preview": "Excerpts of stories appear on a page, with links after each excerpt that have th",
+      "objective_text": "Analyze accessibility issues to determine their potential impact on users with different types of disabilities."
+    },
+    {
+      "canvas_id": 8960120,
+      "question_preview": "Excerpts of stories appear on a page, with links after each excerpt that have th",
+      "objective_text": "Analyze how users with disabilities interact with web content using assistive technologies, adaptive strategies, and user agents."
+    },
+    {
+      "canvas_id": 8960120,
+      "question_preview": "Excerpts of stories appear on a page, with links after each excerpt that have th",
+      "objective_text": "Evaluate whether interactive elements are implemented using native controls or appropriate ARIA semantics to support voice control and alternative input devices."
+    },
+    {
+      "canvas_id": 8960121,
+      "question_preview": "When a user hovers over a button (but not when it receives keyboard focus), text",
+      "objective_text": "Analyze accessibility issues to determine their potential impact on users with different types of disabilities."
+    },
+    {
+      "canvas_id": 8960121,
+      "question_preview": "When a user hovers over a button (but not when it receives keyboard focus), text",
+      "objective_text": "Identify accessibility issues related to reliance on color alone, images of text, or hover-only interactions."
+    },
+    {
+      "canvas_id": 8960122,
+      "question_preview": "Which of the following is **NOT** considered a \"status message\" according to WCA",
+      "objective_text": "Determine appropriate use of ARIA live regions to notify assistive technologies of dynamic content updates."
+    },
+    {
+      "canvas_id": 8960123,
+      "question_preview": "Hakeem uses a web app which requires him to draw a circle around items with the ",
+      "objective_text": "Analyze how design and implementation decisions affect accessibility for users with disabilities."
+    },
+    {
+      "canvas_id": 8960123,
+      "question_preview": "Hakeem uses a web app which requires him to draw a circle around items with the ",
+      "objective_text": "Verify that gesture-based interactions provide accessible single-pointer alternatives."
+    },
+    {
+      "canvas_id": 8960126,
+      "question_preview": "If a keyboard shortcut is implemented in content using only letter (including up",
+      "objective_text": "Identify issues for users who use keyboard or alternative input devices."
+    }
+  ],
+  "associations_by_text": [
+    {
+      "question_text": "What is the primary purpose of WAI-ARIA in web accessibility?",
+      "objective_text": "Explain the purpose of WAI-ARIA and its role in improving accessibility for dynamic web content and custom interface components."
+    },
+    {
+      "question_text": "When designing ARIA-based custom widgets, which of the following is a correct application of standard keyboard interaction models?",
+      "objective_text": "Analyze accessibility of interactive components and ARIA-based widgets based on expected keyboard and screen reader behavior."
+    },
+    {
+      "question_text": "When designing ARIA-based custom widgets, which of the following is a correct application of standard keyboard interaction models?",
+      "objective_text": "Apply established keyboard interaction models when implementing ARIA-based custom widgets, including the use of Tab to enter widgets and arrow keys to navigate within them."
+    },
+    {
+      "question_text": "When designing ARIA-based custom widgets, which of the following is a correct application of standard keyboard interaction models?",
+      "objective_text": "Apply standard keyboard interaction models when designing and implementing ARIA-based custom widgets."
+    },
+    {
+      "question_text": "Which of the following is a key accessibility challenge associated with single-page applications (SPAs)?",
+      "objective_text": "Analyze dynamic content updates in SPAs to determine whether users should be notified when new content is loaded."
+    },
+    {
+      "question_text": "Which of the following is a key accessibility challenge associated with single-page applications (SPAs)?",
+      "objective_text": "Explain accessibility challenges associated with single-page applications (SPAs), including focus management, dynamic content updates, and assistive technology compatibility."
+    },
+    {
+      "question_text": "Which of the following requirements listed in Annex A, Table A.1 of EN 301 549 goes beyond the scope of WCAG?",
+      "objective_text": "Analyze the scope and intent of the requirements listed in Annex A, Table A.1 in EN 301 549 that go beyond WCAG."
+    }
+  ]
+}

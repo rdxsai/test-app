@@ -1,0 +1,810 @@
+{
+  "range": "Q126-Q145",
+  "method": "Gold-standard semantic mapping using full question text, answer choices, correct answer selection, and available feedback.",
+  "results": [
+    {
+      "question_number": 126,
+      "question_id": "9056c9c7-910d-44a9-8d01-b9ca4d40abe9",
+      "question_text_markdown": "Which of the following provides the **BEST** accessible name for a submit button for a search form that looks like a magnifying glass icon?",
+      "answers": [
+        {
+          "answer_text_markdown": "magnifying glass",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "magnifying glass button that, when clicked, searches the site",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "magnifying glass icon",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Search",
+          "is_correct": true,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "I.D.2",
+        "text": "Implement accessible names and descriptions for interactive controls using appropriate naming and description techniques."
+      },
+      "secondary_objectives": [
+        {
+          "id": "II.C.7",
+          "text": "Evaluate form implementations to verify accessible interaction patterns, programmatic error identification, clear instructions, and usable suggestions for correction."
+        },
+        {
+          "id": "II.F.4",
+          "text": "Evaluate whether interactive elements use native controls or appropriate ARIA semantics to support keyboard, voice control, and alternative input devices."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "The question asks for the best accessible name for an icon-only submit button. The core skill is providing an appropriate accessible name for an interactive control. It also secondarily touches form usability and voice-control compatibility, because concise, accurate naming supports both."
+    },
+    {
+      "question_number": 127,
+      "question_id": "872c29cd-27e9-4b50-9cd4-06a5605cf04e",
+      "question_text_markdown": "Which of the following provides the **BEST** label for a select box (`\n\n`) that displays a list of color options to choose from?",
+      "answers": [
+        {
+          "answer_text_markdown": "```\n\nSelect a color (red, orange, yellow, green, blue, indigo, or violet):\n\n```",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "```\n\nColors select box:\n\n```",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "```\n\nColors:\n\n```",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "```\n\nSelect:\n\n```",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "II.C.7",
+        "text": "Evaluate form implementations to verify accessible interaction patterns, programmatic error identification, clear instructions, and usable suggestions for correction."
+      },
+      "secondary_objectives": [
+        {
+          "id": "I.D.2",
+          "text": "Implement accessible names and descriptions for interactive controls using appropriate naming and description techniques."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "Choosing the best label for a select control primarily assesses accessible form labeling and clear instructions. It secondarily relates to accessible naming because the visible/programmatic label becomes the control's name."
+    },
+    {
+      "question_number": 128,
+      "question_id": "62e5bf53-385b-415b-8cba-b95b03b3c654",
+      "question_text_markdown": "Why should you avoid using images of text as programmatically-associated labels for form controls?",
+      "answers": [
+        {
+          "answer_text_markdown": "Because the `alt` attribute cannot be used to provide the accessible name for a form control",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Because the text in images cannot be customized for users with low vision in the same way that regular text can",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Because if the image is the only content of a `label` element, when the user clicks on the image it will not set focus to the form control",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Because users of voice control software cannot activate controls by voice if they are labelled using images",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "II.G.S2",
+        "text": "Evaluate whether text presentation choices such as font, spacing, line width, and use of images of text support users with reading, cognitive, and low-vision needs."
+      },
+      "secondary_objectives": [
+        {
+          "id": "II.C.7",
+          "text": "Evaluate form implementations to verify accessible interaction patterns, programmatic error identification, clear instructions, and usable suggestions for correction."
+        },
+        {
+          "id": "I.D.2",
+          "text": "Implement accessible names and descriptions for interactive controls using appropriate naming and description techniques."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "The correct answer is about why images of text are a poor choice for labels: they cannot be customized like real text for low-vision needs. That most directly assesses understanding of text presentation choices and their impact on users with low vision. It also secondarily relates to form labeling and accessible naming."
+    },
+    {
+      "question_number": 129,
+      "question_id": "8f5608c1-1485-4124-a735-ca5d9e1abde3",
+      "question_text_markdown": "Which of the following is **NOT** a reason for avoiding the use of the `placeholder` attribute as the label for a text field?",
+      "answers": [
+        {
+          "answer_text_markdown": "Because placeholder text will not be announced as the accessible name for a form control by screen readers",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Because the default styling for placeholder text fails color contrast requirements.",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Because it disappears as soon as you start typing",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Because, according to the HTML5 recommendation, the intended use of placeholder text is to provide a \"sample value or a brief description of the expected format,\" not the label for the field.",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "II.C.7",
+        "text": "Evaluate form implementations to verify accessible interaction patterns, programmatic error identification, clear instructions, and usable suggestions for correction."
+      },
+      "secondary_objectives": [
+        {
+          "id": "I.D.2",
+          "text": "Implement accessible names and descriptions for interactive controls using appropriate naming and description techniques."
+        }
+      ],
+      "confidence": "Medium",
+      "rationale": "This is a 'NOT a reason' item about placeholders as labels. The keyed answer appears to reject one commonly taught concern, so the precise framing is somewhat debatable. Still, the main construct is form labeling quality and the secondary construct is accessible naming."
+    },
+    {
+      "question_number": 130,
+      "question_id": "07768003-aa3a-4c2d-b7f5-2a55311e48cc",
+      "question_text_markdown": "Which of the following is the **BEST** way of labelling a form control?",
+      "answers": [
+        {
+          "answer_text_markdown": "```\nAge: \n```",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "```\n\n```\n\nThis is assuming there is no other visible label.",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "```\n\nAge:\n\n```",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "```\n\nAge:\n\n```",
+          "is_correct": true,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "II.C.7",
+        "text": "Evaluate form implementations to verify accessible interaction patterns, programmatic error identification, clear instructions, and usable suggestions for correction."
+      },
+      "secondary_objectives": [
+        {
+          "id": "I.D.2",
+          "text": "Implement accessible names and descriptions for interactive controls using appropriate naming and description techniques."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "The question asks for the best way to label a form control. That directly assesses accessible form implementation and, secondarily, creation of a proper accessible name."
+    },
+    {
+      "question_number": 131,
+      "question_id": "9290ff25-f2a7-47d8-8bd2-1779e0973102",
+      "question_text_markdown": "Which of the following is a valid way to provide a programmatically-associated label for a form control?",
+      "answers": [
+        {
+          "answer_text_markdown": "```\n\nFirst name:\n\n```",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "```\n\nFirst name:\n\n```",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "```\n\nFirst name:\n\n```",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "```\n\n```",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "I.D.2",
+        "text": "Implement accessible names and descriptions for interactive controls using appropriate naming and description techniques."
+      },
+      "secondary_objectives": [
+        {
+          "id": "II.C.7",
+          "text": "Evaluate form implementations to verify accessible interaction patterns, programmatic error identification, clear instructions, and usable suggestions for correction."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "This item asks for a valid way to provide a programmatically associated label. The primary skill is applying accessible naming techniques; secondarily it supports usable form implementation."
+    },
+    {
+      "question_number": 132,
+      "question_id": "9b1353e1-47a7-41b3-8837-a1aeab01da3c",
+      "question_text_markdown": "Which of the following is **NOT** a reason to programmatically associate a label with its associated form control?",
+      "answers": [
+        {
+          "answer_text_markdown": "Because the control will show up as unlabelled when screen reader users bring up a list of form controls using special key commands",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Because unless you do this, people using speech recognition software to control their computer may not be able to access the control by saying its name",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Because otherwise the label for the form control will not reliably be read when screen reader users tab to it",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Because unless you do this, keyboard users will not be able to activate the control by tabbing to it",
+          "is_correct": true,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "I.D.2",
+        "text": "Implement accessible names and descriptions for interactive controls using appropriate naming and description techniques."
+      },
+      "secondary_objectives": [
+        {
+          "id": "II.C.7",
+          "text": "Evaluate form implementations to verify accessible interaction patterns, programmatic error identification, clear instructions, and usable suggestions for correction."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "The learner must distinguish the real reasons labels should be programmatically associated from false ones. That primarily assesses understanding of accessible naming/association, with secondary relevance to form usability."
+    },
+    {
+      "question_number": 133,
+      "question_id": "0e468dca-04b6-4bd5-9e38-75ee52283d1d",
+      "question_text_markdown": "Which is usually the preferred strategy for dealing with lazy-loading content?",
+      "answers": [
+        {
+          "answer_text_markdown": "Use placeholder content while content is loading and use ARIA live regions to announce as content loads",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Use ARIA live regions to announce each time a new piece content loads.",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Provide placeholder content to inform screen reader users that content is loading.",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Leave the place where content is loading empty until the content is loaded.",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "I.B.3",
+        "text": "Identify accessibility risks created by dynamic content updates and determine appropriate strategies for focus management and user notification."
+      },
+      "secondary_objectives": [
+        {
+          "id": "I.D.10",
+          "text": "Apply ARIA live regions to communicate dynamic content updates without moving keyboard focus when appropriate."
+        },
+        {
+          "id": "II.C.1",
+          "text": "Conduct screen reader testing to verify that interactive elements expose correct name, role, value, state, and status changes."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "Lazy-loading content raises risks around whether users know content is loading or has changed. The correct answer uses placeholder content to inform screen reader users, so the primary construct is dynamic content risk management, with secondary relevance to announcing updates and how assistive technologies perceive them."
+    },
+    {
+      "question_number": 134,
+      "question_id": "e3426260-4489-4be8-910d-ae1ff94a0bff",
+      "question_text_markdown": "You want a screen reader to announce new content that has been added through an AJAX call by setting focus to it when the user clicks a button, but it is not being voiced.  According to Deque University, what might you have to do to fix this?",
+      "answers": [
+        {
+          "answer_text_markdown": "Make sure the `display` property of the newly added content is not set to `block`.",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Set the value of `aria-live` on the button to assertive",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Set the value of the `aria-hidden` on the button to false",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Add a delay of one to two seconds before setting focus to the new content",
+          "is_correct": true,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "I.B.3",
+        "text": "Identify accessibility risks created by dynamic content updates and determine appropriate strategies for focus management and user notification."
+      },
+      "secondary_objectives": [
+        {
+          "id": "II.C.1",
+          "text": "Conduct screen reader testing to verify that interactive elements expose correct name, role, value, state, and status changes."
+        }
+      ],
+      "confidence": "Medium",
+      "rationale": "The question is about setting focus to AJAX-loaded content and needing a delay before that focus shift is announced. The main skill is understanding dynamic update timing and focus-management risks. It secondarily draws on practical testing knowledge of how screen readers react to state changes. Confidence is medium because the keyed answer reflects a specific implementation tip from Deque University."
+    },
+    {
+      "question_number": 135,
+      "question_id": "7a024e96-5705-437a-a988-55b8d15b32e5",
+      "question_text_markdown": "Beside each item listed on the checkout page is a `select` element labelled, “Quantity,” that, when changed, dynamically updates the part of the page where the subtotal is displayed.  Which of the following is the best way to ensure blind users are notified of the change?",
+      "answers": [
+        {
+          "answer_text_markdown": "Ensure the element containing the subtotal has `aria-live=”polite”`",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Do nothing. Any text that changes on a page will automatically be announced.",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Move focus to the part of the page that displays the subtotal any time the user changes the selected option in the quantity `select` element.",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Update the `aria-subtotal` attribute of the `select` tag that is being used for setting the quantity",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "I.D.10",
+        "text": "Apply ARIA live regions to communicate dynamic content updates without moving keyboard focus when appropriate."
+      },
+      "secondary_objectives": [
+        {
+          "id": "II.C.1",
+          "text": "Conduct screen reader testing to verify that interactive elements expose correct name, role, value, state, and status changes."
+        },
+        {
+          "id": "I.B.3",
+          "text": "Identify accessibility risks created by dynamic content updates and determine appropriate strategies for focus management and user notification."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "The subtotal update question is a classic ARIA live region use case: communicate a dynamic change without moving focus away from the quantity selector. The primary match is live-region application, with secondary relevance to status-change exposure and dynamic content updates."
+    },
+    {
+      "question_number": 136,
+      "question_id": "ef47b108-b08b-4bf5-8ab3-c07282dcd07e",
+      "question_text_markdown": "A user has just entered the text string “registration deadline” in a site search field on a university website and hit the submit button.  What would be most likely to be the best title for the results page that loads?",
+      "answers": [
+        {
+          "answer_text_markdown": "Search | Virginia Tech",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Search results for “Registration deadline” | Virginia Tech",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Virginia Tech | Search",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Search results | Virginia Tech",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "II.C.6",
+        "text": "Evaluate navigation structures, headings, labels, and link descriptions to determine whether they support clear information architecture and efficient screen reader navigation."
+      },
+      "secondary_objectives": [
+        {
+          "id": "II.B.1",
+          "text": "Map accessibility barriers to the appropriate WCAG success criterion or EN 301 549 requirement and distinguish conformance failures from broader usability or best-practice issues."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "Choosing the best title for a search results page primarily assesses page-title quality as part of information architecture and navigation. Secondarily it relates to evaluating whether a pattern meets WCAG expectations for page titling and orientation."
+    },
+    {
+      "question_number": 137,
+      "question_id": "16951573-b9dd-4d6a-8598-fe7fe695ccec",
+      "question_text_markdown": "Which of the following is screen reading software likely to do automatically upon loading a new page?",
+      "answers": [
+        {
+          "answer_text_markdown": "Announce how many words are on a page",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Read the page title",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "State the language of the page, if provided through the lang attribute",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Jump to the main content region and begin reading from there",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "II.F.1",
+        "text": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments."
+      },
+      "secondary_objectives": [
+        {
+          "id": "II.C.6",
+          "text": "Evaluate navigation structures, headings, labels, and link descriptions to determine whether they support clear information architecture and efficient screen reader navigation."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "Knowing that screen readers typically read the page title on load is direct practical screen reader behavior knowledge. It also secondarily supports understanding why page titles matter for navigation and orientation."
+    },
+    {
+      "question_number": 138,
+      "question_id": "ef02502c-e978-49c3-9090-05fe288f7f9b",
+      "question_text_markdown": "Which of the following is **NOT** a way to reliably notify blind users of dynamic changes to content on a page?",
+      "answers": [
+        {
+          "answer_text_markdown": "Using ARIA live regions",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Sending focus to new content",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Removing content from the DOM that does not have focus and replacing it with the changed content",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Changing the state values of interface components, for instance `aria-expanded`",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "I.D.10",
+        "text": "Apply ARIA live regions to communicate dynamic content updates without moving keyboard focus when appropriate."
+      },
+      "secondary_objectives": [
+        {
+          "id": "II.C.1",
+          "text": "Conduct screen reader testing to verify that interactive elements expose correct name, role, value, state, and status changes."
+        },
+        {
+          "id": "I.B.3",
+          "text": "Identify accessibility risks created by dynamic content updates and determine appropriate strategies for focus management and user notification."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "The question asks which method is NOT a reliable way to notify blind users of dynamic changes. That primarily assesses techniques for announcing dynamic updates, especially live-region approaches, with secondary relevance to AT testing and dynamic-content risks."
+    },
+    {
+      "question_number": 139,
+      "question_id": "6b487d84-1e76-441e-ab6f-176141c272a5",
+      "question_text_markdown": "Which of the following is a way that you can activate a link using Dragon Naturally Speaking?",
+      "answers": [
+        {
+          "answer_text_markdown": "Say \"Mouse grid [link text]\", where [link text] is the accessible name for the link",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Say \"Click link\" and, then, when numbers appear over all the visible links, say \"Choose\n\n\", where  is the number of the link you want to activate.",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Say \"Click link\" and, then, when numbers appear over all the visible links, say \"Click\n\n\", where  is the number of the link you want to activate.",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Say \"Activate [link text]\", where [link text] is the accessible name for the link",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "II.F.4",
+        "text": "Evaluate whether interactive elements use native controls or appropriate ARIA semantics to support keyboard, voice control, and alternative input devices."
+      },
+      "secondary_objectives": [
+        {
+          "id": "I.D.2",
+          "text": "Implement accessible names and descriptions for interactive controls using appropriate naming and description techniques."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "Activating a link using Dragon NaturallySpeaking assesses support for voice control and alternative input devices. It secondarily relies on understanding accessible/visible names because Dragon often works from what can be spoken."
+    },
+    {
+      "question_number": 140,
+      "question_id": "87a3dd1c-c886-4afc-8a71-5f322884ae6c",
+      "question_text_markdown": "Which of the following is a way that you can activate a button using Dragon Naturally Speaking?",
+      "answers": [
+        {
+          "answer_text_markdown": "Say \"Activate [button text]\", where [button text] is the accessible name for the button",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Say \"[button text]\", where [button text] is the accessible name for the button",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Say \"Press [button text]\", where [button text] is the accessible name for the button",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Say \"Click [button text]\", where [button text] is the accessible name for the button",
+          "is_correct": true,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "II.F.4",
+        "text": "Evaluate whether interactive elements use native controls or appropriate ARIA semantics to support keyboard, voice control, and alternative input devices."
+      },
+      "secondary_objectives": [
+        {
+          "id": "I.D.2",
+          "text": "Implement accessible names and descriptions for interactive controls using appropriate naming and description techniques."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "This is another voice-control question, but for buttons. The keyed answer explicitly references accessible name, so the primary construct is support for voice control, and the secondary construct is accessible naming."
+    },
+    {
+      "question_number": 141,
+      "question_id": "1c4c2de9-e8e6-400e-a1ed-32f625fbc29c",
+      "question_text_markdown": "How should the user navigate within a composite ARIA widget using the keyboard?",
+      "answers": [
+        {
+          "answer_text_markdown": "The user should only ever use the tab key to navigate within the widget.",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "The user should use the arrow keys to tab in and out of the widget.",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "The user should only use the enter key to navigate within the widget.",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "The user should first tab to the widget and then use the arrow keys to navigate within it, other keystrokes such as Home, End, Page Up, Page Down may also be available.",
+          "is_correct": true,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "I.C.2",
+        "text": "Demonstrate and apply established keyboard interaction models for ARIA-based custom widgets during design and implementation."
+      },
+      "secondary_objectives": [
+        {
+          "id": "I.C.3",
+          "text": "Apply established keyboard interaction conventions when testing ARIA-based custom widgets."
+        },
+        {
+          "id": "II.C.2",
+          "text": "Demonstrate manual keyboard testing to detect missing focus indicators, incorrect tab order, keyboard traps, and other keyboard-operability issues."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "The composite widget navigation question directly tests canonical keyboard interaction models: tab into the widget, then arrow keys and other expected keystrokes within it. That primarily matches ARIA widget interaction models, with secondary relevance to applying those conventions in testing and understanding keyboard operability."
+    },
+    {
+      "question_number": 142,
+      "question_id": "0e4a50d9-c11f-4586-9448-7930736aae8e",
+      "question_text_markdown": "Are there any exceptions to the rule that functionality available through a mouse must always also be made available through a keyboard?",
+      "answers": [
+        {
+          "answer_text_markdown": "No, all functionality available through a mouse MUST be made available through a keyboard",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Yes, but only for people who are blind or use alternative keyboards",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "No, but some functionality available through a mouse may be difficult to execute through a keyboard",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Yes, there are exceptions like input that relies on a user's movement",
+          "is_correct": true,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "II.G.4",
+        "text": "Evaluate whether motion-based, device-motion, and gesture-based interactions provide accessible alternatives or can be disabled."
+      },
+      "secondary_objectives": [
+        {
+          "id": "I.C.5",
+          "text": "Analyze interactive components to determine whether gesture-based interactions provide single-pointer alternatives."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "The question asks about exceptions to the rule that mouse functionality must also be keyboard available. The keyed exception involves input based on user movement, so the primary construct is motion/gesture interaction and accessible alternatives, with secondary relevance to gesture-based interaction design."
+    },
+    {
+      "question_number": 143,
+      "question_id": "070a3768-dfdd-4743-85a3-620081ba0aea",
+      "question_text_markdown": "Which of the following is true regarding the order in which items receive focus?",
+      "answers": [
+        {
+          "answer_text_markdown": "The navigation order of focusable elements MUST be logical and intuitive",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "The navigation order of focusable elements SHOULD be random",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "There is no requirement for tab order in accessible web pages or applications",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "The navigation order of focusable elements MUST always match the order in which things appear in the DOM",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "II.C.2",
+        "text": "Demonstrate manual keyboard testing to detect missing focus indicators, incorrect tab order, keyboard traps, and other keyboard-operability issues."
+      },
+      "secondary_objectives": [
+        {
+          "id": "II.C.8",
+          "text": "Test the reading order of web content to confirm that the programmatic order is meaningful and consistent with intended visual presentation."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "This item asks what is true about focus order. The correct answer emphasizes logical and intuitive navigation order, which primarily assesses keyboard operability and focus behavior. It secondarily touches sequence/read-order concerns when order conveys meaning."
+    },
+    {
+      "question_number": 144,
+      "question_id": "2857168b-c15d-45cd-a97a-80f841cdfd93",
+      "question_text_markdown": "According to Deque University, which of the following is true regarding focus?",
+      "answers": [
+        {
+          "answer_text_markdown": "The tab focusability does not matter for accessibility.",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Links, buttons and interactive controls MUST be keyboard-focusable.",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Only links, buttons and interactive controls with a contrast ratio of 3:1 should be keyboard-focusable.",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Links, buttons and interactive controls do not need to be keyboard-focusable, as long as the user can activate them using a mouse..",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "II.C.2",
+        "text": "Demonstrate manual keyboard testing to detect missing focus indicators, incorrect tab order, keyboard traps, and other keyboard-operability issues."
+      },
+      "secondary_objectives": [
+        {
+          "id": "II.F.4",
+          "text": "Evaluate whether interactive elements use native controls or appropriate ARIA semantics to support keyboard, voice control, and alternative input devices."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "According to Deque University, links, buttons, and interactive controls must be keyboard focusable. That is fundamentally a keyboard-operability and focusability requirement, with secondary relevance to support for alternative input technologies."
+    },
+    {
+      "question_number": 145,
+      "question_id": "a091da1c-2f83-4f07-9dbf-e48bca02c6d0",
+      "question_text_markdown": "Where is the best place to look for keyboard best practices for different kinds of widgets?",
+      "answers": [
+        {
+          "answer_text_markdown": "Accessible Rich Internet Applications Specification",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Section 508",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Web Content Accessibility Guidelines",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "WAI-ARIA Authoring Practices",
+          "is_correct": true,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "I.C.2",
+        "text": "Demonstrate and apply established keyboard interaction models for ARIA-based custom widgets during design and implementation."
+      },
+      "secondary_objectives": [
+        {
+          "id": "I.C.3",
+          "text": "Apply established keyboard interaction conventions when testing ARIA-based custom widgets."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "Knowing that WAI-ARIA Authoring Practices is the best source for keyboard best practices for widgets primarily assesses knowledge of standard keyboard interaction models for ARIA widgets. It secondarily relates to applying those conventions in evaluation and testing."
+    }
+  ]
+}

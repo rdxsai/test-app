@@ -1,0 +1,115 @@
+[
+  {
+    "question_id": "6209b9a0-bcc1-4df5-8744-13f24ae10c0e",
+    "question_text": "The image in the following code is an icon of a printer styled to look like a button.  Assuming no other styling or scripting has been applied, which of the following would **NOT** be a problem with this code?\n\n`<a href=\"print-version.html\"><img src=\"print.png\" alt=\"Print\"></a>`",
+    "primary": "II.F.4",
+    "primary_text": "Evaluate whether interactive elements use native controls or appropriate ARIA semantics to support keyboard, voice control, and alternative input devices.",
+    "secondary": [
+      {
+        "id": "II.C.1",
+        "text": "Conduct screen reader testing to verify that interactive elements expose correct name, role, value, state, and status changes."
+      },
+      {
+        "id": "I.B.4",
+        "text": "Distinguish between semantic HTML controls and non-semantic elements in terms of built-in accessibility and keyboard support."
+      }
+    ]
+  },
+  {
+    "question_id": "74a046b8-1ab1-4aac-baea-b2969fd9edb3",
+    "question_text": "Assuming no other styling or scripting has been applied, which of the following is **NOT** a problem with the following code?\n\n`<span style=\"text-decoration: underline\" onclick=\"window.open('https://vt.edu')\">Virginia Tech</span>`",
+    "primary": "I.B.4",
+    "primary_text": "Distinguish between semantic HTML controls and non-semantic elements in terms of built-in accessibility and keyboard support.",
+    "secondary": [
+      {
+        "id": "II.F.4",
+        "text": "Evaluate whether interactive elements use native controls or appropriate ARIA semantics to support keyboard, voice control, and alternative input devices."
+      },
+      {
+        "id": "I.F.2",
+        "text": "Demonstrate how to convert a non-semantic element into an accessible custom control using proper semantics, keyboard interaction, and visible focus."
+      }
+    ]
+  },
+  {
+    "question_id": "716c6dd1-82ea-4390-a630-86cc12ff4733",
+    "question_text": "Which of the following is a way to navigate to headings of a certain level using a screen reader?",
+    "primary": "II.F.1",
+    "primary_text": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments.",
+    "secondary": null
+  },
+  {
+    "question_id": "0412ed6d-50c5-4cd5-b0a8-82313ae8890c",
+    "question_text": "Which of the following is **NOT** a way to navigate from one heading to the next using a screen reader?",
+    "primary": "II.F.1",
+    "primary_text": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments.",
+    "secondary": null
+  },
+  {
+    "question_id": "807ce516-02bf-41c0-af25-8fd6ac87667d",
+    "question_text": "Which of the following is **NOT** way to list all headings using a screen reader?",
+    "primary": "II.F.1",
+    "primary_text": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments.",
+    "secondary": null
+  },
+  {
+    "question_id": "8e6cf6af-7584-4ad9-b824-70b4ec5966b0",
+    "question_text": "Which of the following is **NOT** true?",
+    "primary": "II.C.5",
+    "primary_text": "Evaluate HTML markup to determine whether headings, lists, tables, landmarks, and other structural semantics correctly convey meaning to assistive technologies.",
+    "secondary": [
+      {
+        "id": "II.C.6",
+        "text": "Evaluate navigation structures, headings, labels, and link descriptions to determine whether they support clear information architecture and efficient screen reader navigation."
+      }
+    ]
+  },
+  {
+    "question_id": "cceefb58-6b91-4d30-a7b4-79cdbfded4b6",
+    "question_text": "Which of the following is the best way of indicating that content in a paragraph is important?",
+    "primary": "II.C.5",
+    "primary_text": "Evaluate HTML markup to determine whether headings, lists, tables, landmarks, and other structural semantics correctly convey meaning to assistive technologies.",
+    "secondary": [
+      {
+        "id": "II.B.6",
+        "text": "Analyze examples of web content to determine whether they meet or fail specific WCAG success criteria."
+      }
+    ]
+  },
+  {
+    "question_id": "9f5b9d66-31b8-4119-8bc2-44f2d5eaa58d",
+    "question_text": "Which of the following is a reason why this code is a bad way of communicating to all users that something is a heading?\n\n`<p style=\"font-size: 200%\"><strong>A section about a topic</strong></p>`",
+    "primary": "II.C.5",
+    "primary_text": "Evaluate HTML markup to determine whether headings, lists, tables, landmarks, and other structural semantics correctly convey meaning to assistive technologies.",
+    "secondary": [
+      {
+        "id": "II.C.6",
+        "text": "Evaluate navigation structures, headings, labels, and link descriptions to determine whether they support clear information architecture and efficient screen reader navigation."
+      }
+    ]
+  },
+  {
+    "question_id": "67e8adc9-b1c8-48ff-986c-adcce8847e54",
+    "question_text": "Which of the following is **NOT** a valid way of programmatically communicating that something is a heading?",
+    "primary": "II.C.5",
+    "primary_text": "Evaluate HTML markup to determine whether headings, lists, tables, landmarks, and other structural semantics correctly convey meaning to assistive technologies.",
+    "secondary": [
+      {
+        "id": "I.D.6",
+        "text": "Identify appropriate ARIA roles for common interactive widgets and structural page elements."
+      }
+    ]
+  },
+  {
+    "question_id": "b749ad76-5e05-45fd-b64b-1058fb2e8763",
+    "question_text": "Which of the following is **NOT** a benefit of using headings on web pages?",
+    "primary": "II.C.6",
+    "primary_text": "Evaluate navigation structures, headings, labels, and link descriptions to determine whether they support clear information architecture and efficient screen reader navigation.",
+    "secondary": [
+      {
+        "id": "I.H.2",
+        "text": "Analyze how design elements such as headings, landmarks, and color contrast affect navigation and comprehension for diverse user groups."
+      }
+    ]
+  }
+]

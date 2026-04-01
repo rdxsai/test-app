@@ -1,0 +1,150 @@
+[
+  {
+    "question_id": "ae368cea-45d2-434c-a580-9e6aec829ece",
+    "question_text": "Which of the following is a key accessibility challenge associated with single-page applications (SPAs)?",
+    "primary": "I.G.4",
+    "primary_text": "Explain accessibility challenges associated with single-page applications, including focus management, dynamic content updates, and assistive technology compatibility.",
+    "secondary": [
+      {
+        "id": "I.B.3",
+        "text": "Identify accessibility risks created by dynamic content updates and determine appropriate strategies for focus management and user notification."
+      },
+      {
+        "id": "I.G.3",
+        "text": "Analyze dynamic SPA content updates to determine when users should be notified of newly loaded content."
+      }
+    ]
+  },
+  {
+    "question_id": "010c1ab4-d6aa-4450-b4c0-35a602456ef5",
+    "question_text": "When designing ARIA-based custom widgets, which of the following is a correct application of standard keyboard interaction models?",
+    "primary": "I.C.2",
+    "primary_text": "Demonstrate and apply established keyboard interaction models for ARIA-based custom widgets during design and implementation.",
+    "secondary": [
+      {
+        "id": "I.C.3",
+        "text": "Apply established keyboard interaction conventions when testing ARIA-based custom widgets."
+      },
+      {
+        "id": "I.C.4",
+        "text": "Analyze interactive components and ARIA-based widgets for expected keyboard and screen reader behavior."
+      }
+    ]
+  },
+  {
+    "question_id": "30b30d17-ea7f-4c92-9013-5b005acf81de",
+    "question_text": "If a keyboard shortcut is implemented in content using only letter (including upper- and lower-case letters), punctuation, number, or symbol characters, how can you ensure accessibility requirements are met for such shortcuts?\n\n**Select all that apply.**",
+    "primary": "II.B.6",
+    "primary_text": "Analyze examples of web content to determine whether they meet or fail specific WCAG success criteria.",
+    "secondary": [
+      {
+        "id": "II.B.1",
+        "text": "Map accessibility barriers to the appropriate WCAG success criterion or EN 301 549 requirement and distinguish conformance failures from broader usability or best-practice issues."
+      }
+    ]
+  },
+  {
+    "question_id": "aa6806a5-62e9-4e08-ac3d-edac2cba9c73",
+    "question_text": "Which of the following statements is **FALSE** regarding what has changed between WCAG 2.0 and 2.1?",
+    "primary": "I.A.5",
+    "primary_text": "Explain the rationale for using current WCAG versions and summarize the accessibility impact of changes introduced in WCAG 2.1 and 2.2.",
+    "secondary": [
+      {
+        "id": "II.B.20",
+        "text": "Explain the major additions introduced in WCAG 2.1, particularly those addressing new input methods and improved support for low vision and cognitive disabilities."
+      }
+    ]
+  },
+  {
+    "question_id": "c94b0de1-b8d0-4348-bb83-19f5afdf4d62",
+    "question_text": "Which of the following is **NOT** a main area of focus for WCAG 2.1?",
+    "primary": "II.B.20",
+    "primary_text": "Explain the major additions introduced in WCAG 2.1, particularly those addressing new input methods and improved support for low vision and cognitive disabilities.",
+    "secondary": [
+      {
+        "id": "I.A.5",
+        "text": "Explain the rationale for using current WCAG versions and summarize the accessibility impact of changes introduced in WCAG 2.1 and 2.2."
+      }
+    ]
+  },
+  {
+    "question_id": "df2b6148-d746-41b2-8913-a37849c69bd0",
+    "question_text": "Hakeem uses a web app which requires him to draw a circle around items with the pointer to select them. He has trouble doing this because he has poor fine motor control. Of the following strategies for reworking this pattern, which would allow the largest range of users to meet the goal of selecting multiple items?",
+    "primary": "I.C.5",
+    "primary_text": "Analyze interactive components to determine whether gesture-based interactions provide single-pointer alternatives.",
+    "secondary": [
+      {
+        "id": "II.G.4",
+        "text": "Evaluate whether motion-based, device-motion, and gesture-based interactions provide accessible alternatives or can be disabled."
+      },
+      {
+        "id": "II.F.3",
+        "text": "Assess whether alternative input methods such as switch control or voice input can navigate and operate interactive elements effectively."
+      }
+    ]
+  },
+  {
+    "question_id": "3bd0f883-06ab-49ff-b0c7-684c2ea459aa",
+    "question_text": "Which of the following is **NOT** considered a \"status message\" according to WCAG 2.1?",
+    "primary": "I.D.10",
+    "primary_text": "Apply ARIA live regions to communicate dynamic content updates without moving keyboard focus when appropriate.",
+    "secondary": [
+      {
+        "id": "I.D.13",
+        "text": "Evaluate techniques for notifying assistive technologies about dynamic content changes, including the use of ARIA live regions."
+      },
+      {
+        "id": "II.C.1",
+        "text": "Conduct screen reader testing to verify that interactive elements expose correct name, role, value, state, and status changes."
+      }
+    ]
+  },
+  {
+    "question_id": "8e5b75e6-5b9f-460c-b5ee-b269f04004d9",
+    "question_text": "When a user hovers over a button (but not when it receives keyboard focus), text appears beside it.  When the mouse cursor leaves the button, the text's `display` property is set to `none`, making it disappear.  Which users would be **LEAST** likely to experience a barrier from this pattern?",
+    "primary": "I.B.S1",
+    "primary_text": "Analyze interaction patterns to determine whether multiple event models on the same control (for example, hover for one behavior and click for another) create accessibility barriers for keyboard, touch, or gesture-based assistive technology users.",
+    "secondary": [
+      {
+        "id": "I.H.1",
+        "text": "Describe strategies that people with blindness, low vision, motor disabilities, auditory disabilities, and cognitive or learning disabilities use to interact with web content."
+      },
+      {
+        "id": "II.F.3",
+        "text": "Assess whether alternative input methods such as switch control or voice input can navigate and operate interactive elements effectively."
+      }
+    ]
+  },
+  {
+    "question_id": "53feba68-45c1-46d4-bbad-f5c22d8ba278",
+    "question_text": "Excerpts of stories appear on a page, with links after each excerpt that have the visible text \"More\".  However, for each of these links, the `aria-label` attribute has been set to \"Read [whatever the title of the story is in each instance]\".  Which users would be most likely to be inconvenienced by this pattern?",
+    "primary": "I.D.2",
+    "primary_text": "Implement accessible names and descriptions for interactive controls using appropriate naming and description techniques.",
+    "secondary": [
+      {
+        "id": "II.F.3",
+        "text": "Assess whether alternative input methods such as switch control or voice input can navigate and operate interactive elements effectively."
+      },
+      {
+        "id": "II.F.4",
+        "text": "Evaluate whether interactive elements use native controls or appropriate ARIA semantics to support keyboard, voice control, and alternative input devices."
+      }
+    ]
+  },
+  {
+    "question_id": "32285693-acb3-42a1-b258-de799c60986d",
+    "question_text": "Under WCAG 2.1, which of the following would **NOT** violate conformance level A or AA success criteria?",
+    "primary": "II.B.3",
+    "primary_text": "Explain WCAG conformance levels and analyze factors that influence the selection of a target conformance level.",
+    "secondary": [
+      {
+        "id": "II.B.6",
+        "text": "Analyze examples of web content to determine whether they meet or fail specific WCAG success criteria."
+      },
+      {
+        "id": "II.B.4",
+        "text": "Explain WCAG conformance requirements and how they apply to evaluating web content."
+      }
+    ]
+  }
+]

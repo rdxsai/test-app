@@ -96,6 +96,12 @@ async def home(request: Request):
     """
     try:
         questions = db.list_all_questions()
+        answers_without_feedback_total = sum(
+            q.get('answers_without_feedback_count', 0) for q in questions
+        )
+        answers_pending_approval_total = sum(
+            q.get('answers_with_feedback_pending_approval_count', 0) for q in questions
+        )
         templates = get_templates(app)
 
         # Convert markdown in question_text to HTML for card preview
@@ -129,6 +135,8 @@ async def home(request: Request):
                 "request" : request,
                 "app_title" : config.APP_TITLE,
                 "questions" : questions,
+                "answers_without_feedback_total": answers_without_feedback_total,
+                "answers_pending_approval_total": answers_pending_approval_total,
                 "course_id" : config.COURSE_ID,
                 "quiz_id" : config.QUIZ_ID
             }

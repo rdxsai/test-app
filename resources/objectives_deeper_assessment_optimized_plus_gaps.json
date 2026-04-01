@@ -1,0 +1,1174 @@
+{
+  "I.A.1": {
+    "text": "Compare the scope, purpose, and relationship of WCAG 2.0, WCAG 2.1, WCAG 2.2, ATAG 2.0, and EN 301 549, and identify how each influences web accessibility design and conformance.",
+    "cognitive_level": "Analyze",
+    "source_ids": [
+      "I.A.1"
+    ]
+  },
+  "I.A.2": {
+    "text": "Explain the structure of WCAG 2.2, including the POUR principles, guidelines, success criteria, and conformance levels A, AA, and AAA.",
+    "cognitive_level": "Explain",
+    "source_ids": [
+      "I.A.2"
+    ]
+  },
+  "I.A.3": {
+    "text": "Differentiate between normative and non-normative materials in WCAG and explain why that distinction matters for conformance.",
+    "cognitive_level": "Analyze",
+    "source_ids": [
+      "I.A.3"
+    ]
+  },
+  "I.A.4": {
+    "text": "Apply W3C techniques, including sufficient techniques, failures, and advisory techniques, to specific WCAG success criteria in implementation scenarios.",
+    "cognitive_level": "Apply",
+    "source_ids": [
+      "I.A.4"
+    ]
+  },
+  "I.A.5": {
+    "text": "Explain the rationale for using current WCAG versions and summarize the accessibility impact of changes introduced in WCAG 2.1 and 2.2.",
+    "cognitive_level": "Explain",
+    "source_ids": [
+      "I.A.5",
+      "II.B.33"
+    ]
+  },
+  "I.A.6": {
+    "text": "Differentiate between normative and non-normative materials in WAI-ARIA and explain why that distinction matters for conformance.",
+    "cognitive_level": "Analyze",
+    "source_ids": [
+      "I.A.6"
+    ]
+  },
+  "I.A.7": {
+    "text": "Explain the purpose of WAI-ARIA 1.2 and describe its model of roles, states, and properties.",
+    "cognitive_level": "Explain",
+    "source_ids": [
+      "I.A.7",
+      "I.A.8"
+    ]
+  },
+  "I.A.8": {
+    "text": "Determine when WAI-ARIA should be used instead of native HTML and apply the five rules for using ARIA correctly.",
+    "cognitive_level": "Apply",
+    "source_ids": [
+      "I.A.9",
+      "I.A.10"
+    ]
+  },
+  "I.A.9": {
+    "text": "Differentiate between normative and non-normative materials in ATAG 2.0 and explain why that distinction matters for conformance.",
+    "cognitive_level": "Analyze",
+    "source_ids": [
+      "I.A.11",
+      "I.A.16"
+    ]
+  },
+  "I.A.10": {
+    "text": "Explain how ATAG 2.0 applies to web content authoring tools and describe the intent of its two main parts.",
+    "cognitive_level": "Explain",
+    "source_ids": [
+      "I.A.12",
+      "I.A.13"
+    ]
+  },
+  "I.A.11": {
+    "text": "Distinguish between accessibility features that authoring tools can automate and those requiring author input, and evaluate the benefits and limitations of automated authoring support.",
+    "cognitive_level": "Evaluate",
+    "source_ids": [
+      "I.A.14",
+      "I.A.15"
+    ]
+  },
+  "I.A.12": {
+    "text": "Identify the technologies addressed by EN 301 549 and compare its relationship to WCAG.",
+    "cognitive_level": "Analyze",
+    "source_ids": [
+      "I.A.17",
+      "I.A.18",
+      "I.A.19"
+    ]
+  },
+  "I.A.13": {
+    "text": "Identify EN 301 549 requirements beyond WCAG, including Annex A and Web Accessibility Directive implications.",
+    "cognitive_level": "Identify",
+    "source_ids": [
+      "I.A.20",
+      "I.A.22"
+    ]
+  },
+  "I.A.14": {
+    "text": "Interpret the self-scoping applicability language used in EN 301 549.",
+    "cognitive_level": "Analyze",
+    "source_ids": [
+      "I.A.21"
+    ]
+  },
+  "I.B.1": {
+    "text": "Demonstrate how to make JavaScript event handling device-independent for keyboard, pointer, and other input methods.",
+    "cognitive_level": "Apply",
+    "source_ids": [
+      "I.B.1"
+    ]
+  },
+  "I.B.2": {
+    "text": "Explain progressive enhancement and the accessibility implications of unavailable or disabled JavaScript.",
+    "cognitive_level": "Explain",
+    "source_ids": [
+      "I.B.2"
+    ]
+  },
+  "I.B.3": {
+    "text": "Identify accessibility risks created by dynamic content updates and determine appropriate strategies for focus management and user notification.",
+    "cognitive_level": "Analyze",
+    "source_ids": [
+      "I.B.3",
+      "I.B.8"
+    ]
+  },
+  "I.B.4": {
+    "text": "Distinguish between semantic HTML controls and non-semantic elements in terms of built-in accessibility and keyboard support.",
+    "cognitive_level": "Analyze",
+    "source_ids": [
+      "I.B.4",
+      "I.B.7"
+    ]
+  },
+  "I.B.5": {
+    "text": "Analyze how JavaScript implementations, event handling patterns, focus order, and ARIA state changes can improve or impair accessibility and usability for assistive technology users.",
+    "cognitive_level": "Analyze",
+    "source_ids": [
+      "I.B.5",
+      "I.B.6"
+    ]
+  },
+  "I.C.1": {
+    "text": "Construct custom interactive widgets using WAI-ARIA authoring practices, including correct roles, states, properties, and semantic structure.",
+    "cognitive_level": "Apply",
+    "source_ids": [
+      "I.C.1"
+    ]
+  },
+  "I.C.2": {
+    "text": "Demonstrate and apply established keyboard interaction models for ARIA-based custom widgets during design and implementation.",
+    "cognitive_level": "Apply",
+    "source_ids": [
+      "I.C.2",
+      "I.C.7",
+      "I.C.8"
+    ]
+  },
+  "I.C.3": {
+    "text": "Apply established keyboard interaction conventions when testing ARIA-based custom widgets.",
+    "cognitive_level": "Apply",
+    "source_ids": [
+      "I.C.6"
+    ]
+  },
+  "I.C.4": {
+    "text": "Analyze interactive components and ARIA-based widgets for expected keyboard and screen reader behavior.",
+    "cognitive_level": "Analyze",
+    "source_ids": [
+      "I.C.4"
+    ]
+  },
+  "I.C.5": {
+    "text": "Analyze interactive components to determine whether gesture-based interactions provide single-pointer alternatives.",
+    "cognitive_level": "Analyze",
+    "source_ids": [
+      "I.C.5"
+    ]
+  },
+  "I.C.6": {
+    "text": "Evaluate custom controls and widget implementations to determine whether they follow accessibility authoring practices and contain correct ARIA markup.",
+    "cognitive_level": "Evaluate",
+    "source_ids": [
+      "I.C.3",
+      "I.C.10"
+    ]
+  },
+  "I.C.7": {
+    "text": "Evaluate interactive components based on keyboard navigation and screen reader behavior.",
+    "cognitive_level": "Evaluate",
+    "source_ids": [
+      "I.C.9"
+    ]
+  },
+  "I.C.8": {
+    "text": "Evaluate when native HTML controls should be used instead of custom ARIA widgets based on accessibility best practices and implementation complexity.",
+    "cognitive_level": "Evaluate",
+    "source_ids": [
+      "I.C.11"
+    ]
+  },
+  "I.D.1": {
+    "text": "Explain the five primary rules of ARIA usage and their importance in accessible interface design.",
+    "cognitive_level": "Explain",
+    "source_ids": [
+      "I.D.1",
+      "I.D.19"
+    ]
+  },
+  "I.D.2": {
+    "text": "Implement accessible names and descriptions for interactive controls using appropriate naming and description techniques.",
+    "cognitive_level": "Apply",
+    "source_ids": [
+      "I.D.2",
+      "I.D.10"
+    ]
+  },
+  "I.D.3": {
+    "text": "Demonstrate correct focus management in interactive widgets using techniques such as roving tabindex and aria-activedescendant.",
+    "cognitive_level": "Apply",
+    "source_ids": [
+      "I.D.3"
+    ]
+  },
+  "I.D.4": {
+    "text": "Explain how WAI-ARIA communicates semantics to assistive technologies, including roles, states, properties, and the accessibility tree.",
+    "cognitive_level": "Explain",
+    "source_ids": [
+      "I.D.13",
+      "I.D.20",
+      "I.D.21"
+    ]
+  },
+  "I.D.5": {
+    "text": "Describe the semantic structure of ARIA roles, including required parent-child relationships and associated attributes.",
+    "cognitive_level": "Explain",
+    "source_ids": [
+      "I.D.12"
+    ]
+  },
+  "I.D.6": {
+    "text": "Identify appropriate ARIA roles for common interactive widgets and structural page elements.",
+    "cognitive_level": "Identify",
+    "source_ids": [
+      "I.D.22"
+    ]
+  },
+  "I.D.7": {
+    "text": "Analyze interface patterns and implementation scenarios to determine when native HTML or WAI-ARIA is the appropriate solution.",
+    "cognitive_level": "Analyze",
+    "source_ids": [
+      "I.D.6",
+      "I.D.17"
+    ]
+  },
+  "I.D.8": {
+    "text": "Analyze widget implementations to determine whether ARIA roles, states, and properties are applied correctly.",
+    "cognitive_level": "Analyze",
+    "source_ids": [
+      "I.D.7"
+    ]
+  },
+  "I.D.9": {
+    "text": "Analyze how ARIA roles, states, and properties can communicate dynamic interface changes in complex web applications.",
+    "cognitive_level": "Analyze",
+    "source_ids": [
+      "I.D.5"
+    ]
+  },
+  "I.D.10": {
+    "text": "Apply ARIA live regions to communicate dynamic content updates without moving keyboard focus when appropriate.",
+    "cognitive_level": "Apply",
+    "source_ids": [
+      "I.D.8",
+      "I.D.14"
+    ]
+  },
+  "I.D.11": {
+    "text": "Apply ARIA properties and states to communicate widget state and dynamic changes in user interfaces.",
+    "cognitive_level": "Apply",
+    "source_ids": [
+      "I.D.9"
+    ]
+  },
+  "I.D.12": {
+    "text": "Compare the accessibility benefits and limitations of native HTML controls and custom WAI-ARIA widgets.",
+    "cognitive_level": "Analyze",
+    "source_ids": [
+      "I.D.11"
+    ]
+  },
+  "I.D.13": {
+    "text": "Evaluate techniques for notifying assistive technologies about dynamic content changes, including the use of ARIA live regions.",
+    "cognitive_level": "Evaluate",
+    "source_ids": [
+      "I.D.15"
+    ]
+  },
+  "I.D.14": {
+    "text": "Evaluate scenarios where the application role may be used and justify when it should be avoided.",
+    "cognitive_level": "Evaluate",
+    "source_ids": [
+      "I.D.16"
+    ]
+  },
+  "I.D.15": {
+    "text": "Explain how applying an ARIA role overrides the native semantic role of an HTML element and the resulting accessibility implications.",
+    "cognitive_level": "Explain",
+    "source_ids": [
+      "I.D.18"
+    ]
+  },
+  "I.E.1": {
+    "text": "Identify how assistive technologies interact with browsers and other user agents, and explain what accessibility support means under WCAG.",
+    "cognitive_level": "Identify",
+    "source_ids": [
+      "I.E.1"
+    ]
+  },
+  "I.E.2": {
+    "text": "Assess the compatibility of technology choices with major screen reader-browser combinations and recommend fallbacks, workarounds, or polyfills where appropriate.",
+    "cognitive_level": "Evaluate",
+    "source_ids": [
+      "I.E.2"
+    ]
+  },
+  "I.E.3": {
+    "text": "Explain how touch interaction changes when screen readers are enabled and demonstrate design patterns that support those interactions.",
+    "cognitive_level": "Explain",
+    "source_ids": [
+      "I.E.3"
+    ]
+  },
+  "I.E.4": {
+    "text": "Analyze whether accessibility problems arise from design or implementation flaws versus limitations in browser or assistive technology support.",
+    "cognitive_level": "Analyze",
+    "source_ids": [
+      "I.E.4",
+      "I.E.7"
+    ]
+  },
+  "I.E.5": {
+    "text": "Distinguish between accessibility support that can be implemented automatically by authoring tools and support that requires author input, and evaluate the capabilities and limitations of automation.",
+    "cognitive_level": "Evaluate",
+    "source_ids": [
+      "I.E.5",
+      "I.E.6"
+    ]
+  },
+  "I.E.6": {
+    "text": "Explain how ARIA can enhance assistive technology support for dynamic content and custom user interface components.",
+    "cognitive_level": "Explain",
+    "source_ids": [
+      "I.E.8"
+    ]
+  },
+  "I.F.1": {
+    "text": "Compare the accessibility benefits and tradeoffs of native HTML controls and custom ARIA-based controls.",
+    "cognitive_level": "Analyze",
+    "source_ids": [
+      "I.F.1"
+    ]
+  },
+  "I.F.2": {
+    "text": "Demonstrate how to convert a non-semantic element into an accessible custom control using proper semantics, keyboard interaction, and visible focus.",
+    "cognitive_level": "Apply",
+    "source_ids": [
+      "I.F.2"
+    ]
+  },
+  "I.F.3": {
+    "text": "Recommend the use of standard HTML controls whenever possible and justify the business and user benefits of doing so.",
+    "cognitive_level": "Evaluate",
+    "source_ids": [
+      "I.F.3"
+    ]
+  },
+  "I.G.1": {
+    "text": "Demonstrate how to announce dynamic SPA page updates when navigation or content changes do not trigger a full page reload.",
+    "cognitive_level": "Apply",
+    "source_ids": [
+      "I.G.1"
+    ]
+  },
+  "I.G.2": {
+    "text": "Implement focus changes appropriately when new SPA views or dialogs appear.",
+    "cognitive_level": "Apply",
+    "source_ids": [
+      "I.G.2"
+    ]
+  },
+  "I.G.3": {
+    "text": "Analyze dynamic SPA content updates to determine when users should be notified of newly loaded content.",
+    "cognitive_level": "Analyze",
+    "source_ids": [
+      "I.G.4"
+    ]
+  },
+  "I.G.4": {
+    "text": "Explain accessibility challenges associated with single-page applications, including focus management, dynamic content updates, and assistive technology compatibility.",
+    "cognitive_level": "Explain",
+    "source_ids": [
+      "I.G.6"
+    ]
+  },
+  "I.G.5": {
+    "text": "Evaluate the accessibility of a single-page application with assistive technologies and propose solutions for discovered gaps.",
+    "cognitive_level": "Evaluate",
+    "source_ids": [
+      "I.G.3",
+      "I.G.7"
+    ]
+  },
+  "I.G.6": {
+    "text": "Evaluate whether focus indicators, labels, instructions, and touch targets remain usable under zoom, text-spacing, and touch interaction conditions.",
+    "cognitive_level": "Evaluate",
+    "source_ids": [
+      "I.G.5",
+      "I.G.8"
+    ]
+  },
+  "I.H.1": {
+    "text": "Describe strategies that people with blindness, low vision, motor disabilities, auditory disabilities, and cognitive or learning disabilities use to interact with web content.",
+    "cognitive_level": "Explain",
+    "source_ids": [
+      "I.H.1"
+    ]
+  },
+  "I.H.2": {
+    "text": "Analyze how design elements such as headings, landmarks, and color contrast affect navigation and comprehension for diverse user groups.",
+    "cognitive_level": "Analyze",
+    "source_ids": [
+      "I.H.2"
+    ]
+  },
+  "I.H.3": {
+    "text": "Propose structural and layout revisions that better support multiple disability groups.",
+    "cognitive_level": "Evaluate",
+    "source_ids": [
+      "I.H.3"
+    ]
+  },
+  "II.A.1": {
+    "text": "Identify accessibility issues that arise from specific browser and screen-reader combinations.",
+    "cognitive_level": "Identify",
+    "source_ids": [
+      "II.A.1"
+    ]
+  },
+  "II.A.2": {
+    "text": "Explain why certain HTML or ARIA features may have support gaps across browsers or assistive technologies and how to mitigate those gaps.",
+    "cognitive_level": "Explain",
+    "source_ids": [
+      "II.A.2"
+    ]
+  },
+  "II.A.3": {
+    "text": "Evaluate accessibility across devices, platforms, browsers, and assistive technologies.",
+    "cognitive_level": "Evaluate",
+    "source_ids": [
+      "II.A.3"
+    ]
+  },
+  "II.A.4": {
+    "text": "Analyze how assistive technologies, adaptive strategies, and user agents interact to shape accessibility support.",
+    "cognitive_level": "Analyze",
+    "source_ids": [
+      "II.A.4",
+      "II.A.5",
+      "II.A.6",
+      "II.A.7"
+    ]
+  },
+  "II.B.1": {
+    "text": "Map accessibility barriers to the appropriate WCAG success criterion or EN 301 549 requirement and distinguish conformance failures from broader usability or best-practice issues.",
+    "cognitive_level": "Analyze",
+    "source_ids": [
+      "II.B.1",
+      "II.B.5"
+    ]
+  },
+  "II.B.2": {
+    "text": "Apply the WCAG-EM methodology to define scope, select a representative sample, evaluate content, and report findings.",
+    "cognitive_level": "Apply",
+    "source_ids": [
+      "II.B.2",
+      "II.B.11"
+    ]
+  },
+  "II.B.3": {
+    "text": "Explain WCAG conformance levels and analyze factors that influence the selection of a target conformance level.",
+    "cognitive_level": "Explain",
+    "source_ids": [
+      "II.B.3",
+      "II.B.22"
+    ]
+  },
+  "II.B.4": {
+    "text": "Explain WCAG conformance requirements and how they apply to evaluating web content.",
+    "cognitive_level": "Explain",
+    "source_ids": [
+      "II.B.26"
+    ]
+  },
+  "II.B.5": {
+    "text": "Describe limitations in WCAG and propose best-practice enhancements for issues not fully covered by the specifications.",
+    "cognitive_level": "Evaluate",
+    "source_ids": [
+      "II.B.4"
+    ]
+  },
+  "II.B.6": {
+    "text": "Analyze examples of web content to determine whether they meet or fail specific WCAG success criteria.",
+    "cognitive_level": "Analyze",
+    "source_ids": [
+      "II.B.8"
+    ]
+  },
+  "II.B.7": {
+    "text": "Identify WCAG 2.2 success criteria and classify them by conformance level.",
+    "cognitive_level": "Identify",
+    "source_ids": [
+      "II.B.14",
+      "II.B.30"
+    ]
+  },
+  "II.B.8": {
+    "text": "Differentiate between sufficient techniques, advisory techniques, and failures associated with WCAG success criteria.",
+    "cognitive_level": "Analyze",
+    "source_ids": [
+      "II.B.19"
+    ]
+  },
+  "II.B.9": {
+    "text": "Distinguish between normative and non-normative information within accessibility specifications.",
+    "cognitive_level": "Analyze",
+    "source_ids": [
+      "II.B.21"
+    ]
+  },
+  "II.B.10": {
+    "text": "Identify relevant accessibility requirements in WCAG 2.2, WAI-ARIA, and ATAG when evaluating accessibility issues.",
+    "cognitive_level": "Identify",
+    "source_ids": [
+      "II.B.28"
+    ]
+  },
+  "II.B.11": {
+    "text": "Explain the relationship between WCAG principles, guidelines, and success criteria and the accessibility impact of each principle.",
+    "cognitive_level": "Explain",
+    "source_ids": [
+      "II.B.17",
+      "II.B.25"
+    ]
+  },
+  "II.B.12": {
+    "text": "Compare WCAG with EN 301 549, including how WCAG requirements are incorporated and which additional EN 301 549 requirements extend beyond WCAG.",
+    "cognitive_level": "Analyze",
+    "source_ids": [
+      "II.B.15",
+      "II.B.20",
+      "II.B.23"
+    ]
+  },
+  "II.B.13": {
+    "text": "Analyze the scope and intent of EN 301 549 requirements in Annex A Table A.1 that go beyond WCAG.",
+    "cognitive_level": "Analyze",
+    "source_ids": [
+      "II.B.9"
+    ]
+  },
+  "II.B.14": {
+    "text": "Identify the technologies and digital products addressed by EN 301 549.",
+    "cognitive_level": "Identify",
+    "source_ids": [
+      "II.B.29"
+    ]
+  },
+  "II.B.15": {
+    "text": "Explain how ATAG 2.0 applies to authoring tools and development environments, including the purpose and scope of its two primary sections.",
+    "cognitive_level": "Explain",
+    "source_ids": [
+      "II.B.16",
+      "II.B.23",
+      "II.B.31"
+    ]
+  },
+  "II.B.16": {
+    "text": "Differentiate between accessibility issues that can be detected by automated tools and those that require manual evaluation.",
+    "cognitive_level": "Analyze",
+    "source_ids": [
+      "II.B.18"
+    ]
+  },
+  "II.B.17": {
+    "text": "Differentiate between accessibility and user experience design, including their goals, assumptions, and areas of overlap.",
+    "cognitive_level": "Analyze",
+    "source_ids": [
+      "II.B.20"
+    ]
+  },
+  "II.B.18": {
+    "text": "Analyze how assistive technology users may interact differently with web content based on skill level, navigation strategies, and personal preferences.",
+    "cognitive_level": "Analyze",
+    "source_ids": [
+      "II.B.6"
+    ]
+  },
+  "II.B.19": {
+    "text": "Analyze dynamic content updates to determine when keyboard focus should be moved to newly loaded content.",
+    "cognitive_level": "Analyze",
+    "source_ids": [
+      "II.B.7"
+    ]
+  },
+  "II.B.20": {
+    "text": "Explain the major additions introduced in WCAG 2.1, particularly those addressing new input methods and improved support for low vision and cognitive disabilities.",
+    "cognitive_level": "Explain",
+    "source_ids": [
+      "II.B.33"
+    ]
+  },
+  "II.B.21": {
+    "text": "Apply standard keyboard interaction patterns to test native HTML interactive elements.",
+    "cognitive_level": "Apply",
+    "source_ids": [
+      "II.B.10"
+    ]
+  },
+  "II.C.1": {
+    "text": "Conduct screen reader testing to verify that interactive elements expose correct name, role, value, state, and status changes.",
+    "cognitive_level": "Apply",
+    "source_ids": [
+      "II.C.1",
+      "II.C.12",
+      "II.C.16",
+      "II.C.20"
+    ]
+  },
+  "II.C.2": {
+    "text": "Demonstrate manual keyboard testing to detect missing focus indicators, incorrect tab order, keyboard traps, and other keyboard-operability issues.",
+    "cognitive_level": "Apply",
+    "source_ids": [
+      "II.C.2",
+      "II.C.5",
+      "II.C.8",
+      "II.C.14"
+    ]
+  },
+  "II.C.3": {
+    "text": "Use magnifier, high-contrast, zoom, and viewport testing to detect low-vision accessibility problems.",
+    "cognitive_level": "Apply",
+    "source_ids": [
+      "II.C.3",
+      "II.C.6"
+    ]
+  },
+  "II.C.4": {
+    "text": "Evaluate whether captioning, transcripts, and other alternatives meet common user needs for auditory disabilities.",
+    "cognitive_level": "Evaluate",
+    "source_ids": [
+      "II.C.4"
+    ]
+  },
+  "II.C.5": {
+    "text": "Evaluate HTML markup to determine whether headings, lists, tables, landmarks, and other structural semantics correctly convey meaning to assistive technologies.",
+    "cognitive_level": "Evaluate",
+    "source_ids": [
+      "II.C.7"
+    ]
+  },
+  "II.C.6": {
+    "text": "Evaluate navigation structures, headings, labels, and link descriptions to determine whether they support clear information architecture and efficient screen reader navigation.",
+    "cognitive_level": "Evaluate",
+    "source_ids": [
+      "II.C.4",
+      "II.C.9"
+    ]
+  },
+  "II.C.7": {
+    "text": "Evaluate form implementations to verify accessible interaction patterns, programmatic error identification, clear instructions, and usable suggestions for correction.",
+    "cognitive_level": "Evaluate",
+    "source_ids": [
+      "II.C.6",
+      "II.C.19"
+    ]
+  },
+  "II.C.8": {
+    "text": "Test the reading order of web content to confirm that the programmatic order is meaningful and consistent with intended visual presentation.",
+    "cognitive_level": "Apply",
+    "source_ids": [
+      "II.C.13"
+    ]
+  },
+  "II.C.9": {
+    "text": "Evaluate whether text alternatives are provided appropriately for images, video, and other non-text content.",
+    "cognitive_level": "Evaluate",
+    "source_ids": [
+      "II.C.13"
+    ]
+  },
+  "II.C.10": {
+    "text": "Evaluate accessibility solutions to ensure they follow web standards rather than relying on technology-specific quirks, and judge when supplementing browser or assistive technology behavior may be appropriate.",
+    "cognitive_level": "Evaluate",
+    "source_ids": [
+      "II.C.11",
+      "II.C.14"
+    ]
+  },
+  "II.C.11": {
+    "text": "Evaluate the limitations of guidelines, principles, and techniques when assessing real-world accessibility issues.",
+    "cognitive_level": "Evaluate",
+    "source_ids": [
+      "II.C.12"
+    ]
+  },
+  "II.C.12": {
+    "text": "Verify that page language, form errors, and component states are programmatically conveyed to assistive technologies.",
+    "cognitive_level": "Evaluate",
+    "source_ids": [
+      "II.C.20"
+    ]
+  },
+  "II.D.1": {
+    "text": "Compare the strengths and limitations of automated accessibility testing tools, browser-based tools, spider tools, and bookmarklets.",
+    "cognitive_level": "Analyze",
+    "source_ids": [
+      "II.D.1",
+      "II.D.8"
+    ]
+  },
+  "II.D.2": {
+    "text": "Use site-wide scanning tools and browser-based developer tools to detect markup, ARIA, and structural accessibility issues.",
+    "cognitive_level": "Apply",
+    "source_ids": [
+      "II.D.2",
+      "II.D.11"
+    ]
+  },
+  "II.D.3": {
+    "text": "Interpret automated test results by confirming valid failures, identifying false positives and omissions, and determining appropriate manual follow-up.",
+    "cognitive_level": "Analyze",
+    "source_ids": [
+      "II.D.3",
+      "II.D.4",
+      "II.D.5"
+    ]
+  },
+  "II.D.4": {
+    "text": "Analyze how accessibility testing tools can be applied and integrated at different stages of the development lifecycle.",
+    "cognitive_level": "Analyze",
+    "source_ids": [
+      "II.D.6",
+      "II.D.7"
+    ]
+  },
+  "II.D.5": {
+    "text": "Explain the purpose of ACT Rules and their role in standardizing automated accessibility testing.",
+    "cognitive_level": "Explain",
+    "source_ids": [
+      "II.D.9",
+      "II.H.2"
+    ]
+  },
+  "II.D.6": {
+    "text": "Identify common categories of accessibility testing tools.",
+    "cognitive_level": "Identify",
+    "source_ids": [
+      "II.D.10"
+    ]
+  },
+  "II.D.7": {
+    "text": "Inspect HTML structure and accessibility-related attributes using browser developer tools.",
+    "cognitive_level": "Apply",
+    "source_ids": [
+      "II.D.11",
+      "II.D.12"
+    ]
+  },
+  "II.D.8": {
+    "text": "Demonstrate use of color-contrast analyzers, focus inspectors, or validators to confirm partial WCAG compliance.",
+    "cognitive_level": "Apply",
+    "source_ids": [
+      "II.H.1"
+    ]
+  },
+  "II.E.1": {
+    "text": "Explain how accessibility quality assurance should be integrated into agile and waterfall lifecycles.",
+    "cognitive_level": "Explain",
+    "source_ids": [
+      "II.E.1",
+      "II.E.5"
+    ]
+  },
+  "II.E.2": {
+    "text": "Establish an ongoing accessibility testing and regression process that combines automated and manual methods.",
+    "cognitive_level": "Apply",
+    "source_ids": [
+      "II.E.2",
+      "II.E.4"
+    ]
+  },
+  "II.E.3": {
+    "text": "Coordinate with product owners, designers, developers, and content creators to include accessibility in acceptance criteria, definitions of done, and broader lifecycle responsibilities.",
+    "cognitive_level": "Apply",
+    "source_ids": [
+      "II.E.3",
+      "II.E.6"
+    ]
+  },
+  "II.E.4": {
+    "text": "Explain how accessibility maturity models and assessment tools can be used to measure progress and support sustainability.",
+    "cognitive_level": "Explain",
+    "source_ids": [
+      "II.E.7"
+    ]
+  },
+  "II.F.1": {
+    "text": "Demonstrate use of popular screen reader and browser combinations to confirm accessibility across environments.",
+    "cognitive_level": "Apply",
+    "source_ids": [
+      "II.F.1"
+    ]
+  },
+  "II.F.2": {
+    "text": "Verify that dynamically updated or hidden elements are correctly announced to, or hidden from, screen readers.",
+    "cognitive_level": "Evaluate",
+    "source_ids": [
+      "II.F.2"
+    ]
+  },
+  "II.F.3": {
+    "text": "Assess whether alternative input methods such as switch control or voice input can navigate and operate interactive elements effectively.",
+    "cognitive_level": "Evaluate",
+    "source_ids": [
+      "II.F.3"
+    ]
+  },
+  "II.F.4": {
+    "text": "Evaluate whether interactive elements use native controls or appropriate ARIA semantics to support keyboard, voice control, and alternative input devices.",
+    "cognitive_level": "Evaluate",
+    "source_ids": [
+      "II.F.4",
+      "II.F.5"
+    ]
+  },
+  "II.G.1": {
+    "text": "Perform low-vision usability walk-throughs using zoom, high-contrast, and related settings to identify layout and text-flow issues.",
+    "cognitive_level": "Apply",
+    "source_ids": [
+      "II.G.1"
+    ]
+  },
+  "II.G.2": {
+    "text": "Assess mobile and touch interaction to ensure content remains accessible on smaller screens and does not require two-dimensional scrolling.",
+    "cognitive_level": "Evaluate",
+    "source_ids": [
+      "II.G.2",
+      "II.G.11"
+    ]
+  },
+  "II.G.3": {
+    "text": "Identify cognitive barriers in web content and recommend simpler language, clearer instructions, or multi-step guidance.",
+    "cognitive_level": "Evaluate",
+    "source_ids": [
+      "II.G.3"
+    ]
+  },
+  "II.G.4": {
+    "text": "Evaluate whether motion-based, device-motion, and gesture-based interactions provide accessible alternatives or can be disabled.",
+    "cognitive_level": "Evaluate",
+    "source_ids": [
+      "II.G.4",
+      "II.G.14",
+      "II.G.15"
+    ]
+  },
+  "II.G.5": {
+    "text": "Evaluate multimedia to verify that videos provide captions and audio-only media provide transcripts.",
+    "cognitive_level": "Evaluate",
+    "source_ids": [
+      "II.G.5"
+    ]
+  },
+  "II.G.6": {
+    "text": "Evaluate the effects of contrast modes, text and non-text contrast, and color-contrast requirements on accessibility.",
+    "cognitive_level": "Evaluate",
+    "source_ids": [
+      "II.G.6",
+      "II.G.12",
+      "II.G.13"
+    ]
+  },
+  "II.G.7": {
+    "text": "Evaluate time limits, moving content, and automatically playing media to determine whether users can control or disable them.",
+    "cognitive_level": "Evaluate",
+    "source_ids": [
+      "II.G.7"
+    ]
+  },
+  "II.G.8": {
+    "text": "Explain how touch interactions change when screen readers are enabled on mobile devices.",
+    "cognitive_level": "Explain",
+    "source_ids": [
+      "II.G.8"
+    ]
+  },
+  "II.G.9": {
+    "text": "Identify accessibility issues related to sensory-dependent instructions, autoplaying audio, or moving content that may interfere with assistive technology use.",
+    "cognitive_level": "Identify",
+    "source_ids": [
+      "II.G.9"
+    ]
+  },
+  "II.G.10": {
+    "text": "Test device orientation support to ensure content and functionality are available in both portrait and landscape orientations.",
+    "cognitive_level": "Apply",
+    "source_ids": [
+      "II.G.10"
+    ]
+  },
+  "II.G.11": {
+    "text": "Verify that text can be resized up to 200% without loss of functionality or content.",
+    "cognitive_level": "Evaluate",
+    "source_ids": [
+      "II.G.16"
+    ]
+  },
+  "III.A.1": {
+    "text": "Categorize accessibility issues by severity and formulate a remediation sequence that accounts for user impact, legal risk, effort, and resource constraints.",
+    "cognitive_level": "Evaluate",
+    "source_ids": [
+      "III.A.1",
+      "III.A.4",
+      "III.A.5",
+      "III.A.7"
+    ]
+  },
+  "III.A.2": {
+    "text": "Justify which accessibility issues should be addressed first based on legal risk, user impact, and overall usability.",
+    "cognitive_level": "Evaluate",
+    "source_ids": [
+      "III.A.2"
+    ]
+  },
+  "III.A.3": {
+    "text": "Communicate high-impact accessibility barriers clearly to stakeholders and developers.",
+    "cognitive_level": "Apply",
+    "source_ids": [
+      "III.A.3"
+    ]
+  },
+  "III.A.4": {
+    "text": "Evaluate the importance and urgency of dynamically loaded content to determine the most appropriate notification strategy for assistive technology users.",
+    "cognitive_level": "Evaluate",
+    "source_ids": [
+      "III.A.6"
+    ]
+  },
+  "III.B.1": {
+    "text": "Propose accessible and feasible remediation strategies for conformance failures using native HTML or ARIA-based solutions.",
+    "cognitive_level": "Evaluate",
+    "source_ids": [
+      "III.B.1"
+    ]
+  },
+  "III.B.2": {
+    "text": "Differentiate between targeted fixes and broader redesign approaches when addressing accessibility barriers.",
+    "cognitive_level": "Analyze",
+    "source_ids": [
+      "III.B.2",
+      "III.B.8"
+    ]
+  },
+  "III.B.3": {
+    "text": "Collaborate with design and development teams to implement shared UI patterns or code solutions that prevent repeated accessibility faults.",
+    "cognitive_level": "Apply",
+    "source_ids": [
+      "III.B.3"
+    ]
+  },
+  "III.B.4": {
+    "text": "Analyze automated and manual testing results to determine appropriate remediation or follow-up testing steps.",
+    "cognitive_level": "Analyze",
+    "source_ids": [
+      "III.B.4"
+    ]
+  },
+  "III.B.5": {
+    "text": "Assess whether an ideal solution or a good-enough solution is appropriate given project constraints, target users, and available resources.",
+    "cognitive_level": "Evaluate",
+    "source_ids": [
+      "III.B.5"
+    ]
+  },
+  "III.B.6": {
+    "text": "Communicate the purpose, approach, and expected outcomes of remediation strategies to relevant stakeholders.",
+    "cognitive_level": "Apply",
+    "source_ids": [
+      "III.B.6",
+      "III.B.7"
+    ]
+  },
+  "III.B.7": {
+    "text": "Evaluate remediation options to determine the most practical and broadly applicable solution for a given accessibility issue.",
+    "cognitive_level": "Evaluate",
+    "source_ids": [
+      "III.B.9",
+      "III.B.10",
+      "III.B.13",
+      "III.B.14"
+    ]
+  },
+  "III.B.8": {
+    "text": "Evaluate the benefits of integrating accessibility during design and development compared with addressing accessibility after development.",
+    "cognitive_level": "Evaluate",
+    "source_ids": [
+      "III.B.11"
+    ]
+  },
+  "III.B.9": {
+    "text": "Identify stakeholders needed to plan and implement accessibility remediation.",
+    "cognitive_level": "Identify",
+    "source_ids": [
+      "III.B.12",
+      "III.B.13"
+    ]
+  },
+  "III.B.10": {
+    "text": "Incorporate feedback from users with disabilities to validate and refine remediation strategies.",
+    "cognitive_level": "Apply",
+    "source_ids": [
+      "III.B.14",
+      "III.B.15"
+    ]
+  },
+  "III.C.1": {
+    "text": "Evaluate vendor Accessibility Conformance Reports and differentiate among ACR types to determine product compatibility with organizational accessibility standards.",
+    "cognitive_level": "Evaluate",
+    "source_ids": [
+      "III.C.1",
+      "III.C.10"
+    ]
+  },
+  "III.C.2": {
+    "text": "Recommend contract language and procurement checklist requirements that obligate vendors to address accessibility defects and meet relevant standards.",
+    "cognitive_level": "Evaluate",
+    "source_ids": [
+      "III.C.2",
+      "III.C.3",
+      "III.C.14"
+    ]
+  },
+  "III.C.3": {
+    "text": "Implement a vendor management process that includes accessibility roadmap review, defect remediation, monitoring, and mitigation planning.",
+    "cognitive_level": "Apply",
+    "source_ids": [
+      "III.C.4",
+      "III.C.17"
+    ]
+  },
+  "III.C.4": {
+    "text": "Analyze compatibility and interoperability issues across combinations of browsers, platforms, operating systems, devices, and assistive technologies.",
+    "cognitive_level": "Analyze",
+    "source_ids": [
+      "III.C.5",
+      "III.C.7",
+      "III.C.8",
+      "III.C.13",
+      "III.C.18"
+    ]
+  },
+  "III.C.5": {
+    "text": "Assess the feasibility of proposed remediation solutions across different project contexts and technical environments.",
+    "cognitive_level": "Evaluate",
+    "source_ids": [
+      "III.C.6"
+    ]
+  },
+  "III.C.6": {
+    "text": "Describe how device-independent event handling supports accessibility across keyboard, mouse, touch, and assistive technology interactions.",
+    "cognitive_level": "Explain",
+    "source_ids": [
+      "III.C.9"
+    ]
+  },
+  "III.C.7": {
+    "text": "Evaluate accessibility claims, conformance statements, and design decisions in procurement documentation.",
+    "cognitive_level": "Evaluate",
+    "source_ids": [
+      "III.C.11",
+      "III.C.12"
+    ]
+  },
+  "III.C.8": {
+    "text": "Explain how accessibility requirements can be incorporated into organizational procurement processes and the role of accessibility experts in vendor evaluation.",
+    "cognitive_level": "Explain",
+    "source_ids": [
+      "III.C.14",
+      "III.C.15"
+    ]
+  },
+  "III.C.9": {
+    "text": "Identify accessibility risks raised during procurement evaluations.",
+    "cognitive_level": "Identify",
+    "source_ids": [
+      "III.C.16"
+    ]
+  },
+  "I.B.S1": {
+    "text": "Analyze interaction patterns to determine whether multiple event models on the same control (for example, hover for one behavior and click for another) create accessibility barriers for keyboard, touch, or gesture-based assistive technology users.",
+    "cognitive_level": "Analyze",
+    "rationale": "Covers the PDF's specific 'simplify events' concept, which is more precise than general device-independent event handling."
+  },
+  "I.D.S1": {
+    "text": "Explain how accessible names and descriptions are computed from multiple possible naming sources and why source priority affects what assistive technologies announce.",
+    "cognitive_level": "Explain",
+    "rationale": "Adds explicit coverage for accessible name and description computation rather than only naming techniques."
+  },
+  "II.C.S1": {
+    "text": "Evaluate whether CSS-based hiding and visibility techniques expose or suppress content appropriately for assistive technologies in ways that match author intent.",
+    "cognitive_level": "Evaluate",
+    "rationale": "Captures the PDF's practical distinction between content hidden visually, hidden programmatically, and unintentionally exposed to screen readers."
+  },
+  "II.F.S1": {
+    "text": "Analyze assistive-technology test results to distinguish likely content defects from tester inexperience, support gaps, or assistive technology anomalies.",
+    "cognitive_level": "Analyze",
+    "rationale": "Makes explicit the PDF's warning that not all unexpected AT behavior should be treated as an authoring error."
+  },
+  "II.G.S1": {
+    "text": "Explain how the accessibility needs of people with limited reading capacities differ from those of screen reader users, including the role of text-to-speech tools and the importance of real text that can be customized.",
+    "cognitive_level": "Explain",
+    "rationale": "Adds explicit coverage for the PDF's limited-reading-capacities concept."
+  },
+  "II.G.S2": {
+    "text": "Evaluate whether text presentation choices such as font, spacing, line width, and use of images of text support users with reading, cognitive, and low-vision needs.",
+    "cognitive_level": "Evaluate",
+    "rationale": "Brings together under-assessed presentation issues discussed in the PDF for reading and cognitive accessibility."
+  },
+  "II.G.S3": {
+    "text": "Explain accessibility considerations for users with auditory disabilities that go beyond captions and transcripts, including the role of sign language, plain language, and visual supports.",
+    "cognitive_level": "Explain",
+    "rationale": "Preserves concepts in the PDF about early deafness, sign-language preference, and easy-to-read visual communication."
+  },
+  "II.B.S1": {
+    "text": "Explain the functional performance concept in EN 301 549 and how user needs categories can inform accessibility evaluation across disability types and contexts of use.",
+    "cognitive_level": "Explain",
+    "rationale": "Covers EN 301 549 functional performance statements without referencing annexes."
+  },
+  "II.B.S2": {
+    "text": "Identify accessibility issues associated with user needs such as limited reach, limited vocal capability, photosensitive seizure risk, and privacy when evaluating digital products.",
+    "cognitive_level": "Identify",
+    "rationale": "Adds specific EN 301 549 user-need categories that were not explicit in the current competency model."
+  },
+  "II.B.S3": {
+    "text": "Explain emerging accessibility gaps that are not fully addressed by WCAG, such as pseudomotion, ornate fonts, personalization or theming needs, and voice interaction.",
+    "cognitive_level": "Explain",
+    "rationale": "Makes the PDF's detailed guideline-limitations discussion assessable."
+  },
+  "II.E.S1": {
+    "text": "Apply accessibility quality-assurance practices that include defining accessibility in the definition of done, assigning responsibilities, planning resources, using standard reporting, and tracking remediation progress.",
+    "cognitive_level": "Apply",
+    "rationale": "Adds concrete operational QA and management practices from the PDF's Plan-Create-Test guidance."
+  },
+  "III.C.S1": {
+    "text": "Explain how procurement maturity models can be used to improve organizational accessibility practices over time.",
+    "cognitive_level": "Explain",
+    "rationale": "Adds the procurement maturity-model concept that was not preserved explicitly in the optimized competency model."
+  }
+}

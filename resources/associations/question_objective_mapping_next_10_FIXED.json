@@ -1,0 +1,82 @@
+[
+  {
+    "question_id": "ff4e3f2b-0cb9-4ffb-b211-471b0b673700",
+    "question_text": "Under WCAG 2.1, which of the following would violate conformance level A or AA success criteria?",
+    "primary": "II.B.6",
+    "primary_text": "Analyze examples of web content to determine whether they meet or fail specific WCAG success criteria.",
+    "secondary": [
+      {
+        "id": "II.B.1",
+        "text": "Map accessibility barriers to the appropriate WCAG success criterion or EN 301 549 requirement and distinguish conformance failures from broader usability or best-practice issues."
+      }
+    ]
+  },
+  {
+    "question_id": "79fc2404-319f-451a-a500-9a327979a84d",
+    "question_text": "Under WCAG 2.1, which of the following would violate conformance level A or AA success criteria?",
+    "primary": "II.G.6",
+    "primary_text": "Evaluate the effects of contrast modes, text and non-text contrast, and color-contrast requirements on accessibility.",
+    "secondary": [
+      {
+        "id": "II.B.6",
+        "text": "Analyze examples of web content to determine whether they meet or fail specific WCAG success criteria."
+      }
+    ]
+  },
+  {
+    "question_id": "6afdd222-4d18-4eba-84a4-865b59487c74",
+    "question_text": "Who would be **LEAST** likely to benefit when pages use the autocomplete attribute on form fields?",
+    "primary": "I.H.1",
+    "primary_text": "Describe strategies that people with blindness, low vision, motor disabilities, auditory disabilities, and cognitive or learning disabilities use to interact with web content.",
+    "secondary": null
+  },
+  {
+    "question_id": "14f7d534-9aeb-43b6-a4e4-08210b004e8c",
+    "question_text": "Carrie is paralyzed and uses a power chair, from which she accesses the internet through a tablet mounted to her chair's arm. She controls the tablet using a sip-and-puff device. Which of the following would be **LEAST** likely to present a barrier for her:",
+    "primary": "II.F.3",
+    "primary_text": "Assess whether alternative input methods such as switch control or voice input can navigate and operate interactive elements effectively.",
+    "secondary": null
+  },
+  {
+    "question_id": "f4dd205f-c4bb-45f1-8032-a2a4a5ab65ed",
+    "question_text": "When is it acceptable to use CSS-generated content, using the `content` property with the `::before` or `::after` pseudo-elements.",
+    "primary": null,
+    "primary_text": null,
+    "secondary": null
+  },
+  {
+    "question_id": "b641ca5c-2dd1-4f03-8ab7-2eda5df1e488",
+    "question_text": "In which instance must text meet the contrast requirement of 3:1 for SC 1.4.3 Contrast (Minimum) ?",
+    "primary": "II.G.6",
+    "primary_text": "Evaluate the effects of contrast modes, text and non-text contrast, and color-contrast requirements on accessibility.",
+    "secondary": null
+  },
+  {
+    "question_id": "e08eaf70-8652-490d-a5f0-2f3a5adf8dae",
+    "question_text": "For the following code, which of the following is **NOT** true?\n\n```\n<style>\n#steps a { float:right; padding: 0 .5em }\n</style>\n<div id=\"steps\">\n<a href=\"3.htm\" tabindex=\"3\">Step 3</a>\n<a href=\"2.htm\" tabindex=\"2\">Step 2</a>\n<a href=\"1.htm\" tabindex=\"1\">Step 1</a>\n</div>\n```",
+    "primary": "II.C.8",
+    "primary_text": "Test the reading order of web content to confirm that the programmatic order is meaningful and consistent with intended visual presentation.",
+    "secondary": null
+  },
+  {
+    "question_id": "f3535518-ec50-4d4d-bc45-abfb8ed9feef",
+    "question_text": "Which of the following is **NOT** a problem with the accessibility of the following code?\n\n```\n<p>The <a href=\"syllabus.html\" tabindex=\"1\">syllabus</a> has all the information you need.</p>\n<style>\np {color:#000000; background-color:#4DB396; font-size:1em}\na {color:#6A2C3E}\na:hover, a:active, a:focus { outline: none; border: 0; }\n</style>\n```\n\nSee the code in JSBin",
+    "primary": "II.B.6",
+    "primary_text": "Analyze examples of web content to determine whether they meet or fail specific WCAG success criteria.",
+    "secondary": null
+  },
+  {
+    "question_id": "80d729ed-4b07-4634-9cc4-e2343f21fa17",
+    "question_text": "Which method can be used as a visual cue along with color, so that color is not the only means of conveying information?  *Make sure to read all options before answering.*",
+    "primary": "II.B.6",
+    "primary_text": "Analyze examples of web content to determine whether they meet or fail specific WCAG success criteria.",
+    "secondary": null
+  },
+  {
+    "question_id": "d36867eb-c9be-4041-9989-694caec278df",
+    "question_text": "Generally speaking, which of the following code examples is **MOST** accessible?",
+    "primary": "II.C.8",
+    "primary_text": "Test the reading order of web content to confirm that the programmatic order is meaningful and consistent with intended visual presentation.",
+    "secondary": null
+  }
+]

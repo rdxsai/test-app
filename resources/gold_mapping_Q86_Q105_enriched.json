@@ -1,0 +1,846 @@
+{
+  "range": "Q86-Q105",
+  "method": "Gold-standard semantic mapping using full question text, answer choices, correct answer selection, and available feedback.",
+  "results": [
+    {
+      "question_number": 86,
+      "question_id": "8066217b-f5d6-4842-a1cf-c9cc6709098f",
+      "question_text_markdown": "Which of the following is **NOT** a reason why someone with a cognitive disability might use a screen reader?",
+      "answers": [
+        {
+          "answer_text_markdown": "Because they also have low vision",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Because screen readers can output to Minspeak format used for augmentative and alternative communication",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Because they are also blind",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Because they find it easier to understand spoken rather than written words",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "I.H.1",
+        "text": "Describe strategies that people with blindness, low vision, motor disabilities, auditory disabilities, and cognitive or learning disabilities use to interact with web content."
+      },
+      "secondary_objectives": [
+        {
+          "id": "I.E.1",
+          "text": "Identify how assistive technologies interact with browsers and other user agents, and explain what accessibility support means under WCAG."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "The learner must reason about why a person with a cognitive disability might use a screen reader and identify the implausible explanation. That primarily assesses understanding of how different disability groups use assistive technologies, with secondary relevance to general familiarity with the assistive technology ecosystem."
+    },
+    {
+      "question_number": 87,
+      "question_id": "37c95829-d4bc-4a6a-a398-4972b74d77ac",
+      "question_text_markdown": "Which of the following is **NOT** true about Braille devices?",
+      "answers": [
+        {
+          "answer_text_markdown": "people who are both deaf and blind rely on refreshable braille displays to access digital content",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "refreshable Braille display are sometimes used by people who are not deaf",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "most screen readers cannot output to refreshable Braille displays",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "a refreshable Braille display is an electro-mechanical device for displaying braille characters, usually by means of round-tipped pins raised through holes in a flat surface",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "I.E.1",
+        "text": "Identify how assistive technologies interact with browsers and other user agents, and explain what accessibility support means under WCAG."
+      },
+      "secondary_objectives": [
+        {
+          "id": "I.H.1",
+          "text": "Describe strategies that people with blindness, low vision, motor disabilities, auditory disabilities, and cognitive or learning disabilities use to interact with web content."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "This question asks what is and is not true about refreshable Braille devices. The core skill is understanding how assistive technologies interact with digital content and screen readers, with secondary relevance to the ways blind and deafblind users access the web."
+    },
+    {
+      "question_number": 88,
+      "question_id": "684fd327-1803-4251-a516-e83ac2523f30",
+      "question_text_markdown": "For a show/hide pattern, appropriately setting the `aria-expanded` state of a button that hides and reveals content would be an example of which web accessibility principle?",
+      "answers": [
+        {
+          "answer_text_markdown": "Perceivable",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Operable",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Robust",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Understandable",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "I.A.2",
+        "text": "Explain the structure of WCAG 2.2, including the POUR principles, guidelines, success criteria, and conformance levels A, AA, and AAA."
+      },
+      "secondary_objectives": [
+        {
+          "id": "II.B.11",
+          "text": "Explain the relationship between WCAG principles, guidelines, and success criteria and the accessibility impact of each principle."
+        },
+        {
+          "id": "I.D.11",
+          "text": "Apply ARIA properties and states to communicate widget state and dynamic changes in user interfaces."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "The question explicitly asks which WCAG principle is illustrated by exposing the expanded/collapsed state of a show/hide control. The primary skill is knowing the POUR principles; secondarily, the learner must understand the accessibility impact of the Robust principle and the use of ARIA states to communicate component state."
+    },
+    {
+      "question_number": 89,
+      "question_id": "9c726b85-83c4-46a9-91f9-9937b9251a71",
+      "question_text_markdown": "The following code would be an example of a violation of which web accessibility principle?\n\n```\n\nitem 1\nitem2\n\n```",
+      "answers": [
+        {
+          "answer_text_markdown": "Robust",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Operable",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Perceivable",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Understandable",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "I.A.2",
+        "text": "Explain the structure of WCAG 2.2, including the POUR principles, guidelines, success criteria, and conformance levels A, AA, and AAA."
+      },
+      "secondary_objectives": [
+        {
+          "id": "II.B.11",
+          "text": "Explain the relationship between WCAG principles, guidelines, and success criteria and the accessibility impact of each principle."
+        },
+        {
+          "id": "I.D.4",
+          "text": "Explain how WAI-ARIA communicates semantics to assistive technologies, including roles, states, properties, and the accessibility tree."
+        }
+      ],
+      "confidence": "Medium",
+      "rationale": "This item asks which WCAG principle is violated by code that appears to break semantic exposure for assistive technologies. The primary assessment target is identifying the correct POUR principle, with secondary relevance to understanding why semantics must be communicated robustly to accessibility APIs and assistive technologies."
+    },
+    {
+      "question_number": 90,
+      "question_id": "859332d9-39d2-4190-9639-6b5591f95690",
+      "question_text_markdown": "For web pages that causes legal commitments, providing a mechanism for reviewing, confirming, and correcting information before finalizing the submission is an example of which web accessibility principle?",
+      "answers": [
+        {
+          "answer_text_markdown": "Perceivable",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Operable",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Understandable",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Robust",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "I.A.2",
+        "text": "Explain the structure of WCAG 2.2, including the POUR principles, guidelines, success criteria, and conformance levels A, AA, and AAA."
+      },
+      "secondary_objectives": [
+        {
+          "id": "II.B.11",
+          "text": "Explain the relationship between WCAG principles, guidelines, and success criteria and the accessibility impact of each principle."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "The learner must map an error-prevention requirement for legal or financial commitments to the appropriate WCAG principle. That is primarily a question about knowing the POUR framework and secondarily about understanding the accessibility impact of the Understandable principle."
+    },
+    {
+      "question_number": 91,
+      "question_id": "ac72dc34-33e1-4475-80f2-246313253434",
+      "question_text_markdown": "Alerting users to errors in their input is an example of which web accessibility principle?",
+      "answers": [
+        {
+          "answer_text_markdown": "Operable",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Perceivable",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Understandable",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Robust",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "I.A.2",
+        "text": "Explain the structure of WCAG 2.2, including the POUR principles, guidelines, success criteria, and conformance levels A, AA, and AAA."
+      },
+      "secondary_objectives": [
+        {
+          "id": "II.B.11",
+          "text": "Explain the relationship between WCAG principles, guidelines, and success criteria and the accessibility impact of each principle."
+        },
+        {
+          "id": "II.C.7",
+          "text": "Evaluate form implementations to verify accessible interaction patterns, programmatic error identification, clear instructions, and usable suggestions for correction."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "This question asks which principle covers alerting users to errors. The primary task is identifying the correct WCAG principle, with secondary relevance to accessible form behavior and error communication."
+    },
+    {
+      "question_number": 92,
+      "question_id": "b3314734-4102-4ef7-aaa0-7a62a0a3483a",
+      "question_text_markdown": "Providing instructions when content requires input is an example of which web accessibility principle?",
+      "answers": [
+        {
+          "answer_text_markdown": "Perceivable",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Operable",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Understandable",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Robust",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "I.A.2",
+        "text": "Explain the structure of WCAG 2.2, including the POUR principles, guidelines, success criteria, and conformance levels A, AA, and AAA."
+      },
+      "secondary_objectives": [
+        {
+          "id": "II.B.11",
+          "text": "Explain the relationship between WCAG principles, guidelines, and success criteria and the accessibility impact of each principle."
+        },
+        {
+          "id": "II.C.7",
+          "text": "Evaluate form implementations to verify accessible interaction patterns, programmatic error identification, clear instructions, and usable suggestions for correction."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "Providing instructions when content requires input is being mapped to a WCAG principle. The main skill is classifying the example under the correct POUR principle, with secondary relevance to accessible instructions in forms and input workflows."
+    },
+    {
+      "question_number": 93,
+      "question_id": "a87ef773-0a92-4c81-a977-1e04586932b9",
+      "question_text_markdown": "Providing text descriptions to identify fields that were not completed is an example of which web accessibility principle?",
+      "answers": [
+        {
+          "answer_text_markdown": "Understandable",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Perceivable",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Operable",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Robust",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "I.A.2",
+        "text": "Explain the structure of WCAG 2.2, including the POUR principles, guidelines, success criteria, and conformance levels A, AA, and AAA."
+      },
+      "secondary_objectives": [
+        {
+          "id": "II.B.11",
+          "text": "Explain the relationship between WCAG principles, guidelines, and success criteria and the accessibility impact of each principle."
+        },
+        {
+          "id": "II.C.7",
+          "text": "Evaluate form implementations to verify accessible interaction patterns, programmatic error identification, clear instructions, and usable suggestions for correction."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "The question asks which principle is illustrated by giving text descriptions for incomplete fields. The main construct is recognizing the correct WCAG principle; secondarily it concerns accessible error identification and text-based form feedback."
+    },
+    {
+      "question_number": 94,
+      "question_id": "5b5e7d7f-2012-4b95-ae6d-cc34509ecea4",
+      "question_text_markdown": "If you opened a new window as soon as a new page is loaded, which web accessibility principle would this violate?",
+      "answers": [
+        {
+          "answer_text_markdown": "Operable",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Robust",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Perceivable",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Understandable",
+          "is_correct": true,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "I.A.2",
+        "text": "Explain the structure of WCAG 2.2, including the POUR principles, guidelines, success criteria, and conformance levels A, AA, and AAA."
+      },
+      "secondary_objectives": [
+        {
+          "id": "II.B.11",
+          "text": "Explain the relationship between WCAG principles, guidelines, and success criteria and the accessibility impact of each principle."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "Automatically opening a new window on page load is a classic example under the Understandable principle because it creates an unexpected context change. The learner must recognize the correct POUR category and why predictability matters."
+    },
+    {
+      "question_number": 95,
+      "question_id": "dce7fa82-e692-438e-9ef0-ae655c2118cc",
+      "question_text_markdown": "If you used different icons on different pages that initiated the same action when pressed, this would be a violation of which web accessibility principle?",
+      "answers": [
+        {
+          "answer_text_markdown": "Understandable",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Robust",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Perceivable",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Operable",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "I.A.2",
+        "text": "Explain the structure of WCAG 2.2, including the POUR principles, guidelines, success criteria, and conformance levels A, AA, and AAA."
+      },
+      "secondary_objectives": [
+        {
+          "id": "II.B.11",
+          "text": "Explain the relationship between WCAG principles, guidelines, and success criteria and the accessibility impact of each principle."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "This item tests whether the learner recognizes consistent identification as part of the Understandable principle. The skill is primarily classification by WCAG principle, with secondary relevance to understanding the consequences of inconsistent controls."
+    },
+    {
+      "question_number": 96,
+      "question_id": "24309e3f-9db0-44a5-9e6b-0aaf97a079c0",
+      "question_text_markdown": "Presenting navigation links in a different relative order on different pages in a set of web pages would be a violation of which web accessibility principle?",
+      "answers": [
+        {
+          "answer_text_markdown": "Perceivable",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Operable",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Understandable",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Robust",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "I.A.2",
+        "text": "Explain the structure of WCAG 2.2, including the POUR principles, guidelines, success criteria, and conformance levels A, AA, and AAA."
+      },
+      "secondary_objectives": [
+        {
+          "id": "II.B.11",
+          "text": "Explain the relationship between WCAG principles, guidelines, and success criteria and the accessibility impact of each principle."
+        },
+        {
+          "id": "II.C.6",
+          "text": "Evaluate navigation structures, headings, labels, and link descriptions to determine whether they support clear information architecture and efficient screen reader navigation."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "Changing the relative order of navigation links across pages is being tested as an example of a WCAG principle violation. The learner must identify the relevant principle and also understand how consistent navigation supports clear information architecture."
+    },
+    {
+      "question_number": 97,
+      "question_id": "dcbbf48a-d66c-49a0-8574-0ad77b03614e",
+      "question_text_markdown": "Opening a new browser window without warning when changing the selected option in a select list would be a violation of which web accessibility principle?",
+      "answers": [
+        {
+          "answer_text_markdown": "Robust",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Perceivable",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Understandable",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Operable",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "I.A.2",
+        "text": "Explain the structure of WCAG 2.2, including the POUR principles, guidelines, success criteria, and conformance levels A, AA, and AAA."
+      },
+      "secondary_objectives": [
+        {
+          "id": "II.B.11",
+          "text": "Explain the relationship between WCAG principles, guidelines, and success criteria and the accessibility impact of each principle."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "Opening a new browser window when a select option changes is another predictability/context-change example. The primary skill is mapping the scenario to the correct POUR principle, with secondary relevance to the accessibility impact of unexpected changes."
+    },
+    {
+      "question_number": 98,
+      "question_id": "b9a3d9b0-05f6-4604-962e-a8deba82825c",
+      "question_text_markdown": "If a new browser window opened when a link received focus, which web accessibility principle would be violated?",
+      "answers": [
+        {
+          "answer_text_markdown": "Operable",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Perceivable",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Understandable",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Robust",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "I.A.2",
+        "text": "Explain the structure of WCAG 2.2, including the POUR principles, guidelines, success criteria, and conformance levels A, AA, and AAA."
+      },
+      "secondary_objectives": [
+        {
+          "id": "II.B.11",
+          "text": "Explain the relationship between WCAG principles, guidelines, and success criteria and the accessibility impact of each principle."
+        },
+        {
+          "id": "II.C.2",
+          "text": "Demonstrate manual keyboard testing to detect missing focus indicators, incorrect tab order, keyboard traps, and other keyboard-operability issues."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "Opening a new window on focus creates an unexpected change of context as soon as keyboard focus lands on a link. The main assessment target is the relevant WCAG principle, with secondary relevance to keyboard interaction expectations."
+    },
+    {
+      "question_number": 99,
+      "question_id": "4c2f7dd8-fc99-4aed-b6e3-94e3bb077190",
+      "question_text_markdown": "Ensuring that any changes to the human language of the page can be programmatically determined by using the `lang` attribute on any element where the language has *changed* is an example of which web accessibility principle?",
+      "answers": [
+        {
+          "answer_text_markdown": "Operable",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Perceivable",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Understandable",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Robust",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "I.A.2",
+        "text": "Explain the structure of WCAG 2.2, including the POUR principles, guidelines, success criteria, and conformance levels A, AA, and AAA."
+      },
+      "secondary_objectives": [
+        {
+          "id": "II.B.11",
+          "text": "Explain the relationship between WCAG principles, guidelines, and success criteria and the accessibility impact of each principle."
+        },
+        {
+          "id": "II.C.12",
+          "text": "Verify that page language, form errors, and component states are programmatically conveyed to assistive technologies."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "The item asks which principle is represented by programmatically exposing language changes within a page. The primary skill is identifying the WCAG principle, with secondary relevance to verifying that language changes are conveyed programmatically to assistive technologies."
+    },
+    {
+      "question_number": 100,
+      "question_id": "42137472-0cb5-4713-8ace-b4a68f5d9b19",
+      "question_text_markdown": "Ensuring that the default human language of each Web page can be programmatically determined by using the `lang` attribute on the `html` element is an example of which web accessibility principle?",
+      "answers": [
+        {
+          "answer_text_markdown": "Robust",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Operable",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Perceivable",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Understandable",
+          "is_correct": true,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "I.A.2",
+        "text": "Explain the structure of WCAG 2.2, including the POUR principles, guidelines, success criteria, and conformance levels A, AA, and AAA."
+      },
+      "secondary_objectives": [
+        {
+          "id": "II.B.11",
+          "text": "Explain the relationship between WCAG principles, guidelines, and success criteria and the accessibility impact of each principle."
+        },
+        {
+          "id": "II.C.12",
+          "text": "Verify that page language, form errors, and component states are programmatically conveyed to assistive technologies."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "This question asks which principle applies when the default page language is programmatically identified using the html lang attribute. That primarily tests understanding of the POUR principles and secondarily tests programmatic language identification."
+    },
+    {
+      "question_number": 101,
+      "question_id": "ccb5eccb-5459-4022-9b4e-11f253e62fcb",
+      "question_text_markdown": "Providing a visible focus indicator for all focusable elements on a page is an example of which web accessibility principle?",
+      "answers": [
+        {
+          "answer_text_markdown": "Robust",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Perceivable",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Operable",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Understandable",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "I.A.2",
+        "text": "Explain the structure of WCAG 2.2, including the POUR principles, guidelines, success criteria, and conformance levels A, AA, and AAA."
+      },
+      "secondary_objectives": [
+        {
+          "id": "II.B.11",
+          "text": "Explain the relationship between WCAG principles, guidelines, and success criteria and the accessibility impact of each principle."
+        },
+        {
+          "id": "II.C.2",
+          "text": "Demonstrate manual keyboard testing to detect missing focus indicators, incorrect tab order, keyboard traps, and other keyboard-operability issues."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "Visible focus indicators are being mapped to a WCAG principle. The learner must recognize that this is an Operable issue and, secondarily, understand keyboard testing concerns such as focus visibility."
+    },
+    {
+      "question_number": 102,
+      "question_id": "207edd41-87a2-4757-b5f5-40f3f8d1fa6e",
+      "question_text_markdown": "If headings on a page fail to describe a topic or purpose, which web accessibility principle is violated?",
+      "answers": [
+        {
+          "answer_text_markdown": "Understandable",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Robust",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Operable",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Perceivable",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "I.A.2",
+        "text": "Explain the structure of WCAG 2.2, including the POUR principles, guidelines, success criteria, and conformance levels A, AA, and AAA."
+      },
+      "secondary_objectives": [
+        {
+          "id": "II.B.11",
+          "text": "Explain the relationship between WCAG principles, guidelines, and success criteria and the accessibility impact of each principle."
+        },
+        {
+          "id": "II.C.6",
+          "text": "Evaluate navigation structures, headings, labels, and link descriptions to determine whether they support clear information architecture and efficient screen reader navigation."
+        }
+      ],
+      "confidence": "Medium",
+      "rationale": "The keyed answer treats poorly descriptive headings as a violation of the Operable principle, likely because headings support navigability. The question primarily assesses ability to classify the example under a WCAG principle, with secondary relevance to heading quality and navigation structure."
+    },
+    {
+      "question_number": 103,
+      "question_id": "aa12de8c-0dda-4459-ad70-f8c99fe76ad4",
+      "question_text_markdown": "Providing a main navigation menu, breadcrumb trail, and search functionality on every page is an example of which web accessibility principle?",
+      "answers": [
+        {
+          "answer_text_markdown": "Understandable",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Perceivable",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Operable",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Robust",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "I.A.2",
+        "text": "Explain the structure of WCAG 2.2, including the POUR principles, guidelines, success criteria, and conformance levels A, AA, and AAA."
+      },
+      "secondary_objectives": [
+        {
+          "id": "II.B.11",
+          "text": "Explain the relationship between WCAG principles, guidelines, and success criteria and the accessibility impact of each principle."
+        },
+        {
+          "id": "II.C.6",
+          "text": "Evaluate navigation structures, headings, labels, and link descriptions to determine whether they support clear information architecture and efficient screen reader navigation."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "Providing multiple navigation aids on every page is presented as an example of an accessibility principle. The main skill is identifying the correct WCAG principle, with secondary relevance to navigational structure and wayfinding."
+    },
+    {
+      "question_number": 104,
+      "question_id": "c258ef47-54bf-45cf-95e5-2937857f3923",
+      "question_text_markdown": "Providing link text that describes the purpose of a link is an example of which accessibility principle?",
+      "answers": [
+        {
+          "answer_text_markdown": "Perceivable",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Understandable",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Robust",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Operable",
+          "is_correct": true,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "I.A.2",
+        "text": "Explain the structure of WCAG 2.2, including the POUR principles, guidelines, success criteria, and conformance levels A, AA, and AAA."
+      },
+      "secondary_objectives": [
+        {
+          "id": "II.B.11",
+          "text": "Explain the relationship between WCAG principles, guidelines, and success criteria and the accessibility impact of each principle."
+        },
+        {
+          "id": "II.C.6",
+          "text": "Evaluate navigation structures, headings, labels, and link descriptions to determine whether they support clear information architecture and efficient screen reader navigation."
+        },
+        {
+          "id": "I.D.2",
+          "text": "Implement accessible names and descriptions for interactive controls using appropriate naming and description techniques."
+        }
+      ],
+      "confidence": "Medium",
+      "rationale": "The keyed answer marks descriptive link text as Operable, likely because it supports navigation. The question primarily tests recognition of the stated WCAG principle, while secondarily touching link purpose, navigability, and descriptive text."
+    },
+    {
+      "question_number": 105,
+      "question_id": "3d9a0c41-6c25-4f97-8959-74389b3982d5",
+      "question_text_markdown": "Ensuring focusable components receive focus in an order that preserves meaning and operability is an example of which accessibility principle?",
+      "answers": [
+        {
+          "answer_text_markdown": "Operable",
+          "is_correct": true,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Robust",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Perceivable",
+          "is_correct": false,
+          "feedback_markdown": ""
+        },
+        {
+          "answer_text_markdown": "Understandable",
+          "is_correct": false,
+          "feedback_markdown": ""
+        }
+      ],
+      "primary_objective": {
+        "id": "I.A.2",
+        "text": "Explain the structure of WCAG 2.2, including the POUR principles, guidelines, success criteria, and conformance levels A, AA, and AAA."
+      },
+      "secondary_objectives": [
+        {
+          "id": "II.B.11",
+          "text": "Explain the relationship between WCAG principles, guidelines, and success criteria and the accessibility impact of each principle."
+        },
+        {
+          "id": "II.C.2",
+          "text": "Demonstrate manual keyboard testing to detect missing focus indicators, incorrect tab order, keyboard traps, and other keyboard-operability issues."
+        }
+      ],
+      "confidence": "High",
+      "rationale": "Focus order that preserves meaning and operability is a classic Operable principle example. The primary task is identifying the right POUR principle, with secondary relevance to keyboard focus order during manual testing."
+    }
+  ]
+}

@@ -1,109 +1,130 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Edit System & Feedback Prompts - Canvas Quiz Manager</title>
 
     <!-- Libraries -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/simplemde/latest/simplemde.min.css">
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/simplemde/latest/simplemde.min.css"
+    />
 
     <style>
-        body {
-            padding-bottom: 80px;
-        }
+      body {
+        padding-bottom: 80px;
+      }
 
-        .btn-container {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background-color: white;
-            box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            padding: 10px;
-        }
+      .btn-container {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background-color: white;
+        box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        padding: 10px;
+      }
 
-        .editor-container {
-            margin-top: 20px;
-        }
+      .editor-container {
+        margin-top: 20px;
+      }
 
-        .alert-container {
-            margin-top: 10px;
-        }
+      .alert-container {
+        margin-top: 10px;
+      }
     </style>
-</head>
+  </head>
 
-<body>
+  <body>
+    {% include "_top_nav.html" %}
+
     <div class="container py-4">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h1 class="h2"><i class="fas fa-cog text-primary"></i> Edit AI Prompts</h1>
-            <a href="/" class="btn btn-outline-secondary"><i class="fas fa-arrow-left"></i> Back to Questions</a>
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h2">
+          <i class="fas fa-cog text-primary"></i> Edit AI Prompts
+        </h1>
+        <a href="/" class="btn btn-outline-secondary"
+          ><i class="fas fa-arrow-left"></i> Back to Questions</a
+        >
+      </div>
+
+      <!-- Tab Navigation -->
+      <ul class="nav nav-tabs" id="promptTabs" role="tablist">
+        <li class="nav-item">
+          <button
+            class="nav-link active"
+            id="correct-tab"
+            data-bs-toggle="tab"
+            data-bs-target="#correctPrompt"
+            type="button"
+            role="tab"
+          >
+            Feedback Prompt – Correct
+          </button>
+        </li>
+        <li class="nav-item">
+          <button
+            class="nav-link"
+            id="incorrect-tab"
+            data-bs-toggle="tab"
+            data-bs-target="#incorrectPrompt"
+            type="button"
+            role="tab"
+          >
+            Feedback Prompt – Incorrect
+          </button>
+        </li>
+      </ul>
+
+      <!-- Tab Content -->
+      <div class="tab-content mt-3" id="promptTabsContent">
+        <!-- Correct Feedback Prompt -->
+        <div
+          class="tab-pane fade show active"
+          id="correctPrompt"
+          role="tabpanel"
+        >
+          <textarea id="correctEditor"></textarea>
+          <div class="alert alert-success mt-2">
+            <i class="fas fa-check-circle"></i>
+            This prompt is used when generating feedback for correct answers.
+          </div>
         </div>
 
-        <!-- Tab Navigation -->
-        <ul class="nav nav-tabs" id="promptTabs" role="tablist">
-            <li class="nav-item">
-                <button class="nav-link active" id="main-tab" data-bs-toggle="tab" data-bs-target="#mainPrompt"
-                    type="button" role="tab">Main System Prompt</button>
-            </li>
-            <li class="nav-item">
-                <button class="nav-link" id="correct-tab" data-bs-toggle="tab" data-bs-target="#correctPrompt"
-                    type="button" role="tab">Feedback Prompt – Correct</button>
-            </li>
-            <li class="nav-item">
-                <button class="nav-link" id="incorrect-tab" data-bs-toggle="tab" data-bs-target="#incorrectPrompt"
-                    type="button" role="tab">Feedback Prompt – Incorrect</button>
-            </li>
-        </ul>
-
-        <!-- Tab Content -->
-        <div class="tab-content mt-3" id="promptTabsContent">
-            <!-- Main System Prompt -->
-            <div class="tab-pane fade show active" id="mainPrompt" role="tabpanel">
-                <textarea id="mainEditor"></textarea>
-                <div class="alert alert-info mt-2">
-                    <i class="fas fa-info-circle"></i>
-                    This prompt controls the overall system behavior (e.g., chat assistant tone).
-                </div>
-            </div>
-
-            <!-- Correct Feedback Prompt -->
-            <div class="tab-pane fade" id="correctPrompt" role="tabpanel">
-                <textarea id="correctEditor"></textarea>
-                <div class="alert alert-success mt-2">
-                    <i class="fas fa-check-circle"></i>
-                    This prompt is used when generating feedback for correct answers.
-                </div>
-            </div>
-
-            <!-- Incorrect Feedback Prompt -->
-            <div class="tab-pane fade" id="incorrectPrompt" role="tabpanel">
-                <textarea id="incorrectEditor"></textarea>
-                <div class="alert alert-danger mt-2">
-                    <i class="fas fa-times-circle"></i>
-                    This prompt is used when generating feedback for incorrect answers.
-                </div>
-            </div>
+        <!-- Incorrect Feedback Prompt -->
+        <div class="tab-pane fade" id="incorrectPrompt" role="tabpanel">
+          <textarea id="incorrectEditor"></textarea>
+          <div class="alert alert-danger mt-2">
+            <i class="fas fa-times-circle"></i>
+            This prompt is used when generating feedback for incorrect answers.
+          </div>
         </div>
+      </div>
 
-        <!-- Alert Container -->
-        <div id="alertContainer" class="alert-container"></div>
+      <!-- Alert Container -->
+      <div id="alertContainer" class="alert-container"></div>
 
-        <!-- Fixed Bottom Buttons -->
-        <div class="btn-container">
-            <button type="button" class="btn btn-primary" id="saveBtn">
-                <i class="fas fa-save"></i> Save Current Prompt
-            </button>
-            <a href="/" class="btn btn-secondary">
-                <i class="fas fa-times"></i> Cancel
-            </a>
-        </div>
+      <!-- Fixed Bottom Buttons -->
+      <div class="btn-container">
+        <button type="button" class="btn btn-primary" id="saveBtn">
+          <i class="fas fa-save"></i> Save Current Prompt
+        </button>
+        <a href="/" class="btn btn-secondary">
+          <i class="fas fa-times"></i> Cancel
+        </a>
+      </div>
     </div>
 
     <!-- JS Libraries -->
@@ -111,86 +132,111 @@
     <script src="https://cdn.jsdelivr.net/simplemde/latest/simplemde.min.js"></script>
 
     <script>
-        // Initialize editors after DOM fully loads
-        const editors = {
-            main: null,
-            correct: null,
-            incorrect: null
-        };
+      // Initialize editors after DOM fully loads
+      const editors = {
+        correct: null,
+        incorrect: null,
+      };
 
-        const endpoints = {
-            main: { get: '/system-prompt/api', post: '/system-prompt' },
-            correct: { get: '/system-prompt/feedback/correct', post: '/system-prompt/feedback/correct' },
-            incorrect: { get: '/system-prompt/feedback/incorrect', post: '/system-prompt/feedback/incorrect' }
-        };
+      const endpoints = {
+        correct: {
+          get: "/system-prompt/feedback/correct",
+          post: "/system-prompt/feedback/correct",
+        },
+        incorrect: {
+          get: "/system-prompt/feedback/incorrect",
+          post: "/system-prompt/feedback/incorrect",
+        },
+      };
 
-        // Delay hydration fix for text lag
-        async function loadPrompt(type) {
-            try {
-                const res = await fetch(endpoints[type].get);
-                const data = await res.json();
-                if (data.prompt) {
-                    // Wait until editor is ready before setting value
-                    const waitForEditor = () => {
-                        if (editors[type]) {
-                            editors[type].value(data.prompt);
-                        } else {
-                            setTimeout(waitForEditor, 150);
-                        }
-                    };
-                    waitForEditor();
-                }
-            } catch (err) {
-                console.error("Failed to load", type, err);
-            }
+      // Delay hydration fix for text lag
+      async function loadPrompt(type) {
+        try {
+          const res = await fetch(endpoints[type].get);
+          const data = await res.json();
+          if (data.prompt) {
+            // Wait until editor is ready before setting value
+            const waitForEditor = () => {
+              if (editors[type]) {
+                editors[type].value(data.prompt);
+                editors[type].codemirror.refresh();
+              } else {
+                setTimeout(waitForEditor, 150);
+              }
+            };
+            waitForEditor();
+          }
+        } catch (err) {
+          console.error("Failed to load", type, err);
         }
+      }
 
-        async function savePrompt(type) {
-            const text = editors[type].value().trim();
-            if (!text) return showAlert('warning', 'Prompt cannot be empty!');
-            const formData = new FormData();
-            formData.append('prompt', text);
-            try {
-                const res = await fetch(endpoints[type].post, { method: 'POST', body: formData });
-                const data = await res.json();
-                if (res.ok) showAlert('success', data.message || `${type} prompt saved.`);
-                else showAlert('danger', data.detail || 'Error saving prompt.');
-            } catch {
-                showAlert('danger', 'Failed to connect to server.');
-            }
+      async function savePrompt(type) {
+        const text = editors[type].value().trim();
+        if (!text) return showAlert("warning", "Prompt cannot be empty!");
+        const formData = new FormData();
+        formData.append("prompt", text);
+        try {
+          const res = await fetch(endpoints[type].post, {
+            method: "POST",
+            body: formData,
+          });
+          const data = await res.json();
+          if (res.ok)
+            showAlert("success", data.message || `${type} prompt saved.`);
+          else showAlert("danger", data.detail || "Error saving prompt.");
+        } catch {
+          showAlert("danger", "Failed to connect to server.");
         }
+      }
 
-        function showAlert(type, message) {
-            const alertContainer = document.getElementById('alertContainer');
-            const alert = document.createElement('div');
-            alert.className = `alert alert-${type} alert-dismissible fade show`;
-            alert.innerHTML = `${message}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
-            alertContainer.appendChild(alert);
-            setTimeout(() => alert.remove(), 4000);
-        }
+      function showAlert(type, message) {
+        const alertContainer = document.getElementById("alertContainer");
+        const alert = document.createElement("div");
+        alert.className = `alert alert-${type} alert-dismissible fade show`;
+        alert.innerHTML = `${message}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+        alertContainer.appendChild(alert);
+        setTimeout(() => alert.remove(), 4000);
+      }
 
-        // Initialize editors after slight delay (ensures SimpleMDE attaches correctly)
-        document.addEventListener('DOMContentLoaded', async () => {
-            setTimeout(() => {
-                editors.main = new SimpleMDE({ element: document.getElementById("mainEditor"), spellChecker: false, placeholder: "Main system prompt..." });
-                editors.correct = new SimpleMDE({ element: document.getElementById("correctEditor"), spellChecker: false, placeholder: "Feedback prompt for correct answers..." });
-                editors.incorrect = new SimpleMDE({ element: document.getElementById("incorrectEditor"), spellChecker: false, placeholder: "Feedback prompt for incorrect answers..." });
+      // Initialize editors after slight delay (ensures SimpleMDE attaches correctly)
+      document.addEventListener("DOMContentLoaded", async () => {
+        setTimeout(() => {
+          editors.correct = new SimpleMDE({
+            element: document.getElementById("correctEditor"),
+            spellChecker: false,
+            placeholder: "Feedback prompt for correct answers...",
+          });
+          editors.incorrect = new SimpleMDE({
+            element: document.getElementById("incorrectEditor"),
+            spellChecker: false,
+            placeholder: "Feedback prompt for incorrect answers...",
+          });
 
-                // Now load data
-                loadPrompt('main');
-                loadPrompt('correct');
-                loadPrompt('incorrect');
-            }, 250); // <-- ensures no flicker before data loads
+          // Now load data
+          loadPrompt("correct");
+          loadPrompt("incorrect");
+        }, 250);
+      });
+      // Refresh hidden editors when their tab becomes visible (fixes blank CodeMirror in hidden panes)
+      document
+        .getElementById("correct-tab")
+        .addEventListener("shown.bs.tab", () => {
+          if (editors.correct) editors.correct.codemirror.refresh();
         });
-
-        // Save current tab’s prompt
-        document.getElementById('saveBtn').addEventListener('click', async () => {
-            const activeTab = document.querySelector('#promptTabs .nav-link.active').id;
-            const type = activeTab.includes('correct') ? 'correct' :
-                activeTab.includes('incorrect') ? 'incorrect' : 'main';
-            await savePrompt(type);
+      document
+        .getElementById("incorrect-tab")
+        .addEventListener("shown.bs.tab", () => {
+          if (editors.incorrect) editors.incorrect.codemirror.refresh();
         });
+      // Save current tab’s prompt
+      document.getElementById("saveBtn").addEventListener("click", async () => {
+        const activeTab = document.querySelector(
+          "#promptTabs .nav-link.active",
+        ).id;
+        const type = activeTab.includes("incorrect") ? "incorrect" : "correct";
+        await savePrompt(type);
+      });
     </script>
-</body>
-
+  </body>
 </html>

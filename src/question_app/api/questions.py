@@ -247,7 +247,8 @@ async def generate_feedback_for_all_unapproved(question_id: str):
                 feedback_text = await ai_generator.generate_feedback_for_answer(
                     question_text=question['question_text'],
                     answer_text=answer['text'],
-                    is_correct=answer['is_correct']
+                    is_correct=answer['is_correct'],
+                    choices=question.get('answers', [])
                 )
                 
                 db.update_answer_feedback(answer['id'], feedback_text)
@@ -321,6 +322,7 @@ async def generate_feedback_stream(question_id: str):
                         question_text=question["question_text"],
                         answer_text=answer["text"],
                         is_correct=answer["is_correct"],
+                        choices=question.get("answers", []),
                     )
                     db.update_answer_feedback(answer["id"], feedback_text)
                     processed += 1

@@ -1,0 +1,14 @@
+[
+    {
+        "question_id": "0b784e75-8674-425f-aa83-45b8cd296bc2",
+        "question_text": "Which of the following is the best approach to ensure a web interface is interoperable across browsers, platforms, and assistive technologies?",
+        "primary": "I.A.2",
+        "primary_text": "Explain the structure of WCAG 2.2, including the POUR principles, guidelines, success criteria, and conformance levels A, AA, and AAA.",
+        "seconday": [
+            {
+                "id": "II.B.7",
+                "text": "Identify WCAG 2.2 success criteria and classify them by conformance level."
+            }
+        ]
+    }
+]
