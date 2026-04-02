@@ -248,3 +248,22 @@ class StudentMCPClient:
             "student_id": student_id,
             "preferred_style": preferred_style,
         })
+
+    async def resolve_misconception(
+        self, student_id: str, objective_id: str, misconception_text: str,
+    ) -> Optional[Dict]:
+        """Mark a misconception as resolved."""
+        return await self._call("resolve_misconception", {
+            "student_id": student_id,
+            "objective_id": objective_id,
+            "misconception_text": misconception_text,
+        })
+
+    async def record_assessment_answer(
+        self, session_id: str, is_correct: bool,
+    ) -> Optional[Dict]:
+        """Record an assessment answer and get progress/completion status."""
+        return await self._call("record_assessment_answer", {
+            "session_id": session_id,
+            "is_correct": is_correct,
+        })

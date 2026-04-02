@@ -23,6 +23,40 @@ from psycopg2.pool import ThreadedConnectionPool
 # All logging goes to stderr (stdout is reserved for JSON-RPC protocol)
 logger = logging.getLogger(__name__)
 
+# ---------------------------------------------------------------------------
+# Stage + assessment constants (validation rules for agentic tool calling)
+# ---------------------------------------------------------------------------
+
+VALID_TRANSITIONS = {
+    "onboarding": ["introduction"],
+    "introduction": ["exploration", "readiness_check", "mini_assessment"],
+    "exploration": ["readiness_check", "mini_assessment", "exploration"],
+    "readiness_check": ["mini_assessment"],
+    "mini_assessment": ["final_assessment", "introduction"],
+    "final_assessment": ["transition", "introduction"],
+    "transition": ["introduction"],
+}
+
+STAGE_MASTERY_CAP = {
+    "onboarding": "not_attempted",
+    "introduction": "in_progress",
+    "exploration": "in_progress",
+    "readiness_check": "in_progress",
+    "mini_assessment": "in_progress",
+    "final_assessment": "in_progress",
+    "transition": "mastered",
+}
+
+MASTERY_LEVELS = ("not_attempted", "misconception", "in_progress", "partial", "mastered")
+
+MINI_QUESTIONS = 3
+MINI_PASS = 2
+FINAL_QUESTIONS = 5
+FINAL_MASTERY = 4
+FINAL_PARTIAL = 3
+MIN_TURNS = 3
+CONFIDENCE_THRESHOLD = 0.7
+
 
 class StudentDatabase:
     """PostgreSQL operations for student state management.
@@ -587,3 +621,179 @@ class StudentDatabase:
                 )
                 row = cur.fetchone()
                 return dict(row) if row else None
+
+    # ------------------------------------------------------------------
+    # Validation: Stage transitions (for agentic tool calling)
+    # ------------------------------------------------------------------
+
+    def validate_stage_transition(
+        self, session_id: str, target_stage: str,
+    ) -> Dict[str, Any]:
+        """Check if a stage transition is valid for the given session.
+
+        Enforces VALID_TRANSITIONS map and minimum turn requirements.
+        Returns {"valid": True} or {"valid": False, "reason": "..."}.
+        """
+        with self.get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "SELECT * FROM session_state WHERE session_id = %s",
+                    (session_id,),
+                )
+                row = cur.fetchone()
+                if not row:
+                    return {"valid": False, "reason": "Session not found"}
+                session = dict(row)
+
+        current_stage = session.get("current_stage", "")
+        turns = session.get("turns_on_objective", 0)
+        valid_targets = VALID_TRANSITIONS.get(current_stage, [])
+
+        if target_stage not in valid_targets:
+            return {
+                "valid": False,
+                "reason": f"Cannot transition from {current_stage} to {target_stage}",
+                "valid_targets": valid_targets,
+            }
+
+        if current_stage in ("exploration", "introduction") and target_stage in (
+            "readiness_check", "mini_assessment"
+        ):
+            if turns < MIN_TURNS:
+                return {
+                    "valid": False,
+                    "reason": f"Need at least {MIN_TURNS} turns (currently {turns})",
+                    "current_turns": turns,
+                }
+
+        return {"valid": True}
+
+    # ------------------------------------------------------------------
+    # Write: Resolve misconception (for agentic tool calling)
+    # ------------------------------------------------------------------
+
+    def resolve_misconception(
+        self, student_id: str, objective_id: str, misconception_text: str,
+    ) -> Optional[Dict[str, Any]]:
+        """Mark a misconception as resolved. Uses ILIKE for case-insensitive matching."""
+        with self.get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    UPDATE misconception_log
+                    SET resolved_at = NOW()
+                    WHERE student_id = %s AND objective_id = %s
+                      AND misconception_text ILIKE %s
+                      AND resolved_at IS NULL
+                    RETURNING *
+                    """,
+                    (student_id, objective_id, f"%{misconception_text}%"),
+                )
+                row = cur.fetchone()
+                conn.commit()
+                return dict(row) if row else None
+
+    # ------------------------------------------------------------------
+    # Write: Record assessment answer (for agentic tool calling)
+    # ------------------------------------------------------------------
+
+    def record_assessment_answer(
+        self, session_id: str, is_correct: bool,
+    ) -> Dict[str, Any]:
+        """Record a single assessment answer and auto-transition on completion.
+
+        Reads current_stage to determine which progress column to use
+        (mini_assessment_progress or final_assessment_progress).
+        Auto-computes pass/fail and transitions stage when all questions asked.
+        """
+        with self.get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "SELECT * FROM session_state WHERE session_id = %s",
+                    (session_id,),
+                )
+                row = cur.fetchone()
+                if not row:
+                    return {"error": "Session not found"}
+                session = dict(row)
+
+                current_stage = session.get("current_stage", "")
+                student_id = session.get("student_id", "")
+                objective_id = session.get("active_objective_id", "")
+
+                if current_stage == "mini_assessment":
+                    progress_col = "mini_assessment_progress"
+                    total_questions = MINI_QUESTIONS
+                    pass_threshold = MINI_PASS
+                elif current_stage == "final_assessment":
+                    progress_col = "final_assessment_progress"
+                    total_questions = FINAL_QUESTIONS
+                    pass_threshold = FINAL_MASTERY
+                else:
+                    return {"error": f"Not in assessment stage (current: {current_stage})"}
+
+                progress = session.get(progress_col, {})
+                if isinstance(progress, str):
+                    try:
+                        progress = json.loads(progress)
+                    except (json.JSONDecodeError, TypeError):
+                        progress = {}
+
+                asked = progress.get("asked", 0) + 1
+                correct = progress.get("correct", 0) + (1 if is_correct else 0)
+                new_progress = json.dumps({"asked": asked, "correct": correct})
+
+                cur.execute(
+                    f"UPDATE session_state SET {progress_col} = %s::jsonb WHERE session_id = %s",
+                    (new_progress, session_id),
+                )
+
+                result = {
+                    "recorded": True,
+                    "progress": {"asked": asked, "correct": correct, "total": total_questions},
+                    "completed": asked >= total_questions,
+                }
+
+                if asked >= total_questions:
+                    passed = correct >= pass_threshold
+                    result["passed"] = passed
+
+                    if current_stage == "mini_assessment":
+                        next_stage = "final_assessment" if passed else "introduction"
+                        summary = f"Mini {'passed' if passed else 'failed'}: {correct}/{total_questions}"
+                        extra = ", final_assessment_progress = '{\"asked\": 0, \"correct\": 0}'::jsonb" if passed else ", turns_on_objective = 0"
+                        cur.execute(
+                            f"""UPDATE session_state
+                                SET current_stage = %s, stage_summary = %s{extra}
+                                WHERE session_id = %s""",
+                            (next_stage, summary, session_id),
+                        )
+                        result["next_stage"] = next_stage
+
+                    elif current_stage == "final_assessment":
+                        if correct >= FINAL_MASTERY:
+                            mastery_level = "mastered"
+                        elif correct >= FINAL_PARTIAL:
+                            mastery_level = "partial"
+                        else:
+                            mastery_level = "in_progress"
+
+                        result["mastery_level"] = mastery_level
+                        if objective_id:
+                            self.upsert_mastery(
+                                student_id, objective_id, mastery_level,
+                                f"Final assessment {correct}/{total_questions}",
+                            )
+
+                        next_stage = "transition" if correct >= FINAL_PARTIAL else "introduction"
+                        cur.execute(
+                            """UPDATE session_state
+                               SET current_stage = %s, turns_on_objective = 0,
+                                   stage_summary = %s
+                               WHERE session_id = %s""",
+                            (next_stage, f"Final: {correct}/{total_questions} → {mastery_level}", session_id),
+                        )
+                        result["next_stage"] = next_stage
+
+                conn.commit()
+                return result

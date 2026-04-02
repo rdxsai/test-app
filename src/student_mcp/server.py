@@ -224,23 +224,65 @@ async def update_mastery(
     objective_id: str,
     mastery_level: str,
     evidence_summary: str = "",
+    confidence: float = 1.0,
 ) -> str:
-    """Update mastery record after an assessment or evaluation moment.
+    """Update mastery record with built-in validation.
 
-    Creates the record if it doesn't exist (upsert). On update, increments
-    turns_spent and refreshes last_assessed_at.
+    Enforces:
+    - Confidence threshold (≥0.7 required to persist)
+    - Stage-based mastery caps (e.g., exploration caps at in_progress)
+
+    Returns {"denied": true, "reason": "..."} if validation fails.
+    Returns {"updated": true, ...record} on success.
+    Returns {"updated": true, "capped": true, ...} if level was capped.
 
     Args:
         student_id:       The student.
         objective_id:     The learning objective being assessed.
         mastery_level:    not_attempted | misconception | in_progress | partial | mastered
         evidence_summary: Brief text describing what the student demonstrated.
+        confidence:       0.0-1.0 confidence in the assessment (threshold: 0.7).
     """
+    from .database import STAGE_MASTERY_CAP, MASTERY_LEVELS, CONFIDENCE_THRESHOLD
+
+    # Confidence gate
+    if confidence < CONFIDENCE_THRESHOLD:
+        return json.dumps({
+            "denied": True,
+            "reason": f"Confidence {confidence} below threshold {CONFIDENCE_THRESHOLD}",
+        })
+
+    # Get current stage for mastery cap
+    session = await asyncio.to_thread(db.get_active_session, student_id)
+    current_stage = (session or {}).get("current_stage", "introduction")
+
+    # Stage-based cap
+    cap = STAGE_MASTERY_CAP.get(current_stage, "in_progress")
+    cap_idx = MASTERY_LEVELS.index(cap) if cap in MASTERY_LEVELS else 2
+    req_idx = MASTERY_LEVELS.index(mastery_level) if mastery_level in MASTERY_LEVELS else 0
+
+    capped = False
+    applied_level = mastery_level
+    if req_idx > cap_idx:
+        applied_level = cap
+        capped = True
+
     result = await asyncio.to_thread(
         db.upsert_mastery, student_id, objective_id,
-        mastery_level, evidence_summary,
+        applied_level, evidence_summary,
     )
-    return _serialize(result)
+    output = {"updated": True}
+    if capped:
+        output["capped"] = True
+        output["requested_level"] = mastery_level
+        output["applied_level"] = applied_level
+        output["reason"] = f"Stage {current_stage} caps mastery at {cap}"
+
+    for key in ("created_at", "last_session_at", "last_assessed_at"):
+        if result.get(key) is not None and hasattr(result[key], "isoformat"):
+            result[key] = result[key].isoformat()
+    output.update(result)
+    return json.dumps(output, default=str)
 
 
 @mcp.tool()
@@ -279,7 +321,11 @@ async def update_session_state(
     assessment_progress: str = "",
     stage_summary: str = "",
 ) -> str:
-    """Update session state for stage transitions and progress tracking.
+    """Update session state with built-in stage transition validation.
+
+    When a stage change is requested, validates against allowed transitions
+    and minimum turn requirements. Returns {"denied": true, "reason": "..."}
+    if the transition is invalid.
 
     Creates the session if it doesn't exist (requires student_id for creation).
     Only updates fields that are explicitly provided (non-empty/non-negative).
@@ -287,7 +333,7 @@ async def update_session_state(
     Args:
         session_id:           The session to update.
         student_id:           Required only for session creation.
-        stage:                Current stage name (e.g. 'introduction', 'mini_assessment').
+        stage:                Target stage name (validated if provided).
         active_objective_id:  The objective currently being taught.
         turns:                Number of turns spent on current objective.
         readiness_score:      0.0-1.0 readiness estimate.
@@ -298,6 +344,14 @@ async def update_session_state(
     if student_id:
         await asyncio.to_thread(db.create_session, session_id, student_id)
 
+    # Validate stage transition if stage is being changed
+    if stage:
+        validation = await asyncio.to_thread(
+            db.validate_stage_transition, session_id, stage
+        )
+        if not validation.get("valid"):
+            return json.dumps({"denied": True, **validation})
+
     result = await asyncio.to_thread(
         db.update_session, session_id,
         stage=stage, active_objective_id=active_objective_id,
@@ -307,7 +361,12 @@ async def update_session_state(
     )
     if result is None:
         return json.dumps({"error": "session not found", "session_id": session_id})
-    return _serialize(result)
+    output = {"updated": True}
+    for key in _TIMESTAMP_KEYS:
+        if result.get(key) is not None and hasattr(result[key], "isoformat"):
+            result[key] = result[key].isoformat()
+    output.update(result)
+    return json.dumps(output, default=str)
 
 
 @mcp.tool()
@@ -360,6 +419,56 @@ async def update_student_preferences(
     if result is None:
         return json.dumps({"error": "profile not found", "student_id": student_id})
     return _serialize(result)
+
+
+@mcp.tool()
+async def record_assessment_answer(
+    session_id: str,
+    is_correct: bool,
+) -> str:
+    """Record a student's answer during mini or final assessment.
+
+    Tracks progress (asked/correct counts), auto-determines pass/fail
+    when all questions are asked, and auto-transitions the stage:
+    - Mini: 2/3 to pass → final_assessment; fail → introduction (re-teach)
+    - Final: 4/5 → mastered; 3/5 → partial; <3 → re-teach
+
+    Call this tool once per assessment question after evaluating the
+    student's answer.
+
+    Args:
+        session_id:  The active session.
+        is_correct:  Whether the student's answer was correct.
+    """
+    result = await asyncio.to_thread(
+        db.record_assessment_answer, session_id, is_correct
+    )
+    return json.dumps(result, default=str)
+
+
+@mcp.tool()
+async def resolve_misconception(
+    student_id: str,
+    objective_id: str,
+    misconception_text: str,
+) -> str:
+    """Mark a previously logged misconception as resolved.
+
+    Call this when the student demonstrates corrected understanding of
+    a misconception that was previously logged. Uses case-insensitive
+    matching on the misconception text.
+
+    Args:
+        student_id:         The student.
+        objective_id:       The objective the misconception relates to.
+        misconception_text: Text of the misconception to resolve (partial match OK).
+    """
+    result = await asyncio.to_thread(
+        db.resolve_misconception, student_id, objective_id, misconception_text
+    )
+    if result is None:
+        return json.dumps({"not_found": True, "misconception_text": misconception_text})
+    return json.dumps({"resolved": True, "id": result.get("id")}, default=str)
 
 
 # ---------------------------------------------------------------------------
