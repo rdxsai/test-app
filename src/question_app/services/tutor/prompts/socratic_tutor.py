@@ -246,6 +246,166 @@ which category an image falls into? Take a hero banner on a homepage — \
 would you call that decorative or informative?\""""
 
 # ---------------------------------------------------------------------------
+# Concept Decomposition — generates a teaching plan per objective
+# ---------------------------------------------------------------------------
+
+CONCEPT_DECOMPOSITION_PROMPT = """\
+You are a curriculum designer for a Socratic tutoring system that teaches \
+WCAG 2.2 web accessibility. You are given a learning objective and the \
+teaching content retrieved for it (quiz questions with correct/incorrect \
+answer feedback, plus WCAG guideline excerpts).
+
+Your task: decompose the objective into teachable sub-concepts that a \
+Socratic tutor will use to guide a student through a structured learning \
+sequence. The tutor teaches one concept at a time, using questions — not \
+lectures — so each concept must be small enough for one Socratic exchange \
+(2-4 turns of dialogue).
+
+=== DECOMPOSITION RULES ===
+
+1. GROUND IN CONTENT: Every concept you produce must be directly supported \
+by the teaching content provided. Do not invent concepts that go beyond \
+what the quiz questions and WCAG excerpts cover. If the teaching content \
+covers 3 things, produce 3 concepts — not 6.
+
+2. GRANULARITY: Each concept = one distinct idea a student could demonstrate \
+understanding of (or reveal a misconception about) in a short dialogue \
+exchange. Too broad: "Understand ARIA" (that's the whole objective). Too \
+narrow: "The word 'assertive' in aria-live" (that's a vocabulary item, not \
+a concept). Right size: "How assertive vs. polite aria-live values differ \
+in screen reader behavior."
+
+3. PREREQUISITES: If understanding concept B requires concept A, mark A as \
+a prerequisite of B. Prerequisites must reference only concept IDs within \
+this decomposition (no external references). Do not create prerequisite \
+cycles. Most objectives have a roughly linear chain with 1-2 branching \
+points — not a complex graph.
+
+4. KEY POINTS: For each concept, list 2-4 specific terms, WCAG criteria, \
+or technical facts from the teaching content that the tutor should probe \
+for. These are what the student needs to demonstrate understanding of.
+
+5. ASSESSMENT MAPPING: For each concept, note which quiz question(s) from \
+the teaching content could test it. Use the question topic text as \
+identifier. If a concept has no mappable quiz question, flag it — the \
+tutor will need to assess it conversationally.
+
+6. RECOMMENDED ORDER: Output a topological sort of concept IDs respecting \
+prerequisites. When prerequisites don't constrain order, prefer: \
+foundational/definitional concepts first, then behavioral/functional \
+concepts, then edge cases/exceptions last.
+
+=== OUTPUT SCHEMA ===
+
+Output EXACTLY this JSON structure. No markdown wrapping, no commentary \
+outside the JSON, no additional keys.
+
+{
+  "objective": "<the objective text, verbatim>",
+  "concepts": [
+    {
+      "id": "c1",
+      "name": "<2-6 word name>",
+      "description": "<1-2 sentences: what this concept covers and why it matters>",
+      "prerequisites": [],
+      "key_points": ["<specific term or fact from teaching content>", "..."],
+      "quiz_mappings": ["<topic text of relevant quiz question>"] or [],
+      "status": "not_covered"
+    }
+  ],
+  "recommended_order": ["c1", "c2", "..."],
+  "total_concepts": <int>
+}
+
+=== CONSTRAINTS ===
+
+- Do NOT restate the objective as a single concept. Minimum 3, maximum 6.
+- Do NOT create concepts that duplicate each other with different wording.
+- Do NOT include meta-concepts like "review" or "summary" — those are stages.
+- Do NOT create prerequisite cycles (c1 requires c2 requires c1).
+- Do NOT include concepts that aren't grounded in the provided teaching content.
+- Do NOT make concepts so granular they could be answered in one word. If a \
+concept is just a definition, merge it with the concept that uses it.
+
+=== EXAMPLE ===
+
+Objective: "Understand the purpose and correct implementation of alt text \
+for images in web content"
+
+Teaching content (abbreviated):
+- Quiz: "What should the alt attribute contain for a decorative image?"
+  Correct: "An empty string (alt='')" | Wrong: "A description of the image"
+- Quiz: "When is longdesc more appropriate than alt text?"
+  Correct: "When the image conveys complex information like a chart"
+- WCAG SC 1.1.1: "All non-text content has a text alternative..."
+
+Output:
+{
+  "objective": "Understand the purpose and correct implementation of alt text for images in web content",
+  "concepts": [
+    {
+      "id": "c1", "name": "Purpose of text alternatives",
+      "description": "Why non-text content needs text alternatives — screen readers cannot interpret images, so alt text provides equivalent information.",
+      "prerequisites": [],
+      "key_points": ["SC 1.1.1", "text alternative", "equivalent purpose", "assistive technology"],
+      "quiz_mappings": [], "status": "not_covered"
+    },
+    {
+      "id": "c2", "name": "Decorative vs informative images",
+      "description": "How to classify an image as decorative or informative. This distinction determines the alt text strategy.",
+      "prerequisites": ["c1"],
+      "key_points": ["decorative image", "informative image", "context-dependent"],
+      "quiz_mappings": ["What should the alt attribute contain for a decorative image?"], "status": "not_covered"
+    },
+    {
+      "id": "c3", "name": "Empty alt for decorative images",
+      "description": "Decorative images use alt='' so screen readers skip them. Describing appearance creates noise.",
+      "prerequisites": ["c2"],
+      "key_points": ["alt=''", "hidden from AT", "not alt='decorative'"],
+      "quiz_mappings": ["What should the alt attribute contain for a decorative image?"], "status": "not_covered"
+    },
+    {
+      "id": "c4", "name": "Complex images and extended descriptions",
+      "description": "When short alt is insufficient — charts, diagrams need longdesc or aria-describedby.",
+      "prerequisites": ["c1"],
+      "key_points": ["complex images", "longdesc", "aria-describedby"],
+      "quiz_mappings": ["When is longdesc more appropriate than alt text?"], "status": "not_covered"
+    }
+  ],
+  "recommended_order": ["c1", "c2", "c3", "c4"],
+  "total_concepts": 4
+}
+
+=== NOW DECOMPOSE ===
+
+Decompose the following objective using the teaching content provided. \
+Output ONLY valid JSON matching the schema above."""
+
+
+def format_teaching_plan(plan: dict) -> str:
+    """Format a teaching plan dict into a concise text block for the system prompt."""
+    if not plan or "concepts" not in plan:
+        return ""
+    lines = [f"Objective: {plan.get('objective', '')}",
+             f"Teaching order: {' → '.join(plan.get('recommended_order', []))}",
+             ""]
+    for c in plan.get("concepts", []):
+        status = c.get("status", "not_covered")
+        marker = {"covered": "✓", "partially_covered": "◐", "not_covered": "○"}.get(status, "○")
+        prereqs = f" (requires: {', '.join(c['prerequisites'])})" if c.get("prerequisites") else ""
+        lines.append(f"{marker} {c['id']}: {c['name']} [{status}]{prereqs}")
+        if c.get("key_points"):
+            lines.append(f"   Key points: {', '.join(c['key_points'])}")
+        if c.get("quiz_mappings"):
+            lines.append(f"   Quiz: {', '.join(c['quiz_mappings'][:2])}")
+    lines.append("")
+    lines.append("Focus on the first not_covered concept in the teaching order.")
+    lines.append("When a concept is covered, move to the next one.")
+    lines.append("Report which concept IDs you addressed in concepts_addressed.")
+    return "\n".join(lines)
+
+
+# ---------------------------------------------------------------------------
 # Instance A: General Q&A — Socratic without stage awareness
 # ---------------------------------------------------------------------------
 
@@ -376,6 +536,7 @@ The conversational response comes FIRST, then the JSON block.
   "mastery_evidence": "brief description of what student demonstrated or null",
   "mastery_level_change": "no_change | not_attempted→misconception | misconception→in_progress | in_progress→partial | partial→mastered | etc.",
   "misconceptions_detected": ["Student believes X (actual: Y from context)"] or [],
+  "concepts_addressed": ["c1", "c2"],
   "stage_summary": "if recommending a stage change, summarize what happened in current stage, else null",
   "confidence": 0.0 to 1.0
 }
@@ -390,6 +551,7 @@ def build_instance_b_prompt(
     student_context: str = "",
     current_stage: str = "introduction",
     active_objective: str = "",
+    teaching_plan: dict = None,
 ) -> str:
     """Build the system prompt for Instance B (Guided Learning, stage-aware).
 
@@ -398,6 +560,7 @@ def build_instance_b_prompt(
         student_context:   Student MCP context (profile, mastery, misconceptions, session).
         current_stage:     Current stage from session_state.
         active_objective:  Text of the active learning objective.
+        teaching_plan:     Concept decomposition plan (from Phase 2).
     """
     # Context blocks
     context_sections = []
@@ -414,6 +577,12 @@ def build_instance_b_prompt(
     if active_objective:
         stage_block += f"\nACTIVE OBJECTIVE: {active_objective}"
     context_sections.append(stage_block)
+
+    # Teaching plan (concept decomposition with coverage tracking)
+    if teaching_plan:
+        plan_text = format_teaching_plan(teaching_plan)
+        if plan_text:
+            context_sections.append(f"TEACHING PLAN:\n{plan_text}")
 
     if knowledge_context:
         context_sections.append(

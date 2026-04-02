@@ -990,6 +990,17 @@ class HybridCrewAISocraticSystem:
                             for c in rag_chunks
                         ],
                     })
+
+                # Generate teaching plan (concept decomposition) — once per objective
+                try:
+                    await ws_send({"type": "stage", "stage": "composing",
+                                   "detail": "Creating teaching plan..."})
+                    teaching_plan = await self._generate_teaching_plan(
+                        objective_text, teaching_content
+                    )
+                    self._session_cache.store_teaching_plan(session_id, teaching_plan)
+                except Exception as e:
+                    logger.warning(f"Teaching plan generation failed (non-critical): {e}")
             else:
                 teaching_content = self._session_cache.get_teaching_content(session_id)
 
@@ -1004,11 +1015,13 @@ class HybridCrewAISocraticSystem:
                            "detail": f"Generating response ({current_stage})..."})
 
             from .prompts import build_instance_b_prompt
+            teaching_plan = self._session_cache.get_teaching_plan(session_id)
             system_prompt = build_instance_b_prompt(
                 knowledge_context=teaching_content,
                 student_context=student_context,
                 current_stage=current_stage,
                 active_objective=objective_text,
+                teaching_plan=teaching_plan,
             )
             messages = [{"role": "system", "content": system_prompt}]
             if history:
@@ -1106,6 +1119,15 @@ class HybridCrewAISocraticSystem:
                         "type": "assessment_score",
                         **stage_result["assessment_result"],
                     })
+
+            # Update concept coverage from eval data
+            if eval_data and eval_data.get("concepts_addressed"):
+                detected = eval_data.get("detected_state", "")
+                for cid in eval_data["concepts_addressed"]:
+                    if detected == "CORRECT":
+                        self._session_cache.update_concept_status(session_id, cid, "covered")
+                    elif detected not in ("OFF_TOPIC", "OUT_OF_SCOPE", "DISENGAGED"):
+                        self._session_cache.update_concept_status(session_id, cid, "partially_covered")
 
             metadata = {
                 "session_id": session_id,
@@ -1407,6 +1429,45 @@ class HybridCrewAISocraticSystem:
     # ------------------------------------------------------------------
     # Assessment context (fetch quiz questions for an objective)
     # ------------------------------------------------------------------
+
+    async def _generate_teaching_plan(
+        self, objective_text: str, teaching_content: str,
+    ) -> Dict:
+        """Decompose an objective into teachable sub-concepts.
+
+        Called once per objective (during first retrieval). Returns a
+        structured teaching plan with 3-6 concepts, prerequisites, and
+        recommended teaching order. Stored in session cache.
+        """
+        from .prompts import CONCEPT_DECOMPOSITION_PROMPT
+
+        messages = [
+            {"role": "system", "content": CONCEPT_DECOMPOSITION_PROMPT},
+            {"role": "user", "content": (
+                f"Objective: {objective_text}\n\n"
+                f"Teaching content:\n{teaching_content[:3000]}"  # cap to avoid token bloat
+            )},
+        ]
+        response = await asyncio.to_thread(
+            self.client.chat, messages, 0.3, 800
+        )
+        try:
+            plan = json.loads(response)
+            logger.info(
+                f"Teaching plan generated: {len(plan.get('concepts', []))} concepts, "
+                f"order: {plan.get('recommended_order', [])}"
+            )
+            return plan
+        except json.JSONDecodeError:
+            logger.warning(f"Teaching plan JSON parse failed, using fallback")
+            return {
+                "objective": objective_text,
+                "concepts": [
+                    {"id": "c1", "name": "Core concept", "description": objective_text,
+                     "prerequisites": [], "key_points": [], "status": "not_covered"}
+                ],
+                "recommended_order": ["c1"],
+            }
 
     async def _get_assessment_context(self, objective_id: str) -> str:
         """Fetch quiz questions mapped to an objective for assessment generation.

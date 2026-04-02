@@ -101,6 +101,38 @@ class SessionContentCache:
         entry = self._cache.get(session_id)
         return entry.get("teaching_content", "") if entry else ""
 
+    # ------------------------------------------------------------------
+    # Teaching plan (concept decomposition)
+    # ------------------------------------------------------------------
+
+    def store_teaching_plan(self, session_id: str, plan: dict) -> None:
+        """Store a teaching plan for the active objective."""
+        entry = self._cache.get(session_id)
+        if entry:
+            entry["teaching_plan"] = plan
+            logger.info(
+                f"Teaching plan stored for session={session_id} "
+                f"({len(plan.get('concepts', []))} concepts)"
+            )
+
+    def get_teaching_plan(self, session_id: str) -> dict:
+        """Get the teaching plan for the current objective. Returns None if not set."""
+        entry = self._cache.get(session_id)
+        return entry.get("teaching_plan") if entry else None
+
+    def update_concept_status(
+        self, session_id: str, concept_id: str, status: str,
+    ) -> None:
+        """Mark a concept as covered/partially_covered/not_covered."""
+        plan = self.get_teaching_plan(session_id)
+        if not plan:
+            return
+        for concept in plan.get("concepts", []):
+            if concept.get("id") == concept_id:
+                concept["status"] = status
+                logger.debug(f"Concept {concept_id} → {status}")
+                return
+
     @property
     def size(self) -> int:
         """Number of sessions with cached content."""
