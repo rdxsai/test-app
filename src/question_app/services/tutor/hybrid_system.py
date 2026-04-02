@@ -1318,21 +1318,23 @@ class HybridCrewAISocraticSystem:
     # ------------------------------------------------------------------
 
     # Maps a11y_exposure from onboarding to a specific starting objective.
+    # IDs match the gold dataset imported via rebuild_db_from_converted_exports.
     _STARTING_OBJECTIVES = {
         # Level 0: no prior accessibility knowledge — start with WCAG structure
-        "none": "c3df6637-125f-4fbf-b4ab-1adc102b8641",
-        # "Explain the structure of WCAG 2.2 by identifying the four principles (POUR),
-        #  guidelines, and success criteria levels (A, AA, AAA)"
+        "none": "I.A.2",
+        # "Explain the structure of WCAG 2.2, including the POUR principles,
+        #  guidelines, success criteria, and conformance levels"
 
         # Level 1: some awareness / working knowledge — applied concepts
-        "awareness": "653bc9b8-9cc2-42e8-aa4f-c94c21012f62",
-        "working_knowledge": "653bc9b8-9cc2-42e8-aa4f-c94c21012f62",
-        # "Understand how ARIA live region properties and values impact AT behavior" (3 questions)
+        "awareness": "I.D.10",
+        "working_knowledge": "I.D.10",
+        # "Apply ARIA live regions to communicate dynamic content updates
+        #  without moving keyboard focus"
 
         # Level 2: professional — analysis-level challenges
-        "professional": "07003c38-5181-4e6d-88ba-f22f198f4986",
-        # "Analyze design elements (headings, landmarks, color contrast) to determine
-        #  their impact on diverse user groups" (3 questions)
+        "professional": "I.H.2",
+        # "Analyze how design elements such as headings, landmarks, and color
+        #  contrast affect accessibility for diverse user groups"
     }
 
     # Level-specific introductions — shown before the first teaching turn
