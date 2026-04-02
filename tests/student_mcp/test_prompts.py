@@ -15,7 +15,7 @@ from question_app.services.tutor.prompts.socratic_tutor import (
     ANTI_PATTERNS,
     FEW_SHOT_EXAMPLES,
     STAGE_AWARENESS,
-    EVAL_OUTPUT_SCHEMA,
+    AGENT_TOOL_INSTRUCTIONS,
 )
 
 

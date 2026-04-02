@@ -518,33 +518,6 @@ TRANSITION: Connect current topic to the next objective naturally.
   Example: "Great work understanding text alternatives. Now, what happens \
 when the content isn't an image but a video? That opens up a whole different set of challenges...\""""
 
-EVAL_OUTPUT_SCHEMA = """\
-=== STRUCTURED OUTPUT ===
-
-You MUST output valid JSON at the very end of your response, after a blank line, \
-wrapped in a ```json fenced block. This evaluation drives the tutoring system. \
-The conversational response comes FIRST, then the JSON block.
-
-```json
-{
-  "claims_analysis": [
-    {"claim": "what the student asserted", "verdict": "SUPPORTED|CONTRADICTED|NOT_ADDRESSED", "reason": "brief grounding reference"}
-  ],
-  "detected_state": "CORRECT | INCORRECT_APPLICATION | CONFUSED_ABOUT_PROBLEM | CONFUSED_ABOUT_INSTRUCTION | MISSING_PREREQUISITES | DISENGAGED | OFF_TOPIC | OUT_OF_SCOPE",
-  "response_mode": "REVIEW | GUIDANCE | RECTIFICATION | SUMMARIZATION",
-  "stage_recommendation": "stay | advance_to_exploration | advance_to_readiness_check | advance_to_mini_assessment | advance_to_final_assessment | advance_to_transition | loop_back_to_introduction",
-  "mastery_evidence": "brief description of what student demonstrated or null",
-  "mastery_level_change": "no_change | not_attempted→misconception | misconception→in_progress | in_progress→partial | partial→mastered | etc.",
-  "misconceptions_detected": ["Student believes X (actual: Y from context)"] or [],
-  "concepts_addressed": ["c1", "c2"],
-  "stage_summary": "if recommending a stage change, summarize what happened in current stage, else null",
-  "confidence": 0.0 to 1.0
-}
-```
-
-CRITICAL: Only output this JSON block in Instance B (guided learning) mode. \
-The confidence field determines whether mastery changes are persisted (threshold: 0.7)."""
-
 AGENT_TOOL_INSTRUCTIONS = """\
 === TOOL USAGE ===
 
