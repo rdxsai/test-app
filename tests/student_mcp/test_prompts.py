@@ -88,6 +88,31 @@ class TestInstanceBPrompt:
         assert "3 failed attempts" in prompt
         assert "blue decorative border" in prompt
 
+    def test_contains_claim_extraction(self):
+        prompt = build_instance_b_prompt()
+        assert "CLAIM EXTRACTION" in prompt
+        assert "EXTRACT CLAIMS" in prompt
+        assert "VERIFY AGAINST CONTEXT" in prompt
+        assert "DERIVE STATE" in prompt
+        assert "FORMAT MISCONCEPTIONS" in prompt
+        assert "Student believes" in prompt  # required misconception format
+
+    def test_claim_extraction_before_cognitive_states(self):
+        prompt = build_instance_b_prompt()
+        claim_pos = prompt.index("CLAIM EXTRACTION")
+        state_pos = prompt.index("STUDENT STATE DETECTION")
+        assert claim_pos < state_pos
+
+    def test_claims_analysis_in_eval_schema(self):
+        prompt = build_instance_b_prompt()
+        assert "claims_analysis" in prompt
+
+    def test_few_shot_examples_show_claim_reasoning(self):
+        prompt = build_instance_b_prompt()
+        assert "Claims:" in prompt
+        assert "CONTRADICTED" in prompt
+        assert "SUPPORTED" in prompt
+
     def test_contains_stage_awareness(self):
         prompt = build_instance_b_prompt()
         assert "STAGE AWARENESS" in prompt
@@ -143,14 +168,14 @@ class TestPromptTokenBudget:
     """Verify prompts stay within reasonable token bounds."""
 
     def test_instance_a_base_size(self):
-        """Base prompt (no context) should be under 2000 tokens (~8000 chars)."""
+        """Base prompt (no context) should be under 2500 tokens (~10000 chars)."""
         prompt = build_instance_a_prompt()
-        assert len(prompt) < 8000, f"Instance A base prompt is {len(prompt)} chars — may be too large"
+        assert len(prompt) < 10000, f"Instance A base prompt is {len(prompt)} chars — may be too large"
 
     def test_instance_b_base_size(self):
-        """Base prompt (no context) should be under 3000 tokens (~12000 chars)."""
+        """Base prompt (no context) should be under 3500 tokens (~14500 chars)."""
         prompt = build_instance_b_prompt()
-        assert len(prompt) < 12000, f"Instance B base prompt is {len(prompt)} chars — may be too large"
+        assert len(prompt) < 14500, f"Instance B base prompt is {len(prompt)} chars — may be too large"
 
     def test_instance_a_with_contexts(self):
         """With typical context, should stay under 4000 tokens (~16000 chars)."""

@@ -20,12 +20,16 @@ class TestCleanExtraction:
 
 ```json
 {
+  "claims_analysis": [
+    {"claim": "aria-live assertive defines a navigation landmark", "verdict": "CONTRADICTED", "reason": "aria-live announces dynamic content changes to AT"},
+    {"claim": "assertive means it takes priority over other elements", "verdict": "CONTRADICTED", "reason": "assertive interrupts current SR output"}
+  ],
   "detected_state": "INCORRECT_APPLICATION",
   "response_mode": "RECTIFICATION",
   "stage_recommendation": "stay",
   "mastery_evidence": "Student understands alt text exists but applies incorrectly",
   "mastery_level_change": "no_change",
-  "misconceptions_detected": ["All images need descriptive alt text"],
+  "misconceptions_detected": ["Student believes aria-live assertive defines a navigation landmark (actual: aria-live announces dynamic content changes to AT)"],
   "stage_summary": null,
   "confidence": 0.85
 }
@@ -38,6 +42,8 @@ class TestCleanExtraction:
         assert eval_data["response_mode"] == "RECTIFICATION"
         assert eval_data["confidence"] == 0.85
         assert len(eval_data["misconceptions_detected"]) == 1
+        assert len(eval_data["claims_analysis"]) == 2
+        assert eval_data["claims_analysis"][0]["verdict"] == "CONTRADICTED"
 
     def test_advance_recommendation(self):
         response = '''Great work! You clearly understand this concept.

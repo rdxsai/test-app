@@ -579,7 +579,7 @@ class HybridCrewAISocraticSystem:
             return conversational or response.strip(), None
 
         # Validate expected keys
-        expected_keys = {"detected_state", "response_mode", "stage_recommendation", "confidence"}
+        expected_keys = {"detected_state", "response_mode", "stage_recommendation", "confidence", "claims_analysis"}
         if not expected_keys.issubset(eval_data.keys()):
             missing = expected_keys - eval_data.keys()
             logger.warning(f"Eval JSON missing keys: {missing}")
