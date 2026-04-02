@@ -517,6 +517,18 @@
             updateMasteryCard(msg.objective_id, msg.mastery_level);
             if (msg.next_objective) addSystemNotice(`Objective complete! Next: ${msg.next_objective}`);
             break;
+          case "tool_call":
+            if (msg.status === "calling") {
+              stageLabel.textContent = `Using ${msg.tool.replace(/_/g, " ")}...`;
+            } else if (msg.status === "completed") {
+              stageLabel.textContent = "";
+            } else if (msg.status === "denied") {
+              addSystemNotice(`${msg.tool}: ${msg.summary || "denied"}`);
+            }
+            break;
+          case "mastery_denied":
+            addSystemNotice(`Mastery update deferred: ${msg.reason}`);
+            break;
           case "error": setProcessingState(false); addMessage("system", "Error: " + msg.message); break;
           case "pong": break;
           default: console.log("WS: unknown", msg.type, msg);

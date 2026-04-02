@@ -919,18 +919,28 @@ class HybridCrewAISocraticSystem:
         self, student_id: str, student_response: str,
         session_id: str, ws_send,
     ) -> Dict[str, Any]:
-        """Instance B: Stage-aware guided learning with eval-driven state updates.
+        """Instance B: Agentic guided learning with tool-calling loop.
+
+        The LLM is an agent that can read/write student state via tool calls.
+        Validation is enforced inside the MCP tools (mastery caps, stage
+        transitions, assessment scoring).
 
         Per-turn flow:
-        1. Load student context from MCP (profile, mastery, session, misconceptions)
-        2. Check session content cache — hit → skip retrieval, miss → retrieve + cache
-        3. Build Instance B prompt (stage-aware, includes eval JSON schema)
-        4. Single LLM call → Socratic response + eval JSON
-        5. Stream conversational text to client (strip eval JSON before streaming)
-        6. Parse eval JSON from full response
-        7. Stage machine processes eval → MCP write-backs
-        8. Send stage/mastery updates to client via WebSocket
+        1. Load student context from MCP
+        2. Check session content cache — retrieve + generate teaching plan if needed
+        3. Build Instance B prompt with tool usage instructions
+        4. AGENT LOOP (max 4 rounds):
+           - LLM generates response, possibly with tool_calls
+           - If tool_calls: execute each, feed results back, continue
+           - If no tool_calls: final text response → stream to client → exit
+        5. Save conversation, capture RAG triple, send stream_end
         """
+        import os
+        if os.getenv("GUIDED_MODE") == "legacy":
+            return await self._legacy_guided_session_streaming(
+                student_id, student_response, session_id, ws_send
+            )
+
         if not self.student_mcp:
             await ws_send({"type": "error", "message": "Student MCP not available"})
             return {}
@@ -939,7 +949,7 @@ class HybridCrewAISocraticSystem:
         self.append_to_conversation(student_id, "user", student_response)
 
         try:
-            # Load student context from MCP
+            # Step 1: Load student context from MCP
             await ws_send({"type": "stage", "stage": "loading", "detail": "Loading your learning profile..."})
             student_context = await self._load_student_context(student_id)
             session_state = await self.student_mcp.get_active_session(student_id)
@@ -954,7 +964,7 @@ class HybridCrewAISocraticSystem:
             objective_id = session_state.get("active_objective_id", "")
             objective_text = ""
 
-            # Resolve objective text by looking up the active objective ID
+            # Resolve objective text
             if objective_id:
                 try:
                     obj = await asyncio.to_thread(self._fetch_objective_by_id, objective_id)
@@ -963,7 +973,7 @@ class HybridCrewAISocraticSystem:
                 except Exception as e:
                     logger.warning(f"Failed to fetch objective text for {objective_id}: {e}")
 
-            # Check session content cache — retrieve only if needed
+            # Step 2: Check session content cache — retrieve if needed
             if self._session_cache.needs_retrieval(session_id, objective_id):
                 await ws_send({"type": "stage", "stage": "searching",
                                "detail": "Retrieving teaching content for this objective..."})
@@ -978,7 +988,6 @@ class HybridCrewAISocraticSystem:
                     session_id, objective_id, objective_text,
                     rag_chunks, wcag_context, teaching_content,
                 )
-                # Send chunks to frontend
                 if rag_chunks:
                     await ws_send({
                         "type": "rag_chunks",
@@ -991,7 +1000,7 @@ class HybridCrewAISocraticSystem:
                         ],
                     })
 
-                # Generate teaching plan (concept decomposition) — once per objective
+                # Generate teaching plan — once per objective
                 try:
                     await ws_send({"type": "stage", "stage": "composing",
                                    "detail": "Creating teaching plan..."})
@@ -1010,7 +1019,7 @@ class HybridCrewAISocraticSystem:
                 if assessment_ctx:
                     teaching_content = f"{teaching_content}\n\n{assessment_ctx}"
 
-            # Build Instance B prompt
+            # Step 3: Build Instance B prompt with tool usage instructions
             await ws_send({"type": "stage", "stage": "composing",
                            "detail": f"Generating response ({current_stage})..."})
 
@@ -1027,44 +1036,110 @@ class HybridCrewAISocraticSystem:
             if history:
                 messages.extend(history[-6:])
             messages.append({"role": "user", "content": student_response})
-            # Force eval JSON output by adding a prefill hint as a partial assistant message.
-            # This technique makes GPT-4 continue the response and append the JSON block.
-            # We DON'T actually add an assistant message (Azure doesn't support prefill),
-            # but we reinforce via a system reminder at the end.
-            messages.append({"role": "system", "content": (
-                "IMPORTANT: After your conversational response, you MUST output an evaluation "
-                "JSON block wrapped in ```json ... ```. This is required for every response. "
-                "The system will malfunction without it. Include detected_state, response_mode, "
-                "stage_recommendation, mastery_evidence, mastery_level_change, "
-                "misconceptions_detected, stage_summary, and confidence."
-            )})
 
-            # Single LLM call — collect full response then parse
-            full_response = await self._stream_response(messages, ws_send)
+            # Step 4: AGENT LOOP — LLM calls tools, then generates final response
+            tools = self._build_agent_tool_schemas()
+            MAX_AGENT_ROUNDS = 4
+            final_text = ""
+            tool_calls_made = []
 
-            # Parse eval JSON from the response
-            conversational_text, eval_data = self._parse_eval_json(full_response)
+            for round_num in range(MAX_AGENT_ROUNDS):
+                logger.info(f"[AGENT] Round {round_num + 1}/{MAX_AGENT_ROUNDS}")
 
-            # --- Diagnostic logging ---
-            if eval_data:
-                logger.info(
-                    f"[GUIDED] Eval JSON parsed: stage={current_stage} "
-                    f"detected_state={eval_data.get('detected_state')} "
-                    f"recommendation={eval_data.get('stage_recommendation')} "
-                    f"mastery_change={eval_data.get('mastery_level_change')} "
-                    f"confidence={eval_data.get('confidence')}"
+                response_msg = await self.client.chat_with_tools(
+                    messages=messages,
+                    tools=tools,
+                    temperature=0.7,
+                    max_tokens=1000,
+                    tool_choice="auto",
                 )
+
+                tool_calls = response_msg.get("tool_calls")
+
+                if not tool_calls:
+                    # Final text response — stream it to client
+                    final_text = response_msg.get("content", "")
+                    logger.info(f"[AGENT] Final response ({len(final_text)} chars) after {round_num + 1} round(s)")
+                    await ws_send({"type": "stream_start"})
+                    await self._progressive_send(final_text, ws_send)
+                    break
+
+                # Execute tool calls
+                messages.append(response_msg)  # assistant message with tool_calls
+
+                for tc in tool_calls:
+                    fn_name = tc["function"]["name"]
+                    await ws_send({"type": "tool_call", "tool": fn_name, "status": "calling"})
+
+                    result = await self._execute_agent_tool(tc)
+                    tool_calls_made.append({"tool": fn_name, "result": result})
+
+                    logger.info(f"[AGENT] Tool {fn_name} → {json.dumps(result, default=str)[:100]}")
+
+                    # Send tool-specific UI updates
+                    if fn_name == "update_session_state" and isinstance(result, dict):
+                        if result.get("updated"):
+                            await ws_send({
+                                "type": "stage_update",
+                                "stage": result.get("current_stage", ""),
+                                "objective": objective_id,
+                                "summary": result.get("stage_summary", ""),
+                            })
+                        elif result.get("denied"):
+                            await ws_send({"type": "tool_call", "tool": fn_name,
+                                           "status": "denied", "summary": result.get("reason", "")})
+
+                    elif fn_name == "update_mastery" and isinstance(result, dict):
+                        if result.get("updated"):
+                            await ws_send({
+                                "type": "mastery_update",
+                                "objective_id": objective_id,
+                                "objective_text": objective_text or objective_id,
+                                "new_level": result.get("applied_level", result.get("mastery_level", "")),
+                            })
+                        elif result.get("denied"):
+                            await ws_send({"type": "mastery_denied",
+                                           "reason": result.get("reason", "")})
+
+                    elif fn_name == "record_assessment_answer" and isinstance(result, dict):
+                        if result.get("recorded"):
+                            await ws_send({
+                                "type": "assessment_score",
+                                **result.get("progress", {}),
+                                "passed": result.get("passed"),
+                            })
+                            if result.get("completed") and result.get("next_stage"):
+                                await ws_send({
+                                    "type": "stage_update",
+                                    "stage": result["next_stage"],
+                                    "objective": objective_id,
+                                    "summary": f"Assessment complete: {result.get('progress', {}).get('correct', 0)}/{result.get('progress', {}).get('total', 0)}",
+                                })
+
+                    await ws_send({"type": "tool_call", "tool": fn_name, "status": "completed"})
+
+                    # Append tool result to messages for next round
+                    messages.append({
+                        "role": "tool",
+                        "tool_call_id": tc["id"],
+                        "content": json.dumps(result, default=str) if result else "null",
+                    })
+
             else:
-                logger.warning(
-                    f"[GUIDED] No eval JSON in response! stage={current_stage} "
-                    f"response_length={len(full_response)} chars. "
-                    f"Last 200 chars: ...{full_response[-200:]}"
+                # Loop exhausted without final response — force one
+                logger.warning(f"[AGENT] Max rounds exhausted, forcing response")
+                response_msg = await self.client.chat_with_tools(
+                    messages=messages, tools=[], tool_choice="none",
+                    temperature=0.7, max_tokens=1000,
                 )
+                final_text = response_msg.get("content", "I'd like to continue our discussion. What are your thoughts?")
+                await ws_send({"type": "stream_start"})
+                await self._progressive_send(final_text, ws_send)
 
-            # Save conversation (conversational part only, not eval JSON)
-            self.append_to_conversation(student_id, "assistant", conversational_text)
+            # Step 5: Save conversation + RAG capture
+            self.append_to_conversation(student_id, "assistant", final_text)
 
-            # Fire-and-forget RAG triple capture for evaluation pipeline
+            # Fire-and-forget RAG triple capture
             cached = self._session_cache.get(session_id)
             if cached and cached.get("rag_chunks"):
                 try:
@@ -1073,67 +1148,24 @@ class HybridCrewAISocraticSystem:
                     eval_repo.capture_rag_sample(
                         query=student_response,
                         retrieved_contexts=[c.get("content", "") for c in cached["rag_chunks"]],
-                        response=conversational_text,
+                        response=final_text,
                         student_id=student_id, session_id=session_id,
                         intent="guided", instance="b",
                     )
                 except Exception as e:
                     logger.warning(f"RAG capture failed (non-critical): {e}")
 
-            # Process eval through stage machine
-            stage_result = {}
-            if eval_data and self._stage_machine:
-                stage_result = await self._stage_machine.process_eval(
-                    student_id, session_id, session_state, eval_data,
-                )
-                logger.info(
-                    f"[GUIDED] Stage machine result: changed={stage_result.get('stage_changed')} "
-                    f"new_stage={stage_result.get('new_stage')} "
-                    f"mastery={stage_result.get('mastery_updated')} "
-                    f"assessment={stage_result.get('assessment_result')}"
-                )
-
-                # Invalidate cache if objective changed
-                if stage_result.get("new_stage") == "introduction" and stage_result.get("stage_changed"):
+            # Check if stage changed to introduction (new objective) → invalidate cache
+            updated_session = await self.student_mcp.get_active_session(student_id)
+            if updated_session:
+                new_stage = updated_session.get("current_stage", "")
+                if new_stage == "introduction" and current_stage != "introduction":
                     self._session_cache.invalidate(session_id)
-
-                # Send stage updates to client
-                if stage_result.get("stage_changed"):
-                    await ws_send({
-                        "type": "stage_update",
-                        "stage": stage_result["new_stage"],
-                        "objective": objective_id,
-                        "summary": stage_result.get("stage_summary", ""),
-                    })
-
-                if stage_result.get("mastery_updated"):
-                    await ws_send({
-                        "type": "mastery_update",
-                        "objective_id": objective_id,
-                        "objective_text": objective_text or objective_id,
-                        "new_level": stage_result.get("new_mastery_level", ""),
-                    })
-
-                if stage_result.get("assessment_result"):
-                    await ws_send({
-                        "type": "assessment_score",
-                        **stage_result["assessment_result"],
-                    })
-
-            # Update concept coverage from eval data
-            if eval_data and eval_data.get("concepts_addressed"):
-                detected = eval_data.get("detected_state", "")
-                for cid in eval_data["concepts_addressed"]:
-                    if detected == "CORRECT":
-                        self._session_cache.update_concept_status(session_id, cid, "covered")
-                    elif detected not in ("OFF_TOPIC", "OUT_OF_SCOPE", "DISENGAGED"):
-                        self._session_cache.update_concept_status(session_id, cid, "partially_covered")
 
             metadata = {
                 "session_id": session_id,
                 "stage": current_stage,
-                "eval_data": eval_data,
-                "stage_result": stage_result,
+                "tool_calls": [tc["tool"] for tc in tool_calls_made],
             }
             await ws_send({"type": "stream_end", "metadata": metadata})
             return metadata
@@ -1142,6 +1174,19 @@ class HybridCrewAISocraticSystem:
             logger.error(f"Guided session failed: {e}", exc_info=True)
             await ws_send({"type": "error", "message": str(e)})
             return {}
+
+    async def _legacy_guided_session_streaming(
+        self, student_id: str, student_response: str,
+        session_id: str, ws_send,
+    ) -> Dict[str, Any]:
+        """Legacy Instance B: single LLM call + eval JSON + stage machine.
+        Kept as fallback via GUIDED_MODE=legacy env var.
+        """
+        # This is a stub — the full legacy code has been replaced.
+        # If needed, it can be restored from git history.
+        logger.warning("Legacy guided session mode — use GUIDED_MODE=legacy only for debugging")
+        await ws_send({"type": "error", "message": "Legacy mode not available. Remove GUIDED_MODE env var."})
+        return {}
 
     # ------------------------------------------------------------------
     # Onboarding handler (Instance B — first 2-3 turns)
