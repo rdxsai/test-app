@@ -146,9 +146,9 @@ class TestPromptIntegration:
         prompt = build_instance_b_prompt(teaching_plan=None)
         assert "TEACHING PLAN:" not in prompt
 
-    def test_concepts_addressed_in_eval_schema(self):
+    def test_tool_instructions_in_prompt(self):
         prompt = build_instance_b_prompt()
-        assert "concepts_addressed" in prompt
+        assert "TOOL USAGE" in prompt
 
 
 # ---------------------------------------------------------------------------

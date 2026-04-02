@@ -1521,7 +1521,141 @@ class HybridCrewAISocraticSystem:
         return questions
 
     # ==================================================================
+    # ------------------------------------------------------------------
+    # Agent tool schemas + execution (Phase 3 agentic loop)
+    # ------------------------------------------------------------------
+
+    def _build_agent_tool_schemas(self) -> List[Dict]:
+        """Build OpenAI function-calling tool definitions for the LLM agent.
+
+        Exposes 8 Student MCP tools: 3 read + 5 write.
+        NOT exposed: create_student_profile, get_student_profile,
+        get_recommended_next_objective, save_session_summary,
+        update_student_preferences, get_session_summary (application-managed).
+        """
+        return [
+            # --- Read tools ---
+            {"type": "function", "function": {
+                "name": "get_mastery_state",
+                "description": "Get the student's mastery levels for all objectives they've engaged with. Use to check current mastery before deciding if advancement is appropriate.",
+                "parameters": {"type": "object", "properties": {
+                    "student_id": {"type": "string", "description": "The student's ID"},
+                }, "required": ["student_id"]},
+            }},
+            {"type": "function", "function": {
+                "name": "get_misconception_patterns",
+                "description": "Get unresolved misconceptions for the student. Use to check if a detected error is already tracked or is new.",
+                "parameters": {"type": "object", "properties": {
+                    "student_id": {"type": "string", "description": "The student's ID"},
+                }, "required": ["student_id"]},
+            }},
+            {"type": "function", "function": {
+                "name": "get_active_session",
+                "description": "Get the student's current session state: stage, turns, objective, assessment progress.",
+                "parameters": {"type": "object", "properties": {
+                    "student_id": {"type": "string", "description": "The student's ID"},
+                }, "required": ["student_id"]},
+            }},
+            # --- Write tools ---
+            {"type": "function", "function": {
+                "name": "log_misconception",
+                "description": "Log a newly detected misconception. Format: 'Student believes X (actual: Y)'. Deduplicates automatically.",
+                "parameters": {"type": "object", "properties": {
+                    "student_id": {"type": "string"},
+                    "objective_id": {"type": "string"},
+                    "misconception_text": {"type": "string", "description": "Format: 'Student believes X (actual: Y from context)'"},
+                }, "required": ["student_id", "objective_id", "misconception_text"]},
+            }},
+            {"type": "function", "function": {
+                "name": "resolve_misconception",
+                "description": "Mark a previously logged misconception as resolved when the student demonstrates corrected understanding.",
+                "parameters": {"type": "object", "properties": {
+                    "student_id": {"type": "string"},
+                    "objective_id": {"type": "string"},
+                    "misconception_text": {"type": "string", "description": "Text of the misconception to resolve (partial match OK)"},
+                }, "required": ["student_id", "objective_id", "misconception_text"]},
+            }},
+            {"type": "function", "function": {
+                "name": "update_mastery",
+                "description": "Update the student's mastery level for an objective. System enforces stage-based caps (e.g., exploration max 'in_progress'). Never request 'mastered' or 'partial' directly — those are granted by assessment scoring only.",
+                "parameters": {"type": "object", "properties": {
+                    "student_id": {"type": "string"},
+                    "objective_id": {"type": "string"},
+                    "mastery_level": {"type": "string", "enum": ["not_attempted", "misconception", "in_progress"]},
+                    "evidence_summary": {"type": "string", "description": "Brief description of what the student demonstrated"},
+                    "confidence": {"type": "number", "description": "0.0-1.0 confidence in the assessment (threshold: 0.7)"},
+                }, "required": ["student_id", "objective_id", "mastery_level", "confidence"]},
+            }},
+            {"type": "function", "function": {
+                "name": "update_session_state",
+                "description": "Update the learning stage. System validates transitions (e.g., can't skip from introduction to final_assessment). Use to advance stages when the student is ready.",
+                "parameters": {"type": "object", "properties": {
+                    "session_id": {"type": "string"},
+                    "stage": {"type": "string", "enum": ["introduction", "exploration", "readiness_check", "mini_assessment", "final_assessment", "transition"]},
+                    "stage_summary": {"type": "string", "description": "Brief summary of what happened in the current stage"},
+                    "turns": {"type": "integer", "description": "Set turn count (use -1 to not change)"},
+                }, "required": ["session_id", "stage"]},
+            }},
+            {"type": "function", "function": {
+                "name": "record_assessment_answer",
+                "description": "Record a student's answer during mini or final assessment. Auto-tracks progress, auto-computes pass/fail, auto-transitions stage when all questions answered. Call once per assessment question.",
+                "parameters": {"type": "object", "properties": {
+                    "session_id": {"type": "string"},
+                    "is_correct": {"type": "boolean", "description": "Whether the student's answer was correct"},
+                }, "required": ["session_id", "is_correct"]},
+            }},
+        ]
+
+    async def _execute_agent_tool(self, tool_call: Dict) -> Any:
+        """Execute a tool call from the LLM and return the result.
+
+        Routes OpenAI function-calling tool_calls to the correct
+        StudentMCPClient method. Returns the result as a dict (or None).
+        """
+        fn_name = tool_call["function"]["name"]
+        try:
+            fn_args = json.loads(tool_call["function"]["arguments"])
+        except json.JSONDecodeError:
+            logger.warning(f"Failed to parse tool args: {tool_call['function']['arguments']}")
+            return {"error": "Invalid arguments"}
+
+        logger.info(f"[AGENT] Tool call: {fn_name}({fn_args})")
+
+        try:
+            if fn_name == "get_mastery_state":
+                return await self.student_mcp.get_mastery_state(fn_args["student_id"])
+            elif fn_name == "get_misconception_patterns":
+                return await self.student_mcp.get_misconception_patterns(fn_args["student_id"])
+            elif fn_name == "get_active_session":
+                return await self.student_mcp.get_active_session(fn_args["student_id"])
+            elif fn_name == "log_misconception":
+                return await self.student_mcp.log_misconception(
+                    fn_args["student_id"], fn_args["objective_id"],
+                    fn_args["misconception_text"],
+                )
+            elif fn_name == "resolve_misconception":
+                return await self.student_mcp.resolve_misconception(
+                    fn_args["student_id"], fn_args["objective_id"],
+                    fn_args["misconception_text"],
+                )
+            elif fn_name == "update_mastery":
+                return await self.student_mcp._call("update_mastery", fn_args)
+            elif fn_name == "update_session_state":
+                return await self.student_mcp._call("update_session_state", fn_args)
+            elif fn_name == "record_assessment_answer":
+                return await self.student_mcp.record_assessment_answer(
+                    fn_args["session_id"], fn_args["is_correct"],
+                )
+            else:
+                logger.warning(f"[AGENT] Unknown tool: {fn_name}")
+                return {"error": f"Unknown tool: {fn_name}"}
+        except Exception as e:
+            logger.error(f"[AGENT] Tool execution failed: {fn_name}: {e}")
+            return {"error": str(e)}
+
+    # ==================================================================
     # End of Instance B methods
+    # ==================================================================
     # ==================================================================
 
     def _update_student_profile(

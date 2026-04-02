@@ -545,6 +545,47 @@ The conversational response comes FIRST, then the JSON block.
 CRITICAL: Only output this JSON block in Instance B (guided learning) mode. \
 The confidence field determines whether mastery changes are persisted (threshold: 0.7)."""
 
+AGENT_TOOL_INSTRUCTIONS = """\
+=== TOOL USAGE ===
+
+You have access to tools for reading and updating student state. \
+Use them when appropriate — not every turn requires tool calls.
+
+WHEN TO READ STATE:
+- get_misconception_patterns: Check if student's error is already tracked
+- get_mastery_state: Check current mastery when deciding progression
+- get_active_session: Check turn count, stage, or assessment progress
+
+WHEN TO WRITE STATE:
+- log_misconception: When you detect a NEW misconception. \
+Format: "Student believes X (actual: Y from context)"
+- resolve_misconception: When student demonstrates corrected understanding \
+of a previously logged misconception
+- update_mastery: When student demonstrates clear understanding. \
+Include confidence (0.0-1.0). System enforces stage-based caps automatically.
+- update_session_state: When the learning stage should change. \
+System validates transitions automatically.
+- record_assessment_answer: During mini_assessment or final_assessment stages, \
+after evaluating each student answer as correct or incorrect. This tool \
+auto-tracks progress and auto-transitions when all questions are asked.
+
+WHEN TO JUST RESPOND:
+- Most turns only need your Socratic response — no tool calls needed
+- If no state changes needed, generate your teaching response directly
+- Don't call tools speculatively or redundantly
+
+AFTER TOOL CALLS:
+- After any tool calls, always generate your teaching response as final output
+- If a tool returns {"denied": true}, adapt your response accordingly
+- Tool results tell you if an action was denied and why
+
+IMPORTANT CONSTRAINTS:
+- Never call update_mastery with "mastered" or "partial" — those levels \
+are only granted by assessment scoring via record_assessment_answer
+- Always include student_id and objective_id from the session context
+- During assessment stages, use record_assessment_answer for scoring
+- You MUST include the student_id parameter (use the one from STUDENT PROFILE above)"""
+
 
 def build_instance_b_prompt(
     knowledge_context: str = "",
@@ -594,8 +635,8 @@ def build_instance_b_prompt(
 
     context_block = "\n\n".join(context_sections)
 
-    # EVAL_OUTPUT_SCHEMA goes LAST — after context — so GPT-4 doesn't lose it
-    # in the middle of a long system prompt (recency bias).
+    # AGENT_TOOL_INSTRUCTIONS goes LAST — recency bias ensures the LLM
+    # pays attention to tool usage rules.
     return f"""{ROLE_PREAMBLE}
 
 {CLAIM_EXTRACTION}
@@ -620,6 +661,4 @@ def build_instance_b_prompt(
 
 {context_block}
 
-{EVAL_OUTPUT_SCHEMA}
-
-REMINDER: You MUST end every response with the ```json evaluation block. This is not optional."""
+{AGENT_TOOL_INSTRUCTIONS}"""

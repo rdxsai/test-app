@@ -15,6 +15,7 @@ from .socratic_tutor import (
     build_instance_a_prompt,
     build_instance_b_prompt,
     CONCEPT_DECOMPOSITION_PROMPT,
+    AGENT_TOOL_INSTRUCTIONS,
     format_teaching_plan,
 )
 
@@ -22,5 +23,6 @@ __all__ = [
     "build_instance_a_prompt",
     "build_instance_b_prompt",
     "CONCEPT_DECOMPOSITION_PROMPT",
+    "AGENT_TOOL_INSTRUCTIONS",
     "format_teaching_plan",
 ]

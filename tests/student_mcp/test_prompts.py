@@ -103,9 +103,11 @@ class TestInstanceBPrompt:
         state_pos = prompt.index("STUDENT STATE DETECTION")
         assert claim_pos < state_pos
 
-    def test_claims_analysis_in_eval_schema(self):
+    def test_contains_tool_instructions(self):
         prompt = build_instance_b_prompt()
-        assert "claims_analysis" in prompt
+        assert "TOOL USAGE" in prompt
+        assert "log_misconception" in prompt
+        assert "record_assessment_answer" in prompt
 
     def test_few_shot_examples_show_claim_reasoning(self):
         prompt = build_instance_b_prompt()
@@ -124,15 +126,13 @@ class TestInstanceBPrompt:
         assert "FINAL_ASSESSMENT" in prompt
         assert "TRANSITION" in prompt
 
-    def test_contains_eval_output_schema(self):
+    def test_contains_agent_tool_instructions(self):
         prompt = build_instance_b_prompt()
-        assert "STRUCTURED OUTPUT" in prompt
-        assert "detected_state" in prompt
-        assert "response_mode" in prompt
-        assert "stage_recommendation" in prompt
-        assert "mastery_evidence" in prompt
-        assert "misconceptions_detected" in prompt
-        assert "confidence" in prompt
+        assert "TOOL USAGE" in prompt
+        assert "WHEN TO READ STATE" in prompt
+        assert "WHEN TO WRITE STATE" in prompt
+        assert "WHEN TO JUST RESPOND" in prompt
+        assert "IMPORTANT CONSTRAINTS" in prompt
 
     def test_contains_scope_boundaries(self):
         prompt = build_instance_b_prompt()
