@@ -623,6 +623,25 @@ class StudentDatabase:
                 return dict(row) if row else None
 
     # ------------------------------------------------------------------
+    # Write: Increment turn count
+    # ------------------------------------------------------------------
+
+    def increment_turn_count(self, session_id: str) -> int:
+        """Increment turns_on_objective by 1. Returns the new turn count."""
+        with self.get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """UPDATE session_state
+                       SET turns_on_objective = turns_on_objective + 1
+                       WHERE session_id = %s
+                       RETURNING turns_on_objective""",
+                    (session_id,),
+                )
+                row = cur.fetchone()
+                conn.commit()
+                return row["turns_on_objective"] if row else 0
+
+    # ------------------------------------------------------------------
     # Validation: Stage transitions (for agentic tool calling)
     # ------------------------------------------------------------------
 

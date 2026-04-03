@@ -982,6 +982,14 @@ class HybridCrewAISocraticSystem:
                 teaching_plan=teaching_plan,
             )
             messages = [{"role": "system", "content": system_prompt}]
+            # Inject real IDs so the LLM uses them in tool calls (not guesses)
+            messages.append({"role": "system", "content": (
+                f"TOOL CALL PARAMETERS — use these exact values:\n"
+                f"  student_id: \"{student_id}\"\n"
+                f"  session_id: \"{session_id}\"\n"
+                f"  objective_id: \"{objective_id}\"\n"
+                f"When calling ANY tool, use these IDs verbatim. Do not invent IDs."
+            )})
             if history:
                 messages.extend(history[-6:])
             messages.append({"role": "user", "content": student_response})
@@ -1026,19 +1034,7 @@ class HybridCrewAISocraticSystem:
                     logger.info(f"[AGENT] Tool {fn_name} → {json.dumps(result, default=str)[:100]}")
 
                     # Send tool-specific UI updates
-                    if fn_name == "update_session_state" and isinstance(result, dict):
-                        if result.get("updated"):
-                            await ws_send({
-                                "type": "stage_update",
-                                "stage": result.get("current_stage", ""),
-                                "objective": objective_id,
-                                "summary": result.get("stage_summary", ""),
-                            })
-                        elif result.get("denied"):
-                            await ws_send({"type": "tool_call", "tool": fn_name,
-                                           "status": "denied", "summary": result.get("reason", "")})
-
-                    elif fn_name == "update_mastery" and isinstance(result, dict):
+                    if fn_name == "update_mastery" and isinstance(result, dict):
                         if result.get("updated"):
                             await ws_send({
                                 "type": "mastery_update",
@@ -1104,17 +1100,16 @@ class HybridCrewAISocraticSystem:
                 except Exception as e:
                     logger.warning(f"RAG capture failed (non-critical): {e}")
 
-            # Check if stage changed to introduction (new objective) → invalidate cache
-            updated_session = await self.student_mcp.get_active_session(student_id)
-            if updated_session:
-                new_stage = updated_session.get("current_stage", "")
-                if new_stage == "introduction" and current_stage != "introduction":
-                    self._session_cache.invalidate(session_id)
+            # Post-turn lifecycle check: increment turns, evaluate stage criteria, advance if met
+            lifecycle_result = await self._post_turn_lifecycle_check(
+                student_id, session_id, current_stage, objective_id, ws_send
+            )
 
             metadata = {
                 "session_id": session_id,
-                "stage": current_stage,
+                "stage": lifecycle_result.get("new_stage", current_stage),
                 "tool_calls": [tc["tool"] for tc in tool_calls_made],
+                "stage_advanced": lifecycle_result.get("advanced", False),
             }
             await ws_send({"type": "stream_end", "metadata": metadata})
             return metadata
@@ -1516,6 +1511,126 @@ class HybridCrewAISocraticSystem:
 
     # ==================================================================
     # ------------------------------------------------------------------
+    # Post-turn lifecycle check (application-managed stage transitions)
+    # ------------------------------------------------------------------
+
+    async def _post_turn_lifecycle_check(
+        self, student_id: str, session_id: str,
+        current_stage: str, objective_id: str, ws_send,
+    ) -> Dict[str, Any]:
+        """Application-side stage management. Runs after every agent turn.
+
+        1. Increments turn count (always)
+        2. Evaluates stage-specific advancement criteria
+        3. Advances stage if criteria met
+        4. Sends stage_update to frontend
+        5. Invalidates cache on objective change
+
+        The LLM does NOT manage stages — this method does.
+        """
+        result = {"advanced": False, "new_stage": current_stage}
+
+        try:
+            # 1. Increment turn count
+            turn_result = await self.student_mcp.increment_turn_count(session_id)
+            turns = (turn_result or {}).get("turns", 0)
+            logger.info(f"[LIFECYCLE] stage={current_stage} turns={turns}")
+
+            # 2. Get current mastery for advancement decisions
+            mastery_records = await self.student_mcp.get_mastery_state(student_id)
+            current_mastery = "not_attempted"
+            for mr in (mastery_records or []):
+                if mr.get("objective_id") == objective_id:
+                    current_mastery = mr.get("mastery_level", "not_attempted")
+                    break
+
+            # 3. Evaluate stage criteria
+            new_stage = None
+
+            if current_stage == "introduction":
+                if turns >= 3 and current_mastery in ("in_progress", "partial", "mastered"):
+                    new_stage = "exploration"
+                elif turns >= 5:  # hard cap
+                    new_stage = "exploration"
+
+            elif current_stage == "exploration":
+                # Check teaching plan coverage
+                plan = self._session_cache.get_teaching_plan(session_id)
+                covered = 0
+                total = 0
+                if plan:
+                    for c in plan.get("concepts", []):
+                        total += 1
+                        if c.get("status") in ("covered", "partially_covered"):
+                            covered += 1
+                majority_covered = total > 0 and covered >= total / 2
+
+                if turns >= 4 and majority_covered:
+                    new_stage = "readiness_check"
+                elif turns >= 6:  # hard cap
+                    new_stage = "readiness_check"
+
+            elif current_stage == "readiness_check":
+                # Always advance after 1 turn
+                new_stage = "mini_assessment"
+
+            elif current_stage == "transition":
+                # Select next objective and start new cycle
+                next_obj = await self.student_mcp.get_recommended_next_objective(student_id)
+                if next_obj:
+                    new_objective_id = next_obj.get("objective_id", "")
+                    new_objective_text = next_obj.get("objective_text", "")
+                    await self.student_mcp.update_session_state(
+                        session_id, stage="introduction",
+                        active_objective_id=new_objective_id,
+                        turns=0,
+                    )
+                    self._session_cache.invalidate(session_id)
+                    await ws_send({
+                        "type": "stage_update",
+                        "stage": "introduction",
+                        "objective": new_objective_text,
+                        "summary": f"Starting new objective: {new_objective_text}",
+                    })
+                    result.update(advanced=True, new_stage="introduction")
+                    logger.info(f"[LIFECYCLE] transition → introduction (new objective: {new_objective_id})")
+                return result
+
+            # mini_assessment and final_assessment: handled by record_assessment_answer auto-transition
+
+            # 4. Apply stage change if criteria met
+            if new_stage and new_stage != current_stage:
+                await self.student_mcp.update_session_state(
+                    session_id, stage=new_stage,
+                    stage_summary=f"Auto-advanced from {current_stage} after {turns} turns",
+                )
+
+                # Reset assessment progress when entering assessment
+                if new_stage == "mini_assessment":
+                    await self.student_mcp.update_session_state(
+                        session_id,
+                        assessment_progress='{"asked": 0, "correct": 0}',
+                    )
+
+                await ws_send({
+                    "type": "stage_update",
+                    "stage": new_stage,
+                    "objective": objective_id,
+                    "summary": f"Advanced from {current_stage} to {new_stage}",
+                })
+
+                if new_stage == "introduction" and current_stage != "introduction":
+                    self._session_cache.invalidate(session_id)
+
+                result.update(advanced=True, new_stage=new_stage)
+                logger.info(f"[LIFECYCLE] {current_stage} → {new_stage} (turns={turns}, mastery={current_mastery})")
+
+        except Exception as e:
+            logger.warning(f"[LIFECYCLE] check failed (non-critical): {e}")
+
+        return result
+
+    # ------------------------------------------------------------------
     # Agent tool schemas + execution (Phase 3 agentic loop)
     # ------------------------------------------------------------------
 
@@ -1531,21 +1646,14 @@ class HybridCrewAISocraticSystem:
             # --- Read tools ---
             {"type": "function", "function": {
                 "name": "get_mastery_state",
-                "description": "Get the student's mastery levels for all objectives they've engaged with. Use to check current mastery before deciding if advancement is appropriate.",
+                "description": "CALL THIS before calling update_mastery or when deciding if the student is ready to advance stages. Returns current mastery levels for all objectives the student has engaged with.",
                 "parameters": {"type": "object", "properties": {
                     "student_id": {"type": "string", "description": "The student's ID"},
                 }, "required": ["student_id"]},
             }},
             {"type": "function", "function": {
                 "name": "get_misconception_patterns",
-                "description": "Get unresolved misconceptions for the student. Use to check if a detected error is already tracked or is new.",
-                "parameters": {"type": "object", "properties": {
-                    "student_id": {"type": "string", "description": "The student's ID"},
-                }, "required": ["student_id"]},
-            }},
-            {"type": "function", "function": {
-                "name": "get_active_session",
-                "description": "Get the student's current session state: stage, turns, objective, assessment progress.",
+                "description": "CALL THIS when the student says something incorrect or reveals a misunderstanding. Returns all unresolved misconceptions so you can check whether this error is already tracked before logging a new one.",
                 "parameters": {"type": "object", "properties": {
                     "student_id": {"type": "string", "description": "The student's ID"},
                 }, "required": ["student_id"]},
@@ -1553,7 +1661,7 @@ class HybridCrewAISocraticSystem:
             # --- Write tools ---
             {"type": "function", "function": {
                 "name": "log_misconception",
-                "description": "Log a newly detected misconception. Format: 'Student believes X (actual: Y)'. Deduplicates automatically.",
+                "description": "CALL THIS whenever the student reveals a misconception that isn't already tracked. You MUST call this every time you detect a factual error — do not just address it in your response and move on. Format the text as: 'Student believes X (actual: Y from context)'. Deduplicates automatically.",
                 "parameters": {"type": "object", "properties": {
                     "student_id": {"type": "string"},
                     "objective_id": {"type": "string"},
@@ -1562,7 +1670,7 @@ class HybridCrewAISocraticSystem:
             }},
             {"type": "function", "function": {
                 "name": "resolve_misconception",
-                "description": "Mark a previously logged misconception as resolved when the student demonstrates corrected understanding.",
+                "description": "CALL THIS when the student demonstrates they have corrected a previously logged misconception. If they now state the correct understanding of something they previously got wrong, resolve it.",
                 "parameters": {"type": "object", "properties": {
                     "student_id": {"type": "string"},
                     "objective_id": {"type": "string"},
@@ -1571,7 +1679,7 @@ class HybridCrewAISocraticSystem:
             }},
             {"type": "function", "function": {
                 "name": "update_mastery",
-                "description": "Update the student's mastery level for an objective. System enforces stage-based caps (e.g., exploration max 'in_progress'). Never request 'mastered' or 'partial' directly — those are granted by assessment scoring only.",
+                "description": "CALL THIS after the student demonstrates understanding (or a clear lack of it). Every turn where the student shows they understand or misunderstand a concept, you should update their mastery. Include your confidence (0.0-1.0). System enforces stage-based caps automatically — just report what you observed. Never request 'mastered' or 'partial' — those are granted only by assessment scoring.",
                 "parameters": {"type": "object", "properties": {
                     "student_id": {"type": "string"},
                     "objective_id": {"type": "string"},
@@ -1581,18 +1689,8 @@ class HybridCrewAISocraticSystem:
                 }, "required": ["student_id", "objective_id", "mastery_level", "confidence"]},
             }},
             {"type": "function", "function": {
-                "name": "update_session_state",
-                "description": "Update the learning stage. System validates transitions (e.g., can't skip from introduction to final_assessment). Use to advance stages when the student is ready.",
-                "parameters": {"type": "object", "properties": {
-                    "session_id": {"type": "string"},
-                    "stage": {"type": "string", "enum": ["introduction", "exploration", "readiness_check", "mini_assessment", "final_assessment", "transition"]},
-                    "stage_summary": {"type": "string", "description": "Brief summary of what happened in the current stage"},
-                    "turns": {"type": "integer", "description": "Set turn count (use -1 to not change)"},
-                }, "required": ["session_id", "stage"]},
-            }},
-            {"type": "function", "function": {
                 "name": "record_assessment_answer",
-                "description": "Record a student's answer during mini or final assessment. Auto-tracks progress, auto-computes pass/fail, auto-transitions stage when all questions answered. Call once per assessment question.",
+                "description": "CALL THIS during mini_assessment or final_assessment stages after evaluating each student answer as correct or incorrect. Auto-tracks progress (asked/correct counts), auto-computes pass/fail, auto-transitions stage when all questions are answered. Call once per assessment question.",
                 "parameters": {"type": "object", "properties": {
                     "session_id": {"type": "string"},
                     "is_correct": {"type": "boolean", "description": "Whether the student's answer was correct"},
@@ -1620,8 +1718,6 @@ class HybridCrewAISocraticSystem:
                 return await self.student_mcp.get_mastery_state(fn_args["student_id"])
             elif fn_name == "get_misconception_patterns":
                 return await self.student_mcp.get_misconception_patterns(fn_args["student_id"])
-            elif fn_name == "get_active_session":
-                return await self.student_mcp.get_active_session(fn_args["student_id"])
             elif fn_name == "log_misconception":
                 return await self.student_mcp.log_misconception(
                     fn_args["student_id"], fn_args["objective_id"],
@@ -1634,8 +1730,6 @@ class HybridCrewAISocraticSystem:
                 )
             elif fn_name == "update_mastery":
                 return await self.student_mcp._call("update_mastery", fn_args)
-            elif fn_name == "update_session_state":
-                return await self.student_mcp._call("update_session_state", fn_args)
             elif fn_name == "record_assessment_answer":
                 return await self.student_mcp.record_assessment_answer(
                     fn_args["session_id"], fn_args["is_correct"],

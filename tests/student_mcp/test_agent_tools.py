@@ -54,8 +54,8 @@ class TestToolSchemaGeneration:
         mock_system._build_agent_tool_schemas = HybridCrewAISocraticSystem._build_agent_tool_schemas.__get__(mock_system)
         return mock_system._build_agent_tool_schemas()
 
-    def test_returns_8_tools(self, schemas):
-        assert len(schemas) == 8
+    def test_returns_6_tools(self, schemas):
+        assert len(schemas) == 6
 
     def test_all_have_function_type(self, schemas):
         for s in schemas:
@@ -75,15 +75,15 @@ class TestToolSchemaGeneration:
         names = {s["function"]["name"] for s in schemas}
         assert "get_mastery_state" in names
         assert "get_misconception_patterns" in names
-        assert "get_active_session" in names
+        # get_active_session removed — application manages sessions
 
     def test_write_tools_present(self, schemas):
         names = {s["function"]["name"] for s in schemas}
         assert "log_misconception" in names
         assert "resolve_misconception" in names
         assert "update_mastery" in names
-        assert "update_session_state" in names
         assert "record_assessment_answer" in names
+        # update_session_state removed — application manages transitions
 
     def test_update_mastery_has_confidence_param(self, schemas):
         mastery_tool = next(s for s in schemas if s["function"]["name"] == "update_mastery")

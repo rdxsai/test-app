@@ -422,6 +422,13 @@ async def update_student_preferences(
 
 
 @mcp.tool()
+async def increment_turn_count(session_id: str) -> str:
+    """Increment the turn counter for the active session. Called by the application every turn."""
+    new_count = await asyncio.to_thread(db.increment_turn_count, session_id)
+    return json.dumps({"turns": new_count})
+
+
+@mcp.tool()
 async def record_assessment_answer(
     session_id: str,
     is_correct: bool,

@@ -249,6 +249,10 @@ class StudentMCPClient:
             "preferred_style": preferred_style,
         })
 
+    async def increment_turn_count(self, session_id: str) -> Optional[Dict]:
+        """Increment the turn counter for the active session."""
+        return await self._call("increment_turn_count", {"session_id": session_id})
+
     async def resolve_misconception(
         self, student_id: str, objective_id: str, misconception_text: str,
     ) -> Optional[Dict]:
