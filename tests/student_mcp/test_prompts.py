@@ -31,6 +31,7 @@ class TestInstanceAPrompt:
 
     def test_contains_response_modes(self):
         prompt = build_instance_a_prompt()
+        assert "INSTRUCTION:" in prompt
         assert "REVIEW:" in prompt
         assert "GUIDANCE:" in prompt
         assert "RECTIFICATION:" in prompt
@@ -46,12 +47,13 @@ class TestInstanceAPrompt:
         assert "Never ask more than ONE question" in prompt
         assert "Never keep probing" in prompt
 
-    def test_contains_all_four_examples(self):
+    def test_contains_all_five_examples(self):
         prompt = build_instance_a_prompt()
         assert "blue decorative border" in prompt  # Example 1
         assert "screen reader is" in prompt         # Example 2
         assert "company logo" in prompt             # Example 3
         assert "idk, just tell me" in prompt        # Example 4
+        assert "volume levels" in prompt            # Example 5
 
     def test_does_not_contain_stage_awareness(self):
         prompt = build_instance_a_prompt()
@@ -167,14 +169,14 @@ class TestPromptTokenBudget:
     """Verify prompts stay within reasonable token bounds."""
 
     def test_instance_a_base_size(self):
-        """Base prompt (no context) should be under 2500 tokens (~10000 chars)."""
+        """Base prompt (no context) should be under 3000 tokens (~12000 chars)."""
         prompt = build_instance_a_prompt()
-        assert len(prompt) < 10000, f"Instance A base prompt is {len(prompt)} chars — may be too large"
+        assert len(prompt) < 12000, f"Instance A base prompt is {len(prompt)} chars — may be too large"
 
     def test_instance_b_base_size(self):
-        """Base prompt (no context) should be under 4000 tokens (~16000 chars)."""
+        """Base prompt (no context) should be under 4500 tokens (~18000 chars)."""
         prompt = build_instance_b_prompt()
-        assert len(prompt) < 16000, f"Instance B base prompt is {len(prompt)} chars — may be too large"
+        assert len(prompt) < 18000, f"Instance B base prompt is {len(prompt)} chars — may be too large"
 
     def test_instance_a_with_contexts(self):
         """With typical context, should stay under 4000 tokens (~16000 chars)."""
@@ -192,4 +194,4 @@ class TestPromptTokenBudget:
             current_stage="exploration",
             active_objective="Apply alt text to images",
         )
-        assert len(prompt) < 20000
+        assert len(prompt) < 22000
