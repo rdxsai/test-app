@@ -1,14 +1,13 @@
 """
-Socratic tutoring prompt templates.
+Stage-adaptive tutoring prompt templates.
 
-Research-backed prompt engineering for Socratic teaching, extracted from:
-  - SocraticLM (NeurIPS 2024): 6 cognitive states
-  - SocraticMATH (CIKM 2024): 4 response modes
-  - Edward Chang (2023): Anti-patterns and termination rules
+Two teaching styles that shift by stage:
+  - Introduction: teach-first (explain, check, respond)
+  - Exploration: Socratic (set up, question, adapt)
 
 Two prompt variants:
-  - Instance A: General Q&A (stateless, no stage awareness)
-  - Instance B: Guided learning (stage-aware, structured eval output)
+  - Instance A: General Q&A (teach-first, no stages or tools)
+  - Instance B: Guided learning (stage-aware with adaptive teaching approach)
 """
 
 from .socratic_tutor import (
