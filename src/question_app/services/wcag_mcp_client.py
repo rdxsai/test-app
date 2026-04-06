@@ -90,6 +90,144 @@ WCAG_TOOL_DEFINITIONS = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "list_principles",
+            "description": (
+                "Lists all four WCAG 2.2 principles (Perceivable, Operable, "
+                "Understandable, Robust) with their descriptions. Use for "
+                "structural/overview questions about WCAG organization."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {},
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "list_guidelines",
+            "description": (
+                "Lists WCAG 2.2 guidelines, optionally filtered by principle "
+                "number (1=Perceivable, 2=Operable, 3=Understandable, 4=Robust). "
+                "Use to show the guideline structure under a principle."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "principle": {
+                        "type": "string",
+                        "description": "Filter by principle number (1-4). Omit to list all.",
+                        "enum": ["1", "2", "3", "4"],
+                    }
+                },
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_criteria_by_level",
+            "description": (
+                "Gets all success criteria for a specific conformance level "
+                "(A, AA, or AAA). Use to show what each level requires."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "level": {
+                        "type": "string",
+                        "description": "Conformance level to retrieve",
+                        "enum": ["A", "AA", "AAA"],
+                    },
+                    "include_lower": {
+                        "type": "boolean",
+                        "description": "If true, includes criteria from lower levels (e.g., AA returns both A and AA)",
+                    },
+                },
+                "required": ["level"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "count_criteria",
+            "description": (
+                "Returns counts of success criteria grouped by level, principle, "
+                "or guideline. Use for quick statistical overview of WCAG structure."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "group_by": {
+                        "type": "string",
+                        "description": "How to group the counts",
+                        "enum": ["level", "principle", "guideline"],
+                    }
+                },
+                "required": ["group_by"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_guideline",
+            "description": (
+                "Gets full details for a specific WCAG guideline including "
+                "its description and all success criteria under it. "
+                "Use when you need detail on a specific guideline (e.g., '1.1', '2.4')."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "ref_id": {
+                        "type": "string",
+                        "description": "Guideline reference number, e.g. '1.1', '2.4', '4.1'",
+                    }
+                },
+                "required": ["ref_id"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_glossary_term",
+            "description": (
+                "Gets the official WCAG definition of a glossary term. "
+                "Use for precise definitions of terms like 'programmatically determined', "
+                "'text alternative', 'conformance', etc."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "term": {
+                        "type": "string",
+                        "description": "The term to look up, e.g. 'conformance', 'text alternative'",
+                    }
+                },
+                "required": ["term"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "whats_new_in_wcag22",
+            "description": (
+                "Lists all success criteria that were added in WCAG 2.2 "
+                "(not in 2.1 or 2.0). Use for questions about WCAG version differences."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {},
+            },
+        },
+    },
 ]
 
 # Map OpenAI function names → (MCP tool name, param remapping function)
@@ -97,6 +235,13 @@ _TOOL_NAME_TO_MCP = {
     "search_wcag": ("search-wcag", lambda args: {"query": args["query"]}),
     "search_techniques": ("search-techniques", lambda args: {"query": args["query"]}),
     "get_full_criterion_context": ("get-full-criterion-context", lambda args: {"ref_id": args["ref_id"]}),
+    "list_principles": ("list-principles", lambda args: {}),
+    "list_guidelines": ("list-guidelines", lambda args: {k: v for k, v in args.items() if v}),
+    "get_criteria_by_level": ("get-criteria-by-level", lambda args: args),
+    "count_criteria": ("count-criteria", lambda args: args),
+    "get_guideline": ("get-guideline", lambda args: {"ref_id": args["ref_id"]}),
+    "get_glossary_term": ("get-glossary-term", lambda args: {"term": args["term"]}),
+    "whats_new_in_wcag22": ("whats-new-in-wcag22", lambda args: {}),
 }
 
 
