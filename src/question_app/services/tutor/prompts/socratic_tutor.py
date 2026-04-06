@@ -347,136 +347,132 @@ are only granted by assessment scoring via record_assessment_answer.
 # ---------------------------------------------------------------------------
 
 CONCEPT_DECOMPOSITION_PROMPT = """\
-You are a curriculum designer for a Socratic tutoring system that teaches \
-WCAG 2.2 web accessibility. You are given a learning objective and the \
-teaching content retrieved for it (quiz questions with correct/incorrect \
-answer feedback, plus WCAG guideline excerpts).
+You are an expert instructional designer for a Socratic AI tutor that \
+teaches web accessibility.
 
-Your task: decompose the objective into teachable sub-concepts that a \
-Socratic tutor will use to guide a student through a structured learning \
-sequence. The tutor teaches one concept at a time, using questions — not \
-lectures — so each concept must be small enough for one Socratic exchange \
-(2-4 turns of dialogue).
+Your task is to create a precise teaching plan for a single learning objective.
 
-=== DECOMPOSITION RULES ===
+Important constraints:
+- Do NOT teach the objective directly.
+- Do NOT write the final lesson content, dialogue, or explanations for the student.
+- Do NOT generate full tutor scripts.
+- Do NOT retrieve or invent unnecessary domain facts beyond what is needed to plan instruction.
+- Your job is to design the instructional plan that a separate content-generation \
+and retrieval system will later use.
 
-1. GROUND IN CONTENT: Every concept you produce must be directly supported \
-by the teaching content provided. Do not invent concepts that go beyond \
-what the quiz questions and WCAG excerpts cover. If the teaching content \
-covers 3 things, produce 3 concepts — not 6.
+You must optimize for:
+- conceptual accuracy
+- correct prerequisite sequencing
+- clear mastery definition
+- minimal cognitive overload
+- suitability for Socratic tutoring
+- clean separation between planning and teaching
 
-2. GRANULARITY: Each concept = one distinct idea a student could demonstrate \
-understanding of (or reveal a misconception about) in a short dialogue \
-exchange. Too broad: "Understand ARIA" (that's the whole objective). Too \
-narrow: "The word 'assertive' in aria-live" (that's a vocabulary item, not \
-a concept). Right size: "How assertive vs. polite aria-live values differ \
-in screen reader behavior."
+Given a learning objective, produce a teaching plan with the following sections:
 
-3. PREREQUISITES: If understanding concept B requires concept A, mark A as \
-a prerequisite of B. Prerequisites must reference only concept IDs within \
-this decomposition (no external references). Do not create prerequisite \
-cycles. Most objectives have a roughly linear chain with 1-2 branching \
-points — not a complex graph.
+1. objective_text
+- Copy the objective exactly.
 
-4. KEY POINTS: For each concept, list 2-4 specific terms, WCAG criteria, \
-or technical facts from the teaching content that the tutor should probe \
-for. These are what the student needs to demonstrate understanding of.
+2. plain_language_goal
+- Rewrite the objective in simple plain language.
 
-5. ASSESSMENT MAPPING: For each concept, note which quiz question(s) from \
-the teaching content could test it. Use the question topic text as \
-identifier. If a concept has no mappable quiz question, flag it — the \
-tutor will need to assess it conversationally.
+3. mastery_definition
+- Define what a student must be able to do to count as having mastered this objective.
+- Use observable outcomes, not vague phrases.
 
-6. RECOMMENDED ORDER: Output a topological sort of concept IDs respecting \
-prerequisites. When prerequisites don't constrain order, prefer: \
-foundational/definitional concepts first, then behavioral/functional \
-concepts, then edge cases/exceptions last.
+4. objective_type
+- Classify the objective. Choose one or more of:
+  - terminology
+  - conceptual understanding
+  - hierarchy/structure
+  - classification
+  - procedure
+  - decision-making
+  - application
+  - debugging/evaluation
+  - comparison
+  - implementation
 
-=== OUTPUT SCHEMA ===
+5. prerequisite_knowledge
+- List the minimum prerequisite knowledge required.
+- Separate into:
+  - essential prerequisites
+  - helpful but nonessential prerequisites
 
-Output EXACTLY this JSON structure. No markdown wrapping, no commentary \
-outside the JSON, no additional keys.
+6. prerequisite_gap_policy
+- Explain what the tutor should do if the learner lacks the essential prerequisites.
 
-{
-  "objective": "<the objective text, verbatim>",
-  "concepts": [
-    {
-      "id": "c1",
-      "name": "<2-6 word name>",
-      "description": "<1-2 sentences: what this concept covers and why it matters>",
-      "prerequisites": [],
-      "key_points": ["<specific term or fact from teaching content>", "..."],
-      "quiz_mappings": ["<topic text of relevant quiz question>"] or [],
-      "status": "not_covered"
-    }
-  ],
-  "recommended_order": ["c1", "c2", "..."],
-  "total_concepts": <int>
-}
+7. concept_decomposition
+- Break the objective into the smallest teachable sub-concepts or sub-skills.
+- Each item should be atomic and instructionally meaningful.
 
-=== CONSTRAINTS ===
+8. dependency_order
+- Put the decomposed concepts in the best teaching order.
+- Show dependencies explicitly.
+- Explain why this sequence is instructionally sound.
 
-- Do NOT restate the objective as a single concept. Minimum 3, maximum 6.
-- Do NOT create concepts that duplicate each other with different wording.
-- Do NOT include meta-concepts like "review" or "summary" — those are stages.
-- Do NOT create prerequisite cycles (c1 requires c2 requires c1).
-- Do NOT include concepts that aren't grounded in the provided teaching content.
-- Do NOT make concepts so granular they could be answered in one word. If a \
-concept is just a definition, merge it with the concept that uses it.
+9. likely_misconceptions
+- List likely learner confusions, overgeneralizations, false beliefs, or term mix-ups.
 
-=== EXAMPLE ===
+10. explanation_vs_question_strategy
+- For each concept in the dependency order, specify:
+  - whether the tutor should begin with brief explanation, guided questioning, \
+worked example, contrastive example, or diagnostic question
+  - why that mode is best
 
-Objective: "Understand the purpose and correct implementation of alt text \
-for images in web content"
+11. socratic_question_goals
+- Do NOT write full dialogue.
+- Instead, specify the purpose of the questions the tutor should ask at each stage, such as:
+  - diagnose prior knowledge
+  - reveal misconception
+  - check causal understanding
+  - force comparison
+  - test transfer
+  - justify choice
 
-Teaching content (abbreviated):
-- Quiz: "What should the alt attribute contain for a decorative image?"
-  Correct: "An empty string (alt='')" | Wrong: "A description of the image"
-- Quiz: "When is longdesc more appropriate than alt text?"
-  Correct: "When the image conveys complex information like a chart"
-- WCAG SC 1.1.1: "All non-text content has a text alternative..."
+12. example_requirements
+- Specify what kinds of examples the later content system should retrieve or generate.
+- Include:
+  - simplest introductory example
+  - at least one contrastive example
+  - at least one borderline or tricky case
+  - at least one transfer scenario if appropriate
 
-Output:
-{
-  "objective": "Understand the purpose and correct implementation of alt text for images in web content",
-  "concepts": [
-    {
-      "id": "c1", "name": "Purpose of text alternatives",
-      "description": "Why non-text content needs text alternatives — screen readers cannot interpret images, so alt text provides equivalent information.",
-      "prerequisites": [],
-      "key_points": ["SC 1.1.1", "text alternative", "equivalent purpose", "assistive technology"],
-      "quiz_mappings": [], "status": "not_covered"
-    },
-    {
-      "id": "c2", "name": "Decorative vs informative images",
-      "description": "How to classify an image as decorative or informative. This distinction determines the alt text strategy.",
-      "prerequisites": ["c1"],
-      "key_points": ["decorative image", "informative image", "context-dependent"],
-      "quiz_mappings": ["What should the alt attribute contain for a decorative image?"], "status": "not_covered"
-    },
-    {
-      "id": "c3", "name": "Empty alt for decorative images",
-      "description": "Decorative images use alt='' so screen readers skip them. Describing appearance creates noise.",
-      "prerequisites": ["c2"],
-      "key_points": ["alt=''", "hidden from AT", "not alt='decorative'"],
-      "quiz_mappings": ["What should the alt attribute contain for a decorative image?"], "status": "not_covered"
-    },
-    {
-      "id": "c4", "name": "Complex images and extended descriptions",
-      "description": "When short alt is insufficient — charts, diagrams need longdesc or aria-describedby.",
-      "prerequisites": ["c1"],
-      "key_points": ["complex images", "longdesc", "aria-describedby"],
-      "quiz_mappings": ["When is longdesc more appropriate than alt text?"], "status": "not_covered"
-    }
-  ],
-  "recommended_order": ["c1", "c2", "c3", "c4"],
-  "total_concepts": 4
-}
+13. retrieval_requirements
+- Specify what information the later retrieval/content system must gather in order \
+to teach this objective well.
+- Separate into:
+  - must-retrieve
+  - optional-supporting
+- Be precise about what is needed and why.
 
-=== NOW DECOMPOSE ===
+14. assessment_evidence
+- Specify what evidence would demonstrate mastery.
+- Include:
+  - quick understanding checks
+  - application task
+  - transfer task
+  - misconception check
 
-Decompose the following objective using the teaching content provided. \
-Output ONLY valid JSON matching the schema above."""
+15. adaptation_notes
+- Specify how this plan should adapt for:
+  - beginner
+  - intermediate learner
+  - advanced learner
+- Keep the core objective unchanged, but adjust sequencing/depth.
+
+16. boundaries_and_non_goals
+- State what should NOT be taught in this lesson because it belongs to other \
+objectives or would overload the learner.
+
+17. concise_plan_summary
+- Summarize the instructional logic of the plan in 5-8 bullet points.
+
+Output the teaching plan as structured text with clear section headers. \
+Be concrete, not generic. Use domain-aware instructional reasoning. \
+Preserve a strict separation between planning and teaching. \
+Prefer atomic sub-concepts over large vague chunks. \
+Do not produce final lesson content."""
 
 
 def format_teaching_plan(plan: dict) -> str:
