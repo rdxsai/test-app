@@ -494,6 +494,18 @@ You are ONLY designing the retrieval plan.
 Your goal is to retrieve the smallest sufficient set of verified WCAG material needed \
 to support accurate teaching.
 
+CRITICAL CONSTRAINT — glossary tool limitations:
+The WCAG glossary (get_glossary_term) contains ONLY specialized technical terms like \
+"web page," "conformance," "programmatically determined," "text alternative," \
+"assistive technology," "satisfies a success criterion." \
+It does NOT contain and will FAIL for: "principle," "guideline," "success criterion," \
+"conformance level," "Level A," "Level AA," "Level AAA," "sufficient techniques," \
+"advisory techniques," "normative," or "informative." \
+NEVER plan get_glossary_term calls for these terms. Instead, retrieve evidence for \
+structural concepts using list_principles, list_guidelines, list_success_criteria, \
+get_criteria_by_level, count_criteria, or by retrieving a specific SC or technique \
+that demonstrates the concept in context.
+
 You must optimize for:
 - instructional relevance
 - minimal but sufficient retrieval
@@ -546,17 +558,7 @@ Your task is to produce a retrieval plan with the following sections:
   - what each selected tool call is meant to retrieve
   - why that tool is appropriate
 - Prefer the smallest sufficient tool set.
-
-IMPORTANT — glossary tool coverage:
-The WCAG glossary contains specialized technical terms (e.g., "web page," \
-"conformance," "programmatically determined," "text alternative," "assistive \
-technology"). It does NOT contain structural vocabulary like "principle," \
-"guideline," "success criterion," "conformance level," "Level A/AA/AAA," \
-"sufficient techniques," or "advisory techniques." Do not plan glossary \
-lookups for these terms — they will fail. Instead, retrieve evidence for \
-these concepts using structural tools (list_principles, list_guidelines, \
-list_success_criteria, count_criteria, get_criteria_by_level) or by \
-retrieving a specific SC or technique that demonstrates the concept in context.
+- Remember: NEVER use get_glossary_term for structural vocabulary (see constraint above).
 
 5. planned_tool_calls
 - Write the likely tool calls in priority order.
@@ -596,20 +598,30 @@ teaching points. If evidence is missing, specify a fallback retrieval path.
 Critical evidence items (check each):
 a. Conformance roll-up rule: Do we have an explicit verified statement \
 that Level AA conformance requires meeting ALL Level A and ALL Level AA \
-success criteria? Level counts alone are not sufficient — the retrieved \
-material must contain the actual roll-up rule. If missing, fall back to \
-retrieving the WCAG conformance requirements section or a specific SC's \
-Understanding doc that states the rule.
+success criteria? Level counts from count_criteria alone are NOT sufficient \
+— the retrieved material must contain the actual roll-up rule text. \
+Fallback chain (execute in order until evidence is found): \
+(1) search_wcag("conformance requirements level AA must meet all Level A") \
+(2) get_criterion("5.2.1") or search_wcag("WCAG conformance requirement full pages") \
+(3) get_full_criterion_context for a well-known SC like "1.1.1" and check its \
+Understanding doc for conformance discussion. \
+The roll-up rule is stated in WCAG 2.2 Section 5 (Conformance). If no tool \
+returns it, add search_wcag("conformance level AA requirements all level A criteria") \
+as a MUST-HAVE call.
 b. Techniques vs requirements distinction: Do we have at least one compact \
-verified anchor showing that success criteria are the conformance \
-requirements, while techniques are informative ways to meet them — not \
-themselves required? If missing, fall back to retrieving one specific \
-technique (e.g., get_technique("G18") or get_techniques_for_criterion("1.4.3")) \
-and noting its "sufficient technique" label, or retrieve the glossary term \
-"accessibility supported" which references the normative/informative distinction.
+verified anchor showing that success criteria are normative conformance \
+requirements, while techniques are informative (non-required) ways to meet \
+them? A technique entry showing "Types: sufficient" is a WEAK signal — the \
+tutor also needs the explicit statement that techniques are not required. \
+Fallback chain: \
+(1) get_technique("G18") — note "sufficient" label AND that it's "general" type \
+(2) search_wcag("techniques are informative not required for conformance") \
+(3) get_full_criterion_context for the deep-dive SC — Understanding docs often \
+discuss the techniques/requirements distinction explicitly.
 
 These checks are not optional. If the evidence pack is missing either item, \
-the retrieval is incomplete and the fallback must be executed.
+the retrieval is incomplete and the fallback MUST be executed before the \
+evidence pack is finalized.
 
 10. evidence_pack_structure
 - Specify how the retrieved material should later be organized for the tutor.
@@ -643,10 +655,11 @@ for one example.
 - If the objective is implementation-focused, retrieve normative and technique \
 material, not just structural lists.
 - Prefer official and minimal verified context first.
-- Use glossary tools only for terms that are actually in the WCAG glossary \
-(see the glossary coverage note above).
-- Use full-context tools only when the teaching plan actually requires \
-explanatory depth.
+- NEVER use get_glossary_term for structural vocabulary (see CRITICAL CONSTRAINT above).
+- For the teaching plan's primary deep-dive example (the one SC used for mapping \
+and hierarchy demonstration), use get_criterion — it returns the full Understanding \
+doc with intent, benefits, and explanatory context. Use get_full_criterion_context \
+only when you need a quick summary of techniques count without the full explanation.
 - Use failure tools only when the lesson involves debugging, evaluation, or \
 common mistakes.
 - Distinguish clearly between:
