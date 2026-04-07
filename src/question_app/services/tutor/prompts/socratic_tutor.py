@@ -703,6 +703,33 @@ Output requirements:
 - Do not retrieve yet; only plan retrieval."""
 
 
+# ---------------------------------------------------------------------------
+# Tool Call Extraction — parses retrieval plan into executable JSON
+# ---------------------------------------------------------------------------
+
+TOOL_CALL_EXTRACTION_PROMPT = """\
+Extract all planned tool calls from the retrieval plan into a JSON array. \
+Include must-have, optional, and fallback calls from sections 5 and 9.
+
+Each entry must have this exact format:
+{"tool": "tool_name", "args": {}, "category": "must_have|fallback|optional"}
+
+IMPORTANT — use exact parameter names from the tool definitions:
+- ref_id for: get_criterion, get_guideline, get_success_criteria_detail, \
+get_full_criterion_context, get_techniques_for_criterion
+- id for: get_technique
+- term for: get_glossary_term
+- query for: search_wcag, search_techniques
+- group_by for: count_criteria
+- level for: get_criteria_by_level
+- principle for: list_guidelines
+
+Resolve any placeholders (like "chosen from step N") to concrete values \
+based on the plan's context.
+
+Output ONLY the JSON array. No markdown fences, no commentary, no explanation."""
+
+
 def format_teaching_plan(plan) -> str:
     """Format a teaching plan into a concise text block for the system prompt.
 
