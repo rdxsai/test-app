@@ -88,15 +88,24 @@ class TestStageTransitionValidation:
         assert "Cannot transition" in result["reason"]
         assert "valid_targets" in result
 
-    def test_min_turns_enforced(self, db):
+    def test_no_min_turn_gate_for_readiness(self, db):
         _setup_student_session(db, stage="exploration", turns=1)
         result = db.validate_stage_transition("sess-1", "readiness_check")
-        assert result["valid"] is False
-        assert "turns" in result["reason"].lower()
+        assert result["valid"] is True
 
     def test_min_turns_met(self, db):
         _setup_student_session(db, stage="exploration", turns=3)
         result = db.validate_stage_transition("sess-1", "readiness_check")
+        assert result["valid"] is True
+
+    def test_exploration_can_regress_to_introduction(self, db):
+        _setup_student_session(db, stage="exploration", turns=2)
+        result = db.validate_stage_transition("sess-1", "introduction")
+        assert result["valid"] is True
+
+    def test_readiness_can_regress_to_exploration(self, db):
+        _setup_student_session(db, stage="readiness_check", turns=1)
+        result = db.validate_stage_transition("sess-1", "exploration")
         assert result["valid"] is True
 
     def test_session_not_found(self, db):

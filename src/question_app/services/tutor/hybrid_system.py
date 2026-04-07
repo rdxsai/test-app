@@ -465,31 +465,67 @@ class HybridCrewAISocraticSystem:
     # Student MCP context helpers
     # ------------------------------------------------------------------
 
-    async def _load_student_context(self, student_id: str) -> str:
-        """Load student state from the Student MCP server and format for the LLM.
-
-        Calls read tools in parallel: profile, mastery, active session,
-        misconceptions. Returns a formatted text block for the system prompt,
-        or empty string if the Student MCP client is not available.
-        """
+    async def _load_student_bundle(
+        self, student_id: str, objective_id: str = "",
+    ) -> Dict[str, Any]:
+        """Load the complete learner-state bundle for guided tutoring."""
         if not self.student_mcp:
-            return ""
+            return {}
 
         try:
+            if hasattr(self.student_mcp, "get_memory_bundle"):
+                bundle = await self.student_mcp.get_memory_bundle(
+                    student_id, objective_id
+                )
+                return bundle if isinstance(bundle, dict) else {}
+
             profile, mastery, session, misconceptions = await asyncio.gather(
                 self.student_mcp.get_profile(student_id),
                 self.student_mcp.get_mastery_state(student_id),
                 self.student_mcp.get_active_session(student_id),
                 self.student_mcp.get_misconception_patterns(student_id),
             )
-            return self._format_student_context(profile, mastery, session, misconceptions)
+            learner_memory = None
+            objective_memory = None
+            if hasattr(self.student_mcp, "get_learner_memory"):
+                learner_memory = await self.student_mcp.get_learner_memory(student_id)
+            if objective_id and hasattr(self.student_mcp, "get_objective_memory"):
+                objective_memory = await self.student_mcp.get_objective_memory(
+                    student_id, objective_id
+                )
+            return {
+                "profile": profile,
+                "mastery": mastery,
+                "session": session,
+                "misconceptions": misconceptions,
+                "learner_memory": learner_memory,
+                "objective_memory": objective_memory,
+            }
         except Exception as e:
-            logger.warning(f"Failed to load student context from MCP: {e}")
+            logger.warning(f"Failed to load student bundle: {e}")
+            return {}
+
+    async def _load_student_context(
+        self, student_id: str, objective_id: str = "",
+    ) -> str:
+        """Load learner state and format it for tutor or reflector prompts."""
+        bundle = await self._load_student_bundle(student_id, objective_id)
+        if not bundle:
             return ""
+        return self._format_student_context(
+            bundle.get("profile"),
+            bundle.get("mastery", []),
+            bundle.get("session"),
+            bundle.get("misconceptions", []),
+            bundle.get("learner_memory"),
+            bundle.get("objective_memory"),
+        )
 
     def _format_student_context(
         self, profile: Optional[Dict], mastery: List[Dict],
         session: Optional[Dict], misconceptions: List[Dict],
+        learner_memory: Optional[Dict] = None,
+        objective_memory: Optional[Dict] = None,
     ) -> str:
         """Format student MCP data into a concise text block for the system prompt."""
         parts = []
@@ -532,10 +568,453 @@ class HybridCrewAISocraticSystem:
             ]
             parts.append("ACTIVE MISCONCEPTIONS:\n" + "\n".join(misc_lines))
 
+        if objective_memory:
+            obj_lines = []
+            if objective_memory.get("summary"):
+                obj_lines.append(f"  Summary: {objective_memory['summary']}")
+            if objective_memory.get("demonstrated_skills"):
+                obj_lines.append(
+                    "  Demonstrated: "
+                    + ", ".join(objective_memory.get("demonstrated_skills", [])[:5])
+                )
+            if objective_memory.get("active_gaps"):
+                obj_lines.append(
+                    "  Gaps: "
+                    + ", ".join(objective_memory.get("active_gaps", [])[:5])
+                )
+            if objective_memory.get("next_focus"):
+                obj_lines.append(f"  Next focus: {objective_memory['next_focus']}")
+            if obj_lines:
+                parts.append("OBJECTIVE MEMORY:\n" + "\n".join(obj_lines))
+
+        if learner_memory:
+            learner_lines = []
+            if learner_memory.get("summary"):
+                learner_lines.append(f"  Summary: {learner_memory['summary']}")
+            if learner_memory.get("strengths"):
+                learner_lines.append(
+                    "  Strengths: "
+                    + ", ".join(learner_memory.get("strengths", [])[:5])
+                )
+            if learner_memory.get("support_needs"):
+                learner_lines.append(
+                    "  Support needs: "
+                    + ", ".join(learner_memory.get("support_needs", [])[:5])
+                )
+            if learner_memory.get("tendencies"):
+                learner_lines.append(
+                    "  Tendencies: "
+                    + ", ".join(learner_memory.get("tendencies", [])[:5])
+                )
+            if learner_memory.get("successful_strategies"):
+                learner_lines.append(
+                    "  Works well: "
+                    + ", ".join(learner_memory.get("successful_strategies", [])[:5])
+                )
+            if learner_lines:
+                parts.append("LEARNER MEMORY:\n" + "\n".join(learner_lines))
+
         if not parts:
             return ""
 
         return "\n".join(parts)
+
+    @staticmethod
+    def _parse_json_response(text: str, fallback: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """Parse a JSON object from a model response, stripping code fences."""
+        fallback = fallback or {}
+        raw = (text or "").strip()
+        if raw.startswith("```"):
+            lines = raw.splitlines()
+            if len(lines) >= 2:
+                raw = "\n".join(lines[1:-1] if lines[-1].strip() == "```" else lines[1:])
+        try:
+            parsed = json.loads(raw)
+            return parsed if isinstance(parsed, dict) else fallback
+        except (json.JSONDecodeError, TypeError):
+            logger.warning(f"Failed to parse model JSON: {raw[:200]}")
+            return fallback
+
+    @staticmethod
+    def _merge_unique(existing: Any, incoming: Any) -> List[str]:
+        """Merge two list-like values while preserving order and uniqueness."""
+        merged = []
+        seen = set()
+        for source in (existing or [], incoming or []):
+            if isinstance(source, str):
+                source = [source]
+            for item in source:
+                if not item:
+                    continue
+                normalized = str(item).strip()
+                if not normalized or normalized in seen:
+                    continue
+                seen.add(normalized)
+                merged.append(normalized)
+        return merged
+
+    def _format_reflection_transcript(
+        self,
+        history: Optional[List[Dict[str, str]]],
+        student_response: str,
+        tutor_response: Optional[str] = None,
+    ) -> str:
+        """Format the recent exchange for the reflector model."""
+        lines = []
+        for msg in (history or [])[-6:]:
+            role = "TUTOR" if msg.get("role") == "assistant" else "STUDENT"
+            lines.append(f"{role}: {msg.get('content', '')}")
+        lines.append(f"STUDENT: {student_response}")
+        if tutor_response is not None:
+            lines.append(f"TUTOR: {tutor_response}")
+        return "\n".join(lines)
+
+    def _build_guided_tutor_messages(
+        self,
+        student_response: str,
+        history: Optional[List[Dict[str, str]]],
+        teaching_content: str,
+        student_context: str,
+        current_stage: str,
+        active_objective: str,
+        teaching_plan: Any,
+        extra_system_messages: Optional[List[str]] = None,
+    ) -> List[Dict[str, str]]:
+        """Build tutor-pass messages for guided learning."""
+        from .prompts import build_instance_b_prompt
+
+        system_prompt = build_instance_b_prompt(
+            knowledge_context=teaching_content,
+            student_context=student_context,
+            current_stage=current_stage,
+            active_objective=active_objective,
+            teaching_plan=teaching_plan,
+        )
+        messages = [{"role": "system", "content": system_prompt}]
+        for extra in extra_system_messages or []:
+            if extra:
+                messages.append({"role": "system", "content": extra})
+        if history:
+            messages.extend(history[-6:])
+        messages.append({"role": "user", "content": student_response})
+        return messages
+
+    async def _run_guided_reflector(
+        self,
+        history: List[Dict[str, str]],
+        student_response: str,
+        tutor_response: str,
+        teaching_content: str,
+        student_context: str,
+        current_stage: str,
+        active_objective: str,
+        teaching_plan: Any,
+    ) -> Dict[str, Any]:
+        """Run the structured reflection pass for a normal teaching turn."""
+        from .prompts import build_guided_reflector_prompt
+
+        prompt = build_guided_reflector_prompt(
+            knowledge_context=teaching_content,
+            student_context=student_context,
+            current_stage=current_stage,
+            active_objective=active_objective,
+            teaching_plan=teaching_plan,
+        )
+        transcript = self._format_reflection_transcript(
+            history, student_response, tutor_response
+        )
+        response = await asyncio.to_thread(
+            self.client.chat,
+            [
+                {"role": "system", "content": prompt},
+                {"role": "user", "content": transcript},
+            ],
+            0.0,
+            1200,
+        )
+        return self._parse_json_response(
+            response,
+            fallback={
+                "stage_action": "stay",
+                "target_stage": current_stage,
+                "stage_reason": "",
+                "mastery_signal": {
+                    "should_update": False,
+                    "level": "not_attempted",
+                    "confidence": 0.0,
+                    "evidence_summary": "",
+                },
+                "misconceptions_to_log": [],
+                "misconceptions_to_resolve": [],
+                "objective_memory_patch": {
+                    "summary": "",
+                    "demonstrated_skills": [],
+                    "active_gaps": [],
+                    "next_focus": "",
+                },
+                "learner_memory_patch": {
+                    "summary": "",
+                    "strengths": [],
+                    "support_needs": [],
+                    "tendencies": [],
+                    "successful_strategies": [],
+                },
+            },
+        )
+
+    async def _run_assessment_reflector(
+        self,
+        history: List[Dict[str, str]],
+        student_response: str,
+        teaching_content: str,
+        student_context: str,
+        current_stage: str,
+        active_objective: str,
+        teaching_plan: Any,
+    ) -> Dict[str, Any]:
+        """Run the structured reflection pass for an assessment answer."""
+        from .prompts import build_assessment_reflector_prompt
+
+        prompt = build_assessment_reflector_prompt(
+            knowledge_context=teaching_content,
+            student_context=student_context,
+            current_stage=current_stage,
+            active_objective=active_objective,
+            teaching_plan=teaching_plan,
+        )
+        transcript = self._format_reflection_transcript(history, student_response)
+        response = await asyncio.to_thread(
+            self.client.chat,
+            [
+                {"role": "system", "content": prompt},
+                {"role": "user", "content": transcript},
+            ],
+            0.0,
+            900,
+        )
+        return self._parse_json_response(
+            response,
+            fallback={
+                "is_correct": False,
+                "confidence": 0.0,
+                "rationale": "",
+                "misconceptions_to_log": [],
+                "misconceptions_to_resolve": [],
+                "objective_memory_patch": {
+                    "summary": "",
+                    "demonstrated_skills": [],
+                    "active_gaps": [],
+                    "next_focus": "",
+                },
+                "learner_memory_patch": {
+                    "summary": "",
+                    "strengths": [],
+                    "support_needs": [],
+                    "tendencies": [],
+                    "successful_strategies": [],
+                },
+            },
+        )
+
+    async def _apply_memory_patches(
+        self,
+        student_id: str,
+        objective_id: str,
+        objective_memory_patch: Optional[Dict[str, Any]],
+        learner_memory_patch: Optional[Dict[str, Any]],
+        bundle: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        """Persist merged learner and objective memory patches."""
+        bundle = bundle or {}
+        existing_objective = bundle.get("objective_memory") or {}
+        existing_learner = bundle.get("learner_memory") or {}
+
+        if objective_memory_patch and objective_id:
+            demonstrated_skills = self._merge_unique(
+                existing_objective.get("demonstrated_skills", []),
+                objective_memory_patch.get("demonstrated_skills", []),
+            )
+            active_gaps = self._merge_unique(
+                existing_objective.get("active_gaps", []),
+                objective_memory_patch.get("active_gaps", []),
+            )
+            summary = (
+                objective_memory_patch.get("summary")
+                or existing_objective.get("summary", "")
+            )
+            next_focus = (
+                objective_memory_patch.get("next_focus")
+                or existing_objective.get("next_focus", "")
+            )
+            await self.student_mcp.upsert_objective_memory(
+                student_id,
+                objective_id,
+                summary=summary,
+                demonstrated_skills=demonstrated_skills,
+                active_gaps=active_gaps,
+                next_focus=next_focus,
+            )
+
+        if learner_memory_patch:
+            strengths = self._merge_unique(
+                existing_learner.get("strengths", []),
+                learner_memory_patch.get("strengths", []),
+            )
+            support_needs = self._merge_unique(
+                existing_learner.get("support_needs", []),
+                learner_memory_patch.get("support_needs", []),
+            )
+            tendencies = self._merge_unique(
+                existing_learner.get("tendencies", []),
+                learner_memory_patch.get("tendencies", []),
+            )
+            successful_strategies = self._merge_unique(
+                existing_learner.get("successful_strategies", []),
+                learner_memory_patch.get("successful_strategies", []),
+            )
+            summary = (
+                learner_memory_patch.get("summary")
+                or existing_learner.get("summary", "")
+            )
+            await self.student_mcp.upsert_learner_memory(
+                student_id,
+                summary=summary,
+                strengths=strengths,
+                support_needs=support_needs,
+                tendencies=tendencies,
+                successful_strategies=successful_strategies,
+            )
+
+    async def _apply_reflection_updates(
+        self,
+        student_id: str,
+        session_id: str,
+        objective_id: str,
+        objective_text: str,
+        current_stage: str,
+        reflection: Dict[str, Any],
+        bundle: Optional[Dict[str, Any]],
+        ws_send,
+    ) -> Dict[str, Any]:
+        """Apply deterministic state changes from the structured reflector."""
+        result = {"stage": current_stage, "stage_advanced": False}
+
+        await self.student_mcp.increment_turn_count(session_id)
+
+        for misconception in reflection.get("misconceptions_to_log", []):
+            await self.student_mcp.log_misconception(
+                student_id, objective_id, misconception
+            )
+
+        for misconception in reflection.get("misconceptions_to_resolve", []):
+            await self.student_mcp.resolve_misconception(
+                student_id, objective_id, misconception
+            )
+
+        await self._apply_memory_patches(
+            student_id,
+            objective_id,
+            reflection.get("objective_memory_patch"),
+            reflection.get("learner_memory_patch"),
+            bundle=bundle,
+        )
+
+        mastery_signal = reflection.get("mastery_signal") or {}
+        mastery_level = mastery_signal.get("level", "")
+        if mastery_signal.get("should_update") and mastery_level in (
+            "not_attempted",
+            "misconception",
+            "in_progress",
+        ):
+            mastery_result = await self.student_mcp.apply_mastery_judgment(
+                student_id,
+                objective_id,
+                mastery_level,
+                evidence_summary=mastery_signal.get("evidence_summary", ""),
+                confidence=float(mastery_signal.get("confidence", 0.0) or 0.0),
+            )
+            if isinstance(mastery_result, dict):
+                if mastery_result.get("updated"):
+                    await ws_send(
+                        {
+                            "type": "mastery_update",
+                            "objective_id": objective_id,
+                            "objective_text": objective_text or objective_id,
+                            "new_level": mastery_result.get(
+                                "applied_level",
+                                mastery_result.get("mastery_level", mastery_level),
+                            ),
+                        }
+                    )
+                elif mastery_result.get("denied"):
+                    await ws_send(
+                        {
+                            "type": "mastery_denied",
+                            "reason": mastery_result.get("reason", ""),
+                        }
+                    )
+
+        stage_action = reflection.get("stage_action", "stay")
+        target_stage = reflection.get("target_stage", current_stage)
+        stage_reason = reflection.get("stage_reason", "")
+        if (
+            stage_action in ("advance", "regress")
+            and target_stage
+            and target_stage != current_stage
+        ):
+            stage_result = await self.student_mcp.update_session_state(
+                session_id,
+                stage=target_stage,
+                stage_summary=stage_reason,
+            )
+            if isinstance(stage_result, dict) and not stage_result.get("denied"):
+                if target_stage == "mini_assessment":
+                    await self.student_mcp.update_session_state(
+                        session_id,
+                        assessment_progress='{"asked": 0, "correct": 0}',
+                    )
+                await ws_send(
+                    {
+                        "type": "stage_update",
+                        "stage": target_stage,
+                        "objective": objective_text or objective_id,
+                        "summary": stage_reason,
+                    }
+                )
+                result.update(stage=target_stage, stage_advanced=True)
+        return result
+
+    async def _advance_to_next_objective(
+        self, student_id: str, session_id: str, ws_send,
+    ) -> Dict[str, Any]:
+        """Move from transition to the next recommended objective."""
+        next_obj = await self.student_mcp.get_recommended_next_objective(student_id)
+        if not next_obj:
+            return {"advanced": False}
+
+        new_objective_id = next_obj.get("objective_id", "")
+        new_objective_text = next_obj.get("objective_text", "")
+        await self.student_mcp.update_session_state(
+            session_id,
+            stage="introduction",
+            active_objective_id=new_objective_id,
+            turns=0,
+        )
+        self._session_cache.invalidate(session_id)
+        await ws_send(
+            {
+                "type": "stage_update",
+                "stage": "introduction",
+                "objective": new_objective_text,
+                "summary": f"Starting new objective: {new_objective_text}",
+            }
+        )
+        return {
+            "advanced": True,
+            "stage": "introduction",
+            "objective_id": new_objective_id,
+            "objective_text": new_objective_text,
+        }
 
     # ------------------------------------------------------------------
     # Response message builder
@@ -868,22 +1347,7 @@ class HybridCrewAISocraticSystem:
         self, student_id: str, student_response: str,
         session_id: str, ws_send,
     ) -> Dict[str, Any]:
-        """Instance B: Agentic guided learning with tool-calling loop.
-
-        The LLM is an agent that can read/write student state via tool calls.
-        Validation is enforced inside the MCP tools (mastery caps, stage
-        transitions, assessment scoring).
-
-        Per-turn flow:
-        1. Load student context from MCP
-        2. Check session content cache — retrieve + generate teaching plan if needed
-        3. Build Instance B prompt with tool usage instructions
-        4. AGENT LOOP (max 4 rounds):
-           - LLM generates response, possibly with tool_calls
-           - If tool_calls: execute each, feed results back, continue
-           - If no tool_calls: final text response → stream to client → exit
-        5. Save conversation, capture RAG triple, send stream_end
-        """
+        """Instance B: tutor pass + structured reflection pass."""
         import os
         if os.getenv("GUIDED_MODE") == "legacy":
             return await self._legacy_guided_session_streaming(
@@ -898,9 +1362,6 @@ class HybridCrewAISocraticSystem:
         self.append_to_conversation(student_id, "user", student_response)
 
         try:
-            # Step 1: Load student context from MCP
-            await ws_send({"type": "stage", "stage": "loading", "detail": "Loading your learning profile..."})
-            student_context = await self._load_student_context(student_id)
             session_state = await self.student_mcp.get_active_session(student_id)
 
             # Handle onboarding (no profile yet or stage is onboarding)
@@ -960,127 +1421,243 @@ class HybridCrewAISocraticSystem:
             else:
                 teaching_content = self._session_cache.get_teaching_content(session_id)
 
-            # For assessment stages, inject quiz questions as templates
+            teaching_plan = self._session_cache.get_teaching_plan(session_id)
+            bundle = await self._load_student_bundle(student_id, objective_id)
+            student_context = self._format_student_context(
+                bundle.get("profile"),
+                bundle.get("mastery", []),
+                bundle.get("session"),
+                bundle.get("misconceptions", []),
+                bundle.get("learner_memory"),
+                bundle.get("objective_memory"),
+            )
+
+            final_text = ""
+            final_stage = current_stage
+            stage_advanced = False
+            assessment_metadata: Dict[str, Any] = {}
+
             if current_stage in ("mini_assessment", "final_assessment"):
                 assessment_ctx = await self._get_assessment_context(objective_id)
+                assessment_content = teaching_content
                 if assessment_ctx:
-                    teaching_content = f"{teaching_content}\n\n{assessment_ctx}"
+                    assessment_content = (
+                        f"{teaching_content}\n\n{assessment_ctx}"
+                        if teaching_content
+                        else assessment_ctx
+                    )
 
-            # Step 3: Build Instance B prompt with tool usage instructions
-            await ws_send({"type": "stage", "stage": "composing",
-                           "detail": f"Generating response ({current_stage})..."})
-
-            from .prompts import build_instance_b_prompt
-            teaching_plan = self._session_cache.get_teaching_plan(session_id)
-            system_prompt = build_instance_b_prompt(
-                knowledge_context=teaching_content,
-                student_context=student_context,
-                current_stage=current_stage,
-                active_objective=objective_text,
-                teaching_plan=teaching_plan,
-            )
-            messages = [{"role": "system", "content": system_prompt}]
-            # Inject real IDs so the LLM uses them in tool calls (not guesses)
-            messages.append({"role": "system", "content": (
-                f"TOOL CALL PARAMETERS — use these exact values:\n"
-                f"  student_id: \"{student_id}\"\n"
-                f"  session_id: \"{session_id}\"\n"
-                f"  objective_id: \"{objective_id}\"\n"
-                f"When calling ANY tool, use these IDs verbatim. Do not invent IDs."
-            )})
-            if history:
-                messages.extend(history[-6:])
-            messages.append({"role": "user", "content": student_response})
-
-            # Step 4: AGENT LOOP — LLM calls tools, then generates final response
-            tools = self._build_agent_tool_schemas()
-            MAX_AGENT_ROUNDS = 4
-            final_text = ""
-            tool_calls_made = []
-
-            for round_num in range(MAX_AGENT_ROUNDS):
-                logger.info(f"[AGENT] Round {round_num + 1}/{MAX_AGENT_ROUNDS}")
-
-                response_msg = await self.client.chat_with_tools(
-                    messages=messages,
-                    tools=tools,
-                    temperature=0.7,
-                    max_tokens=1000,
-                    tool_choice="auto",
+                await ws_send(
+                    {
+                        "type": "stage",
+                        "stage": "analyzing",
+                        "detail": "Evaluating your assessment answer...",
+                    }
+                )
+                assessment_reflection = await self._run_assessment_reflector(
+                    history=history,
+                    student_response=student_response,
+                    teaching_content=assessment_content,
+                    student_context=student_context,
+                    current_stage=current_stage,
+                    active_objective=objective_text,
+                    teaching_plan=teaching_plan,
                 )
 
-                tool_calls = response_msg.get("tool_calls")
+                for misconception in assessment_reflection.get(
+                    "misconceptions_to_log", []
+                ):
+                    await self.student_mcp.log_misconception(
+                        student_id, objective_id, misconception
+                    )
+                for misconception in assessment_reflection.get(
+                    "misconceptions_to_resolve", []
+                ):
+                    await self.student_mcp.resolve_misconception(
+                        student_id, objective_id, misconception
+                    )
+                await self._apply_memory_patches(
+                    student_id,
+                    objective_id,
+                    assessment_reflection.get("objective_memory_patch"),
+                    assessment_reflection.get("learner_memory_patch"),
+                    bundle=bundle,
+                )
 
-                if not tool_calls:
-                    # Final text response — stream it to client
-                    final_text = response_msg.get("content", "")
-                    logger.info(f"[AGENT] Final response ({len(final_text)} chars) after {round_num + 1} round(s)")
-                    await ws_send({"type": "stream_start"})
-                    await self._progressive_send(final_text, ws_send)
-                    break
+                assessment_result = await self.student_mcp.record_assessment_answer(
+                    session_id,
+                    bool(assessment_reflection.get("is_correct", False)),
+                )
+                assessment_metadata = assessment_result or {}
 
-                # Execute tool calls
-                messages.append(response_msg)  # assistant message with tool_calls
+                if isinstance(assessment_result, dict) and assessment_result.get(
+                    "recorded"
+                ):
+                    await ws_send(
+                        {
+                            "type": "assessment_score",
+                            **assessment_result.get("progress", {}),
+                            "passed": assessment_result.get("passed"),
+                        }
+                    )
 
-                for tc in tool_calls:
-                    fn_name = tc["function"]["name"]
-                    await ws_send({"type": "tool_call", "tool": fn_name, "status": "calling"})
+                updated_session = await self.student_mcp.get_active_session(student_id)
+                response_stage = (updated_session or {}).get(
+                    "current_stage", current_stage
+                )
+                final_stage = response_stage
 
-                    result = await self._execute_agent_tool(tc)
-                    tool_calls_made.append({"tool": fn_name, "result": result})
+                if response_stage != current_stage:
+                    await ws_send(
+                        {
+                            "type": "stage_update",
+                            "stage": response_stage,
+                            "objective": objective_text or objective_id,
+                            "summary": assessment_reflection.get("rationale", ""),
+                        }
+                    )
+                    stage_advanced = True
 
-                    logger.info(f"[AGENT] Tool {fn_name} → {json.dumps(result, default=str)[:100]}")
+                if (
+                    isinstance(assessment_result, dict)
+                    and assessment_result.get("mastery_level")
+                ):
+                    await ws_send(
+                        {
+                            "type": "mastery_update",
+                            "objective_id": objective_id,
+                            "objective_text": objective_text or objective_id,
+                            "new_level": assessment_result.get("mastery_level", ""),
+                        }
+                    )
 
-                    # Send tool-specific UI updates
-                    if fn_name == "update_mastery" and isinstance(result, dict):
-                        if result.get("updated"):
-                            await ws_send({
-                                "type": "mastery_update",
-                                "objective_id": objective_id,
-                                "objective_text": objective_text or objective_id,
-                                "new_level": result.get("applied_level", result.get("mastery_level", "")),
-                            })
-                        elif result.get("denied"):
-                            await ws_send({"type": "mastery_denied",
-                                           "reason": result.get("reason", "")})
+                refreshed_bundle = await self._load_student_bundle(
+                    student_id, objective_id
+                )
+                refreshed_context = self._format_student_context(
+                    refreshed_bundle.get("profile"),
+                    refreshed_bundle.get("mastery", []),
+                    refreshed_bundle.get("session"),
+                    refreshed_bundle.get("misconceptions", []),
+                    refreshed_bundle.get("learner_memory"),
+                    refreshed_bundle.get("objective_memory"),
+                )
 
-                    elif fn_name == "record_assessment_answer" and isinstance(result, dict):
-                        if result.get("recorded"):
-                            await ws_send({
-                                "type": "assessment_score",
-                                **result.get("progress", {}),
-                                "passed": result.get("passed"),
-                            })
-                            if result.get("completed") and result.get("next_stage"):
-                                await ws_send({
-                                    "type": "stage_update",
-                                    "stage": result["next_stage"],
-                                    "objective": objective_id,
-                                    "summary": f"Assessment complete: {result.get('progress', {}).get('correct', 0)}/{result.get('progress', {}).get('total', 0)}",
-                                })
+                extra_messages = [
+                    (
+                        "ASSESSMENT RESULT:\n"
+                        f"- judged_correct: {bool(assessment_reflection.get('is_correct', False))}\n"
+                        f"- confidence: {assessment_reflection.get('confidence', 0.0)}\n"
+                        f"- rationale: {assessment_reflection.get('rationale', '')}\n"
+                        f"- progress: {json.dumps((assessment_result or {}).get('progress', {}))}\n"
+                        f"- current_stage_after_scoring: {response_stage}"
+                    )
+                ]
+                if isinstance(assessment_result, dict) and assessment_result.get(
+                    "completed"
+                ):
+                    next_stage = assessment_result.get("next_stage", response_stage)
+                    if next_stage == "final_assessment":
+                        extra_messages.append(
+                            "The mini assessment is complete and the student passed. "
+                            "Briefly reinforce the answer, then ask exactly one deeper "
+                            "final-assessment question."
+                        )
+                    elif next_stage == "transition":
+                        extra_messages.append(
+                            "The assessment is complete and the objective is finished. "
+                            "Celebrate, summarize the learning, and bridge naturally. "
+                            "Do not ask another assessment question."
+                        )
+                    elif next_stage == "introduction":
+                        extra_messages.append(
+                            "The assessment showed important gaps. Explain the key issue "
+                            "warmly and return to teaching this objective. Do not ask "
+                            "another assessment question in this response."
+                        )
+                else:
+                    extra_messages.append(
+                        "The assessment is still in progress. Briefly explain why the "
+                        "answer was correct or incorrect, then ask exactly one next "
+                        "assessment question."
+                    )
 
-                    await ws_send({"type": "tool_call", "tool": fn_name, "status": "completed"})
+                await ws_send(
+                    {
+                        "type": "stage",
+                        "stage": "composing",
+                        "detail": f"Generating response ({response_stage})...",
+                    }
+                )
+                tutor_messages = self._build_guided_tutor_messages(
+                    student_response=student_response,
+                    history=history,
+                    teaching_content=assessment_content,
+                    student_context=refreshed_context,
+                    current_stage=response_stage,
+                    active_objective=objective_text,
+                    teaching_plan=teaching_plan,
+                    extra_system_messages=extra_messages,
+                )
+                final_text = await self._stream_response(tutor_messages, ws_send)
+                self.append_to_conversation(student_id, "assistant", final_text)
 
-                    # Append tool result to messages for next round
-                    messages.append({
-                        "role": "tool",
-                        "tool_call_id": tc["id"],
-                        "content": json.dumps(result, default=str) if result else "null",
-                    })
+                if response_stage == "transition":
+                    transition_result = await self._advance_to_next_objective(
+                        student_id, session_id, ws_send
+                    )
+                    if transition_result.get("advanced"):
+                        final_stage = transition_result.get("stage", response_stage)
 
             else:
-                # Loop exhausted without final response — force one
-                logger.warning(f"[AGENT] Max rounds exhausted, forcing response")
-                response_msg = await self.client.chat_with_tools(
-                    messages=messages, tools=[], tool_choice="none",
-                    temperature=0.7, max_tokens=1000,
+                await ws_send(
+                    {
+                        "type": "stage",
+                        "stage": "composing",
+                        "detail": f"Generating response ({current_stage})...",
+                    }
                 )
-                final_text = response_msg.get("content", "I'd like to continue our discussion. What are your thoughts?")
-                await ws_send({"type": "stream_start"})
-                await self._progressive_send(final_text, ws_send)
+                tutor_messages = self._build_guided_tutor_messages(
+                    student_response=student_response,
+                    history=history,
+                    teaching_content=teaching_content,
+                    student_context=student_context,
+                    current_stage=current_stage,
+                    active_objective=objective_text,
+                    teaching_plan=teaching_plan,
+                )
+                final_text = await self._stream_response(tutor_messages, ws_send)
+                self.append_to_conversation(student_id, "assistant", final_text)
 
-            # Step 5: Save conversation + RAG capture
-            self.append_to_conversation(student_id, "assistant", final_text)
+                await ws_send(
+                    {
+                        "type": "stage",
+                        "stage": "analyzing",
+                        "detail": "Updating learning state...",
+                    }
+                )
+                reflection = await self._run_guided_reflector(
+                    history=history,
+                    student_response=student_response,
+                    tutor_response=final_text,
+                    teaching_content=teaching_content,
+                    student_context=student_context,
+                    current_stage=current_stage,
+                    active_objective=objective_text,
+                    teaching_plan=teaching_plan,
+                )
+                reflection_result = await self._apply_reflection_updates(
+                    student_id=student_id,
+                    session_id=session_id,
+                    objective_id=objective_id,
+                    objective_text=objective_text,
+                    current_stage=current_stage,
+                    reflection=reflection,
+                    bundle=bundle,
+                    ws_send=ws_send,
+                )
+                final_stage = reflection_result.get("stage", current_stage)
+                stage_advanced = reflection_result.get("stage_advanced", False)
 
             # Fire-and-forget RAG triple capture
             cached = self._session_cache.get(session_id)
@@ -1098,16 +1675,11 @@ class HybridCrewAISocraticSystem:
                 except Exception as e:
                     logger.warning(f"RAG capture failed (non-critical): {e}")
 
-            # Post-turn lifecycle check: increment turns, evaluate stage criteria, advance if met
-            lifecycle_result = await self._post_turn_lifecycle_check(
-                student_id, session_id, current_stage, objective_id, ws_send
-            )
-
             metadata = {
                 "session_id": session_id,
-                "stage": lifecycle_result.get("new_stage", current_stage),
-                "tool_calls": [tc["tool"] for tc in tool_calls_made],
-                "stage_advanced": lifecycle_result.get("advanced", False),
+                "stage": final_stage,
+                "stage_advanced": stage_advanced,
+                "assessment": safe_serialize(assessment_metadata),
             }
             await ws_send({"type": "stream_end", "metadata": metadata})
             return metadata
