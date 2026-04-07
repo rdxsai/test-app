@@ -80,8 +80,8 @@ class StudentDatabase:
         password: str = "changeme_dev",
         schema: str = "student_mcp",
         main_schema: str = "prod",
-        min_conn: int = 1,
-        max_conn: int = 5,
+        min_conn: int = 2,
+        max_conn: int = 10,
     ):
         self.schema = schema
         self.main_schema = main_schema
