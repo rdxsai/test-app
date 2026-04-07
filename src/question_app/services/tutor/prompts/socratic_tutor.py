@@ -1178,6 +1178,118 @@ In each turn:
 Your goal is guided discovery, not unguided struggle."""
 
 
+GUIDED_REFLECTOR_PROMPT = """\
+You are the reflection and bookkeeping model for a guided web-accessibility tutor.
+
+You do NOT speak to the student.
+You do NOT produce teaching dialogue.
+You read the recent exchange, the active objective, the teaching plan, the
+validated evidence pack, and the student memory. Your job is to decide what
+the student demonstrated and what state should change.
+
+You must be conservative, precise, and structured.
+If the evidence is weak, keep the current stage.
+Do not hallucinate mastery or misconceptions.
+
+You are responsible for:
+- judging whether the student showed conceptual footing, reasoning, transfer, or confusion
+- deciding whether the current teaching stage should stay, advance, or regress
+- identifying misconceptions to log or resolve
+- generating concise memory patches for objective-specific and learner-level memory
+- recommending a bounded mastery signal
+
+Important constraints:
+- Only recommend `partial` or `mastered` during assessment-complete cases.
+- During normal teaching, mastery signals should stay within:
+  `not_attempted`, `misconception`, `in_progress`, `assessment_ready`
+- Advance to `exploration` only when the student can reason from the concept,
+  not merely repeat wording.
+- Advance to `mini_assessment` only when the student has shown constructive,
+  comparative, causal, or transfer reasoning with enough stability.
+- If the student is confused, fragile, or guessing, keep or regress the stage.
+- Objective memory should be concise and durable, not a full transcript.
+- Learner memory should describe stable tendencies, support needs, and successful strategies.
+
+Output ONLY a JSON object with this exact top-level shape:
+{
+  "stage_action": "stay|advance|regress",
+  "target_stage": "onboarding|introduction|exploration|readiness_check|mini_assessment|final_assessment|transition",
+  "stage_reason": "short string",
+  "mastery_signal": {
+    "should_update": true,
+    "level": "not_attempted|misconception|in_progress|assessment_ready|partial|mastered",
+    "confidence": 0.0,
+    "evidence_summary": "short string"
+  },
+  "misconceptions_to_log": ["..."],
+  "misconceptions_to_resolve": ["..."],
+  "objective_memory_patch": {
+    "summary": "short string",
+    "demonstrated_skills": ["..."],
+    "active_gaps": ["..."],
+    "next_focus": "short string"
+  },
+  "learner_memory_patch": {
+    "summary": "short string",
+    "strengths": ["..."],
+    "support_needs": ["..."],
+    "tendencies": ["..."],
+    "successful_strategies": ["..."]
+  }
+}
+
+Rules:
+- Use empty strings or empty arrays when there is nothing to add.
+- Keep every string compact.
+- Do not include markdown fences.
+- Do not include extra keys."""
+
+
+ASSESSMENT_REFLECTOR_PROMPT = """\
+You are the assessment reflection model for a guided web-accessibility tutor.
+
+You do NOT speak to the student.
+You evaluate one student answer during `mini_assessment` or `final_assessment`.
+
+Use the objective, assessment reference material, recent transcript, and current
+question/answer context to judge whether the student's answer is correct enough
+to count for assessment scoring.
+
+Be strict but fair:
+- reward conceptually correct reasoning even if wording is imperfect
+- mark incorrect if the answer contradicts the evidence, misses the required distinction,
+  or only partially answers a clearly multi-part requirement
+- do not infer understanding that is not present
+
+Output ONLY a JSON object with this exact shape:
+{
+  "is_correct": true,
+  "confidence": 0.0,
+  "rationale": "short string",
+  "misconceptions_to_log": ["..."],
+  "misconceptions_to_resolve": ["..."],
+  "objective_memory_patch": {
+    "summary": "short string",
+    "demonstrated_skills": ["..."],
+    "active_gaps": ["..."],
+    "next_focus": "short string"
+  },
+  "learner_memory_patch": {
+    "summary": "short string",
+    "strengths": ["..."],
+    "support_needs": ["..."],
+    "tendencies": ["..."],
+    "successful_strategies": ["..."]
+  }
+}
+
+Rules:
+- Use empty strings or empty arrays when there is nothing to add.
+- Keep the rationale under 30 words.
+- Do not include markdown fences.
+- Do not include extra keys."""
+
+
 def build_instance_b_prompt(
     knowledge_context: str = "",
     student_context: str = "",
@@ -1232,3 +1344,67 @@ def build_instance_b_prompt(
     return f"""{TUTOR_SYSTEM_PROMPT}
 
 {context_block}"""
+
+
+def build_guided_reflector_prompt(
+    knowledge_context: str = "",
+    student_context: str = "",
+    current_stage: str = "introduction",
+    active_objective: str = "",
+    teaching_plan=None,
+) -> str:
+    """Build the structured reflector prompt for normal guided turns."""
+    context_sections = [f"CURRENT STAGE: {current_stage.upper()}"]
+
+    if active_objective:
+        context_sections.append(f"ACTIVE OBJECTIVE: {active_objective}")
+
+    if student_context:
+        context_sections.append(
+            f"STUDENT MEMORY AND STATE:\n{student_context}"
+        )
+
+    if teaching_plan:
+        plan_text = format_teaching_plan(teaching_plan)
+        if plan_text:
+            context_sections.append(f"TEACHING PLAN:\n{plan_text}")
+
+    if knowledge_context:
+        context_sections.append(f"VALIDATED EVIDENCE PACK:\n{knowledge_context}")
+
+    return f"""{GUIDED_REFLECTOR_PROMPT}
+
+{chr(10).join(context_sections)}"""
+
+
+def build_assessment_reflector_prompt(
+    knowledge_context: str = "",
+    student_context: str = "",
+    current_stage: str = "mini_assessment",
+    active_objective: str = "",
+    teaching_plan=None,
+) -> str:
+    """Build the structured reflector prompt for assessment turns."""
+    context_sections = [f"CURRENT STAGE: {current_stage.upper()}"]
+
+    if active_objective:
+        context_sections.append(f"ACTIVE OBJECTIVE: {active_objective}")
+
+    if student_context:
+        context_sections.append(
+            f"STUDENT MEMORY AND STATE:\n{student_context}"
+        )
+
+    if teaching_plan:
+        plan_text = format_teaching_plan(teaching_plan)
+        if plan_text:
+            context_sections.append(f"TEACHING PLAN:\n{plan_text}")
+
+    if knowledge_context:
+        context_sections.append(
+            f"ASSESSMENT EVIDENCE PACK:\n{knowledge_context}"
+        )
+
+    return f"""{ASSESSMENT_REFLECTOR_PROMPT}
+
+{chr(10).join(context_sections)}"""

@@ -11,8 +11,12 @@ Instance B (Guided Learning) uses TUTOR_SYSTEM_PROMPT with plan + evidence.
 """
 
 from .socratic_tutor import (
+    build_assessment_reflector_prompt,
+    build_guided_reflector_prompt,
     build_instance_a_prompt,
     build_instance_b_prompt,
+    ASSESSMENT_REFLECTOR_PROMPT,
+    GUIDED_REFLECTOR_PROMPT,
     TUTOR_SYSTEM_PROMPT,
     CONCEPT_DECOMPOSITION_PROMPT,
     RETRIEVAL_PLANNER_PROMPT,
@@ -22,8 +26,12 @@ from .socratic_tutor import (
 )
 
 __all__ = [
+    "build_assessment_reflector_prompt",
+    "build_guided_reflector_prompt",
     "build_instance_a_prompt",
     "build_instance_b_prompt",
+    "ASSESSMENT_REFLECTOR_PROMPT",
+    "GUIDED_REFLECTOR_PROMPT",
     "TUTOR_SYSTEM_PROMPT",
     "CONCEPT_DECOMPOSITION_PROMPT",
     "RETRIEVAL_PLANNER_PROMPT",

@@ -7,6 +7,8 @@ stage-dependent teaching approach swap.
 
 import pytest
 from question_app.services.tutor.prompts.socratic_tutor import (
+    build_assessment_reflector_prompt,
+    build_guided_reflector_prompt,
     build_instance_a_prompt,
     build_instance_b_prompt,
 )
@@ -244,3 +246,26 @@ class TestPromptTokenBudget:
             active_objective="Apply alt text to images",
         )
         assert len(prompt) < 22000
+
+
+class TestReflectorPrompts:
+    """Structured reflector prompts for guided-tutor bookkeeping."""
+
+    def test_guided_reflector_contains_json_contract(self):
+        prompt = build_guided_reflector_prompt(
+            current_stage="exploration",
+            active_objective="Apply alt text to images",
+        )
+        assert "stage_action" in prompt
+        assert "objective_memory_patch" in prompt
+        assert "learner_memory_patch" in prompt
+        assert "CURRENT STAGE: EXPLORATION" in prompt
+
+    def test_assessment_reflector_contains_correctness_contract(self):
+        prompt = build_assessment_reflector_prompt(
+            current_stage="mini_assessment",
+            active_objective="Apply alt text to images",
+        )
+        assert "is_correct" in prompt
+        assert "rationale" in prompt
+        assert "ACTIVE OBJECTIVE: Apply alt text to images" in prompt
