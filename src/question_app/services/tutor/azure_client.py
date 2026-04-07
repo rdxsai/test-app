@@ -53,7 +53,7 @@ class AzureAPIMClient:
 
         payload: Dict[str, Any] = {"messages": messages}
         if self._reasoning:
-            payload["max_completion_tokens"] = max(max_tokens * 3, 1500)
+            payload["max_completion_tokens"] = max(max_tokens * 5, 4000)
             payload["reasoning_effort"] = reasoning_effort or "low"
         else:
             payload["max_tokens"] = max_tokens
@@ -96,7 +96,7 @@ class AzureAPIMClient:
 
         payload: Dict[str, Any] = {"messages": messages, "stream": True}
         if self._reasoning:
-            payload["max_completion_tokens"] = max(max_tokens * 3, 1500)
+            payload["max_completion_tokens"] = max(max_tokens * 5, 4000)
             payload["reasoning_effort"] = "low"
             payload["stream_options"] = {"include_usage": True}
         else:
@@ -171,7 +171,7 @@ class AzureAPIMClient:
             "tool_choice": tool_choice,
         }
         if self._reasoning:
-            payload["max_completion_tokens"] = max(max_tokens * 3, 1000)
+            payload["max_completion_tokens"] = max(max_tokens * 5, 4000)
             payload["reasoning_effort"] = reasoning_effort or "low"
         else:
             payload["max_tokens"] = max_tokens
