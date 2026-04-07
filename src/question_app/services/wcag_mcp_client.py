@@ -288,9 +288,27 @@ def normalize_tool_args(fn_name: str, fn_args: dict) -> dict:
     - list_success_criteria(guideline="1.4 Distinguishable") → guideline="1.4"
     - get_guideline(ref_id="1.4 Distinguishable") → ref_id="1.4"
     - get_criterion(ref_id="SC 1.4.3") → ref_id="1.4.3"
+    - get_criterion(id="1.4.3") → ref_id="1.4.3"  (wrong key name)
+    - get_technique(ref_id="H37") → id="H37"  (wrong key name)
     """
     import re
     args = dict(fn_args)  # don't mutate the original
+
+    # Fix wrong key names: LLM sometimes uses "id" instead of "ref_id" or vice versa
+    # Tools that expect ref_id: get_criterion, get_guideline, get_success_criteria_detail,
+    #   get_full_criterion_context, get_techniques_for_criterion, get_failures_for_criterion
+    # Tools that expect id: get_technique
+    NEEDS_REF_ID = {
+        "get_criterion", "get_guideline", "get_success_criteria_detail",
+        "get_full_criterion_context", "get_techniques_for_criterion",
+        "get_failures_for_criterion",
+    }
+    NEEDS_ID = {"get_technique"}
+
+    if fn_name in NEEDS_REF_ID and "id" in args and "ref_id" not in args:
+        args["ref_id"] = args.pop("id")
+    elif fn_name in NEEDS_ID and "ref_id" in args and "id" not in args:
+        args["id"] = args.pop("ref_id")
 
     # Strip descriptive text from ref_id and guideline args
     # "1.4 Distinguishable" → "1.4", "SC 1.4.3" → "1.4.3"
