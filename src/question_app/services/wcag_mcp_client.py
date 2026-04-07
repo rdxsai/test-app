@@ -242,6 +242,11 @@ _TOOL_NAME_TO_MCP = {
     "get_guideline": ("get-guideline", lambda args: {"ref_id": args["ref_id"]}),
     "get_glossary_term": ("get-glossary-term", lambda args: {"term": args["term"]}),
     "whats_new_in_wcag22": ("whats-new-in-wcag22", lambda args: {}),
+    "list_success_criteria": ("list-success-criteria", lambda args: {k: v for k, v in args.items() if v}),
+    "get_success_criteria_detail": ("get-success-criteria-detail", lambda args: {"ref_id": args["ref_id"]}),
+    "get_criterion": ("get-criterion", lambda args: {"ref_id": args["ref_id"]}),
+    "get_technique": ("get-technique", lambda args: {"id": args.get("id", args.get("ref_id", ""))}),
+    "get_techniques_for_criterion": ("get-techniques-for-criterion", lambda args: {"ref_id": args["ref_id"]}),
 }
 
 
@@ -407,7 +412,83 @@ class WCAGMCPClient:
             return None
 
     # ------------------------------------------------------------------
-    # LLM-driven tool calling (multi-turn with retry)
+    # Deterministic tool execution (plan-driven, no LLM in loop)
+    # ------------------------------------------------------------------
+
+    async def execute_planned_tool_calls(
+        self, planned_calls: List[Dict],
+    ) -> List[Dict]:
+        """Execute pre-planned tool calls deterministically against WCAG MCP.
+
+        Unlike get_wcag_context() which uses an LLM to choose tools, this
+        method takes an explicit list from the retrieval planner and executes
+        them directly. No LLM is involved.
+
+        Args:
+            planned_calls: List of dicts, each with:
+                - "tool": function name (e.g., "search_wcag", "get_criterion")
+                - "args": dict of arguments
+                - "category": "must_have" | "fallback" | "optional" (for logging)
+
+        Returns:
+            List of result dicts with:
+                tool, args, category, result (str), chars (int),
+                status ("HIT" | "MISS" | "BLOCKED" | "ERROR")
+        """
+        results = []
+        for i, tc in enumerate(planned_calls):
+            fn_name = tc.get("tool", "")
+            fn_args = tc.get("args", {})
+            category = tc.get("category", "must_have")
+
+            # Glossary blocklist
+            if fn_name == "get_glossary_term" and "term" in fn_args:
+                if not filter_glossary_call(fn_args["term"]):
+                    logger.info(f"Pipeline: blocked glossary lookup '{fn_args['term']}' (blocklist)")
+                    results.append({
+                        "tool": fn_name, "args": fn_args, "category": category,
+                        "result": f"BLOCKED: '{fn_args['term']}' not in WCAG glossary",
+                        "chars": 0, "status": "BLOCKED",
+                    })
+                    continue
+
+            # Normalize args (id<->ref_id, strip descriptive text)
+            fn_args = normalize_tool_args(fn_name, fn_args)
+
+            # Look up MCP mapping
+            mapping = _TOOL_NAME_TO_MCP.get(fn_name)
+            if not mapping:
+                logger.warning(f"Pipeline: unknown tool '{fn_name}', skipping")
+                results.append({
+                    "tool": fn_name, "args": fn_args, "category": category,
+                    "result": f"Unknown tool: {fn_name}", "chars": 0, "status": "ERROR",
+                })
+                continue
+
+            mcp_tool_name, param_fn = mapping
+            mcp_args = param_fn(fn_args)
+
+            # Execute against MCP server
+            text = await self._call_tool(mcp_tool_name, mcp_args)
+            if text is None:
+                text = ""
+
+            is_empty = not text or any(p in text.lower() for p in NO_RESULT_PHRASES)
+            status = "MISS" if is_empty else "HIT"
+
+            results.append({
+                "tool": fn_name, "args": fn_args, "category": category,
+                "result": text, "chars": len(text), "status": status,
+            })
+            logger.info(
+                f"Pipeline [{i+1}/{len(planned_calls)}] [{status}] "
+                f"{fn_name}({fn_args}) -> {len(text)} chars"
+            )
+
+        return results
+
+    # ------------------------------------------------------------------
+    # LLM-driven tool calling (multi-turn with retry) — used by Instance A
     # ------------------------------------------------------------------
 
     async def _execute_tool_calls(self, tool_calls: List[Dict]) -> List[Dict]:
