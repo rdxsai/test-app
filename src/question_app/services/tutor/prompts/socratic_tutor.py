@@ -757,6 +757,41 @@ def format_teaching_plan(plan) -> str:
     return ""
 
 
+def format_lesson_state(lesson_state) -> str:
+    """Format machine-readable lesson state for tutor/analyzer prompts."""
+    if not lesson_state or not isinstance(lesson_state, dict):
+        return ""
+
+    concepts = lesson_state.get("concepts", []) or []
+    concept_lookup = {concept.get("id"): concept for concept in concepts}
+    active_id = lesson_state.get("active_concept", "")
+    active = concept_lookup.get(active_id) or (concepts[0] if concepts else {})
+    active_label = active.get("label", active_id)
+
+    lines = []
+    if active_label:
+        lines.append(f"ACTIVE CONCEPT: {active_label}")
+    if lesson_state.get("pending_check"):
+        lines.append(f"PENDING CHECK: {lesson_state['pending_check']}")
+    if lesson_state.get("bridge_back_target"):
+        bridge = concept_lookup.get(lesson_state["bridge_back_target"], {})
+        bridge_label = bridge.get("label", lesson_state["bridge_back_target"])
+        lines.append(f"BRIDGE BACK TARGET: {bridge_label}")
+
+    ordered_labels = []
+    for concept_id in lesson_state.get("teaching_order", [])[:8]:
+        concept = concept_lookup.get(concept_id)
+        if not concept:
+            continue
+        ordered_labels.append(
+            f"{concept.get('label', concept_id)} [{concept.get('status', 'not_covered')}]"
+        )
+    if ordered_labels:
+        lines.append("ORDER: " + " -> ".join(ordered_labels))
+
+    return "\n".join(lines)
+
+
 def _format_text_plan(plan_text: str) -> str:
     """Extract and compress key sections from the 17-section teaching plan text.
 
@@ -772,7 +807,7 @@ def _format_text_plan(plan_text: str) -> str:
 
     # Parse sections by numbered headers (e.g., "## 7. concept_decomposition" or "7. concept_decomposition")
     section_pattern = re.compile(
-        r'(?:^|\n)(?:##?\s*)?(\d{1,2})\.\s*(\w[\w_]*)\s*\n(.*?)(?=\n(?:##?\s*)?\d{1,2}\.\s*\w|\Z)',
+        r'(?:^|\n)(?:##?\s*)?(\d{1,2})\.\s*([a-z][\w_]*)\s*\n(.*?)(?=\n(?:##?\s*)?\d{1,2}\.\s*[a-z][\w_]*\s*\n|\Z)',
         re.DOTALL
     )
     sections = {}
@@ -1130,6 +1165,39 @@ and redirect: "That's outside what I cover — let's get back to [current topic]
 If they ask about a valid accessibility topic that's not the current objective, give a \
 1-2 sentence answer and return to the current objective.
 
+== TURN ROUTING ==
+
+You may receive a TURN ANALYSIS block with fields such as:
+- turn_route
+- answer_current_question_first
+- student_question_to_answer
+- teaching_move
+- bridge_back_target
+
+Follow that routing exactly.
+
+Route meanings:
+- objective_answer: continue teaching the current objective directly.
+- adjacent_topic: answer the student's current adjacent-topic question briefly and accurately, \
+  then bridge back to the current objective.
+- meta_request: answer the student's request about pace, style, or explanation strategy directly, \
+  then continue the lesson.
+- off_topic: redirect in one sentence and do not teach a new concept.
+
+If `answer_current_question_first` is true, the next response MUST answer the student's \
+current question before any bridge-back or new teaching move.
+
+== STRUCTURED LESSON STATE ==
+
+You may receive a LESSON STATE block containing:
+- active_concept
+- pending_check
+- bridge_back_target
+- concept status/order
+
+Use it to stay anchored to the current concept. Do not drift to a new concept unless the \
+turn analysis or lesson state indicates it is time to move.
+
 == USE OF EVIDENCE PACK ==
 
 Use the evidence pack to support: definitions, hierarchy anchors, examples, contrastive \
@@ -1178,24 +1246,27 @@ In each turn:
 Your goal is guided discovery, not unguided struggle."""
 
 
-GUIDED_REFLECTOR_PROMPT = """\
-You are the reflection and bookkeeping model for a guided web-accessibility tutor.
+TURN_ANALYZER_PROMPT = """\
+You are the turn analysis and bookkeeping model for a guided web-accessibility tutor.
 
 You do NOT speak to the student.
 You do NOT produce teaching dialogue.
 You read the recent exchange, the active objective, the teaching plan, the
-validated evidence pack, and the student memory. Your job is to decide what
-the student demonstrated and what state should change.
+validated evidence pack, the lesson state, and the student memory. Your job is to
+decide what the student demonstrated, how the next tutor response should be routed,
+and what state should change after that response.
 
 You must be conservative, precise, and structured.
 If the evidence is weak, keep the current stage.
 Do not hallucinate mastery or misconceptions.
 
 You are responsible for:
+- routing the student's turn so the tutor answers the current question first when needed
 - judging whether the student showed conceptual footing, reasoning, transfer, or confusion
 - deciding whether the current teaching stage should stay, advance, or regress
 - identifying misconceptions to log or resolve
 - generating concise memory patches for objective-specific and learner-level memory
+- updating structured lesson state (active concept, pending check, bridge-back target)
 - recommending a bounded mastery signal
 
 Important constraints:
@@ -1207,11 +1278,17 @@ Important constraints:
 - Advance to `mini_assessment` only when the student has shown constructive,
   comparative, causal, or transfer reasoning with enough stability.
 - If the student is confused, fragile, or guessing, keep or regress the stage.
+- If the student asks a real question, capture it and make the tutor answer that
+  current question before returning to the plan.
 - Objective memory should be concise and durable, not a full transcript.
 - Learner memory should describe stable tendencies, support needs, and successful strategies.
 
 Output ONLY a JSON object with this exact top-level shape:
 {
+  "turn_route": "objective_answer|adjacent_topic|meta_request|off_topic",
+  "answer_current_question_first": true,
+  "student_question_to_answer": "short string",
+  "teaching_move": "continue|clarify|repair|consolidate|redirect",
   "stage_action": "stay|advance|regress",
   "target_stage": "onboarding|introduction|exploration|readiness_check|mini_assessment|final_assessment|transition",
   "stage_reason": "short string",
@@ -1223,6 +1300,14 @@ Output ONLY a JSON object with this exact top-level shape:
   },
   "misconceptions_to_log": ["..."],
   "misconceptions_to_resolve": ["..."],
+  "lesson_state_patch": {
+    "active_concept": "short string",
+    "pending_check": "short string",
+    "bridge_back_target": "short string",
+    "concept_updates": [
+      {"concept_id": "...", "status": "not_covered|in_progress|covered", "label": "optional short string"}
+    ]
+  },
   "objective_memory_patch": {
     "summary": "short string",
     "demonstrated_skills": ["..."],
@@ -1243,6 +1328,9 @@ Rules:
 - Keep every string compact.
 - Do not include markdown fences.
 - Do not include extra keys."""
+
+
+GUIDED_REFLECTOR_PROMPT = TURN_ANALYZER_PROMPT
 
 
 ASSESSMENT_REFLECTOR_PROMPT = """\
@@ -1296,6 +1384,7 @@ def build_instance_b_prompt(
     current_stage: str = "introduction",
     active_objective: str = "",
     teaching_plan=None,
+    lesson_state_context: str = "",
 ) -> str:
     """Build the system prompt for Instance B (Guided Learning, Socratic tutor).
 
@@ -1331,6 +1420,9 @@ def build_instance_b_prompt(
         if plan_text:
             context_sections.append(f"TEACHING PLAN:\n{plan_text}")
 
+    if lesson_state_context:
+        context_sections.append(f"LESSON STATE:\n{lesson_state_context}")
+
     # Evidence pack (retrieved WCAG content)
     if knowledge_context:
         context_sections.append(
@@ -1346,14 +1438,15 @@ def build_instance_b_prompt(
 {context_block}"""
 
 
-def build_guided_reflector_prompt(
+def build_turn_analyzer_prompt(
     knowledge_context: str = "",
     student_context: str = "",
     current_stage: str = "introduction",
     active_objective: str = "",
     teaching_plan=None,
+    lesson_state_context: str = "",
 ) -> str:
-    """Build the structured reflector prompt for normal guided turns."""
+    """Build the structured analyzer prompt for normal guided turns."""
     context_sections = [f"CURRENT STAGE: {current_stage.upper()}"]
 
     if active_objective:
@@ -1369,12 +1462,34 @@ def build_guided_reflector_prompt(
         if plan_text:
             context_sections.append(f"TEACHING PLAN:\n{plan_text}")
 
+    if lesson_state_context:
+        context_sections.append(f"LESSON STATE:\n{lesson_state_context}")
+
     if knowledge_context:
         context_sections.append(f"VALIDATED EVIDENCE PACK:\n{knowledge_context}")
 
-    return f"""{GUIDED_REFLECTOR_PROMPT}
+    return f"""{TURN_ANALYZER_PROMPT}
 
 {chr(10).join(context_sections)}"""
+
+
+def build_guided_reflector_prompt(
+    knowledge_context: str = "",
+    student_context: str = "",
+    current_stage: str = "introduction",
+    active_objective: str = "",
+    teaching_plan=None,
+    lesson_state_context: str = "",
+) -> str:
+    """Backward-compatible alias for the guided turn analyzer prompt."""
+    return build_turn_analyzer_prompt(
+        knowledge_context=knowledge_context,
+        student_context=student_context,
+        current_stage=current_stage,
+        active_objective=active_objective,
+        teaching_plan=teaching_plan,
+        lesson_state_context=lesson_state_context,
+    )
 
 
 def build_assessment_reflector_prompt(
@@ -1383,6 +1498,7 @@ def build_assessment_reflector_prompt(
     current_stage: str = "mini_assessment",
     active_objective: str = "",
     teaching_plan=None,
+    lesson_state_context: str = "",
 ) -> str:
     """Build the structured reflector prompt for assessment turns."""
     context_sections = [f"CURRENT STAGE: {current_stage.upper()}"]
@@ -1399,6 +1515,9 @@ def build_assessment_reflector_prompt(
         plan_text = format_teaching_plan(teaching_plan)
         if plan_text:
             context_sections.append(f"TEACHING PLAN:\n{plan_text}")
+
+    if lesson_state_context:
+        context_sections.append(f"LESSON STATE:\n{lesson_state_context}")
 
     if knowledge_context:
         context_sections.append(

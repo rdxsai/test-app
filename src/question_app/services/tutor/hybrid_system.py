@@ -190,13 +190,37 @@ class HybridCrewAISocraticSystem:
         self, azure_config: Dict[str, str], vector_store_service : VectorStoreInterface,
         db_manager=None, wcag_mcp_client=None, student_mcp_client=None
     ):
-        self.client = AzureAPIMClient(
+        tutor_deployment = (
+            azure_config.get("tutor_deployment_name")
+            or azure_config.get("deployment_name")
+        )
+        reasoning_deployment = (
+            azure_config.get("reasoning_deployment_name")
+            or tutor_deployment
+        )
+
+        self.tutor_client = AzureAPIMClient(
             endpoint=azure_config["endpoint"],
-            deployment=azure_config["deployment_name"],
+            deployment=tutor_deployment,
             api_key=azure_config["api_key"],
             api_version=azure_config.get("api_version", "2024-02-15-preview"),
-
         )
+        if reasoning_deployment == tutor_deployment:
+            self.reasoning_client = self.tutor_client
+        else:
+            self.reasoning_client = AzureAPIMClient(
+                endpoint=azure_config["endpoint"],
+                deployment=reasoning_deployment,
+                api_key=azure_config["api_key"],
+                api_version=azure_config.get("api_version", "2024-02-15-preview"),
+            )
+            logger.info(
+                "Using split model roles: tutor=%s reasoning=%s",
+                tutor_deployment,
+                reasoning_deployment,
+            )
+
+        self.client = self.tutor_client
         self.vector_store = vector_store_service
         self.db = db_manager or get_database_manager()
         self.wcag_mcp = wcag_mcp_client
@@ -207,8 +231,8 @@ class HybridCrewAISocraticSystem:
         self.memory_file = "conversation_memory.json"
         self.conversation_memory : Dict[str, List[Dict[str , str]]] = {}
         self._load_conversation_memory()
-        self.coordinator_agent = CoordinatorAgent(self.client)
-        self.code_analyzer = CodeAnalyzerAgent(self.client)
+        self.coordinator_agent = CoordinatorAgent(self.tutor_client)
+        self.code_analyzer = CodeAnalyzerAgent(self.reasoning_client)
         logger.info("Hybrid CrewAI Socratic System initialized successfully")
 
     # --- (This is the corrected create_student_profile function from last time) ---
@@ -663,6 +687,37 @@ class HybridCrewAISocraticSystem:
             lines.append(f"TUTOR: {tutor_response}")
         return "\n".join(lines)
 
+    @staticmethod
+    def _format_turn_analysis_for_tutor(turn_analysis: Optional[Dict[str, Any]]) -> str:
+        if not turn_analysis:
+            return ""
+
+        lines = ["TURN ANALYSIS:"]
+        route = turn_analysis.get("turn_route", "")
+        if route:
+            lines.append(f"- Route: {route}")
+        answer_first = turn_analysis.get("answer_current_question_first")
+        if answer_first is not None:
+            lines.append(
+                f"- Answer current question first: {'yes' if answer_first else 'no'}"
+            )
+        if turn_analysis.get("student_question_to_answer"):
+            lines.append(
+                f"- Student question to answer: {turn_analysis['student_question_to_answer']}"
+            )
+        if turn_analysis.get("teaching_move"):
+            lines.append(f"- Teaching move: {turn_analysis['teaching_move']}")
+        lesson_patch = turn_analysis.get("lesson_state_patch") or {}
+        bridge_target = lesson_patch.get("bridge_back_target", "")
+        if bridge_target:
+            lines.append(f"- Bridge back target: {bridge_target}")
+        target_stage = turn_analysis.get("target_stage", "")
+        if target_stage:
+            lines.append(
+                f"- Stage recommendation: {turn_analysis.get('stage_action', 'stay')} -> {target_stage}"
+            )
+        return "\n".join(lines)
+
     def _build_guided_tutor_messages(
         self,
         student_response: str,
@@ -672,10 +727,12 @@ class HybridCrewAISocraticSystem:
         current_stage: str,
         active_objective: str,
         teaching_plan: Any,
+        lesson_state: Optional[Dict[str, Any]] = None,
+        turn_analysis: Optional[Dict[str, Any]] = None,
         extra_system_messages: Optional[List[str]] = None,
     ) -> List[Dict[str, str]]:
         """Build tutor-pass messages for guided learning."""
-        from .prompts import build_instance_b_prompt
+        from .prompts import build_instance_b_prompt, format_lesson_state
 
         system_prompt = build_instance_b_prompt(
             knowledge_context=teaching_content,
@@ -683,8 +740,12 @@ class HybridCrewAISocraticSystem:
             current_stage=current_stage,
             active_objective=active_objective,
             teaching_plan=teaching_plan,
+            lesson_state_context=format_lesson_state(lesson_state),
         )
         messages = [{"role": "system", "content": system_prompt}]
+        turn_analysis_block = self._format_turn_analysis_for_tutor(turn_analysis)
+        if turn_analysis_block:
+            messages.append({"role": "system", "content": turn_analysis_block})
         for extra in extra_system_messages or []:
             if extra:
                 messages.append({"role": "system", "content": extra})
@@ -693,32 +754,31 @@ class HybridCrewAISocraticSystem:
         messages.append({"role": "user", "content": student_response})
         return messages
 
-    async def _run_guided_reflector(
+    async def _run_turn_analyzer(
         self,
         history: List[Dict[str, str]],
         student_response: str,
-        tutor_response: str,
         teaching_content: str,
         student_context: str,
         current_stage: str,
         active_objective: str,
         teaching_plan: Any,
+        lesson_state: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
-        """Run the structured reflection pass for a normal teaching turn."""
-        from .prompts import build_guided_reflector_prompt
+        """Run the structured turn-analysis pass before the tutor responds."""
+        from .prompts import build_turn_analyzer_prompt, format_lesson_state
 
-        prompt = build_guided_reflector_prompt(
+        prompt = build_turn_analyzer_prompt(
             knowledge_context=teaching_content,
             student_context=student_context,
             current_stage=current_stage,
             active_objective=active_objective,
             teaching_plan=teaching_plan,
+            lesson_state_context=format_lesson_state(lesson_state),
         )
-        transcript = self._format_reflection_transcript(
-            history, student_response, tutor_response
-        )
+        transcript = self._format_reflection_transcript(history, student_response)
         response = await asyncio.to_thread(
-            self.client.chat,
+            self.reasoning_client.chat,
             [
                 {"role": "system", "content": prompt},
                 {"role": "user", "content": transcript},
@@ -729,6 +789,10 @@ class HybridCrewAISocraticSystem:
         return self._parse_json_response(
             response,
             fallback={
+                "turn_route": "objective_answer",
+                "answer_current_question_first": True,
+                "student_question_to_answer": student_response[:160],
+                "teaching_move": "continue",
                 "stage_action": "stay",
                 "target_stage": current_stage,
                 "stage_reason": "",
@@ -740,6 +804,12 @@ class HybridCrewAISocraticSystem:
                 },
                 "misconceptions_to_log": [],
                 "misconceptions_to_resolve": [],
+                "lesson_state_patch": {
+                    "active_concept": "",
+                    "pending_check": "",
+                    "bridge_back_target": "",
+                    "concept_updates": [],
+                },
                 "objective_memory_patch": {
                     "summary": "",
                     "demonstrated_skills": [],
@@ -765,9 +835,10 @@ class HybridCrewAISocraticSystem:
         current_stage: str,
         active_objective: str,
         teaching_plan: Any,
+        lesson_state: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """Run the structured reflection pass for an assessment answer."""
-        from .prompts import build_assessment_reflector_prompt
+        from .prompts import build_assessment_reflector_prompt, format_lesson_state
 
         prompt = build_assessment_reflector_prompt(
             knowledge_context=teaching_content,
@@ -775,10 +846,11 @@ class HybridCrewAISocraticSystem:
             current_stage=current_stage,
             active_objective=active_objective,
             teaching_plan=teaching_plan,
+            lesson_state_context=format_lesson_state(lesson_state),
         )
         transcript = self._format_reflection_transcript(history, student_response)
         response = await asyncio.to_thread(
-            self.client.chat,
+            self.reasoning_client.chat,
             [
                 {"role": "system", "content": prompt},
                 {"role": "user", "content": transcript},
@@ -879,41 +951,46 @@ class HybridCrewAISocraticSystem:
                 successful_strategies=successful_strategies,
             )
 
-    async def _apply_reflection_updates(
+    async def _apply_turn_analysis_updates(
         self,
         student_id: str,
         session_id: str,
         objective_id: str,
         objective_text: str,
         current_stage: str,
-        reflection: Dict[str, Any],
+        analysis: Dict[str, Any],
         bundle: Optional[Dict[str, Any]],
         ws_send,
     ) -> Dict[str, Any]:
-        """Apply deterministic state changes from the structured reflector."""
+        """Apply deterministic state changes from the structured turn analyzer."""
         result = {"stage": current_stage, "stage_advanced": False}
 
         await self.student_mcp.increment_turn_count(session_id)
 
-        for misconception in reflection.get("misconceptions_to_log", []):
+        for misconception in analysis.get("misconceptions_to_log", []):
             await self.student_mcp.log_misconception(
                 student_id, objective_id, misconception
             )
 
-        for misconception in reflection.get("misconceptions_to_resolve", []):
+        for misconception in analysis.get("misconceptions_to_resolve", []):
             await self.student_mcp.resolve_misconception(
                 student_id, objective_id, misconception
             )
 
+        self._session_cache.apply_lesson_state_patch(
+            session_id,
+            analysis.get("lesson_state_patch"),
+        )
+
         await self._apply_memory_patches(
             student_id,
             objective_id,
-            reflection.get("objective_memory_patch"),
-            reflection.get("learner_memory_patch"),
+            analysis.get("objective_memory_patch"),
+            analysis.get("learner_memory_patch"),
             bundle=bundle,
         )
 
-        mastery_signal = reflection.get("mastery_signal") or {}
+        mastery_signal = analysis.get("mastery_signal") or {}
         mastery_level = mastery_signal.get("level", "")
         if mastery_signal.get("should_update") and mastery_level in (
             "not_attempted",
@@ -948,9 +1025,9 @@ class HybridCrewAISocraticSystem:
                         }
                     )
 
-        stage_action = reflection.get("stage_action", "stay")
-        target_stage = reflection.get("target_stage", current_stage)
-        stage_reason = reflection.get("stage_reason", "")
+        stage_action = analysis.get("stage_action", "stay")
+        target_stage = analysis.get("target_stage", current_stage)
+        stage_reason = analysis.get("stage_reason", "")
         if (
             stage_action in ("advance", "regress")
             and target_stage
@@ -966,7 +1043,7 @@ class HybridCrewAISocraticSystem:
                     await self.student_mcp.update_session_state(
                         session_id,
                         assessment_progress='{"asked": 0, "correct": 0}',
-                    )
+                )
                 await ws_send(
                     {
                         "type": "stage_update",
@@ -1410,6 +1487,7 @@ class HybridCrewAISocraticSystem:
                 teaching_content = self._session_cache.get_teaching_content(session_id)
 
             teaching_plan = self._session_cache.get_teaching_plan(session_id)
+            lesson_state = self._session_cache.get_lesson_state(session_id)
             bundle = await self._load_student_bundle(student_id, objective_id)
             student_context = self._format_student_context(
                 bundle.get("profile"),
@@ -1450,6 +1528,7 @@ class HybridCrewAISocraticSystem:
                     current_stage=current_stage,
                     active_objective=objective_text,
                     teaching_plan=teaching_plan,
+                    lesson_state=lesson_state,
                 )
 
                 for misconception in assessment_reflection.get(
@@ -1585,6 +1664,7 @@ class HybridCrewAISocraticSystem:
                     current_stage=response_stage,
                     active_objective=objective_text,
                     teaching_plan=teaching_plan,
+                    lesson_state=lesson_state,
                     extra_system_messages=extra_messages,
                 )
                 final_text = await self._stream_response(tutor_messages, ws_send)
@@ -1601,6 +1681,24 @@ class HybridCrewAISocraticSystem:
                 await ws_send(
                     {
                         "type": "stage",
+                        "stage": "analyzing",
+                        "detail": "Analyzing your response...",
+                    }
+                )
+                turn_analysis = await self._run_turn_analyzer(
+                    history=history,
+                    student_response=student_response,
+                    teaching_content=teaching_content,
+                    student_context=student_context,
+                    current_stage=current_stage,
+                    active_objective=objective_text,
+                    teaching_plan=teaching_plan,
+                    lesson_state=lesson_state,
+                )
+
+                await ws_send(
+                    {
+                        "type": "stage",
                         "stage": "composing",
                         "detail": f"Generating response ({current_stage})...",
                     }
@@ -1613,6 +1711,8 @@ class HybridCrewAISocraticSystem:
                     current_stage=current_stage,
                     active_objective=objective_text,
                     teaching_plan=teaching_plan,
+                    lesson_state=lesson_state,
+                    turn_analysis=turn_analysis,
                 )
                 final_text = await self._stream_response(tutor_messages, ws_send)
                 self.append_to_conversation(student_id, "assistant", final_text)
@@ -1624,28 +1724,18 @@ class HybridCrewAISocraticSystem:
                         "detail": "Updating learning state...",
                     }
                 )
-                reflection = await self._run_guided_reflector(
-                    history=history,
-                    student_response=student_response,
-                    tutor_response=final_text,
-                    teaching_content=teaching_content,
-                    student_context=student_context,
-                    current_stage=current_stage,
-                    active_objective=objective_text,
-                    teaching_plan=teaching_plan,
-                )
-                reflection_result = await self._apply_reflection_updates(
+                analysis_result = await self._apply_turn_analysis_updates(
                     student_id=student_id,
                     session_id=session_id,
                     objective_id=objective_id,
                     objective_text=objective_text,
                     current_stage=current_stage,
-                    reflection=reflection,
+                    analysis=turn_analysis,
                     bundle=bundle,
                     ws_send=ws_send,
                 )
-                final_stage = reflection_result.get("stage", current_stage)
-                stage_advanced = reflection_result.get("stage_advanced", False)
+                final_stage = analysis_result.get("stage", current_stage)
+                stage_advanced = analysis_result.get("stage_advanced", False)
 
             # Fire-and-forget RAG triple capture
             cached = self._session_cache.get(session_id)
@@ -1996,7 +2086,10 @@ class HybridCrewAISocraticSystem:
             {"role": "user", "content": user_content},
         ]
         response = await asyncio.to_thread(
-            self.client.chat, messages, 0.3, 2500  # increased from 800 for 17-section plan
+            self.reasoning_client.chat,
+            messages,
+            0.3,
+            2500,  # increased from 800 for 17-section plan
         )
 
         # Try JSON first (legacy format compatibility)
@@ -2126,7 +2219,7 @@ Available WCAG MCP tools:
             )},
         ]
         response = await asyncio.to_thread(
-            self.client.chat, messages, 0.3, 2500
+            self.reasoning_client.chat, messages, 0.3, 2500
         )
         return response or ""
 
@@ -2139,7 +2232,7 @@ Available WCAG MCP tools:
             {"role": "user", "content": retrieval_plan},
         ]
         response = await asyncio.to_thread(
-            self.client.chat, messages, 0.0, 1500
+            self.reasoning_client.chat, messages, 0.0, 1500
         )
 
         # Parse JSON — strip markdown fences if present

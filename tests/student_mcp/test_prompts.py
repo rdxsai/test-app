@@ -9,6 +9,7 @@ import pytest
 from question_app.services.tutor.prompts.socratic_tutor import (
     build_assessment_reflector_prompt,
     build_guided_reflector_prompt,
+    build_turn_analyzer_prompt,
     build_instance_a_prompt,
     build_instance_b_prompt,
 )
@@ -146,6 +147,15 @@ class TestInstanceBPrompt:
     def test_contains_scope_rules(self):
         prompt = build_instance_b_prompt()
         assert "STAYING ON TOPIC" in prompt
+        assert "TURN ROUTING" in prompt
+        assert "answer_current_question_first" in prompt
+
+    def test_includes_lesson_state(self):
+        prompt = build_instance_b_prompt(
+            lesson_state_context="ACTIVE CONCEPT: Guideline layer"
+        )
+        assert "LESSON STATE:" in prompt
+        assert "ACTIVE CONCEPT: Guideline layer" in prompt
 
     def test_contains_evidence_pack_rules(self):
         prompt = build_instance_b_prompt()
@@ -249,17 +259,25 @@ class TestPromptTokenBudget:
 
 
 class TestReflectorPrompts:
-    """Structured reflector prompts for guided-tutor bookkeeping."""
+    """Structured analyzer/reflector prompts for guided-tutor bookkeeping."""
 
     def test_guided_reflector_contains_json_contract(self):
         prompt = build_guided_reflector_prompt(
             current_stage="exploration",
             active_objective="Apply alt text to images",
         )
+        assert "turn_route" in prompt
+        assert "answer_current_question_first" in prompt
+        assert "lesson_state_patch" in prompt
         assert "stage_action" in prompt
         assert "objective_memory_patch" in prompt
         assert "learner_memory_patch" in prompt
         assert "CURRENT STAGE: EXPLORATION" in prompt
+
+    def test_turn_analyzer_alias_matches_guided_reflector(self):
+        guided = build_guided_reflector_prompt(current_stage="exploration")
+        analyzer = build_turn_analyzer_prompt(current_stage="exploration")
+        assert guided == analyzer
 
     def test_assessment_reflector_contains_correctness_contract(self):
         prompt = build_assessment_reflector_prompt(
@@ -269,3 +287,11 @@ class TestReflectorPrompts:
         assert "is_correct" in prompt
         assert "rationale" in prompt
         assert "ACTIVE OBJECTIVE: Apply alt text to images" in prompt
+
+    def test_analyzer_includes_lesson_state(self):
+        prompt = build_turn_analyzer_prompt(
+            current_stage="introduction",
+            lesson_state_context="ACTIVE CONCEPT: Principles vs guidelines",
+        )
+        assert "LESSON STATE:" in prompt
+        assert "ACTIVE CONCEPT: Principles vs guidelines" in prompt
