@@ -11,7 +11,8 @@ from pgvector.psycopg2 import register_vector
 from ..core import config, get_logger
 from ..services.database import get_database_manager
 from ..services.tutor.interfaces import VectorStoreInterface
-from .vector_store import get_ollama_embeddings, create_comprehensive_chunks
+from ..services.embeddings import get_ollama_embeddings
+from .vector_store import create_comprehensive_chunks
 
 logger = get_logger(__name__)
 
