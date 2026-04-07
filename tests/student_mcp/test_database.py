@@ -305,6 +305,48 @@ class TestSessionState:
 
 
 # ---------------------------------------------------------------------------
+# Tests: Personalized Memory
+# ---------------------------------------------------------------------------
+
+
+class TestPersonalizedMemory:
+    """Test learner-level and objective-level memory storage."""
+
+    def test_upsert_and_get_learner_memory(self, db):
+        db.create_profile(student_id="mem-1")
+        db.upsert_learner_memory(
+            "mem-1",
+            summary="Learns best from contrastive examples",
+            strengths=["classification"],
+            support_needs=["slower pacing"],
+            tendencies=["answers cautiously"],
+            successful_strategies=["contrastive examples"],
+        )
+        result = db.get_learner_memory("mem-1")
+        assert result is not None
+        assert result["summary"] == "Learns best from contrastive examples"
+        assert "classification" in result["strengths"]
+        assert "slower pacing" in result["support_needs"]
+
+    def test_upsert_and_get_objective_memory(self, db):
+        db.create_profile(student_id="mem-2")
+        db.upsert_objective_memory(
+            "mem-2",
+            "obj-aria",
+            summary="Understands polite vs assertive distinction",
+            demonstrated_skills=["compares urgency correctly"],
+            active_gaps=["still weak on aria-atomic"],
+            next_focus="Teach when updates should interrupt",
+        )
+        result = db.get_objective_memory("mem-2", "obj-aria")
+        assert result is not None
+        assert result["summary"] == "Understands polite vs assertive distinction"
+        assert "compares urgency correctly" in result["demonstrated_skills"]
+        assert "still weak on aria-atomic" in result["active_gaps"]
+        assert result["next_focus"] == "Teach when updates should interrupt"
+
+
+# ---------------------------------------------------------------------------
 # Tests: Misconceptions
 # ---------------------------------------------------------------------------
 

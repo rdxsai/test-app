@@ -96,6 +96,41 @@ class StudentService:
             self._db.get_latest_session_summary, student_id, summary_type
         )
 
+    async def get_learner_memory(self, student_id: str) -> Optional[Dict]:
+        """Get cross-objective learner memory."""
+        return await self._run(self._db.get_learner_memory, student_id)
+
+    async def get_objective_memory(
+        self, student_id: str, objective_id: str,
+    ) -> Optional[Dict]:
+        """Get durable memory for the active objective."""
+        if not objective_id:
+            return None
+        return await self._run(self._db.get_objective_memory, student_id, objective_id)
+
+    async def get_memory_bundle(
+        self, student_id: str, objective_id: str = "",
+    ) -> Dict[str, Any]:
+        """Fetch the full learner-memory bundle used for tutoring context."""
+        profile, mastery, session, misconceptions, learner_memory, objective_memory = (
+            await asyncio.gather(
+                self.get_profile(student_id),
+                self.get_mastery_state(student_id),
+                self.get_active_session(student_id),
+                self.get_misconception_patterns(student_id),
+                self.get_learner_memory(student_id),
+                self.get_objective_memory(student_id, objective_id),
+            )
+        )
+        return {
+            "profile": profile,
+            "mastery": mastery,
+            "session": session,
+            "misconceptions": misconceptions,
+            "learner_memory": learner_memory,
+            "objective_memory": objective_memory,
+        }
+
     # ------------------------------------------------------------------
     # Write methods (called AFTER LLM to persist evaluation)
     # ------------------------------------------------------------------
@@ -120,6 +155,70 @@ class StudentService:
             self._db.upsert_mastery,
             student_id, objective_id, mastery_level, evidence_summary,
         )
+
+    async def apply_mastery_judgment(
+        self,
+        student_id: str,
+        objective_id: str,
+        mastery_level: str,
+        evidence_summary: str = "",
+        confidence: float = 1.0,
+    ) -> Optional[Dict]:
+        """Apply a tutor/reflector mastery judgment with app-side validation."""
+        from student_mcp.database import (
+            CONFIDENCE_THRESHOLD,
+            MASTERY_LEVELS,
+            STAGE_MASTERY_CAP,
+        )
+
+        if confidence < CONFIDENCE_THRESHOLD:
+            return {
+                "denied": True,
+                "reason": (
+                    f"Confidence {confidence} below threshold "
+                    f"{CONFIDENCE_THRESHOLD}"
+                ),
+            }
+
+        session = await self.get_active_session(student_id)
+        current_stage = (session or {}).get("current_stage", "introduction")
+
+        cap = STAGE_MASTERY_CAP.get(current_stage, "in_progress")
+        cap_idx = MASTERY_LEVELS.index(cap) if cap in MASTERY_LEVELS else 2
+        req_idx = (
+            MASTERY_LEVELS.index(mastery_level)
+            if mastery_level in MASTERY_LEVELS
+            else 0
+        )
+
+        capped = False
+        applied_level = mastery_level
+        if req_idx > cap_idx:
+            applied_level = cap
+            capped = True
+
+        result = await self._run(
+            self._db.upsert_mastery,
+            student_id,
+            objective_id,
+            applied_level,
+            evidence_summary,
+        )
+        if not isinstance(result, dict):
+            return result
+
+        output = {"updated": True}
+        if capped:
+            output.update(
+                {
+                    "capped": True,
+                    "requested_level": mastery_level,
+                    "applied_level": applied_level,
+                    "reason": f"Stage {current_stage} caps mastery at {cap}",
+                }
+            )
+        output.update(result)
+        return output
 
     async def log_misconception(
         self, student_id: str, objective_id: str,
@@ -166,6 +265,48 @@ class StudentService:
             self._db.insert_session_summary,
             session_id, student_id, summary_type,
             content, objectives_covered, mastery_changes,
+        )
+
+    async def upsert_learner_memory(
+        self,
+        student_id: str,
+        summary: str = "",
+        strengths: Any = None,
+        support_needs: Any = None,
+        tendencies: Any = None,
+        successful_strategies: Any = None,
+    ) -> Optional[Dict]:
+        """Persist cross-objective learner memory."""
+        return await self._run(
+            self._db.upsert_learner_memory,
+            student_id,
+            summary,
+            strengths,
+            support_needs,
+            tendencies,
+            successful_strategies,
+        )
+
+    async def upsert_objective_memory(
+        self,
+        student_id: str,
+        objective_id: str,
+        summary: str = "",
+        demonstrated_skills: Any = None,
+        active_gaps: Any = None,
+        next_focus: str = "",
+    ) -> Optional[Dict]:
+        """Persist durable learning memory for the active objective."""
+        if not objective_id:
+            return None
+        return await self._run(
+            self._db.upsert_objective_memory,
+            student_id,
+            objective_id,
+            summary,
+            demonstrated_skills,
+            active_gaps,
+            next_focus,
         )
 
     async def update_preferences(self, student_id: str, preferred_style: str) -> Optional[Dict]:

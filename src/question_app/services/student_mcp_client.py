@@ -161,6 +161,50 @@ class StudentMCPClient:
             return None
         return result
 
+    async def get_learner_memory(self, student_id: str) -> Optional[Dict]:
+        """Get cross-objective learner memory."""
+        result = await self._call("get_learner_memory", {"student_id": student_id})
+        if result and result.get("found") is False:
+            return None
+        return result
+
+    async def get_objective_memory(
+        self, student_id: str, objective_id: str,
+    ) -> Optional[Dict]:
+        """Get durable memory for the active objective."""
+        result = await self._call(
+            "get_objective_memory",
+            {"student_id": student_id, "objective_id": objective_id},
+        )
+        if result and result.get("found") is False:
+            return None
+        return result
+
+    async def get_memory_bundle(
+        self, student_id: str, objective_id: str = "",
+    ) -> Dict[str, Any]:
+        """Fetch the learner-state bundle used for guided tutoring."""
+        profile, mastery, session, misconceptions, learner_memory, objective_memory = (
+            await asyncio.gather(
+                self.get_profile(student_id),
+                self.get_mastery_state(student_id),
+                self.get_active_session(student_id),
+                self.get_misconception_patterns(student_id),
+                self.get_learner_memory(student_id),
+                self.get_objective_memory(student_id, objective_id)
+                if objective_id
+                else asyncio.sleep(0, result=None),
+            )
+        )
+        return {
+            "profile": profile,
+            "mastery": mastery,
+            "session": session,
+            "misconceptions": misconceptions,
+            "learner_memory": learner_memory,
+            "objective_memory": objective_memory,
+        }
+
     # ------------------------------------------------------------------
     # Write methods (called AFTER LLM to persist evaluation)
     # ------------------------------------------------------------------
@@ -190,6 +234,26 @@ class StudentMCPClient:
             "mastery_level": mastery_level,
             "evidence_summary": evidence_summary,
         })
+
+    async def apply_mastery_judgment(
+        self,
+        student_id: str,
+        objective_id: str,
+        mastery_level: str,
+        evidence_summary: str = "",
+        confidence: float = 1.0,
+    ) -> Optional[Dict]:
+        """Apply a validated mastery update with confidence."""
+        return await self._call(
+            "update_mastery",
+            {
+                "student_id": student_id,
+                "objective_id": objective_id,
+                "mastery_level": mastery_level,
+                "evidence_summary": evidence_summary,
+                "confidence": confidence,
+            },
+        )
 
     async def log_misconception(
         self, student_id: str, objective_id: str,
@@ -248,6 +312,50 @@ class StudentMCPClient:
             "student_id": student_id,
             "preferred_style": preferred_style,
         })
+
+    async def upsert_learner_memory(
+        self,
+        student_id: str,
+        summary: str = "",
+        strengths: Any = None,
+        support_needs: Any = None,
+        tendencies: Any = None,
+        successful_strategies: Any = None,
+    ) -> Optional[Dict]:
+        """Persist cross-objective learner memory."""
+        return await self._call(
+            "upsert_learner_memory",
+            {
+                "student_id": student_id,
+                "summary": summary,
+                "strengths": json.dumps(strengths or []),
+                "support_needs": json.dumps(support_needs or []),
+                "tendencies": json.dumps(tendencies or []),
+                "successful_strategies": json.dumps(successful_strategies or []),
+            },
+        )
+
+    async def upsert_objective_memory(
+        self,
+        student_id: str,
+        objective_id: str,
+        summary: str = "",
+        demonstrated_skills: Any = None,
+        active_gaps: Any = None,
+        next_focus: str = "",
+    ) -> Optional[Dict]:
+        """Persist durable memory for one objective."""
+        return await self._call(
+            "upsert_objective_memory",
+            {
+                "student_id": student_id,
+                "objective_id": objective_id,
+                "summary": summary,
+                "demonstrated_skills": json.dumps(demonstrated_skills or []),
+                "active_gaps": json.dumps(active_gaps or []),
+                "next_focus": next_focus,
+            },
+        )
 
     async def increment_turn_count(self, session_id: str) -> Optional[Dict]:
         """Increment the turn counter for the active session."""

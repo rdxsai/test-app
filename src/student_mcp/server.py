@@ -185,6 +185,34 @@ async def get_session_summary(student_id: str, summary_type: str = "short") -> s
     return _serialize(result)
 
 
+@mcp.tool()
+async def get_learner_memory(student_id: str) -> str:
+    """Get cross-objective learner memory for personalization."""
+    result = await asyncio.to_thread(db.get_learner_memory, student_id)
+    if result is None:
+        return json.dumps({"found": False, "student_id": student_id})
+    result["found"] = True
+    return _serialize(result)
+
+
+@mcp.tool()
+async def get_objective_memory(student_id: str, objective_id: str) -> str:
+    """Get durable memory for a student on one objective."""
+    result = await asyncio.to_thread(
+        db.get_objective_memory, student_id, objective_id
+    )
+    if result is None:
+        return json.dumps(
+            {
+                "found": False,
+                "student_id": student_id,
+                "objective_id": objective_id,
+            }
+        )
+    result["found"] = True
+    return _serialize(result)
+
+
 # ═══════════════════════════════════════════════════════════════════════════
 # WRITE TOOLS — called AFTER the LLM to persist evaluation results
 # ═══════════════════════════════════════════════════════════════════════════
@@ -418,6 +446,50 @@ async def update_student_preferences(
     )
     if result is None:
         return json.dumps({"error": "profile not found", "student_id": student_id})
+    return _serialize(result)
+
+
+@mcp.tool()
+async def upsert_learner_memory(
+    student_id: str,
+    summary: str = "",
+    strengths: str = "[]",
+    support_needs: str = "[]",
+    tendencies: str = "[]",
+    successful_strategies: str = "[]",
+) -> str:
+    """Persist cross-objective learner memory."""
+    result = await asyncio.to_thread(
+        db.upsert_learner_memory,
+        student_id,
+        summary,
+        strengths,
+        support_needs,
+        tendencies,
+        successful_strategies,
+    )
+    return _serialize(result)
+
+
+@mcp.tool()
+async def upsert_objective_memory(
+    student_id: str,
+    objective_id: str,
+    summary: str = "",
+    demonstrated_skills: str = "[]",
+    active_gaps: str = "[]",
+    next_focus: str = "",
+) -> str:
+    """Persist durable memory for one objective."""
+    result = await asyncio.to_thread(
+        db.upsert_objective_memory,
+        student_id,
+        objective_id,
+        summary,
+        demonstrated_skills,
+        active_gaps,
+        next_focus,
+    )
     return _serialize(result)
 
 

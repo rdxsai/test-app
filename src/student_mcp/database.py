@@ -30,8 +30,8 @@ logger = logging.getLogger(__name__)
 VALID_TRANSITIONS = {
     "onboarding": ["introduction"],
     "introduction": ["exploration", "readiness_check", "mini_assessment"],
-    "exploration": ["readiness_check", "mini_assessment", "exploration"],
-    "readiness_check": ["mini_assessment"],
+    "exploration": ["introduction", "readiness_check", "mini_assessment", "exploration"],
+    "readiness_check": ["introduction", "exploration", "mini_assessment"],
     "mini_assessment": ["final_assessment", "introduction"],
     "final_assessment": ["transition", "introduction"],
     "transition": ["introduction"],
@@ -61,12 +61,14 @@ CONFIDENCE_THRESHOLD = 0.7
 class StudentDatabase:
     """PostgreSQL operations for student state management.
 
-    Creates and manages 5 tables in the `student_mcp` schema:
+    Creates and manages 7 tables in the `student_mcp` schema:
       - student_profiles:   identity, background, preferences
       - mastery_records:    per-objective mastery tracking
       - session_state:      active session stage and progress
       - session_summaries:  tiered memory (short/medium/long)
       - misconception_log:  tracked misconceptions per objective
+      - learner_memory:     cross-objective personalization memory
+      - objective_memory:   durable memory for a student on one objective
     """
 
     def __init__(
@@ -215,8 +217,54 @@ class StudentDatabase:
                         ON misconception_log(student_id, objective_id)
                 """)
 
+                # 6. Learner Memory
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS learner_memory (
+                        student_id              TEXT PRIMARY KEY
+                            REFERENCES student_profiles(student_id) ON DELETE CASCADE,
+                        summary                 TEXT DEFAULT '',
+                        strengths               JSONB DEFAULT '[]'::jsonb,
+                        support_needs           JSONB DEFAULT '[]'::jsonb,
+                        tendencies              JSONB DEFAULT '[]'::jsonb,
+                        successful_strategies   JSONB DEFAULT '[]'::jsonb,
+                        updated_at              TIMESTAMPTZ NOT NULL DEFAULT NOW()
+                    )
+                """)
+
+                # 7. Objective Memory
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS objective_memory (
+                        student_id              TEXT NOT NULL
+                            REFERENCES student_profiles(student_id) ON DELETE CASCADE,
+                        objective_id            TEXT NOT NULL,
+                        summary                 TEXT DEFAULT '',
+                        demonstrated_skills     JSONB DEFAULT '[]'::jsonb,
+                        active_gaps             JSONB DEFAULT '[]'::jsonb,
+                        next_focus              TEXT DEFAULT '',
+                        updated_at              TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                        PRIMARY KEY (student_id, objective_id)
+                    )
+                """)
+                cur.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_objective_memory_student
+                        ON objective_memory(student_id, objective_id)
+                """)
+
                 conn.commit()
                 logger.info("Student MCP tables initialized successfully.")
+
+    @staticmethod
+    def _coerce_jsonb(value: Any, default: Any) -> str:
+        """Normalize Python or JSON-string input for JSONB writes."""
+        if value in (None, ""):
+            return json.dumps(default)
+        if isinstance(value, str):
+            try:
+                json.loads(value)
+                return value
+            except json.JSONDecodeError:
+                return json.dumps(default)
+        return json.dumps(value)
 
     # ------------------------------------------------------------------
     # Read: Student Profiles
@@ -337,6 +385,140 @@ class StudentDatabase:
                     RETURNING *
                     """,
                     (student_id, objective_id, mastery_level, evidence_summary),
+                )
+                row = cur.fetchone()
+                conn.commit()
+                return dict(row)
+
+    # ------------------------------------------------------------------
+    # Read/Write: Learner memory
+    # ------------------------------------------------------------------
+
+    def get_learner_memory(self, student_id: str) -> Optional[Dict[str, Any]]:
+        """Get the durable learner-memory profile for a student."""
+        with self.get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    SELECT * FROM learner_memory
+                    WHERE student_id = %s
+                    """,
+                    (student_id,),
+                )
+                row = cur.fetchone()
+                return dict(row) if row else None
+
+    def upsert_learner_memory(
+        self,
+        student_id: str,
+        summary: str = "",
+        strengths: Any = None,
+        support_needs: Any = None,
+        tendencies: Any = None,
+        successful_strategies: Any = None,
+    ) -> Dict[str, Any]:
+        """Create or update cross-objective learner memory."""
+        strengths_json = self._coerce_jsonb(strengths, [])
+        support_json = self._coerce_jsonb(support_needs, [])
+        tendencies_json = self._coerce_jsonb(tendencies, [])
+        strategies_json = self._coerce_jsonb(successful_strategies, [])
+
+        with self.get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    INSERT INTO learner_memory
+                        (student_id, summary, strengths, support_needs,
+                         tendencies, successful_strategies)
+                    VALUES (%s, %s, %s::jsonb, %s::jsonb, %s::jsonb, %s::jsonb)
+                    ON CONFLICT (student_id) DO UPDATE SET
+                        summary = CASE
+                            WHEN EXCLUDED.summary <> '' THEN EXCLUDED.summary
+                            ELSE learner_memory.summary
+                        END,
+                        strengths = EXCLUDED.strengths,
+                        support_needs = EXCLUDED.support_needs,
+                        tendencies = EXCLUDED.tendencies,
+                        successful_strategies = EXCLUDED.successful_strategies,
+                        updated_at = NOW()
+                    RETURNING *
+                    """,
+                    (
+                        student_id,
+                        summary,
+                        strengths_json,
+                        support_json,
+                        tendencies_json,
+                        strategies_json,
+                    ),
+                )
+                row = cur.fetchone()
+                conn.commit()
+                return dict(row)
+
+    # ------------------------------------------------------------------
+    # Read/Write: Objective memory
+    # ------------------------------------------------------------------
+
+    def get_objective_memory(
+        self, student_id: str, objective_id: str,
+    ) -> Optional[Dict[str, Any]]:
+        """Get durable memory for one student-objective pair."""
+        with self.get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    SELECT * FROM objective_memory
+                    WHERE student_id = %s AND objective_id = %s
+                    """,
+                    (student_id, objective_id),
+                )
+                row = cur.fetchone()
+                return dict(row) if row else None
+
+    def upsert_objective_memory(
+        self,
+        student_id: str,
+        objective_id: str,
+        summary: str = "",
+        demonstrated_skills: Any = None,
+        active_gaps: Any = None,
+        next_focus: str = "",
+    ) -> Dict[str, Any]:
+        """Create or update durable objective-specific learning memory."""
+        skills_json = self._coerce_jsonb(demonstrated_skills, [])
+        gaps_json = self._coerce_jsonb(active_gaps, [])
+
+        with self.get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    INSERT INTO objective_memory
+                        (student_id, objective_id, summary, demonstrated_skills,
+                         active_gaps, next_focus)
+                    VALUES (%s, %s, %s, %s::jsonb, %s::jsonb, %s)
+                    ON CONFLICT (student_id, objective_id) DO UPDATE SET
+                        summary = CASE
+                            WHEN EXCLUDED.summary <> '' THEN EXCLUDED.summary
+                            ELSE objective_memory.summary
+                        END,
+                        demonstrated_skills = EXCLUDED.demonstrated_skills,
+                        active_gaps = EXCLUDED.active_gaps,
+                        next_focus = CASE
+                            WHEN EXCLUDED.next_focus <> '' THEN EXCLUDED.next_focus
+                            ELSE objective_memory.next_focus
+                        END,
+                        updated_at = NOW()
+                    RETURNING *
+                    """,
+                    (
+                        student_id,
+                        objective_id,
+                        summary,
+                        skills_json,
+                        gaps_json,
+                        next_focus,
+                    ),
                 )
                 row = cur.fetchone()
                 conn.commit()
@@ -665,7 +847,6 @@ class StudentDatabase:
                 session = dict(row)
 
         current_stage = session.get("current_stage", "")
-        turns = session.get("turns_on_objective", 0)
         valid_targets = VALID_TRANSITIONS.get(current_stage, [])
 
         if target_stage not in valid_targets:
@@ -674,16 +855,6 @@ class StudentDatabase:
                 "reason": f"Cannot transition from {current_stage} to {target_stage}",
                 "valid_targets": valid_targets,
             }
-
-        if current_stage in ("exploration", "introduction") and target_stage in (
-            "readiness_check", "mini_assessment"
-        ):
-            if turns < MIN_TURNS:
-                return {
-                    "valid": False,
-                    "reason": f"Need at least {MIN_TURNS} turns (currently {turns})",
-                    "current_turns": turns,
-                }
 
         return {"valid": True}
 
