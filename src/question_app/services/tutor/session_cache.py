@@ -17,10 +17,110 @@ HybridCrewAISocraticSystem instance, scoped to the process lifetime.
 """
 
 import logging
+import re
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
+
+
+def _normalize_concept_id(label: str) -> str:
+    raw = re.sub(r"[^a-z0-9]+", "-", (label or "").strip().lower()).strip("-")
+    return raw or "concept"
+
+
+def _clean_plan_line(line: str) -> str:
+    cleaned = re.sub(r"^\s*[-*+]\s*", "", line.strip())
+    cleaned = re.sub(r"^\s*\d+[.)]\s*", "", cleaned)
+    return cleaned.strip()
+
+
+def _parse_text_plan_sections(plan_text: str) -> Dict[str, str]:
+    section_pattern = re.compile(
+        r'(?:^|\n)(?:##?\s*)?(\d{1,2})\.\s*([a-z][\w_]*)\s*\n(.*?)(?=\n(?:##?\s*)?\d{1,2}\.\s*[a-z][\w_]*\s*\n|\Z)',
+        re.DOTALL,
+    )
+    sections: Dict[str, str] = {}
+    for match in section_pattern.finditer(plan_text or ""):
+        sections[match.group(2).strip().lower()] = match.group(3).strip()
+    return sections
+
+
+def _extract_ordered_concepts_from_text_plan(plan_text: str) -> List[Dict[str, str]]:
+    sections = _parse_text_plan_sections(plan_text)
+    ordered_labels: List[str] = []
+
+    dependency_body = sections.get("dependency_order", "")
+    for raw_line in dependency_body.splitlines():
+        line = _clean_plan_line(raw_line)
+        if not line:
+            continue
+        if "->" in line or "→" in line:
+            for part in re.split(r"\s*(?:->|→)\s*", line):
+                cleaned = _clean_plan_line(part)
+                if cleaned:
+                    ordered_labels.append(cleaned)
+        else:
+            ordered_labels.append(line)
+
+    if not ordered_labels:
+        concept_body = sections.get("concept_decomposition", "")
+        for raw_line in concept_body.splitlines():
+            line = _clean_plan_line(raw_line)
+            if not line or len(line.split()) < 2:
+                continue
+            ordered_labels.append(line)
+
+    seen = set()
+    concepts = []
+    for label in ordered_labels:
+        concept_id = _normalize_concept_id(label)
+        if concept_id in seen:
+            continue
+        seen.add(concept_id)
+        concepts.append({
+            "id": concept_id,
+            "label": label,
+            "status": "not_covered",
+        })
+    return concepts
+
+
+def _build_lesson_state(plan: Any) -> Dict[str, Any]:
+    concepts: List[Dict[str, str]] = []
+
+    if isinstance(plan, dict) and plan.get("concepts"):
+        order = plan.get("recommended_order") or []
+        concepts_by_id = {}
+        for concept in plan.get("concepts", []):
+            concept_id = str(concept.get("id") or _normalize_concept_id(concept.get("name", "")))
+            concepts_by_id[concept_id] = {
+                "id": concept_id,
+                "label": concept.get("name", concept_id),
+                "status": concept.get("status", "not_covered"),
+            }
+        for concept_id in order:
+            normalized = str(concept_id)
+            if normalized in concepts_by_id:
+                concepts.append(concepts_by_id.pop(normalized))
+        concepts.extend(concepts_by_id.values())
+    elif isinstance(plan, str):
+        concepts = _extract_ordered_concepts_from_text_plan(plan)
+
+    if not concepts:
+        return {}
+
+    active = next(
+        (concept for concept in concepts if concept.get("status") != "covered"),
+        concepts[0],
+    )
+    return {
+        "active_concept": active["id"],
+        "pending_check": active["label"],
+        "bridge_back_target": active["id"],
+        "teaching_order": [concept["id"] for concept in concepts],
+        "concepts": concepts,
+    }
 
 
 class SessionContentCache:
@@ -63,6 +163,7 @@ class SessionContentCache:
             "rag_chunks": rag_chunks,
             "wcag_context": wcag_context,
             "teaching_content": teaching_content,
+            "lesson_state": {},
             "retrieved_at": datetime.now().isoformat(),
         }
         logger.info(
@@ -113,6 +214,7 @@ class SessionContentCache:
         entry = self._cache.get(session_id)
         if entry:
             entry["teaching_plan"] = plan
+            entry["lesson_state"] = _build_lesson_state(plan)
             if isinstance(plan, dict):
                 detail = f"{len(plan.get('concepts', []))} concepts"
             else:
@@ -129,17 +231,93 @@ class SessionContentCache:
     ) -> None:
         """Mark a concept as covered/partially_covered/not_covered.
 
-        Only works with legacy dict-format plans that have a 'concepts' array.
-        No-op for string-format plans.
+        Updates both the legacy plan structure (when present) and the structured
+        lesson state used by the guided runtime.
         """
         plan = self.get_teaching_plan(session_id)
-        if not plan or not isinstance(plan, dict):
+        if plan and isinstance(plan, dict):
+            for concept in plan.get("concepts", []):
+                if concept.get("id") == concept_id:
+                    concept["status"] = status
+                    logger.debug(f"Concept {concept_id} → {status}")
+                    break
+        lesson_state = self.get_lesson_state(session_id)
+        if not lesson_state:
             return
-        for concept in plan.get("concepts", []):
+        for concept in lesson_state.get("concepts", []):
             if concept.get("id") == concept_id:
                 concept["status"] = status
-                logger.debug(f"Concept {concept_id} → {status}")
-                return
+                break
+        self._sync_active_concept(lesson_state)
+
+    def get_lesson_state(self, session_id: str) -> Optional[Dict[str, Any]]:
+        entry = self._cache.get(session_id)
+        state = entry.get("lesson_state") if entry else None
+        return state if state else None
+
+    def apply_lesson_state_patch(
+        self, session_id: str, patch: Optional[Dict[str, Any]],
+    ) -> Optional[Dict[str, Any]]:
+        if not patch:
+            return self.get_lesson_state(session_id)
+        entry = self._cache.get(session_id)
+        if not entry:
+            return None
+        lesson_state = entry.setdefault("lesson_state", {})
+        concepts = lesson_state.setdefault("concepts", [])
+
+        for update in patch.get("concept_updates", []) or []:
+            concept_id = str(update.get("concept_id", "")).strip()
+            if not concept_id:
+                continue
+            status = str(update.get("status", "")).strip() or "in_progress"
+            label = str(update.get("label", concept_id)).strip() or concept_id
+            existing = next(
+                (concept for concept in concepts if concept.get("id") == concept_id),
+                None,
+            )
+            if existing:
+                existing["status"] = status
+                if label:
+                    existing["label"] = label
+            else:
+                concepts.append({"id": concept_id, "label": label, "status": status})
+                order = lesson_state.setdefault("teaching_order", [])
+                if concept_id not in order:
+                    order.append(concept_id)
+
+        for field in ("active_concept", "pending_check", "bridge_back_target"):
+            value = str(patch.get(field, "") or "").strip()
+            if value:
+                lesson_state[field] = value
+
+        self._sync_active_concept(lesson_state)
+        return lesson_state
+
+    @staticmethod
+    def _sync_active_concept(lesson_state: Dict[str, Any]) -> None:
+        concepts = lesson_state.get("concepts", [])
+        if not concepts:
+            return
+        concepts_by_id = {concept.get("id"): concept for concept in concepts}
+        teaching_order = lesson_state.get("teaching_order") or [
+            concept.get("id") for concept in concepts
+        ]
+        next_active = None
+        for concept_id in teaching_order:
+            concept = concepts_by_id.get(concept_id)
+            if concept and concept.get("status") != "covered":
+                next_active = concept
+                break
+        if not next_active:
+            next_active = concepts[0]
+        if lesson_state.get("bridge_back_target") not in concepts_by_id:
+            lesson_state["bridge_back_target"] = next_active.get("id", "")
+        if not str(lesson_state.get("pending_check", "") or "").strip():
+            lesson_state["pending_check"] = next_active.get("label", "")
+        current_active = concepts_by_id.get(lesson_state.get("active_concept"))
+        if not current_active or current_active.get("status") == "covered":
+            lesson_state["active_concept"] = next_active.get("id", "")
 
     @property
     def size(self) -> int:

@@ -112,3 +112,95 @@ class TestMultipleSessions:
         cache.invalidate("sess-1")
         assert cache.get("sess-1") is None
         assert cache.get("sess-2") is not None
+
+
+class TestLessonState:
+
+    def test_store_dict_plan_builds_lesson_state(self, cache):
+        cache.store("sess-1", "obj-1", "Objective", [], "", "content")
+        cache.store_teaching_plan(
+            "sess-1",
+            {
+                "objective": "Objective",
+                "concepts": [
+                    {"id": "c1", "name": "Hierarchy", "status": "not_covered"},
+                    {"id": "c2", "name": "Conformance", "status": "not_covered"},
+                ],
+                "recommended_order": ["c1", "c2"],
+            },
+        )
+        lesson_state = cache.get_lesson_state("sess-1")
+        assert lesson_state is not None
+        assert lesson_state["active_concept"] == "c1"
+        assert lesson_state["bridge_back_target"] == "c1"
+        assert lesson_state["teaching_order"] == ["c1", "c2"]
+
+    def test_store_text_plan_builds_lesson_state(self, cache):
+        cache.store("sess-1", "obj-1", "Objective", [], "", "content")
+        cache.store_teaching_plan(
+            "sess-1",
+            (
+                "1. plain_language_goal\nExplain WCAG structure simply.\n\n"
+                "7. concept_decomposition\n"
+                "- Principles vs guidelines\n"
+                "- Success criteria placement\n\n"
+                "8. dependency_order\n"
+                "1. Principles vs guidelines\n"
+                "2. Success criteria placement\n"
+            ),
+        )
+        lesson_state = cache.get_lesson_state("sess-1")
+        assert lesson_state is not None
+        assert lesson_state["active_concept"] == "principles-vs-guidelines"
+        assert lesson_state["pending_check"] == "Principles vs guidelines"
+        assert lesson_state["teaching_order"] == [
+            "principles-vs-guidelines",
+            "success-criteria-placement",
+        ]
+
+    def test_apply_lesson_state_patch_updates_concepts(self, cache):
+        cache.store("sess-1", "obj-1", "Objective", [], "", "content")
+        cache.store_teaching_plan(
+            "sess-1",
+            {
+                "objective": "Objective",
+                "concepts": [
+                    {"id": "c1", "name": "Hierarchy", "status": "not_covered"},
+                    {"id": "c2", "name": "Conformance", "status": "not_covered"},
+                ],
+                "recommended_order": ["c1", "c2"],
+            },
+        )
+        lesson_state = cache.apply_lesson_state_patch(
+            "sess-1",
+            {
+                "active_concept": "c2",
+                "pending_check": "Explain the conformance roll-up rule",
+                "bridge_back_target": "c2",
+                "concept_updates": [
+                    {"concept_id": "c1", "status": "covered"},
+                    {"concept_id": "c2", "status": "in_progress"},
+                ],
+            },
+        )
+        assert lesson_state is not None
+        assert lesson_state["active_concept"] == "c2"
+        assert lesson_state["pending_check"] == "Explain the conformance roll-up rule"
+        assert lesson_state["concepts"][0]["status"] == "covered"
+        assert lesson_state["concepts"][1]["status"] == "in_progress"
+
+    def test_update_concept_status_updates_text_plan_lesson_state(self, cache):
+        cache.store("sess-1", "obj-1", "Objective", [], "", "content")
+        cache.store_teaching_plan(
+            "sess-1",
+            (
+                "1. plain_language_goal\nExplain WCAG structure simply.\n\n"
+                "8. dependency_order\n"
+                "1. Principles vs guidelines\n"
+                "2. Success criteria placement\n"
+            ),
+        )
+        cache.update_concept_status("sess-1", "principles-vs-guidelines", "covered")
+        lesson_state = cache.get_lesson_state("sess-1")
+        assert lesson_state is not None
+        assert lesson_state["active_concept"] == "success-criteria-placement"
