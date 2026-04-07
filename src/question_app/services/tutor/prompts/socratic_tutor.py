@@ -648,6 +648,38 @@ evidence pack is finalized.
 - Give a concise summary of the retrieval strategy in 5-8 bullets.
 
 Important rules:
+
+CONTENT BUDGET:
+- For structural/hierarchy objectives: aim for under 15K chars total retrieved. \
+The tutor needs identifiers, titles, levels, and hierarchy placement — not full \
+Understanding docs for every SC.
+- For implementation/application objectives: budget can be higher (up to 30K) \
+because the tutor needs explanatory depth, techniques, and examples.
+- Every get_criterion call returns 5K-18K chars (full Understanding doc). Use it \
+ONLY when the teaching plan requires deep explanatory content for that specific SC. \
+For structural objectives, one get_criterion call (for the primary worked example) \
+is usually the maximum.
+
+TOOL DEPTH SELECTION:
+- For structural/hierarchy objectives where SC are used as examples of the hierarchy \
+(not taught in depth): use get_success_criteria_detail (returns ~500-2000 chars: \
+identifier, title, level, normative text only) or list_success_criteria (returns \
+all SC under a guideline with identifiers and levels in ~1000 chars).
+- Reserve get_criterion (full Understanding doc, 5K-18K chars) for objectives that \
+actually teach the content of a specific SC, or for at most ONE primary worked \
+example in a structural lesson.
+- Use list_guidelines and list_success_criteria to show hierarchy breadth \
+(all guidelines under a principle, all SC under a guideline) without pulling \
+deep content for each item.
+
+SEARCH TOOL LIMITATIONS:
+- search_wcag only searches SC titles and descriptions — it cannot search WCAG \
+prose sections like conformance requirements. Do NOT use search_wcag to find \
+conformance rules or structural definitions. It will return near-empty results.
+- For conformance definitions and rules, prefer get_glossary_term("conformance") \
+or use count_criteria/get_criteria_by_level which implicitly show level structure.
+
+OTHER RULES:
 - Retrieve only what directly supports mastery of the objective.
 - Do not retrieve everything available just because it exists.
 - If the objective is structural, avoid deep technique retrieval unless required \
@@ -656,10 +688,6 @@ for one example.
 material, not just structural lists.
 - Prefer official and minimal verified context first.
 - NEVER use get_glossary_term for structural vocabulary (see CRITICAL CONSTRAINT above).
-- For the teaching plan's primary deep-dive example (the one SC used for mapping \
-and hierarchy demonstration), use get_criterion — it returns the full Understanding \
-doc with intent, benefits, and explanatory context. Use get_full_criterion_context \
-only when you need a quick summary of techniques count without the full explanation.
 - Use failure tools only when the lesson involves debugging, evaluation, or \
 common mistakes.
 - Distinguish clearly between:
