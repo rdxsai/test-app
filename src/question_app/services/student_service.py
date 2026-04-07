@@ -1,9 +1,8 @@
 """
 Student Service — direct database access for student state management.
 
-Replaces the Student MCP subprocess (student_mcp_client.py + student_mcp/server.py)
-with direct calls to StudentDatabase. Same interface as StudentMCPClient so
-hybrid_system.py and chat.py can switch with minimal changes.
+Uses direct calls to StudentDatabase from the `student_mcp` package.
+The FastAPI runtime uses this service instead of a subprocess transport layer.
 
 All methods are async (using asyncio.to_thread for DB calls) to maintain
 compatibility with the async calling code.
@@ -20,8 +19,7 @@ logger = logging.getLogger(__name__)
 class StudentService:
     """Direct database access for student state management.
 
-    Drop-in replacement for StudentMCPClient. Same method signatures,
-    same return types. No subprocess, no JSON-RPC, no MCP protocol.
+    Async wrapper over StudentDatabase. No subprocess or MCP transport.
     """
 
     def __init__(

@@ -1,40 +1,28 @@
-# Student MCP Server — Architecture
+# Student State Architecture
 
 ## Overview
 
-A Python MCP (Model Context Protocol) server that provides student state management for the Socratic tutoring chatbot. It runs as a **subprocess** over stdio and is called **programmatically** by the FastAPI backend — unlike the WCAG MCP server which uses LLM-driven tool calling.
-
-**Why a separate MCP server?**
-- Process isolation: student state management runs independently
-- Protocol standardization: any MCP client can interact with it
-- Same proven pattern: connects identically to how wcag-guidelines-mcp works
-- Clean separation: the main app doesn't need student-specific SQL
+The current application uses `StudentService` for direct DB access to guided-tutor
+learner state. The source of truth is the PostgreSQL `student_mcp` schema, and
+`StudentDatabase` is the shared data layer behind that service.
 
 ## How It Works
 
 ```
-FastAPI Backend (parent process)
+FastAPI Backend
     │
-    ├── StudentMCPClient
-    │     └── stdio_client → subprocess
-    │                          │
-    │                     Student MCP Server
-    │                          │
-    │                     ┌────┴────┐
-    │                     │ FastMCP │
-    │                     │ (tools) │
-    │                     └────┬────┘
-    │                          │
-    │                     StudentDatabase
-    │                          │
-    └─────────────────── PostgreSQL (student_mcp schema)
+    ├── StudentService
+    │     └── StudentDatabase
+    │
+    └────────────────────────── PostgreSQL (student_mcp schema)
 ```
 
-The backend calls tools directly via `session.call_tool()`. No LLM decides which tools to call — the application logic does:
+Guided tutoring now uses a tutor/reflector runtime rather than a single
+tool-calling agent loop:
 
-1. **Before LLM call**: Read tools fetch student profile, mastery state, session info
-2. **LLM generates**: Socratic response + evaluation JSON
-3. **After LLM call**: Write tools persist mastery updates, misconceptions, session state
+1. **Tutor pass**: produce the learner-facing response
+2. **Reflector pass**: produce structured judgments about evidence, stage movement, and memory updates
+3. **Application writes**: persist state deterministically through `StudentService`
 
 ## Database Schema
 
@@ -49,6 +37,8 @@ Uses a dedicated `student_mcp` schema in the same PostgreSQL instance as the mai
 | `session_state` | Active session stage and progress | session_id (PK), current_stage, turns, readiness_score, assessment progress |
 | `session_summaries` | Tiered memory (short/medium/long) | student_id, summary_type, content JSONB, objectives_covered |
 | `misconception_log` | Tracked misconceptions | student_id, objective_id, misconception_text, resolved_at |
+| `learner_memory` | Cross-objective personalization memory | student_id (PK), summary, strengths, support_needs, tendencies |
+| `objective_memory` | Durable memory for one student/objective pair | (student_id, objective_id) PK, summary, demonstrated_skills, active_gaps, next_focus |
 
 ### Mastery Levels
 
@@ -60,72 +50,59 @@ not_attempted → misconception → in_progress → partial → mastered
 
 ```
 onboarding → introduction → exploration → readiness_check →
-mini_assessment → mini_review → final_assessment → transition
+mini_assessment → final_assessment → transition
 ```
 
-## Tools (12/12 implemented)
+## Service Surface
 
-### Read Tools (called before LLM → build context window)
+The learner-state layer currently exposes these high-value operations through
+`StudentService`:
 
-| Tool | Args | Returns |
-|------|------|---------|
-| `get_student_profile` | `student_id` | Profile dict with `found: true/false` |
-| `get_mastery_state` | `student_id` | Array of mastery records (objective_id, mastery_level, evidence, scores, turns) |
-| `get_active_session` | `student_id` | Most recent session state with `found: true/false` |
-| `get_misconception_patterns` | `student_id` | Array of unresolved misconceptions (resolved_at IS NULL) |
-| `get_recommended_next_objective` | `student_id` | Next objective via cross-schema join with main app's `learning_objective` table. Prioritizes: in_progress > partial > not_attempted |
-| `get_session_summary` | `student_id, summary_type` | Most recent summary of given type (short/medium/long) |
-
-### Write Tools (called after LLM → persist evaluation)
-
-| Tool | Args | Action |
-|------|------|--------|
-| `create_student_profile` | `student_id, technical_level, a11y_exposure, role_context, learning_goal` | INSERT (idempotent via ON CONFLICT) |
-| `update_mastery` | `student_id, objective_id, mastery_level, evidence_summary` | UPSERT — increments turns_spent on update |
-| `log_misconception` | `student_id, objective_id, misconception_text, source_question_id` | INSERT new misconception |
-| `update_session_state` | `session_id, student_id, stage, active_objective_id, turns, readiness_score, assessment_progress, stage_summary` | Creates session if needed, then selectively updates non-empty fields |
-| `save_session_summary` | `session_id, student_id, summary_type, content, objectives_covered, mastery_changes` | INSERT summary (content/mastery_changes as JSON strings, objectives_covered as JSON array) |
-| `update_student_preferences` | `student_id, preferred_style` | UPDATE profile preferred_style + last_session_at |
-
-### Tool Design Notes
-
-- All tools return JSON strings (MCP TextContent). Timestamps are ISO 8601.
-- Read tools return `{"found": false}` for missing records (not errors).
-- Write tools use UPSERT/ON CONFLICT for idempotency where applicable.
-- Complex params (JSONB) are passed as JSON strings and parsed server-side.
-- DB calls use `asyncio.to_thread()` to avoid blocking the event loop.
-- `get_recommended_next_objective` does a cross-schema query joining `{MAIN_DB_SCHEMA}.learning_objective` with `student_mcp.mastery_records`.
+- `get_profile`
+- `get_mastery_state`
+- `get_active_session`
+- `get_misconception_patterns`
+- `get_recommended_next_objective`
+- `get_session_summary`
+- `get_learner_memory`
+- `get_objective_memory`
+- `get_memory_bundle`
+- `create_profile`
+- `apply_mastery_judgment`
+- `log_misconception`
+- `resolve_misconception`
+- `update_session_state`
+- `save_session_summary`
+- `upsert_learner_memory`
+- `upsert_objective_memory`
+- `record_assessment_answer`
 
 ## Client Integration
 
-The FastAPI backend connects to this server via `StudentMCPClient` (`src/question_app/services/student_mcp_client.py`). The client follows the same lifecycle pattern as `WCAGMCPClient`:
+Current production wiring:
 
-- **Lazy init**: subprocess starts on first tool call, not at import time
-- **asyncio.Lock**: prevents double-initialization under concurrent requests
-- **Auto-reconnect**: if the subprocess dies, the next `_call()` resets the session and reconnects
-- **Direct calls**: `session.call_tool()` — no LLM function-calling layer
+- `chat.py` creates `StudentService`
+- `HybridCrewAISocraticSystem` receives it as `student_mcp_client`
+- guided turns load learner state before the tutor pass and apply reflector outputs after generation
 
 ### Wiring
 
 ```
 config.py          →  STUDENT_MCP_ENABLED (env var, default: true)
-chat.py            →  StudentMCPClient(command=python, args=["-m", "student_mcp"])
+chat.py            →  StudentService()
                    →  passed to HybridCrewAISocraticSystem(student_mcp_client=...)
 hybrid_system.py   →  self.student_mcp = student_mcp_client
-                   →  read tools before LLM, write tools after LLM
+                   →  load memory bundle before tutor pass
+                   →  apply reflector judgments after tutor pass
 ```
 
-### Read/Write Flow
+### Guided Turn Flow
 
 ```python
-# Before LLM call (build context):
-profile = await self.student_mcp.get_profile(student_id)
-mastery = await self.student_mcp.get_mastery_state(student_id)
-session = await self.student_mcp.get_active_session(student_id)
-
-# After LLM call (persist evaluation):
-await self.student_mcp.update_mastery(student_id, obj_id, level, evidence)
-await self.student_mcp.update_session_state(session_id, stage=new_stage)
+bundle = await self.student_mcp.get_memory_bundle(student_id, objective_id)
+tutor_response = run_tutor_pass(bundle, history, objective, stage)
+reflection = run_reflector_pass(bundle, history, tutor_response)
+await apply_reflection_updates(reflection)
 ```
 
 ## Pipeline Integration
@@ -183,23 +160,11 @@ Environment variables (inherited from parent process):
 | `POSTGRES_PASSWORD` | changeme_dev | Database password |
 | `MAIN_DB_SCHEMA` | prod | Main app schema (for cross-schema queries) |
 
-## Running
-
-```bash
-# Standalone (for testing)
-PYTHONPATH=src python -m student_mcp
-
-# Via poetry
-poetry run student-mcp
-```
-
 ## File Structure
 
 ```
 src/student_mcp/
     __init__.py       # Package docstring
-    __main__.py       # python -m entry point
-    server.py         # FastMCP server + tool definitions
     database.py       # StudentDatabase class + all SQL
     ARCHITECTURE.md   # This file
 ```
