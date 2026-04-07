@@ -245,6 +245,65 @@ _TOOL_NAME_TO_MCP = {
 }
 
 
+"""
+Deterministic filters for retrieval pipeline.
+
+These prevent known-bad tool calls from wasting MCP round trips.
+The WCAG glossary only contains specialized technical terms, NOT
+structural vocabulary. This blocklist is maintained from observed
+failures in pipeline traces.
+"""
+
+# Terms that are NOT in the WCAG 2.2 glossary and will always return
+# "Not found". Kept as lowercase for case-insensitive matching.
+GLOSSARY_BLOCKLIST = frozenset({
+    "principle",
+    "guideline",
+    "success criterion",
+    "success criteria",
+    "conformance level",
+    "level a",
+    "level aa",
+    "level aaa",
+    "sufficient techniques",
+    "sufficient technique",
+    "advisory techniques",
+    "advisory technique",
+    "failure techniques",
+    "failure technique",
+    "normative",
+    "informative",
+})
+
+
+def filter_glossary_call(term: str) -> bool:
+    """Return True if the glossary term is safe to call, False if it's in the blocklist."""
+    return term.strip().lower() not in GLOSSARY_BLOCKLIST
+
+
+def normalize_tool_args(fn_name: str, fn_args: dict) -> dict:
+    """Normalize tool call arguments to prevent common LLM formatting errors.
+
+    Fixes observed in pipeline traces:
+    - list_success_criteria(guideline="1.4 Distinguishable") → guideline="1.4"
+    - get_guideline(ref_id="1.4 Distinguishable") → ref_id="1.4"
+    - get_criterion(ref_id="SC 1.4.3") → ref_id="1.4.3"
+    """
+    import re
+    args = dict(fn_args)  # don't mutate the original
+
+    # Strip descriptive text from ref_id and guideline args
+    # "1.4 Distinguishable" → "1.4", "SC 1.4.3" → "1.4.3"
+    for key in ("ref_id", "guideline"):
+        if key in args and isinstance(args[key], str):
+            # Extract the WCAG-style numeric ref (e.g., 1.4.3, 2.1, 1.4)
+            match = re.search(r'\b(\d+(?:\.\d+){1,2})\b', args[key])
+            if match:
+                args[key] = match.group(1)
+
+    return args
+
+
 class WCAGMCPClient:
     """Async wrapper around the wcag-guidelines-mcp MCP server with LLM-driven tool selection."""
 
@@ -337,10 +396,26 @@ class WCAGMCPClient:
         """
         Execute tool_calls against MCP server concurrently.
         Returns list of {tool_call_id, fn_name, fn_args, mcp_result, is_empty}.
+
+        Applies deterministic filters before execution:
+        - Blocks glossary lookups for terms known to not exist in WCAG glossary
+        - Normalizes tool arguments (strips descriptive text from ref_ids)
         """
         async def _execute_one(tc):
             fn_name = tc["function"]["name"]
             fn_args = json.loads(tc["function"]["arguments"])
+
+            # --- Deterministic filter: block known-bad glossary calls ---
+            if fn_name == "get_glossary_term" and "term" in fn_args:
+                if not filter_glossary_call(fn_args["term"]):
+                    logger.info(f"WCAG MCP: blocked glossary lookup for '{fn_args['term']}' (in blocklist)")
+                    return {"tool_call_id": tc["id"], "fn_name": fn_name, "fn_args": fn_args,
+                            "mcp_result": None, "is_empty": True,
+                            "blocked": True, "block_reason": f"'{fn_args['term']}' is not in the WCAG glossary"}
+
+            # --- Normalize arguments (fix LLM formatting errors) ---
+            fn_args = normalize_tool_args(fn_name, fn_args)
+
             mapping = _TOOL_NAME_TO_MCP.get(fn_name)
             if not mapping:
                 logger.warning(f"WCAG MCP: unknown function '{fn_name}'")
