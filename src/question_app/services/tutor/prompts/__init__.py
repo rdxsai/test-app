@@ -1,19 +1,21 @@
 """
-Stage-adaptive tutoring prompt templates.
+Tutoring prompt templates.
 
-Two teaching styles that shift by stage:
-  - Introduction: teach-first (explain, check, respond)
-  - Exploration: Socratic (set up, question, adapt)
+Three prompt systems:
+  - TUTOR_SYSTEM_PROMPT: Socratic tutor for Instance B (guided learning)
+  - CONCEPT_DECOMPOSITION_PROMPT: Instructional designer for teaching plans
+  - RETRIEVAL_PLANNER_PROMPT: Retrieval planner for evidence pack curation
 
-Two prompt variants:
-  - Instance A: General Q&A (teach-first, no stages or tools)
-  - Instance B: Guided learning (stage-aware with adaptive teaching approach)
+Instance A (Q&A) retains the older teach-first approach.
+Instance B (Guided Learning) uses TUTOR_SYSTEM_PROMPT with plan + evidence.
 """
 
 from .socratic_tutor import (
     build_instance_a_prompt,
     build_instance_b_prompt,
+    TUTOR_SYSTEM_PROMPT,
     CONCEPT_DECOMPOSITION_PROMPT,
+    RETRIEVAL_PLANNER_PROMPT,
     AGENT_TOOL_INSTRUCTIONS,
     format_teaching_plan,
 )
@@ -21,7 +23,9 @@ from .socratic_tutor import (
 __all__ = [
     "build_instance_a_prompt",
     "build_instance_b_prompt",
+    "TUTOR_SYSTEM_PROMPT",
     "CONCEPT_DECOMPOSITION_PROMPT",
+    "RETRIEVAL_PLANNER_PROMPT",
     "AGENT_TOOL_INSTRUCTIONS",
     "format_teaching_plan",
 ]
