@@ -922,43 +922,41 @@ class HybridCrewAISocraticSystem:
                 except Exception as e:
                     logger.warning(f"Failed to fetch objective text for {objective_id}: {e}")
 
-            # Step 2: Check session content cache — retrieve if needed
+            # Step 2: Check session content cache — run pipeline if needed
             if self._session_cache.needs_retrieval(session_id, objective_id):
-                await ws_send({"type": "stage", "stage": "searching",
-                               "detail": "Retrieving teaching content for this objective..."})
-                rag_context, rag_chunks, wcag_context = await self.get_combined_context(
-                    objective_text or student_response, history=history
-                )
-                teaching_content = rag_context
-                if wcag_context:
-                    teaching_content = f"{rag_context}\n\n{wcag_context}" if rag_context else wcag_context
-
-                self._session_cache.store(
-                    session_id, objective_id, objective_text,
-                    rag_chunks, wcag_context, teaching_content,
-                )
-                if rag_chunks:
-                    await ws_send({
-                        "type": "rag_chunks",
-                        "chunks": [
-                            {"content": c.get("content", ""), "topic": c.get("topic", ""),
-                             "question_id": c.get("question_id", ""),
-                             "distance": round(c.get("distance", 0), 3) if c.get("distance") is not None else None,
-                             "rrf_score": round(c.get("rrf_score", 0), 4) if c.get("rrf_score") else 0}
-                            for c in rag_chunks
-                        ],
-                    })
-
-                # Generate teaching plan — once per objective
                 try:
-                    await ws_send({"type": "stage", "stage": "composing",
-                                   "detail": "Creating teaching plan..."})
-                    teaching_plan = await self._generate_teaching_plan(
-                        objective_text, teaching_content
+                    teaching_plan, evidence_pack = await self._run_teaching_content_pipeline(
+                        objective_text or student_response,
+                        session_id, objective_id, ws_send,
+                    )
+                    # Cache results
+                    self._session_cache.store(
+                        session_id, objective_id, objective_text,
+                        [], "", evidence_pack,  # no RAG chunks or wcag_context in new pipeline
                     )
                     self._session_cache.store_teaching_plan(session_id, teaching_plan)
+                    teaching_content = evidence_pack
                 except Exception as e:
-                    logger.warning(f"Teaching plan generation failed (non-critical): {e}")
+                    logger.error(f"Teaching content pipeline failed: {e}", exc_info=True)
+                    # Fallback: try old retrieval path
+                    logger.info("Falling back to RAG + WCAG MCP retrieval")
+                    rag_context, rag_chunks, wcag_context = await self.get_combined_context(
+                        objective_text or student_response, history=history
+                    )
+                    teaching_content = rag_context
+                    if wcag_context:
+                        teaching_content = f"{rag_context}\n\n{wcag_context}" if rag_context else wcag_context
+                    self._session_cache.store(
+                        session_id, objective_id, objective_text,
+                        rag_chunks, wcag_context, teaching_content,
+                    )
+                    try:
+                        teaching_plan = await self._generate_teaching_plan(
+                            objective_text, teaching_content
+                        )
+                        self._session_cache.store_teaching_plan(session_id, teaching_plan)
+                    except Exception as plan_err:
+                        logger.warning(f"Fallback teaching plan failed: {plan_err}")
             else:
                 teaching_content = self._session_cache.get_teaching_content(session_id)
 
@@ -1484,6 +1482,200 @@ class HybridCrewAISocraticSystem:
             ],
             "recommended_order": ["c1"],
         }
+
+    # ------------------------------------------------------------------
+    # Plan-first teaching content pipeline (Instance B)
+    # ------------------------------------------------------------------
+
+    _AVAILABLE_TOOLS_TEXT = """
+Available WCAG MCP tools:
+1. list_principles() — Lists all 4 WCAG 2.2 principles with descriptions.
+2. list_guidelines(principle?) — Lists guidelines, optionally filtered by principle (1-4).
+3. list_success_criteria(level?, guideline?, principle?) — Lists SC with optional filters.
+4. get_success_criteria_detail(ref_id) — Gets normative SC text only (~500-2000 chars).
+5. get_criterion(ref_id) — Gets full SC details including Understanding docs (~5K-18K chars).
+6. get_guideline(ref_id) — Gets full guideline details including all its SC.
+7. search_wcag(query, level?) — Searches SC titles/descriptions by keyword.
+8. get_criteria_by_level(level, include_lower?) — Gets all SC for a conformance level.
+9. count_criteria(group_by) — Returns counts grouped by level, principle, or guideline.
+10. get_full_criterion_context(ref_id) — Gets comprehensive SC context + techniques + glossary.
+11. get_techniques_for_criterion(ref_id) — Gets all techniques for a specific SC.
+12. get_technique(id) — Gets details for a specific technique by ID.
+13. search_techniques(query) — Searches techniques by keyword.
+14. get_glossary_term(term) — Gets official WCAG definition of a glossary term.
+15. whats_new_in_wcag22() — Lists all SC added in WCAG 2.2.
+"""
+
+    async def _run_teaching_content_pipeline(
+        self, objective_text: str, session_id: str, objective_id: str, ws_send,
+    ) -> tuple:
+        """Run the plan-first teaching content pipeline for Instance B.
+
+        Steps:
+        1. Generate teaching plan from objective (LLM)
+        2. Generate retrieval plan from teaching plan (LLM)
+        3. Extract tool calls as JSON (LLM)
+        4. Execute tool calls deterministically (MCP, no LLM)
+        5. Evidence checks + fallbacks
+        6. Return (teaching_plan, evidence_pack)
+
+        This replaces the old get_combined_context() + _generate_teaching_plan()
+        flow for Instance B. Instance A still uses the old flow.
+        """
+        # Step 1: Teaching plan
+        await ws_send({"type": "stage", "stage": "composing",
+                       "detail": "Creating teaching plan..."})
+        teaching_plan = await self._generate_teaching_plan(objective_text)
+        logger.info(f"Pipeline step 1: teaching plan ({len(str(teaching_plan))} chars)")
+
+        # Step 2: Retrieval plan
+        await ws_send({"type": "stage", "stage": "searching",
+                       "detail": "Planning content retrieval..."})
+        retrieval_plan = await self._generate_retrieval_plan(
+            objective_text, teaching_plan
+        )
+        logger.info(f"Pipeline step 2: retrieval plan ({len(retrieval_plan)} chars)")
+
+        # Step 3: Extract tool calls
+        await ws_send({"type": "stage", "stage": "searching",
+                       "detail": "Extracting tool calls..."})
+        planned_calls = await self._extract_tool_calls(retrieval_plan)
+        logger.info(f"Pipeline step 3: extracted {len(planned_calls)} tool calls")
+
+        # Step 4: Execute deterministically
+        await ws_send({"type": "stage", "stage": "searching",
+                       "detail": f"Retrieving WCAG content ({len(planned_calls)} calls)..."})
+        results = await self.wcag_mcp.execute_planned_tool_calls(planned_calls)
+        hits = [r for r in results if r["status"] == "HIT"]
+        logger.info(
+            f"Pipeline step 4: {len(hits)}/{len(results)} hits, "
+            f"{sum(r['chars'] for r in hits)} chars"
+        )
+
+        # Step 5: Evidence checks + fallbacks
+        await ws_send({"type": "stage", "stage": "searching",
+                       "detail": "Validating evidence..."})
+        evidence_pack = await self._build_evidence_pack(results)
+        logger.info(f"Pipeline step 5: evidence pack ({len(evidence_pack)} chars)")
+
+        await ws_send({"type": "stage", "stage": "searching",
+                       "detail": f"Evidence pack: {len(evidence_pack)} chars from {len(hits)} sources"})
+
+        return teaching_plan, evidence_pack
+
+    async def _generate_retrieval_plan(
+        self, objective_text: str, teaching_plan,
+    ) -> str:
+        """Generate a retrieval plan from the teaching plan (LLM call)."""
+        from .prompts import RETRIEVAL_PLANNER_PROMPT
+
+        plan_text = str(teaching_plan) if teaching_plan else ""
+        messages = [
+            {"role": "system", "content": RETRIEVAL_PLANNER_PROMPT},
+            {"role": "user", "content": (
+                f"LEARNING OBJECTIVE:\n{objective_text}\n\n"
+                f"{self._AVAILABLE_TOOLS_TEXT}\n\n"
+                f"TEACHING PLAN:\n{plan_text}"
+            )},
+        ]
+        response = await asyncio.to_thread(
+            self.client.chat, messages, 0.3, 2500
+        )
+        return response or ""
+
+    async def _extract_tool_calls(self, retrieval_plan: str) -> list:
+        """Extract planned tool calls from retrieval plan as JSON (LLM call)."""
+        from .prompts import TOOL_CALL_EXTRACTION_PROMPT
+
+        messages = [
+            {"role": "system", "content": TOOL_CALL_EXTRACTION_PROMPT},
+            {"role": "user", "content": retrieval_plan},
+        ]
+        response = await asyncio.to_thread(
+            self.client.chat, messages, 0.0, 1500
+        )
+
+        # Parse JSON — strip markdown fences if present
+        text = (response or "").strip()
+        if text.startswith("```"):
+            lines = text.split("\n")
+            text = "\n".join(
+                lines[1:-1] if lines[-1].strip() == "```" else lines[1:]
+            )
+
+        try:
+            calls = json.loads(text)
+            if isinstance(calls, list):
+                return calls
+        except (json.JSONDecodeError, TypeError):
+            logger.warning(f"Tool call extraction failed to parse JSON, using fallback")
+
+        # Fallback: minimal safe calls
+        return [
+            {"tool": "list_principles", "args": {}, "category": "must_have"},
+            {"tool": "list_guidelines", "args": {}, "category": "must_have"},
+            {"tool": "get_glossary_term", "args": {"term": "conformance"}, "category": "must_have"},
+        ]
+
+    async def _build_evidence_pack(self, results: list) -> str:
+        """Build the evidence pack from tool call results, with evidence checks.
+
+        Checks for two critical evidence items:
+        - Conformance roll-up rule (AA = all A + all AA)
+        - Techniques vs requirements distinction
+
+        Runs fallback tool calls if either is missing.
+        """
+        # Collect hit content
+        hit_content = "\n".join(r["result"] for r in results if r["status"] == "HIT")
+
+        # Evidence check: conformance roll-up rule
+        rollup_phrases = [
+            "all level a and level aa", "all a and aa", "satisfying all",
+            "all a and all aa", "meet all level a",
+            "all level a success criteria",
+        ]
+        has_rollup = any(p in hit_content.lower() for p in rollup_phrases)
+
+        # Evidence check: techniques vs requirements
+        technique_phrases = [
+            "sufficient technique", "advisory technique", "informative",
+            "techniques are not required", "sufficient and advisory",
+        ]
+        has_techniques = any(p in hit_content.lower() for p in technique_phrases)
+
+        # Fallback calls if evidence is missing
+        fallback_calls = []
+        if not has_rollup:
+            logger.info("Evidence check: roll-up rule MISSING, running fallbacks")
+            fallback_calls.extend([
+                {"tool": "get_glossary_term", "args": {"term": "conformance"}, "category": "fallback"},
+                {"tool": "get_criterion", "args": {"ref_id": "1.1.1"}, "category": "fallback"},
+            ])
+        if not has_techniques:
+            logger.info("Evidence check: techniques distinction MISSING, running fallbacks")
+            fallback_calls.extend([
+                {"tool": "get_technique", "args": {"id": "H37"}, "category": "fallback"},
+                {"tool": "get_glossary_term", "args": {"term": "accessibility supported"}, "category": "fallback"},
+            ])
+
+        if fallback_calls and self.wcag_mcp:
+            fallback_results = await self.wcag_mcp.execute_planned_tool_calls(fallback_calls)
+            results.extend(fallback_results)
+
+        # Build final evidence pack from all hits (deduplicated)
+        seen = set()
+        sections = []
+        for r in results:
+            if r["status"] != "HIT":
+                continue
+            key = (r["tool"], json.dumps(r["args"], sort_keys=True))
+            if key in seen:
+                continue
+            seen.add(key)
+            sections.append(r["result"])
+
+        return "\n\n---\n\n".join(sections)
 
     async def _get_assessment_context(self, objective_id: str) -> str:
         """Fetch quiz questions mapped to an objective for assessment generation.
