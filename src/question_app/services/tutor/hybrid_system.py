@@ -1921,7 +1921,7 @@ Available WCAG MCP tools:
         """Execute a tool call from the LLM and return the result.
 
         Routes OpenAI function-calling tool_calls to the correct
-        StudentMCPClient method. Returns the result as a dict (or None).
+        StudentService method. Returns the result as a dict (or None).
         """
         fn_name = tool_call["function"]["name"]
         try:
