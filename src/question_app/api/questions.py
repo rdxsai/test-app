@@ -1,10 +1,4 @@
-"""
-API endpoints for managing questions.
---- THIS IS THE FULLY CORRECTED VERSION ---
-- Fixes the 'generate-feedback' TypeError
-- Includes the 'suggest-objectives' endpoint
-- FIX: Adds Markdown-to-HTML conversion for the preview
-"""
+"""API endpoints for managing questions."""
 import logging
 import json
 
@@ -12,7 +6,6 @@ from fastapi import APIRouter, HTTPException, Request, Depends, BackgroundTasks
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 import httpx
-import markdown
 
 
 from ..core import config, get_logger
@@ -20,6 +13,7 @@ from ..services.database import get_database_manager
 from ..models import QuestionUpdate
 from ..services.ai_service import AIGeneratorService
 from ..models import QuestionUpdate, NewQuestion
+from ..utils.rendering import markdown_to_safe_html
 
 logger = get_logger(__name__)
 router = APIRouter(prefix="/questions", tags=["questions"])
@@ -135,40 +129,18 @@ async def edit_question_page(request: Request, question_id: str):
                 if obj_id in all_objectives_dict:
                     associated_objectives.append(all_objectives_dict[obj_id])
         
-        # --- === 2. THIS IS THE FIX FOR THE BLANK PREVIEW === ---
-        # The template 'edit_question.html' (your original one)
-        # expects HTML-converted text. We must do that conversion here.
-        
-        import re
-        md = markdown.Markdown(extensions=['fenced_code', 'codehilite'])
-        SAFE_TAGS = {'p', 'br', 'strong', 'b', 'em', 'i', 'code', 'pre', 'span',
-                     'ul', 'ol', 'li', 'a', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-                     'blockquote', 'hr', 'div', 'table', 'thead', 'tbody', 'tr',
-                     'th', 'td', 'img', 'del', 's', 'sub', 'sup'}
-
-        def sanitize_html(html_str):
-            def replace_tag(m):
-                tag_name = m.group(1).strip().split()[0].lower().lstrip('/')
-                if tag_name in SAFE_TAGS:
-                    return m.group(0)
-                return m.group(0).replace('<', '&lt;').replace('>', '&gt;')
-            return re.sub(r'<(/?\s*[a-zA-Z][^>]*)>', replace_tag, html_str)
-
-        # 1. Convert the main question text
         if question_data.get('question_text'):
-            question_data['question_text_html'] = sanitize_html(md.convert(question_data['question_text']))
-            md.reset()
+            question_data['question_text_html'] = markdown_to_safe_html(
+                question_data['question_text']
+            )
         else:
             question_data['question_text_html'] = ''
 
-        # 2. Convert the text for each answer
         for answer in question_data.get('answers', []):
             if answer.get('text'):
-                answer['text_html'] = sanitize_html(md.convert(answer['text']))
-                md.reset()
+                answer['text_html'] = markdown_to_safe_html(answer['text'])
             else:
                 answer['text_html'] = ''
-        # --- === END OF FIX === ---
         
         return templates.TemplateResponse(
             "edit_question.html",
@@ -577,4 +549,3 @@ async def save_objective_associations(question_id: str, data: dict):
     except Exception as e:
         logger.error(f"Error saving objective associations: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to save objectives.")
-

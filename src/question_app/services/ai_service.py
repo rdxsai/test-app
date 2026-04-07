@@ -1,11 +1,4 @@
-"""
-AI Response Generator Service
-(This is the FINAL, DEFINITIVE version)
-- Fixes the 401 'Ocp-Apim-Subscription-Key' header.
-- Fixes the 400 'response_format' error.
-- Fixes the 'JSONDecodeError' by checking for content filters.
-- RESTORES the high-quality, Socratic feedback prompts.
-"""
+"""AI-powered content generation and similarity services."""
 import httpx
 import json
 import logging
@@ -16,46 +9,10 @@ import asyncio
 from ..core import config, get_logger
 from fastapi import HTTPException
 from ..services.database import get_database_manager
+from ..services.embeddings import get_ollama_embeddings
 from ..utils.file_utils import load_feedback_prompt_from_json
 
 logger = get_logger(__name__)
-
-# (This function is correct)
-async def get_ollama_embeddings(texts: List[str]) -> List[List[float]]:
-    """
-    Get embeddings from Ollama using the nomic-embed-text model.
-    """
-    embeddings = []
-    logger.info(f"Generating {len(texts)} embeddings via Ollama...")
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        for i, text in enumerate(texts):
-            try:
-                if not text.strip():
-                    logger.warning(f"Empty text at index {i}, skipping.")
-                    embeddings.append([0.0] * 768) 
-                    continue
-                payload = {
-                    "model": config.OLLAMA_EMBEDDING_MODEL,
-                    "prompt": text.strip(),
-                }
-                response = await client.post(
-                    f"{config.OLLAMA_HOST}/api/embeddings",
-                    json=payload,
-                    headers={"Content-Type": "application/json"},
-                )
-                response.raise_for_status()
-                result = response.json()
-                embeddings.append(result["embedding"])
-                
-                if i < len(texts) - 1:
-                    await asyncio.sleep(0.05) 
-            except Exception as e:
-                logger.error(f"Error generating embedding for text {i}: {e}")
-                embeddings.append([0.0] * 768)
-
-    logger.info(f"Successfully generated {len(embeddings)} embeddings.")
-    return embeddings
-
 
 class AIGeneratorService:
     def __init__(self):

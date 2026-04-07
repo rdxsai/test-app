@@ -23,7 +23,7 @@ from ..utils import (
     save_welcome_message,
 )
 from ..services.tutor.hybrid_system import HybridCrewAISocraticSystem
-from ..services.tutor.simple_system import AzureAPIMClient
+from ..services.tutor.azure_client import AzureAPIMClient
 from ..services.wcag_mcp_client import WCAGMCPClient
 from ..services.student_service import StudentService
 from ..api.pg_vector_store import VectorStoreService

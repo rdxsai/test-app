@@ -24,6 +24,7 @@ from bs4 import BeautifulSoup, Comment
 
 from ..core import config, get_logger
 from ..services.database import get_database_manager
+from ..utils import save_questions
 
 # Configure logging
 logger = get_logger(__name__)
@@ -339,40 +340,6 @@ async def fetch_all_questions() -> List[Dict[str, Any]]:
 
     logger.info(f"Fetched {len(all_questions)} questions from Canvas")
     return all_questions
-
-
-# Import data management functions from utils module
-# These are imported from the utils package for consistency
-def load_questions() -> List[Dict[str, Any]]:
-    """Load questions from the data file."""
-    import json
-    from pathlib import Path
-
-    data_file = Path("data/quiz_questions.json")
-    if data_file.exists():
-        try:
-            with open(data_file, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception as e:
-            logger.error(f"Error loading questions: {e}")
-    return []
-
-
-def save_questions(questions: List[Dict[str, Any]]) -> bool:
-    """Save questions to the data file."""
-    import json
-    from pathlib import Path
-
-    try:
-        data_file = Path("data/quiz_questions.json")
-        data_file.parent.mkdir(exist_ok=True)
-
-        with open(data_file, "w", encoding="utf-8") as f:
-            json.dump(questions, f, indent=2, ensure_ascii=False)
-        return True
-    except Exception as e:
-        logger.error(f"Error saving questions: {e}")
-        return False
 
 
 @router.get("/courses")

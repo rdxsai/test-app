@@ -6,15 +6,13 @@ including creating the vector store and performing semantic search.
 It uses PostgreSQL + pgvector as the backend and Ollama for embeddings.
 """
 
-import httpx
-import logging
-import asyncio
 from typing import List, Dict, Any, Tuple
 from fastapi import APIRouter, HTTPException, BackgroundTasks
 
 from ..core import config, get_logger
 from ..models import Question
 from ..services.database import get_database_manager
+from ..services.embeddings import get_ollama_embeddings
 from ..services.tutor.interfaces import VectorStoreInterface
 from ..utils import (
     clean_question_text,
@@ -27,50 +25,6 @@ logger = get_logger(__name__)
 
 # Create router
 router = APIRouter(prefix="/vector-store", tags=["vector-store"])
-
-
-# --- === OLLAMA EMBEDDING FUNCTION === ---
-async def get_ollama_embeddings(texts: List[str]) -> List[List[float]]:
-    """
-    Get embeddings from Ollama using the nomic-embed-text model.
-    """
-    embeddings = []
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        for i, text in enumerate(texts):
-            try:
-                if not text.strip():
-                    logger.warning(f"Empty text at index {i}, skipping.")
-                    embeddings.append([0.0] * 768)
-                    continue
-
-                payload = {
-                    "model": config.OLLAMA_EMBEDDING_MODEL,
-                    "prompt": text.strip(),
-                }
-                response = await client.post(
-                    f"{config.OLLAMA_HOST}/api/embeddings",
-                    json=payload,
-                    headers={"Content-Type": "application/json"},
-                )
-                response.raise_for_status()
-
-                result = response.json()
-                if "embedding" not in result:
-                    logger.error(f"No embedding in response for text {i}: {result}")
-                    embeddings.append([0.0] * 768)
-                    continue
-
-                embeddings.append(result["embedding"])
-
-                if i < len(texts) - 1:
-                    await asyncio.sleep(0.1)
-
-            except Exception as e:
-                logger.error(f"Error generating embedding for text {i}: {e}")
-                embeddings.append([0.0] * 768)
-
-    logger.info(f"Generated {len(embeddings)} embeddings from {len(texts)} texts")
-    return embeddings
 
 
 def create_comprehensive_chunks(
