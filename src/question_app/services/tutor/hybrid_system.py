@@ -1420,43 +1420,70 @@ class HybridCrewAISocraticSystem:
     # ------------------------------------------------------------------
 
     async def _generate_teaching_plan(
-        self, objective_text: str, teaching_content: str,
-    ) -> Dict:
-        """Decompose an objective into teachable sub-concepts.
+        self, objective_text: str, teaching_content: str = "",
+    ):
+        """Generate a structured teaching plan for an objective.
 
-        Called once per objective (during first retrieval). Returns a
-        structured teaching plan with 3-6 concepts, prerequisites, and
-        recommended teaching order. Stored in session cache.
+        Called once per objective (during first retrieval). The new
+        instructional designer prompt outputs structured text with 17
+        sections (not JSON). The raw text is stored in session cache
+        and later compressed by format_teaching_plan() for the system
+        prompt.
+
+        Args:
+            objective_text: The learning objective text.
+            teaching_content: Optional teaching content for context
+                (may be empty in the new pipeline where retrieval
+                happens AFTER planning).
+
+        Returns:
+            str or dict: The teaching plan. New format returns str
+            (structured text). Legacy format returns dict (JSON).
         """
         from .prompts import CONCEPT_DECOMPOSITION_PROMPT
 
+        user_content = f"Objective: {objective_text}"
+        if teaching_content:
+            user_content += f"\n\nTeaching content:\n{teaching_content[:3000]}"
+
         messages = [
             {"role": "system", "content": CONCEPT_DECOMPOSITION_PROMPT},
-            {"role": "user", "content": (
-                f"Objective: {objective_text}\n\n"
-                f"Teaching content:\n{teaching_content[:3000]}"  # cap to avoid token bloat
-            )},
+            {"role": "user", "content": user_content},
         ]
         response = await asyncio.to_thread(
-            self.client.chat, messages, 0.3, 800
+            self.client.chat, messages, 0.3, 2500  # increased from 800 for 17-section plan
         )
+
+        # Try JSON first (legacy format compatibility)
         try:
             plan = json.loads(response)
             logger.info(
-                f"Teaching plan generated: {len(plan.get('concepts', []))} concepts, "
+                f"Teaching plan generated (legacy JSON): "
+                f"{len(plan.get('concepts', []))} concepts, "
                 f"order: {plan.get('recommended_order', [])}"
             )
             return plan
-        except json.JSONDecodeError:
-            logger.warning(f"Teaching plan JSON parse failed, using fallback")
-            return {
-                "objective": objective_text,
-                "concepts": [
-                    {"id": "c1", "name": "Core concept", "description": objective_text,
-                     "prerequisites": [], "key_points": [], "status": "not_covered"}
-                ],
-                "recommended_order": ["c1"],
-            }
+        except (json.JSONDecodeError, TypeError):
+            pass
+
+        # New format: structured text with numbered sections
+        if response and len(response) > 100:
+            logger.info(
+                f"Teaching plan generated (structured text): "
+                f"{len(response)} chars"
+            )
+            return response
+
+        # Fallback
+        logger.warning("Teaching plan generation returned empty/short response, using fallback")
+        return {
+            "objective": objective_text,
+            "concepts": [
+                {"id": "c1", "name": "Core concept", "description": objective_text,
+                 "prerequisites": [], "key_points": [], "status": "not_covered"}
+            ],
+            "recommended_order": ["c1"],
+        }
 
     async def _get_assessment_context(self, objective_id: str) -> str:
         """Fetch quiz questions mapped to an objective for assessment generation.
