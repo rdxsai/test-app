@@ -105,17 +105,21 @@ class SessionContentCache:
     # Teaching plan (concept decomposition)
     # ------------------------------------------------------------------
 
-    def store_teaching_plan(self, session_id: str, plan: dict) -> None:
-        """Store a teaching plan for the active objective."""
+    def store_teaching_plan(self, session_id: str, plan) -> None:
+        """Store a teaching plan for the active objective.
+
+        Accepts either a dict (legacy JSON format) or str (new 17-section text format).
+        """
         entry = self._cache.get(session_id)
         if entry:
             entry["teaching_plan"] = plan
-            logger.info(
-                f"Teaching plan stored for session={session_id} "
-                f"({len(plan.get('concepts', []))} concepts)"
-            )
+            if isinstance(plan, dict):
+                detail = f"{len(plan.get('concepts', []))} concepts"
+            else:
+                detail = f"{len(str(plan))} chars"
+            logger.info(f"Teaching plan stored for session={session_id} ({detail})")
 
-    def get_teaching_plan(self, session_id: str) -> dict:
+    def get_teaching_plan(self, session_id: str):
         """Get the teaching plan for the current objective. Returns None if not set."""
         entry = self._cache.get(session_id)
         return entry.get("teaching_plan") if entry else None
@@ -123,9 +127,13 @@ class SessionContentCache:
     def update_concept_status(
         self, session_id: str, concept_id: str, status: str,
     ) -> None:
-        """Mark a concept as covered/partially_covered/not_covered."""
+        """Mark a concept as covered/partially_covered/not_covered.
+
+        Only works with legacy dict-format plans that have a 'concepts' array.
+        No-op for string-format plans.
+        """
         plan = self.get_teaching_plan(session_id)
-        if not plan:
+        if not plan or not isinstance(plan, dict):
             return
         for concept in plan.get("concepts", []):
             if concept.get("id") == concept_id:
