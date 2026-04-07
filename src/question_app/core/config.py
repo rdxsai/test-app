@@ -15,6 +15,15 @@ load_dotenv()
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
+
+def _derive_reasoning_deployment(default_deployment: Optional[str]) -> Optional[str]:
+    """Prefer the non-mini sibling deployment when only a mini deployment is configured."""
+    if not default_deployment:
+        return default_deployment
+    if default_deployment.endswith("-mini"):
+        return default_deployment[:-5]
+    return default_deployment
+
 class Config:
     """Centralized configuration management for the Question App."""
 
@@ -31,6 +40,16 @@ class Config:
         )
         self.AZURE_OPENAI_DEPLOYMENT_ID: Optional[str] = os.getenv(
             "AZURE_OPENAI_DEPLOYMENT_ID"
+        )
+        self.AZURE_OPENAI_TUTOR_DEPLOYMENT_ID: Optional[str] = os.getenv(
+            "AZURE_OPENAI_TUTOR_DEPLOYMENT_ID", self.AZURE_OPENAI_DEPLOYMENT_ID
+        )
+        self.AZURE_OPENAI_REASONING_DEPLOYMENT_ID: Optional[str] = os.getenv(
+            "AZURE_OPENAI_REASONING_DEPLOYMENT_ID",
+            _derive_reasoning_deployment(
+                self.AZURE_OPENAI_TUTOR_DEPLOYMENT_ID
+                or self.AZURE_OPENAI_DEPLOYMENT_ID
+            ),
         )
         self.AZURE_OPENAI_API_VERSION: str = os.getenv(
             "AZURE_OPENAI_API_VERSION", "2023-12-01-preview"

@@ -17,6 +17,8 @@ class TestConfig:
         assert hasattr(config, "QUIZ_ID")
         assert hasattr(config, "CANVAS_API_TOKEN")
         assert hasattr(config, "CANVAS_BASE_URL")
+        assert hasattr(config, "AZURE_OPENAI_TUTOR_DEPLOYMENT_ID")
+        assert hasattr(config, "AZURE_OPENAI_REASONING_DEPLOYMENT_ID")
 
     def test_validate_canvas_config_valid(self):
         """Test canvas config validation with valid values"""
@@ -77,3 +79,29 @@ class TestConfig:
         config = Config()
         result = config.validate_azure_openai_config()
         assert isinstance(result, bool)
+
+    def test_reasoning_deployment_defaults_to_non_mini_variant(self):
+        with patch.dict(
+            os.environ,
+            {
+                "AZURE_OPENAI_DEPLOYMENT_ID": "gpt-5.4-mini",
+            },
+            clear=True,
+        ):
+            config = Config()
+            assert config.AZURE_OPENAI_TUTOR_DEPLOYMENT_ID == "gpt-5.4-mini"
+            assert config.AZURE_OPENAI_REASONING_DEPLOYMENT_ID == "gpt-5.4"
+
+    def test_explicit_role_deployments_override_defaults(self):
+        with patch.dict(
+            os.environ,
+            {
+                "AZURE_OPENAI_DEPLOYMENT_ID": "fallback-model",
+                "AZURE_OPENAI_TUTOR_DEPLOYMENT_ID": "gpt-5.4-mini",
+                "AZURE_OPENAI_REASONING_DEPLOYMENT_ID": "gpt-5.4",
+            },
+            clear=True,
+        ):
+            config = Config()
+            assert config.AZURE_OPENAI_TUTOR_DEPLOYMENT_ID == "gpt-5.4-mini"
+            assert config.AZURE_OPENAI_REASONING_DEPLOYMENT_ID == "gpt-5.4"

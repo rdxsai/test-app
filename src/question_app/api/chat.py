@@ -45,13 +45,18 @@ try:
         "api_key": config.AZURE_OPENAI_SUBSCRIPTION_KEY,
         "endpoint": config.AZURE_OPENAI_ENDPOINT,
         "deployment_name": config.AZURE_OPENAI_DEPLOYMENT_ID,
+        "tutor_deployment_name": config.AZURE_OPENAI_TUTOR_DEPLOYMENT_ID,
+        "reasoning_deployment_name": config.AZURE_OPENAI_REASONING_DEPLOYMENT_ID,
         "api_version": config.AZURE_OPENAI_API_VERSION
     }
 
     # Create Azure client for WCAG MCP function calling
     azure_client = AzureAPIMClient(
         endpoint=azure_config["endpoint"],
-        deployment=azure_config["deployment_name"],
+        deployment=(
+            azure_config.get("reasoning_deployment_name")
+            or azure_config["deployment_name"]
+        ),
         api_key=azure_config["api_key"],
         api_version=azure_config.get("api_version", "2024-02-15-preview"),
     )
