@@ -146,23 +146,25 @@ class TestPromptIntegration:
         prompt = build_instance_b_prompt(teaching_plan=None)
         assert "TEACHING PLAN:" not in prompt
 
-    def test_tool_instructions_in_prompt(self):
-        prompt = build_instance_b_prompt()
-        assert "TOOL USAGE" in prompt
+    def test_evidence_pack_label_in_prompt(self):
+        prompt = build_instance_b_prompt(knowledge_context="test content")
+        assert "VALIDATED EVIDENCE PACK" in prompt
+        assert "Ground all factual claims" in prompt
 
 
 # ---------------------------------------------------------------------------
-# Tests: CONCEPT_DECOMPOSITION_PROMPT
+# Tests: CONCEPT_DECOMPOSITION_PROMPT (new instructional designer format)
 # ---------------------------------------------------------------------------
 
 class TestDecompositionPrompt:
 
     def test_prompt_exists_and_has_key_instructions(self):
-        assert "Minimum 3" in CONCEPT_DECOMPOSITION_PROMPT
-        assert "maximum 6" in CONCEPT_DECOMPOSITION_PROMPT
-        assert "prerequisites" in CONCEPT_DECOMPOSITION_PROMPT
-        assert "recommended_order" in CONCEPT_DECOMPOSITION_PROMPT
-        assert "not_covered" in CONCEPT_DECOMPOSITION_PROMPT
-        assert "valid JSON" in CONCEPT_DECOMPOSITION_PROMPT
-        assert "GROUND IN CONTENT" in CONCEPT_DECOMPOSITION_PROMPT
-        assert "quiz_mappings" in CONCEPT_DECOMPOSITION_PROMPT
+        assert "instructional designer" in CONCEPT_DECOMPOSITION_PROMPT
+        assert "concept_decomposition" in CONCEPT_DECOMPOSITION_PROMPT
+        assert "dependency_order" in CONCEPT_DECOMPOSITION_PROMPT
+        assert "mastery_definition" in CONCEPT_DECOMPOSITION_PROMPT
+        assert "likely_misconceptions" in CONCEPT_DECOMPOSITION_PROMPT
+        assert "retrieval_requirements" in CONCEPT_DECOMPOSITION_PROMPT
+        assert "assessment_evidence" in CONCEPT_DECOMPOSITION_PROMPT
+        assert "boundaries_and_non_goals" in CONCEPT_DECOMPOSITION_PROMPT
+        assert "Do not produce final lesson content" in CONCEPT_DECOMPOSITION_PROMPT
