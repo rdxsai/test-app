@@ -675,10 +675,111 @@ Output requirements:
 - Do not retrieve yet; only plan retrieval."""
 
 
-def format_teaching_plan(plan: dict) -> str:
-    """Format a teaching plan dict into a concise text block for the system prompt."""
-    if not plan or "concepts" not in plan:
+def format_teaching_plan(plan) -> str:
+    """Format a teaching plan into a concise text block for the system prompt.
+
+    Accepts either:
+    - str: The raw structured-text output from CONCEPT_DECOMPOSITION_PROMPT
+      (new 17-section format). Extracts key sections for injection.
+    - dict: Legacy JSON format with 'concepts' and 'recommended_order'.
+      Still supported for backward compatibility.
+
+    The output is a compressed version suitable for the system prompt context
+    window — NOT the full plan. Only the sections the teaching LLM needs
+    during conversation are included.
+    """
+    if not plan:
         return ""
+
+    # --- New format: structured text from instructional designer prompt ---
+    if isinstance(plan, str):
+        return _format_text_plan(plan)
+
+    # --- Legacy format: JSON dict with concepts array ---
+    if isinstance(plan, dict) and "concepts" in plan:
+        return _format_legacy_plan(plan)
+
+    return ""
+
+
+def _format_text_plan(plan_text: str) -> str:
+    """Extract and compress key sections from the 17-section teaching plan text.
+
+    Sections included for the teaching LLM:
+    - plain_language_goal (what we're teaching)
+    - mastery_definition (when we're done)
+    - concept_decomposition + dependency_order (what to teach and in what order)
+    - likely_misconceptions (what to watch for)
+    - explanation_vs_question_strategy (how to teach each concept)
+    - boundaries_and_non_goals (what NOT to teach)
+    """
+    import re
+
+    # Parse sections by numbered headers (e.g., "## 7. concept_decomposition" or "7. concept_decomposition")
+    section_pattern = re.compile(
+        r'(?:^|\n)(?:##?\s*)?(\d{1,2})\.\s*(\w[\w_]*)\s*\n(.*?)(?=\n(?:##?\s*)?\d{1,2}\.\s*\w|\Z)',
+        re.DOTALL
+    )
+    sections = {}
+    for match in section_pattern.finditer(plan_text):
+        section_name = match.group(2).strip().lower()
+        section_body = match.group(3).strip()
+        sections[section_name] = section_body
+
+    if not sections:
+        # Couldn't parse sections — return truncated raw text as fallback
+        return plan_text[:2000]
+
+    lines = []
+
+    # Goal
+    if "plain_language_goal" in sections:
+        lines.append(f"GOAL: {sections['plain_language_goal']}")
+        lines.append("")
+
+    # Mastery definition
+    if "mastery_definition" in sections:
+        lines.append(f"MASTERY CRITERIA:\n{sections['mastery_definition']}")
+        lines.append("")
+
+    # Concept decomposition + dependency order (merged)
+    if "concept_decomposition" in sections:
+        lines.append(f"CONCEPTS TO TEACH:\n{sections['concept_decomposition']}")
+        lines.append("")
+    if "dependency_order" in sections:
+        lines.append(f"TEACHING ORDER:\n{sections['dependency_order']}")
+        lines.append("")
+
+    # Teaching strategy per concept
+    if "explanation_vs_question_strategy" in sections:
+        lines.append(f"STRATEGY PER CONCEPT:\n{sections['explanation_vs_question_strategy']}")
+        lines.append("")
+
+    # Misconceptions to watch for
+    if "likely_misconceptions" in sections:
+        lines.append(f"LIKELY MISCONCEPTIONS:\n{sections['likely_misconceptions']}")
+        lines.append("")
+
+    # Boundaries
+    if "boundaries_and_non_goals" in sections:
+        lines.append(f"DO NOT TEACH:\n{sections['boundaries_and_non_goals']}")
+        lines.append("")
+
+    # Prerequisite gap handling
+    if "prerequisite_gap_policy" in sections:
+        lines.append(f"IF STUDENT LACKS PREREQUISITES:\n{sections['prerequisite_gap_policy']}")
+        lines.append("")
+
+    if not lines:
+        return plan_text[:2000]
+
+    lines.append("Focus on the next uncovered concept in the teaching order.")
+    lines.append("When a concept is understood, move to the next one.")
+    return "\n".join(lines)
+
+
+def _format_legacy_plan(plan: dict) -> str:
+    """Format legacy JSON teaching plan (backward compatibility)."""
     lines = [f"Objective: {plan.get('objective', '')}",
              f"Teaching order: {' → '.join(plan.get('recommended_order', []))}",
              ""]
