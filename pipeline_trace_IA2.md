@@ -3,377 +3,437 @@ STEP 1: GENERATE TEACHING PLAN
 ================================================================================
 Objective: Explain the structure of WCAG 2.2, including the POUR principles, guidelines, success criteria, and conformance levels A, AA, and AAA.
 
-Time: 28.6s | Tokens: 884/2293 | Output: 10186 chars
+Time: 42.1s | Tokens: 884/3316 | Output: 12076 chars
 
 1. objective_text
 Explain the structure of WCAG 2.2, including the POUR principles, guidelines, success criteria, and conformance levels A, AA, and AAA.
 
 2. plain_language_goal
-Describe how WCAG 2.2 is organized: what the four principles are, what guidelines are under them, what success criteria are, and what the A/AA/AAA conformance levels mean.
+Understand how WCAG 2.2 is organized—from its four high-level principles down to testable requirements—and what A, AA, and AAA conformance levels mean and how they relate to those requirements.
 
 3. mastery_definition
-A learner has mastered this objective when they can:
-- Correctly define each layer of WCAG 2.2 structure (principles, guidelines, success criteria) and distinguish their roles.
-- Map a specific example criterion to its principle, guideline, and conformance level.
-- Explain how conformance levels (A, AA, AAA) apply to success criteria and what meeting each level implies.
-- Identify common misinterpretations (e.g., techniques vs. criteria, levels applied to guidelines vs. criteria) and correct them.
+A learner has mastered this objective if they can:
+- Identify and name the four WCAG principles (POUR) and describe their role as top-level categories.
+- Distinguish between guidelines and success criteria and state which layer is testable.
+- Place a given item (e.g., “1.1.1 Non-text Content”) correctly within the hierarchy: Principle → Guideline → Success Criterion.
+- Explain how conformance levels (A, AA, AAA) apply to success criteria and what it means to conform at Level A vs AA vs AAA (including the “includes all lower levels” rule).
+- Given an example success criterion, correctly state its conformance level and how it affects overall conformance claims.
+- Correct at least one common misconception (e.g., that guidelines are testable or that AAA is generally required).
 
 4. objective_type
-- conceptual understanding
+- terminology
 - hierarchy/structure
+- conceptual understanding
 - classification
 - comparison
 
 5. prerequisite_knowledge
 - essential prerequisites:
-  - Very basic understanding of web content and accessibility purpose (high-level: making content usable for people with disabilities).
-  - Awareness that WCAG is a standard from W3C for web accessibility.
+  - Awareness that WCAG is a W3C standard for web content accessibility.
+  - Basic idea of what “conformance” means in standards (meeting stated requirements).
+  - Familiarity with what a “web page” or “web content” is.
 - helpful but nonessential prerequisites:
-  - Familiarity with how standards documents are structured (normative vs. informative).
-  - Recognition of typical WCAG examples (e.g., alt text, keyboard access) without deep detail.
-  - Awareness that organizations often target AA conformance.
+  - Difference between normative requirements and non-normative guidance.
+  - Awareness that there are WCAG versions (2.0, 2.1, 2.2) and that 2.2 builds on earlier versions.
+  - Examples of specific accessibility issues (e.g., alternative text, keyboard focus) for anchoring examples.
 
 6. prerequisite_gap_policy
-- If the learner lacks the essential prerequisites:
-  - Provide a brief orientation: what WCAG is and why it exists (1–2 sentence overview).
-  - Confirm understanding with a quick diagnostic question (e.g., “What problem is WCAG trying to solve?”).
-  - Only once that baseline is confirmed, proceed to the structural layers; avoid diving into technical examples.
+- If the learner lacks essential prerequisites:
+  - Briefly elicit their current understanding with a diagnostic question (“What is WCAG for?”).
+  - Provide a concise, 1–2 sentence primer on WCAG as a standard that sets testable requirements for web content accessibility and what “conformance” means.
+  - Confirm understanding with a quick check before proceeding to structure.
 
 7. concept_decomposition
-- Purpose of WCAG (context for structure).
-- Four POUR principles: define and role as top-level categories.
-- Guidelines: definition and role (non-testable guidance under each principle).
-- Success criteria: definition, role as testable statements, unique identifiers, and levels.
-- Conformance levels A, AA, AAA: meaning and how they apply to success criteria and overall conformance.
-- Normative vs. informative sections: standards vs. techniques/understanding docs (to prevent conflation).
-- Example mapping: connecting a concrete success criterion to its principle, guideline, level.
-- Scope of conformance: what meeting Level A/AA/AAA entails (cumulative nature).
-- Common organizational targets (e.g., AA) and why (contextual understanding without policy detail).
+- WCAG purpose (one-sentence refresher to anchor structure).
+- The hierarchical layers:
+  1) Principles (POUR) as the top-level categories.
+  2) Guidelines under each principle (broad goals).
+  3) Success Criteria (SC) under each guideline (testable requirements).
+- Testability distinction: guidelines vs success criteria.
+- SC numbering scheme (e.g., 1.1.1) and how it encodes principle and guideline.
+- Conformance levels assigned to success criteria (A, AA, AAA).
+- Conformance claims: what it means to conform at A/AA/AAA and the “includes all lower” rule.
+- Scope of conformance (typically per web page).
+- Normative vs non-normative materials (core spec vs Understanding/Techniques) as part of structure.
+- WCAG 2.2 continuity with 2.x family (backwards-compatible layering; added/updated SCs but same structure).
 
 8. dependency_order
-- Purpose of WCAG → sets context for why structure matters.
-- POUR principles → top-level buckets to frame subsequent layers.
-- Guidelines → sit under principles; clarify role and non-testable nature.
-- Success criteria → testable items under guidelines; introduce identifiers and levels.
-- Conformance levels → explain A/AA/AAA as properties of success criteria and cumulative conformance.
-- Normative vs. informative → distinguish criteria from techniques/understanding docs.
-- Example mapping → apply hierarchy with a specific criterion to solidify structure.
-- Scope of conformance → clarify how meeting levels aggregates across criteria.
-Rationale: This moves from general to specific, establishing the hierarchy before discussing testability and levels. Only after the layers are clear do we contrast normative/informative and solidify with mapping and scope.
+- Anchor purpose → Hierarchical layers → Testability distinction → Numbering scheme → Conformance levels → Conformance claims and “includes all lower” rule → Scope of conformance → Normative vs non-normative → Continuity across versions.
+- Dependencies and rationale:
+  - Purpose anchors why structure matters.
+  - Understanding layers (Principles → Guidelines → SC) is foundational before conformance.
+  - Testability distinction clarifies why SC carry levels and guidelines do not.
+  - Numbering scheme helps learners place items within the structure.
+  - Conformance levels make sense only after SC are understood.
+  - Conformance claims build on the levels and clarify their implications.
+  - Scope clarifies what conformance applies to, contextualizing the structure in practice.
+  - Normative vs non-normative explains which documents define structure vs provide guidance.
+  - Version continuity prevents confusion about changes while reinforcing structure stability.
 
 9. likely_misconceptions
-- Believing guidelines are testable and carry levels (instead of success criteria).
-- Thinking conformance levels apply to principles or entire guidelines directly.
-- Assuming AAA is required for compliance or that AA excludes A requirements.
-- Confusing techniques with success criteria (treating techniques as mandatory).
-- Believing partial conformance to some pages equals full conformance claim for a site.
-- Mixing WCAG with WAI-ARIA specifics as part of the structure.
-- Assuming 2.2 fundamentally changes principles rather than adds/adjusts criteria.
+- “Guidelines are testable” (confusing guidelines with success criteria).
+- “You can pick and choose SC within a level” (not realizing AA includes all A-level SC).
+- “AAA is required by default” or “AAA is better so always required” (conflating ambition with common practice).
+- “Conformance is for a whole site only” (not recognizing per-page scope of claims).
+- “Techniques are required to pass SC” (confusing non-normative techniques with normative SC).
+- “WCAG 2.2 changed the entire structure from 2.1” (it didn’t; same layered structure).
+- “Passing AA means you don’t need to meet A-level SC separately” (AA already includes A; misunderstanding persists).
+- “SC levels indicate importance or priority” (they indicate testability difficulty/user impact and feasibility, not a strict priority order).
+- “Numbering is arbitrary” (it encodes principle and guideline).
 
 10. explanation_vs_question_strategy
-- Purpose of WCAG: brief explanation, then diagnostic question — sets baseline efficiently.
-- POUR principles: guided questioning with contrastive examples — helps learners infer categories.
-- Guidelines: brief explanation plus contrastive example (testable vs. non-testable) — avoids overgeneralization.
-- Success criteria: worked example — concrete example shows testable, numbered nature.
-- Conformance levels: guided questioning with contrastive example (A vs AA vs AAA) — elicits understanding of cumulative and strictness.
-- Normative vs. informative: contrastive example — prevents conflating techniques with criteria.
-- Example mapping: worked example — mapping a known criterion up the hierarchy anchors structure.
-- Scope of conformance: diagnostic question followed by brief explanation — reveals assumptions about page/site conformance and cumulative levels.
+- WCAG purpose: diagnostic question → brief explanation. Why: gauge baseline and keep primer minimal.
+- Hierarchical layers (Principles → Guidelines → SC): guided questioning with a simple visual/analogy → brief explanation. Why: structure recognition benefits from construction by the learner.
+- Testability distinction: contrastive example. Why: showing a guideline alongside an SC highlights the difference.
+- Numbering scheme: brief explanation + quick identification exercise. Why: a small rule to learn, then immediate application.
+- Conformance levels per SC: worked example with one SC at A and another at AA/AAA. Why: concrete mapping reduces abstraction.
+- Conformance claims and “includes all lower” rule: guided questioning with a ladder metaphor. Why: elicits reasoning about set inclusion.
+- Scope of conformance: diagnostic question → brief explanation. Why: many assume site-level; quick correction.
+- Normative vs non-normative: brief explanation with one example of each. Why: avoids confusion without deep dive.
+- Version continuity: brief explanation + single contrast (e.g., a 2.2-added SC). Why: situate 2.2 without overload.
 
 11. socratic_question_goals
-- Purpose of WCAG: diagnose prior knowledge; establish relevance.
-- POUR principles: force comparison; check categorization logic for accessibility needs.
-- Guidelines: reveal misconception about testability; justify why guidelines exist.
-- Success criteria: check causal understanding of “testable”; justify how pass/fail would be determined.
-- Conformance levels: force comparison (A vs AA vs AAA); justify cumulative nature; test boundaries (is AAA required?).
-- Normative vs. informative: reveal misconception (techniques vs criteria); justify which is mandatory.
-- Example mapping: check ability to classify and map; test transfer from a concrete item to hierarchy.
-- Scope of conformance: test transfer to site-level claims; reveal misconceptions about partial coverage.
+- WCAG purpose: diagnose prior knowledge; align on why structure matters.
+- Hierarchical layers: check causal understanding; force comparison of broad vs specific.
+- Testability distinction: reveal misconception that guidelines are testable; justify which is testable.
+- Numbering scheme: check recognition; justify how numbering indicates location.
+- Conformance levels: justify why levels attach to SC, not guidelines.
+- “Includes all lower” rule: test logical reasoning; ensure understanding of set inclusion.
+- Scope of conformance: reveal misconception (site vs page); check application to a specific scenario.
+- Normative vs non-normative: check ability to classify a document or example.
+- Version continuity: check transfer by placing a 2.2 SC within the existing structure.
 
 12. example_requirements
-- Simplest introductory example: One clear success criterion with obvious mapping (e.g., a criterion requiring text alternatives; show its principle, guideline, and that it’s Level A).
-- Contrastive example(s):
-  - A guideline statement vs. a success criterion statement to highlight non-testable vs. testable.
-  - A technique (e.g., using specific markup) vs. the success criterion it supports.
+- Simplest introductory example:
+  - A small tree: Perceivable → Guideline “Text Alternatives” → SC 1.1.1 Non-text Content (Level A).
+- Contrastive example:
+  - Pair “Guideline 1.1 Text Alternatives” (not testable) with “1.1.1 Non-text Content (A)” (testable), and perhaps “1.4 Distinguishable” vs “1.4.3 Contrast (Minimum) (AA)”.
 - Borderline/tricky case:
-  - An AAA success criterion that is often desirable but not required for AA, illustrating optionality.
-  - A criterion introduced or changed in WCAG 2.2 to show that principles stayed the same while criteria changed.
+  - Two SC under same guideline with different levels (e.g., 2.4.11 Focus Not Obscured (Minimum) (AA) vs 2.4.12 Focus Not Obscured (Enhanced) (AAA) in WCAG 2.2).
+  - Show that a AAA SC exists but is not required for AA conformance.
+- Additional example to illustrate numbering:
+  - Decode “2.4.7 Focus Visible (AA)” as Principle 2 (Operable) → Guideline 2.4 (Navigable) → SC 7.
 - Transfer scenario:
-  - Given two criteria at different levels, ask which must be met for AA conformance and why.
-  - Given a page that meets A and some AA criteria, determine conformance claim accuracy.
+  - Present an unfamiliar SC title from 2.2 (e.g., 2.5.7 Dragging Movements (AA)), ask learner to place it in the hierarchy and state its level and implications for AA conformance.
 
 13. retrieval_requirements
 - must-retrieve:
-  - Authoritative definitions of “principle,” “guideline,” “success criterion,” and “conformance level” as used in WCAG 2.2.
-  - A small set (2–3) of canonical success criteria examples with IDs and levels (e.g., one A, one AA, one AAA).
-  - A clear statement from WCAG 2.2 on conformance claims and the cumulative nature of A/AA/AAA.
-  - Clarification of normative vs. informative sections and the status of techniques/understanding docs.
+  - Official WCAG 2.2 structure outline: list of four principles (POUR), example guidelines under each, and at least 4–6 example SC with their exact numbering and conformance levels (including one A, one AA, and one AAA).
+  - Specific examples for 2.2-added/updated SC that demonstrate level differences under same guideline (e.g., 2.4.11/2.4.12 Focus Not Obscured; 2.5.7 Dragging Movements).
+  - Definitions from the WCAG 2.2 conformance section: meaning of conformance levels and the “includes all lower” rule, and typical scope (per page).
+  - Clarification of normative vs non-normative docs: identify which are “WCAG 2.2” vs “Understanding WCAG 2.2” vs “Techniques for WCAG 2.2”.
 - optional-supporting:
-  - Brief note of what changed in 2.2 vs 2.1 at a high level (to anchor “structure unchanged, criteria evolved”).
-  - Common organizational practice of targeting Level AA (for context).
-  - Visual hierarchy diagram (principle → guideline → success criteria) for reference.
+  - A compact visual diagram of the WCAG hierarchy for one principle.
+  - Brief notes on version continuity (2.0 → 2.1 → 2.2) emphasizing unchanged structure.
+  - One or two common legal/policy references that typically require Level AA (purely to contextualize levels, not to teach policy).
 
 14. assessment_evidence
 - Quick understanding checks:
-  - Multiple-choice: Identify which layer a statement belongs to (principle/guideline/criterion).
-  - True/false: “Conformance levels apply to guidelines.” (False)
+  - Multiple-choice: classify a statement as principle/guideline/success criterion.
+  - Identify which item is testable among a pair (guideline vs SC).
 - Application task:
-  - Given a success criterion text with its ID, ask the learner to name its principle, guideline, and level.
+  - Given “2.5.7 Dragging Movements (AA)”, place it within the hierarchy and state what conformance level(s) an organization must meet to claim AA.
+  - Build a mini outline from a provided SC: name its principle and guideline.
 - Transfer task:
-  - Provide a list of criteria at various levels that a page meets; ask what conformance level the page can claim and why.
+  - Given an unfamiliar SC title and number, explain what its level implies for A vs AA vs AAA conformance, and whether it’s required for an AA claim.
 - Misconception check:
-  - Present a technique and ask if failing it fails WCAG; require explanation distinguishing informative vs. normative content.
+  - True/false with justification: “Guidelines are testable requirements.” “AA conformance means you’ve met all A-level SC.” “Techniques are required to satisfy SC.”
 
 15. adaptation_notes
 - Beginner:
-  - Spend more time on the overall hierarchy; use fewer criteria examples (one per level).
-  - Use visuals or structured lists; avoid jargon beyond defined terms.
-  - More diagnostic questions to confirm differentiation between guideline and criterion.
+  - Use one principle (Perceivable) as the primary example before showing the full POUR list.
+  - Limit to 2–3 SC examples, keep numbering decoding minimal.
+  - Spend more time contrasting guideline vs SC and A vs AA.
+  - Avoid deep normative vs non-normative discussion; one-sentence mention only.
 - Intermediate:
-  - Introduce two contrasting criteria within the same guideline to deepen mapping skills.
-  - Include a brief normative vs. informative check earlier to preempt confusion.
+  - Cover all four principles and at least one guideline + SC per principle.
+  - Include the numbering scheme and one 2.2-added SC to show continuity.
+  - Include a short segment on normative vs non-normative materials.
 - Advanced:
-  - Include a criterion added in 2.2 and discuss how it fits into existing structure.
-  - Add a short task on edge cases in conformance claims (e.g., components vs. full pages) without deep policy dive.
+  - Add brief notes on conformance claim nuances (e.g., complete processes, accessibility-supported technologies) as structural context without deep dive.
+  - Include more tricky cases (AA vs AAA under same guideline) and how organizations set targets.
+  - Invite classification of a few items without numbers (by content) to check structural reasoning.
 
 16. boundaries_and_non_goals
-- Do not teach how to implement specific criteria (e.g., how to code keyboard navigation).
-- Do not cover detailed conformance claim process steps or required statements for public claims.
-- Do not dive into WCAG 2.2 change log beyond small context.
-- Do not cover related standards in depth (e.g., ATAG, UAAG, EN 301 549, ARIA specifics).
-- Do not teach testing methodologies or tools; focus is on structure, not evaluation techniques.
+- Do not teach how to implement or test specific SC (e.g., contrast ratios, ARIA usage).
+- Do not cover the full conformance claim process (accessibility-supported, complete processes, statement formats) beyond basic scope and inclusion rule.
+- Do not discuss legal requirements in depth or jurisdictional policy.
+- Do not teach WCAG techniques in detail or imply they are mandatory.
+- Do not cover non-web ICT or PDFs beyond acknowledging “web content” scope.
 
 17. concise_plan_summary
-- Establish why WCAG exists, then introduce the four POUR principles as the top-level frame.
-- Clarify that guidelines sit under principles and are not testable; success criteria are testable and carry levels.
-- Explain conformance levels A/AA/AAA as properties of success criteria and cumulative for overall claims.
-- Distinguish normative criteria from informative techniques/understanding content to avoid conflation.
-- Use a concrete success criterion to map up the hierarchy and identify its level.
-- Check understanding with contrastive examples (guideline vs criterion, technique vs criterion).
-- Address common misconceptions (e.g., AAA requirement, levels applying to guidelines).
-- Assess through classification, mapping, and a conformance-level determination task to demonstrate structural understanding.
+- Begin with a quick diagnostic and a 1–2 sentence anchor on WCAG’s purpose.
+- Build the hierarchy from top (POUR principles) to bottom (testable success criteria), highlighting distinctions.
+- Use contrastive examples to separate guidelines (non-testable) from SC (testable).
+- Teach the numbering scheme to help learners place items in the structure.
+- Introduce conformance levels as properties of SC and explain the “includes all lower” rule for A/AA/AAA claims.
+- Clarify scope (per page) and the role of normative vs non-normative documents.
+- Use 2.2 examples (e.g., Focus Not Obscured) to illustrate level differences and version continuity.
+- Assess through classification, placement, and reasoning about conformance implications, probing common misconceptions.
 
 ================================================================================
 STEP 2: GENERATE RETRIEVAL PLAN
 ================================================================================
 
-Time: 54.9s | Tokens: 3824/4202 | Output: 11542 chars
+Time: 51.6s | Tokens: 5031/4431 | Output: 12814 chars
 
-1. retrieval_goal
-Support accurate instruction on the structural hierarchy of WCAG 2.2 (POUR principles → guidelines → success criteria) and the meaning and application of conformance levels (A/AA/AAA), including the cumulative conformance rule and the distinction between normative success criteria and informative techniques.
+1) retrieval_goal
+Support instruction on the WCAG 2.2 structure so the tutor can accurately teach:
+- The POUR principles and how guidelines and success criteria (SC) sit beneath them.
+- Which layer is testable (SC) versus not (guidelines).
+- How SC are numbered and how numbering maps to principle → guideline → SC.
+- How conformance levels (A, AA, AAA) attach to SC and the “includes all lower” rule for conformance claims.
+- The typical scope of conformance (per web page).
+- The distinction between normative requirements (SC) and non-normative techniques/understanding docs.
+- Use a small set of concrete SC examples (including WCAG 2.2 additions) to illustrate.
 
-2. instructional_intent_summary
-- Introduce WCAG’s hierarchical structure (principles, guidelines, success criteria) and their roles.
-- Map a specific success criterion to its principle, guideline, and level to solidify the hierarchy.
-- Explain conformance levels A/AA/AAA as properties of success criteria and the cumulative rule for conformance.
-- Clarify normative vs. informative content to avoid conflating techniques with requirements.
-- Lesson type focus: structure/hierarchy, conceptual understanding, classification, comparison.
+2) instructional_intent_summary
+- This lesson centers on hierarchy/structure and conceptual understanding, with light classification and comparison.
+- Teach the POUR principles and show guidelines and SC under them.
+- Emphasize testability at the SC layer and decode the numbering scheme.
+- Explain conformance levels and the roll-up (AA includes all A, AAA includes A+AA+AAA).
+- Clarify scope (per page) and differentiate normative SC from informative techniques.
+- Use a few WCAG 2.2 examples (e.g., Focus Not Obscured, Dragging Movements).
 
-3. required_information_categories
-- structural: Needed to establish the WCAG hierarchy (principles, guidelines, success criteria) and show how items nest.
-- normative: Needed to present the official, testable success criteria and levels accurately.
-- explanatory: Useful minimally via a full criterion context/Understanding excerpt to anchor the conformance roll-up rule and normative/informative distinction.
-- techniques: Needed sparingly to show that techniques are informative and “sufficient,” not required (misconception guard).
-- glossary: Needed for the “conformance” term to anchor conformance definition and, if present, the cumulative nature of levels.
-- examples: Needed for 2–3 canonical success criteria (one A, one AA, one AAA) to exemplify mapping and levels.
-- comparison data (optional): A brief “what’s new in WCAG 2.2” to reinforce that structure (POUR) is unchanged while criteria evolved.
+3) required_information_categories
+- structural: To present the WCAG hierarchy (principles → guidelines → SC) and numbering.
+- normative: To provide the conformance levels and roll-up rule, and scope of conformance (per page).
+- examples: To supply a concise set of SC exemplars with identifiers, levels, and titles (including 2.2 additions).
+- techniques: To anchor the “techniques are informative/not required” distinction with a concrete technique reference.
+- glossary: To define “conformance” and “web page” for conformance scope and basic terms.
+- counts/summary statistics (optional): To quantify SC by level for context (not essential).
 
-4. tool_selection
+4) tool_selection
 - structural:
-  - list_principles(): Retrieve all four POUR principles with descriptions; authoritative top-level structure.
-  - list_guidelines(): Retrieve all guidelines under principles; shows middle layer and nesting.
-  - list_success_criteria(principle?/guideline?): Retrieve SC under a selected guideline/principle to demonstrate nesting and that SC carry levels.
+  - list_principles: Retrieve the four principles (POUR) with descriptions.
+  - list_guidelines (no filter): Retrieve guidelines across all principles compactly.
+  - list_success_criteria (filtered): Retrieve SC lists for select guidelines if needed to show breadth without deep content.
+  - get_success_criteria_detail: Retrieve normative text, number, title, and level for selected SC exemplars; avoids heavy “Understanding” docs.
 - normative:
-  - get_criterion(ref_id): Retrieve full details for one chosen SC (e.g., 1.4.3) including Understanding; provides official SC text and context with level.
-- explanatory (for roll-up and normative/informative cues):
-  - get_full_criterion_context(ref_id): For the same SC, to surface any embedded statements about levels and the nature of techniques (informative).
-- techniques:
-  - get_technique("G18") (or another common technique tied to chosen SC): Shows “sufficient technique” labeling to contrast with normative requirements.
-- glossary:
-  - get_glossary_term("conformance"): Anchor definition; potential source for the cumulative conformance rule and claim context.
+  - get_glossary_term("conformance"): Retrieve the conformance definition; may include scope and level descriptions.
+  - get_glossary_term("web page"): Retrieve scope definition for per-page conformance.
+  - get_full_criterion_context for one anchor SC (e.g., 1.1.1): As fallback/proof source for conformance and normative/informative distinctions in Understanding.
 - examples:
-  - get_criteria_by_level(level, include_lower?): Retrieve representative SC lists to pick one A, one AA, one AAA with IDs and levels.
-- comparison data (optional):
-  - whats_new_in_wcag22(): Briefly list new/changed SC to assert that principles remained the same.
+  - get_success_criteria_detail for SC: 1.1.1 (A), 1.4.3 (AA), 2.4.11 (AA), 2.4.12 (AAA), 2.5.7 (AA). These cover A/AA/AAA, same-guideline level contrast, and a 2.2 addition.
+- techniques:
+  - get_technique("G18"): Provide a concrete technique entry to demonstrate “sufficient” technique and that techniques are not required for conformance.
+- counts/summary statistics (optional):
+  - count_criteria(group_by="level"): Provide high-level numbers for A/AA/AAA distribution (contextual only).
+- version continuity (optional):
+  - whats_new_in_wcag22: Compact list of added SC to illustrate continuity and new examples.
 
-Rationale: This is the smallest tool set that can provide verified hierarchy, concrete examples with levels, the conformance roll-up rule, and the techniques-vs-requirements distinction.
+Why these tools:
+- They deliver minimal, high-signal structural and normative anchors without overloading (limit deep docs to one anchor if needed).
+- Comply with glossary limitations by avoiding structural terms not present there.
 
-5. planned_tool_calls
-Priority order:
+5) planned_tool_calls
+Priority order and purpose:
 
-1) list_principles()
-- Purpose: Get the four POUR principles and descriptions.
-- Instructional value: Core hierarchy anchor.
+Must-have
+1. list_principles()
+   - Purpose: Get the POUR principles and descriptions.
+   - Instructional value: Top-level hierarchy anchor.
 
-2) list_guidelines()
-- Purpose: List all guidelines (optionally grouped by principle as returned).
-- Instructional value: Shows middle layer under principles; emphasizes non-testable nature through context and placement.
+2. list_guidelines()
+   - Purpose: Get all guidelines with identifiers/titles under each principle.
+   - Instructional value: Mid-level hierarchy; supports “guidelines are not testable” contrast.
 
-3) get_criteria_by_level(level="A", include_lower=false)
-- Purpose: Identify a clear Level A example (e.g., 1.1.1 Text Alternatives).
-- Instructional value: Provide one canonical A-level SC with ID.
+3. get_success_criteria_detail("1.1.1")
+   - Purpose: Normative text and level for 1.1.1 Non-text Content (A).
+   - Instructional value: Foundational A-level example; shows numbering mapping to Principle 1 → Guideline 1.1.
 
-4) get_criteria_by_level(level="AA", include_lower=false)
-- Purpose: Identify a clear Level AA example (e.g., 1.4.3 Contrast (Minimum)).
-- Instructional value: Provide one canonical AA-level SC with ID.
+4. get_success_criteria_detail("1.4.3")
+   - Purpose: Normative text and level for 1.4.3 Contrast (Minimum) (AA).
+   - Instructional value: AA example under Perceivable to contrast A vs AA.
 
-5) get_criteria_by_level(level="AAA", include_lower=false)
-- Purpose: Identify a clear Level AAA example (e.g., 1.4.6 Contrast (Enhanced)).
-- Instructional value: Provide one canonical AAA-level SC with ID.
+5. get_success_criteria_detail("2.4.11")
+   - Purpose: Normative text and level for 2.4.11 Focus Not Obscured (Minimum) (AA) — WCAG 2.2.
+   - Instructional value: AA example showing 2.2 additions; pairs with 2.4.12 for level contrast.
 
-6) get_criterion(ref_id="1.4.3")  (or chosen AA example)
-- Purpose: Retrieve full details for the chosen AA SC.
-- Instructional value: Normative SC text, level, and Understanding context for mapping and potential conformance notes.
+6. get_success_criteria_detail("2.4.12")
+   - Purpose: Normative text and level for 2.4.12 Focus Not Obscured (Enhanced) (AAA) — WCAG 2.2.
+   - Instructional value: AAA contrast under the same guideline.
 
-7) get_full_criterion_context(ref_id="1.4.3")
-- Purpose: Get comprehensive context including techniques and glossary links.
-- Instructional value: Evidence that techniques are informative and to extract any explicit statements on levels and conformance relationships.
+7. get_success_criteria_detail("2.5.7")
+   - Purpose: Normative text and level for 2.5.7 Dragging Movements (AA) — WCAG 2.2.
+   - Instructional value: Transfer example and 2.2 continuity.
 
-8) list_success_criteria(guideline=<parent of 1.4.3>)  (after identifying parent via #6/#7)
-- Purpose: Show SC listed under the selected guideline to demonstrate nesting (guideline → SC).
-- Instructional value: Mapping support for hierarchy.
+8. get_glossary_term("conformance")
+   - Purpose: Official definition; seek explicit level meanings and roll-up details.
+   - Instructional value: Supports conformance level explanation and roll-up rule (if present).
 
-9) get_technique(id="G18")  (if 1.4.3 used; otherwise pick a technique matching the chosen AA SC)
-- Purpose: Show a “sufficient technique” entry for contrast.
-- Instructional value: Misconception guard that techniques are informative and not required.
+9. get_glossary_term("web page")
+   - Purpose: Definition to establish per-page scope of conformance claims.
+   - Instructional value: Corrects misconception that conformance is site-only.
 
-10) get_glossary_term(term="conformance")
-- Purpose: Retrieve the conformance definition and any notes about levels/claims.
-- Instructional value: Anchor the conformance concept; attempt to capture the roll-up rule.
+10. get_technique("G18")
+    - Purpose: Technique details (Sufficient, General) and typical note that techniques are informative/not required.
+    - Instructional value: Anchor for techniques vs requirements distinction.
 
-Optional (only if needed for 2.2 context):
-11) whats_new_in_wcag22()
-- Purpose: Provide brief list of new SC in 2.2.
-- Instructional value: Support the point that principles are unchanged; criteria evolved.
+Fallbacks for critical evidence (execute in order only if needed)
+11. get_full_criterion_context("1.1.1")
+    - Purpose: Access Understanding + techniques context to extract explicit statement that techniques are informative and success criteria are normative; may also reference conformance levels contextually.
+    - Instructional value: Strong evidence for normative vs informative and structural placement.
 
-Fallbacks (only if critical evidence is missing; see section 9):
-- If roll-up rule not captured in #7 or #10, retrieve get_full_criterion_context for an additional widely cited SC (e.g., ref_id="1.1.1") to find an explicit statement.
-- If techniques vs requirements distinction isn’t explicit from #7/#9, retrieve another technique (e.g., get_technique("G94")) to reinforce “sufficient technique” labeling.
+12. search_wcag("conformance level AA requirements all level A criteria")
+    - Purpose: Attempt to retrieve text references to roll-up if glossary did not provide; limited effectiveness but required by fallback chain.
+    - Instructional value: Satisfy evidence check if other sources fail (last resort per requirements).
 
-6. must_have_vs_optional
-- Must-have retrieval:
-  - list_principles()
-  - list_guidelines()
-  - get_criteria_by_level for A, AA, AAA (three calls)
-  - get_criterion for the chosen AA example (e.g., 1.4.3)
-  - get_full_criterion_context for the same AA example
-  - get_technique for a technique tied to the AA example (e.g., G18)
+Optional supporting
+13. count_criteria(group_by="level")
+    - Purpose: Provide counts per level.
+    - Instructional value: Contextual comparison for levels.
+
+14. whats_new_in_wcag22()
+    - Purpose: List of new SC in 2.2.
+    - Instructional value: Version continuity anchor.
+
+6) must_have_vs_optional
+- Must-have:
+  - list_principles
+  - list_guidelines
+  - get_success_criteria_detail for 1.1.1, 1.4.3, 2.4.11, 2.4.12, 2.5.7
   - get_glossary_term("conformance")
-- Optional supporting retrieval:
-  - list_success_criteria for the chosen guideline (mapping clarity)
-  - whats_new_in_wcag22()
-  - count_criteria(group_by="level") for context only (avoid if not needed)
+  - get_glossary_term("web page")
+  - get_technique("G18")
+  - Fallback: get_full_criterion_context("1.1.1") if techniques/requirements distinction or conformance roll-up not evidenced.
+  - Fallback: search_wcag("conformance level AA requirements all level A criteria") if roll-up still not evidenced.
 
-7. exclusion_rules
+- Optional:
+  - count_criteria(group_by="level")
+  - whats_new_in_wcag22
+  - list_success_criteria for a specific guideline to show breadth if needed (e.g., list_success_criteria(guideline="1.4"))
+
+7) exclusion_rules
 - Do not retrieve:
-  - Deep lists of techniques or all techniques for any SC (overload).
-  - Full conformance claim process details or policy language (out of scope).
-  - Implementation details, coding examples, or testing methodologies.
-  - Adjacent WAI-ARIA, ATAG, UAAG, or other standards content.
-  - Glossary lookups for structural terms like “principle,” “guideline,” “success criterion,” “conformance level,” or “Level A/AA/AAA” (not present in glossary).
-  - All SC or all guidelines exhaustive listings (only enough to illustrate structure).
+  - get_criterion for multiple SC (Understanding docs are heavy; limit to one fallback anchor only if needed).
+  - get_full_criterion_context for more than one SC.
+  - Deep technique lists (get_techniques_for_criterion, search_techniques broadly) beyond the single “G18” anchor.
+  - Detailed conformance claim procedures (e.g., complete processes, accessibility-supported technologies) beyond basic per-page scope and roll-up rule.
+  - Implementation details for SC (no testing procedures or measurement specifics).
+  - Legal/policy specifics; at most a mention that many policies target AA (no retrieval needed).
 
-8. sufficiency_condition
-Stop retrieval when the evidence pack contains:
-- The four principles with descriptions (from list_principles).
-- A full view of the guidelines list (from list_guidelines).
-- Three concrete SC examples (one A, one AA, one AAA) with IDs and levels.
-- One SC’s full context showing its principle and guideline mapping.
-- An explicit statement or authoritative cue confirming the cumulative conformance rule (AA requires all A and AA).
-- A clear anchor demonstrating techniques are informative/sufficient but not required.
-If any of these six items is missing, execute the specified fallback retrieval only until the gap is closed.
+8) sufficiency_condition
+Stop retrieval when we have:
+- The four principles with descriptions.
+- A compact list of guidelines across principles.
+- Five SC exemplars (1.1.1 A; 1.4.3 AA; 2.4.11 AA; 2.4.12 AAA; 2.5.7 AA) with numbers, titles, and levels via get_success_criteria_detail.
+- Glossary definitions for “conformance” and “web page.”
+- One concrete technique record (G18) demonstrating techniques are informative/not required.
+- Explicit evidence for the AA roll-up rule (AA requires all A+AA) from the conformance definition or fallback, and explicit evidence that techniques are not required (from technique or Understanding).
+Once these are verified, cease additional retrieval.
 
-9. required_evidence_checks
-a. Conformance roll-up rule:
-- Check: Does get_glossary_term("conformance") or get_full_criterion_context (for 1.4.3) explicitly state that to claim AA conformance you must meet all Level A and Level AA success criteria (and similarly for AAA)?
-- If missing: Fallback — retrieve get_full_criterion_context for a second SC (e.g., ref_id="1.1.1") to locate an explicit statement, or another commonly cited SC’s Understanding that includes this rule.
+9) required_evidence_checks
+a. Conformance roll-up rule
+- Target evidence: An explicit statement that Level AA conformance requires meeting all Level A and Level AA SC (and analogous for AAA).
+- Primary attempt: get_glossary_term("conformance") — check for the roll-up language.
+- Fallback chain (execute in order until found):
+  1) search_wcag("conformance requirements level AA must meet all Level A") or equivalent query: "conformance level AA requirements all level A criteria".
+  2) get_full_criterion_context("1.1.1") — scan Understanding for conformance discussion referencing levels and roll-up.
+  3) If still not found, add search_wcag("WCAG conformance requirement full pages") to surface related references, while noting the tool’s limitations.
 
-b. Techniques vs requirements distinction:
-- Check: Does get_full_criterion_context for the chosen SC indicate techniques are informative and labeled “sufficient,” or does get_technique("G18") clearly show “Sufficient Techniques” and non-normative status?
-- If missing: Fallback — retrieve another technique tied to the SC (e.g., get_technique("G94")) to reinforce “sufficient technique” labeling or retrieve get_full_criterion_context for the A-level example (1.1.1) to capture an Understanding note about techniques being informative.
+b. Techniques vs requirements distinction
+- Target evidence: An explicit statement that success criteria are normative conformance requirements and techniques are informative, not required.
+- Primary attempt: get_technique("G18") — look for “sufficient” label and any text indicating techniques are informative/not required.
+- Fallback chain:
+  1) search_wcag("techniques are informative not required for conformance").
+  2) get_full_criterion_context("1.1.1") — Understanding often explicitly states techniques are informative and not required for conformance.
 
-10. evidence_pack_structure
-- hierarchy anchor: Output from list_principles and list_guidelines.
-- official requirement: Normative text and level for the chosen SC (get_criterion).
-- mapping example: Parent principle/guideline linkage for the chosen SC (from get_criterion/get_full_criterion_context and list_success_criteria under that guideline).
-- core fact: Three SC examples (A, AA, AAA) with IDs and levels (from get_criteria_by_level).
-- misconception guard:
-  - techniques are not required: get_technique (e.g., G18) showing “sufficient technique.”
-  - levels are cumulative: explicit statement captured from conformance glossary or Understanding/context.
-- contrastive example: A guideline statement vs. SC list under it to show non-testable vs. testable.
-- context note (optional): whats_new_in_wcag22 to affirm structure unchanged.
+If either (a) or (b) is not evidenced after the primary calls, the specific fallback call(s) above become MUST-HAVE before concluding retrieval.
 
-11. adaptation_notes_for_retrieval
+10) evidence_pack_structure
+Organize retrieved material for the tutor as:
+- hierarchy anchor: list_principles output; list_guidelines output.
+- core fact: Each selected SC’s number, title, and conformance level via get_success_criteria_detail.
+- official requirement: Glossary “conformance” (and explicit roll-up rule if present).
+- definition: Glossary “web page” for scope of conformance.
+- contrastive example: Pair of SC under same guideline with different levels (2.4.11 AA vs 2.4.12 AAA).
+- simple example: 1.1.1 (A) under Guideline 1.1 as the basic testable SC.
+- misconception guard: Technique G18 entry highlighting techniques are informative/not required; any explicit statements from Understanding (if retrieved).
+- assessment support: Optional counts by level for quick comparison; whats_new_in_wcag22 for version continuity.
+
+11) adaptation_notes_for_retrieval
 - Beginner:
-  - Keep to one SC per level (A: 1.1.1; AA: 1.4.3; AAA: 1.4.6).
-  - Avoid count_criteria and extra techniques; rely on a single technique example (G18).
-  - Ensure the conformance rule statement is present in as few sources as possible (prefer glossary + one SC context).
+  - Use list_principles and list_guidelines.
+  - Limit SC exemplars to 1.1.1 (A), 1.4.3 (AA), and one Focus Not Obscured SC (AA or AAA).
+  - Retain glossary “conformance” and “web page”.
+  - Keep technique evidence (G18) but avoid any deep Understanding retrieval unless needed for the techniques distinction.
 - Intermediate:
-  - Add list_success_criteria for the chosen guideline to show multiple SC in the same bucket.
-  - Optionally include whats_new_in_wcag22 for brief 2.2 context.
+  - Include all five SC exemplars (1.1.1, 1.4.3, 2.4.11, 2.4.12, 2.5.7).
+  - Optionally add count_criteria(group_by="level") or whats_new_in_wcag22 for context.
 - Advanced:
-  - Choose one SC added in 2.2 for the AA example (e.g., 2.4.11 Focus Not Obscured (Minimum) if present at AA) and retrieve its context to demonstrate integration into the existing structure.
-  - Optionally include count_criteria(group_by="level") for analytical perspective.
+  - Add whats_new_in_wcag22 and optionally count_criteria.
+  - If discussing nuance briefly, allow one get_full_criterion_context (1.1.1) to reference normative/informative and conformance notes as structural context.
+  - Consider list_success_criteria for one additional guideline to illustrate hierarchy breadth.
 
-12. final_retrieval_summary
-- Retrieve POUR via list_principles and all guidelines via list_guidelines to anchor the hierarchy.
-- Select three representative success criteria (one A, one AA, one AAA) via get_criteria_by_level.
-- Deep-dive one AA criterion (e.g., 1.4.3) with get_criterion and get_full_criterion_context to show mapping and context.
-- Retrieve get_glossary_term("conformance") to anchor conformance and check for the cumulative levels rule.
-- Retrieve one technique for the chosen SC (e.g., get_technique("G18")) to demonstrate “sufficient” and informative status.
-- Validate presence of two critical evidence items: cumulative conformance rule and techniques-vs-requirements distinction; execute fallbacks if missing.
-- Optionally add whats_new_in_wcag22 to confirm that WCAG 2.2 changed criteria, not principles.
-- Exclude exhaustive lists and implementation details; keep retrieval minimal and directly tied to structural teaching.
+12) final_retrieval_summary
+- Use list_principles and list_guidelines to anchor the POUR hierarchy and guidelines layer.
+- Pull five targeted SC via get_success_criteria_detail to illustrate A, AA, AAA and numbering, including WCAG 2.2 additions and same-guideline level contrasts.
+- Retrieve glossary terms “conformance” and “web page” to ground conformance scope and (ideally) the roll-up rule.
+- Retrieve one technique (G18) to show techniques are informative and not required; if ambiguous, backstop with get_full_criterion_context for 1.1.1.
+- Include explicit checks for the AA roll-up rule and techniques vs requirements; run fallbacks if not evidenced.
+- Keep optional enrichment minimal: counts by level and whats_new_in_wcag22 for version continuity.
+- Avoid deep Understanding docs except for a single fallback anchor if necessary.
+- Stop once hierarchy, exemplar SC, conformance scope and roll-up, and techniques vs requirements are all explicitly evidenced.
 
 ================================================================================
 STEP 3: EXTRACT TOOL CALLS AS JSON
 ================================================================================
 
-Time: 20.3s | Tokens: 2699/1596
-Extracted 13 tool calls:
+Time: 19.2s | Tokens: 3148/1649
+Extracted 17 tool calls:
   1. [must_have] list_principles({})
   2. [must_have] list_guidelines({})
-  3. [must_have] get_criteria_by_level({"level": "A", "include_lower": false})
-  4. [must_have] get_criteria_by_level({"level": "AA", "include_lower": false})
-  5. [must_have] get_criteria_by_level({"level": "AAA", "include_lower": false})
-  6. [must_have] get_criterion({"ref_id": "1.4.3"})
-  7. [must_have] get_full_criterion_context({"ref_id": "1.4.3"})
-  8. [optional] list_success_criteria({"guideline": "1.4 Distinguishable"})
-  9. [must_have] get_technique({"id": "G18"})
-  10. [must_have] get_glossary_term({"term": "conformance"})
-  11. [optional] whats_new_in_wcag22({})
+  3. [must_have] get_success_criteria_detail({"ref_id": "1.1.1"})
+  4. [must_have] get_success_criteria_detail({"ref_id": "1.4.3"})
+  5. [must_have] get_success_criteria_detail({"ref_id": "2.4.11"})
+  6. [must_have] get_success_criteria_detail({"ref_id": "2.4.12"})
+  7. [must_have] get_success_criteria_detail({"ref_id": "2.5.7"})
+  8. [must_have] get_glossary_term({"term": "conformance"})
+  9. [must_have] get_glossary_term({"term": "web page"})
+  10. [must_have] get_technique({"id": "G18"})
+  11. [fallback] search_wcag({"query": "conformance level AA requirements all level A criteria"})
   12. [fallback] get_full_criterion_context({"ref_id": "1.1.1"})
-  13. [fallback] get_technique({"id": "G94"})
+  13. [fallback] search_wcag({"query": "WCAG conformance requirement full pages"})
+  14. [fallback] search_wcag({"query": "techniques are informative not required for conformance"})
+  15. [optional] count_criteria({"group_by": "level"})
+  16. [optional] whats_new_in_wcag22({})
+  17. [optional] list_success_criteria({"guideline": "1.4"})
 
 ================================================================================
-STEP 4: DETERMINISTIC TOOL EXECUTION (no LLM in loop)
+STEP 4: DETERMINISTIC TOOL EXECUTION
+  Glossary blocklist + arg normalization (id<->ref_id) active
 ================================================================================
 
 [1] [HIT] [must_have] list_principles({}) -> 637 chars
 [2] [HIT] [must_have] list_guidelines({}) -> 1550 chars
-[3] [HIT] [must_have] get_criteria_by_level({"level": "A", "include_lower": false}) -> 1055 chars
-[4] [HIT] [must_have] get_criteria_by_level({"level": "AA", "include_lower": false}) -> 858 chars
-[5] [HIT] [must_have] get_criteria_by_level({"level": "AAA", "include_lower": false}) -> 1092 chars
-[6] [HIT] [must_have] get_criterion({"ref_id": "1.4.3"}) -> 16374 chars
-[7] [HIT] [must_have] get_full_criterion_context({"ref_id": "1.4.3"}) -> 653 chars
-[8] [HIT] [optional] list_success_criteria({"guideline": "1.4 Distinguishable"}) -> 48 chars
-[9] [HIT] [must_have] get_technique({"id": "G18"}) -> 424 chars
-[10] [HIT] [must_have] get_glossary_term({"term": "conformance"}) -> 166 chars
-[11] [HIT] [optional] whats_new_in_wcag22({}) -> 1785 chars
+[3] [HIT] [must_have] get_success_criteria_detail({"ref_id": "1.1.1"}) -> 2021 chars
+[4] [HIT] [must_have] get_success_criteria_detail({"ref_id": "1.4.3"}) -> 1000 chars
+[5] [HIT] [must_have] get_success_criteria_detail({"ref_id": "2.4.11"}) -> 1059 chars
+[6] [HIT] [must_have] get_success_criteria_detail({"ref_id": "2.4.12"}) -> 563 chars
+[7] [HIT] [must_have] get_success_criteria_detail({"ref_id": "2.5.7"}) -> 844 chars
+[8] [HIT] [must_have] get_glossary_term({"term": "conformance"}) -> 166 chars
+[9] [HIT] [must_have] get_glossary_term({"term": "web page"}) -> 1529 chars
+[10] [HIT] [must_have] get_technique({"id": "G18"}) -> 424 chars
+[11] [HIT] [fallback] search_wcag({"query": "conformance level AA requirements all level A criteria"}) -> 92 chars
 [12] [HIT] [fallback] get_full_criterion_context({"ref_id": "1.1.1"}) -> 687 chars
-[13] [HIT] [fallback] get_technique({"id": "G94"}) -> 397 chars
+[13] [HIT] [fallback] search_wcag({"query": "WCAG conformance requirement full pages"}) -> 77 chars
+[14] [HIT] [fallback] search_wcag({"query": "techniques are informative not required for conformance"}) -> 93 chars
+[15] [HIT] [optional] count_criteria({"group_by": "level"}) -> 138 chars
+[16] [HIT] [optional] whats_new_in_wcag22({}) -> 1785 chars
+[17] [HIT] [optional] list_success_criteria({"guideline": "1.4"}) -> 992 chars
 
 --- Evidence Checks ---
-Roll-up rule evidence: FOUND
-Techniques vs requirements evidence: FOUND
+Conformance roll-up rule: FOUND
+Techniques vs requirements: FOUND
 
 --- Execution Summary ---
-MCP execution time: 0.0s
-Total calls: 13 (hits: 13, misses: 0)
-Total chars: 25726 | Hit chars: 25726
+MCP time: 0.0s
+Total: 17 (hits: 17, misses: 0, blocked: 0)
+Hit chars: 13657
 
 ================================================================================
-STEP 6: TOOL CALL TRACES (full content)
+STEP 6: TOOL CALL TRACES
 ================================================================================
 
 ----------------------------------------------------------------------
@@ -458,133 +518,39 @@ Result: 1550 chars
   Maximize compatibility with current and future user agents, including assistive technologies.
 
 ----------------------------------------------------------------------
-[CALL 3] [HIT] [must_have] get_criteria_by_level({"level": "A", "include_lower": false})
-Result: 1055 chars
+[CALL 3] [HIT] [must_have] get_success_criteria_detail({"ref_id": "1.1.1"})
+Result: 2021 chars
 ----------------------------------------------------------------------
-# WCAG 2.2 Level A
+# 1.1.1 Non-text Content
 
-Total: 31 success criteria
+**Level:** A
+**Principle:** 1 Perceivable
+**Guideline:** 1.1 Text Alternatives
+**WCAG Versions:** 2.0, 2.1, 2.2
 
-## Level A (31 criteria)
+## Success Criterion
 
-- **1.1.1** Non-text Content
-- **1.2.1** Audio-only and Video-only (Prerecorded)
-- **1.2.2** Captions (Prerecorded)
-- **1.2.3** Audio Description or Media Alternative (Prerecorded)
-- **1.3.1** Info and Relationships
-- **1.3.2** Meaningful Sequence
-- **1.3.3** Sensory Characteristics
-- **1.4.1** Use of Color
-- **1.4.2** Audio Control
-- **2.1.1** Keyboard
-- **2.1.2** No Keyboard Trap
-- **2.1.4** Character Key Shortcuts
-- **2.2.1** Timing Adjustable
-- **2.2.2** Pause, Stop, Hide
-- **2.3.1** Three Flashes or Below Threshold
-- **2.4.1** Bypass Blocks
-- **2.4.2** Page Titled
-- **2.4.3** Focus Order
-- **2.4.4** Link Purpose (In Context)
-- **2.5.1** Pointer Gestures
-- **2.5.2** Pointer Cancellation
-- **2.5.3** Label in Name
-- **2.5.4** Motion Actuation
-- **3.1.1** Language of Page
-- **3.2.1** On Focus
-- **3.2.2** On Input
-- **3.2.6** Consistent Help
-- **3.3.1** Error Identification
-- **3.3.2** Labels or Instructions
-- **3.3.7** Redundant Entry
-- **4.1.2** Name, Role, Value
+All non-text content that is presented to the user has a text alternative that serves the equivalent purpose, except for the situations listed below.
 
+## Details
+
+- **Controls, Input:** If non-text content is a control or accepts user input, then it has a name that describes its purpose. (Refer to Success Criterion 4.1.2 for additional requirements for controls and content that accepts user input.)
+- **Time-Based Media:** If non-text content is time-based media, then text alternatives at least provide descriptive identification of the non-text content. (Refer to Guideline 1.2 for additional requirements for media.)
+- **Test:** If non-text content is a test or exercise that would be invalid if presented in text, then text alternatives at least provide descriptive identification of the non-text content.
+- **Sensory:** If non-text content is primarily intended to create a specific sensory experience, then text alternatives at least provide descriptive identification of the non-text content.
+- **CAPTCHA:** If the purpose of non-text content is to confirm that content is being accessed by a person rather than a computer, then text alternatives that identify and describe the purpose of the non-text content are provided, and alternative forms of CAPTCHA using output modes for different types of sensory perception are provided to accommodate different disabilities.
+- **Decoration, Formatting, Invisible:** If non-text content is pure decoration, is used only for visual formatting, or is not presented to users, then it is implemented in a way that it can be ignored by assistive technology.
+
+## Links
+
+- [WCAG Specification](https://www.w3.org/TR/WCAG22/#non-text-content)
+- [Understanding 1.1.1](https://www.w3.org/WAI/WCAG22/Understanding/non-text-content.html)
+- [How to Meet 1.1.1](https://www.w3.org/WAI/WCAG22/quickref/#non-text-content)
 
 
 ----------------------------------------------------------------------
-[CALL 4] [HIT] [must_have] get_criteria_by_level({"level": "AA", "include_lower": false})
-Result: 858 chars
-----------------------------------------------------------------------
-# WCAG 2.2 Level AA
-
-Total: 24 success criteria
-
-## Level AA (24 criteria)
-
-- **1.2.4** Captions (Live)
-- **1.2.5** Audio Description (Prerecorded)
-- **1.3.4** Orientation
-- **1.3.5** Identify Input Purpose
-- **1.4.3** Contrast (Minimum)
-- **1.4.4** Resize Text
-- **1.4.5** Images of Text
-- **1.4.10** Reflow
-- **1.4.11** Non-text Contrast
-- **1.4.12** Text Spacing
-- **1.4.13** Content on Hover or Focus
-- **2.4.5** Multiple Ways
-- **2.4.6** Headings and Labels
-- **2.4.7** Focus Visible
-- **2.4.11** Focus Not Obscured (Minimum)
-- **2.5.7** Dragging Movements
-- **2.5.8** Target Size (Minimum)
-- **3.1.2** Language of Parts
-- **3.2.3** Consistent Navigation
-- **3.2.4** Consistent Identification
-- **3.3.3** Error Suggestion
-- **3.3.4** Error Prevention (Legal, Financial, Data)
-- **3.3.8** Accessible Authentication (Minimum)
-- **4.1.3** Status Messages
-
-
-
-----------------------------------------------------------------------
-[CALL 5] [HIT] [must_have] get_criteria_by_level({"level": "AAA", "include_lower": false})
-Result: 1092 chars
-----------------------------------------------------------------------
-# WCAG 2.2 Level AAA
-
-Total: 31 success criteria
-
-## Level AAA (31 criteria)
-
-- **1.2.6** Sign Language (Prerecorded)
-- **1.2.7** Extended Audio Description (Prerecorded)
-- **1.2.8** Media Alternative (Prerecorded)
-- **1.2.9** Audio-only (Live)
-- **1.3.6** Identify Purpose
-- **1.4.6** Contrast (Enhanced)
-- **1.4.7** Low or No Background Audio
-- **1.4.8** Visual Presentation
-- **1.4.9** Images of Text (No Exception)
-- **2.1.3** Keyboard (No Exception)
-- **2.2.3** No Timing
-- **2.2.4** Interruptions
-- **2.2.5** Re-authenticating
-- **2.2.6** Timeouts
-- **2.3.2** Three Flashes
-- **2.3.3** Animation from Interactions
-- **2.4.8** Location
-- **2.4.9** Link Purpose (Link Only)
-- **2.4.10** Section Headings
-- **2.4.12** Focus Not Obscured (Enhanced)
-- **2.4.13** Focus Appearance
-- **2.5.5** Target Size (Enhanced)
-- **2.5.6** Concurrent Input Mechanisms
-- **3.1.3** Unusual Words
-- **3.1.4** Abbreviations
-- **3.1.5** Reading Level
-- **3.1.6** Pronunciation
-- **3.2.5** Change on Request
-- **3.3.5** Help
-- **3.3.6** Error Prevention (All)
-- **3.3.9** Accessible Authentication (Enhanced)
-
-
-
-----------------------------------------------------------------------
-[CALL 6] [HIT] [must_have] get_criterion({"ref_id": "1.4.3"})
-Result: 16374 chars
+[CALL 4] [HIT] [must_have] get_success_criteria_detail({"ref_id": "1.4.3"})
+Result: 1000 chars
 ----------------------------------------------------------------------
 # 1.4.3 Contrast (Minimum)
 
@@ -593,13 +559,7 @@ Result: 16374 chars
 **Guideline:** 1.4 Distinguishable
 **WCAG Versions:** 2.0, 2.1, 2.2
 
-## In Brief
-
-**Goal:** Text can be seen by more people.
-**What to do:** Provide sufficient contrast between text and its background.
-**Why it's important:** Some people cannot read faint text.
-
-## Description
+## Success Criterion
 
 The visual presentation of text and images of text has a contrast ratio of at least 4.5:1, except for the following:
 
@@ -609,294 +569,6 @@ The visual presentation of text and images of text has a contrast ratio of at le
 - **Incidental:** Text or images of text that are part of an inactive user interface component, that are pure decoration, that are not visible to anyone, or that are part of a picture that contains significant other visual content, have no contrast requirement.
 - **Logotypes:** Text that is part of a logo or brand name has no contrast requirement.
 
-## Intent
-
-Intent of Contrast (Minimum)
-
-      The intent of this success criterion is to provide enough contrast between text and its background, so that it can be read by people with moderately low vision or impaired contrast perception, without the use of contrast-enhancing assistive technology.
-      
-
-
-      For all consumers of visual content, adequate light-dark contrast is needed between the relative luminance of text and its background for good readability.
-         Many different visual impairments can substantially impact contrast sensitivity, requiring more light-dark contrast, regardless of color (hue).
-         For people with color vision deficiency who are not able to distinguish certain shades of color, hue and saturation have minimal or no effect on legibility as assessed by reading performance.
-         Further, the inability to distinguish certain shades of color does not negatively affect light-dark contrast perception.
-         Therefore, in the recommendation, contrast is calculated in such a way that color (hue) is not a key factor.
-      
-
-
-
-      Text that is decorative and conveys no information is excluded. For example, if random
-         words are used to create a background and the words could be rearranged or substituted
-         without changing meaning, then it would be decorative and would not need to meet this
-         criterion.
-      
-
-
-
-      Text that is larger and has wider character strokes is easier to read at lower contrast.
-         The contrast requirement for larger text is therefore lower. This allows authors to
-         use a wider range of color choices for large text, which is helpful for design of
-         pages, particularly titles. 18 point text or 14 point bold text is judged to be large
-         enough to require a lower contrast ratio. (See The American Printing House for the
-         Blind Guidelines for Large Printing and The Library of Congress Guidelines for Large
-         Print under
-         Resources). "18 point" and "bold" can both have different meanings in
-         different fonts but, except for very thin or unusual fonts, they should be sufficient. Since there
-         are so many different fonts, the general measures are used and a note regarding thin or unusual
-         fonts is included in the definition for large-scale text.
-      
-
-
-
-      
-         When evaluating this Success Criterion, the font size in points should be obtained
-            from the user agent or calculated on font metrics in the way that user agents do.
-            Point sizes are based on the CSS `pt` size as defined in
-            CSS3 Values. The ratio between
-            sizes in points and CSS pixels is `1pt = 1.333px`, therefore `14pt`
-            and `18pt` are equivalent to approximately `18.5px` and `24px`.
-         
-
-
-         Because different image editing applications default to different pixel densities
-            (e.g., `72ppi` or `96ppi`), specifying point sizes for fonts from within an
-            image editing application can be unreliable when it comes to presenting text at a specific size.
-            When creating images of large-scale text, authors should ensure that the text in the
-            resulting image is roughly equivalent to 1.2 and 1.5 em or to 120% or 150% of the
-            default size for body text. For example, for a `72ppi` image, an author would need
-            to use approximately 19pt and 24pt font sizes in order to successfully present images
-            of large-scale text to a user.
-         
-
-
-         The 3:1 and 4.5:1 contrast ratios referenced in this success criterion are intended to be
-            treated as threshold values. When comparing the computed contrast ratio to the Success Criterion
-            ratio, the computed values should not be rounded (e.g., 4.499:1 would not meet the 4.5:1 threshold).
-
-
-      
-
-
-
-      
-         Because authors do not have control over user settings for font smoothing/anti-aliasing, when evaluating this
-            Success Criterion, refer to the foreground and background colors obtained from the user agent, or the underlying
-            markup and stylesheets, rather than the text as presented on screen.
-
-
-         Due to anti-aliasing, particularly thin or unusual fonts may be rendered by user agents with a much fainter
-            color than the actual text color defined in the underlying CSS. This can lead to situations where text has
-            a contrast ratio that nominally passes the Success Criterion, but has a much lower contrast in practice.
-            In these cases, best practice would be for authors to choose a font with stronger/thicker lines,
-            or to aim for a foreground/background color combination that exceeds the normative requirements
-            of this success criterion.
-         
-
-
-      
-
-
-
-      The contrast requirements for text also apply to images of text
-         (text that has been rendered into pixels and then stored in an image format) - see
-         Success Criterion 1.4.5: Images of Text.
-      
-
-
-
-      This requirement applies to situations in which images of text were intended to be
-         understood as text. Incidental text, such as in photographs that happen to include
-         a street sign, are not included. Nor is text that for some reason is designed to be
-         invisible to all viewers. Stylized text, such as in corporate logos, should be treated
-         in terms of its function on the page, which may or may not warrant including the content
-         in the text alternative. Corporate visual guidelines beyond logo and logotype are
-         not included in the exception.
-      
-
-
-
-      In this provision there is an exception that reads "that are part of a picture that
-         contains significant other visual content,". This exception is intended to separate
-         pictures that have text in them from images of text that are done to replace text
-         in order to get a particular look.
-      
-
-
-
-      
-         Images of text do not scale as well as text because they tend to pixelate. It is also
-            harder to change foreground and background contrast and color combinations for images
-            of text, which is necessary for some users. Therefore, we suggest using text wherever
-            possible, and when not, consider supplying an image of higher resolution.
-         
-
-
-      
-
-
-
-      This success criterion applies to text in the page, including
-         placeholder text and text that is shown when a pointer is hovering over an object
-         or when an object has keyboard focus. If any of these are used in a page, the text
-         needs to provide sufficient contrast.
-      
-
-
-
-      Although this success criterion only applies to text, similar issues occur for content presented
-         in charts, graphs, diagrams, and other non-text-based information, which is covered by
-         Success Criterion 1.4.11 Non-Text Contrast.
-      
-
-
-
-      See also
-         1.4.6: Contrast (Enhanced).
-      
-
-
-
-      
-         Rationale for the Ratios Chosen
-
-         A contrast ratio of 3:1 is the minimum level recommended by [[ISO-9241-3]] and [[ANSI-HFES-100-1988]]
-            for standard text and vision. The 4.5:1 ratio is used in this success criterion to account
-            for the loss in contrast that results from moderately low visual acuity, congenital
-            or acquired color deficiencies, or the loss of contrast sensitivity that typically
-            accompanies aging.
-         
-
-
-
-         The rationale is based on a) adoption of the 3:1 contrast ratio for minimum acceptable
-            contrast for normal observers, in the ANSI standard, and b) the empirical finding
-            that in the population, visual acuity of 20/40 is associated with a contrast sensitivity
-            loss of roughly 1.5 [[ARDITI-FAYE]]. A user with 20/40 would thus require a contrast ratio of
-            `3 * 1.5 = 4.5 to 1`. Following analogous empirical findings and the same logic,
-            the user with 20/80 visual acuity would require contrast of about 7:1. This ratio is used in
-            Success Criterion 1.4.6.
-         
-
-
-
-         Hues are perceived differently by users with color vision deficiencies (both congenital
-            and acquired) resulting in different colors and relative luminance contrasts than
-            for normally sighted users. Because of this, effective contrast and readability are
-            different for this population. However, color deficiencies are so diverse that prescribing
-            effective general use color pairs (for contrast) based on quantitative data is not
-            feasible. Requiring good luminance contrast accommodates this by requiring contrast
-            that is independent of color perception. Fortunately, most of the luminance contribution
-            is from the mid and long wave receptors which largely overlap in their spectral responses.
-            The result is that effective luminance contrast can generally be computed without
-            regard to specific color deficiency, except for the use of predominantly long wavelength
-            colors against darker colors (generally appearing black) for those who have protanopia.
-            (We provide an advisory technique on avoiding red on black for that reason). For more
-            information see [[ARDITI-KNOBLAUCH-1994]]
-            [[ARDITI-KNOBLAUCH-1996]]
-            [[ARDITI]].
-         
-
-
-         
-            Some people with cognitive disabilities require color combinations or hues that have
-               low contrast, and therefore we allow and encourage authors to provide mechanisms to
-               adjust the foreground and background colors of the content. Some of the combinations
-               that could be chosen may have contrast levels that will be lower than those those
-               specified here. This is not a violation of this Success Criterion, provided
-               there is a mechanism that will return to the required values set out here.
-            
-
-
-         
-
-
-         The contrast ratio of 4.5:1 was chosen for level AA because it compensated for the
-            loss in contrast sensitivity usually experienced by users with vision loss equivalent
-            to approximately 20/40 vision. (20/40 calculates to approximately 4.5:1.) 20/40 is
-            commonly reported as typical visual acuity of elders at roughly age 80. [[GITTINGS-FOZARD]]
-         
-
-
-         The contrast ratio of 7:1 was chosen for level AAA because it compensated for the
-            loss in contrast sensitivity usually experienced by users with vision loss equivalent
-            to approximately 20/80 vision. People with more than this degree of vision loss usually
-            use assistive technologies to access their content (and the assistive technologies
-            usually have contrast enhancing, as well as magnification capability built into them).
-            The 7:1 level therefore generally provides compensation for the loss in contrast sensitivity
-            experienced by users with low vision who do not use assistive technology and provides
-            contrast enhancement for color deficiency as well.
-         
-
-
-         
-            Calculations in [[ISO-9241-3]] and [[ANSI-HFES-100-1988]] are for body text. A relaxed contrast
-               ratio is provided for text that is much larger.
-
-
-         
-
-
-      
-      
-         Notes on formula
-         Conversion from nonlinear to linear RGB values is based on IEC/4WD 61966-2-1 [[IEC-4WD]].
-
-
-         The formula (`L1/L2`) for contrast is based on [[ISO-9241-3]] and [[ANSI-HFES-100-1988]] standards.
-
-
-         The ANSI/HFS 100-1988 standard calls for the contribution from ambient light to be
-            included in the calculation of L1 and L2. The `.05` value used is based on Typical Viewing
-            Flare from [[IEC-4WD]].
-         
-
-
-         This success criterion and its definitions use the terms "contrast ratio" and "relative
-            luminance" rather than "luminance" to reflect the fact that web content does not emit
-            light itself. The contrast ratio gives a measure of the relative luminance that would
-            result when displayed. (Because it is a ratio, it is dimensionless.)
-         
-
-
-         
-            
-               Refer to
-               related resources for a list of tools that utilize the contrast ratio
-               to analyze the contrast of web content.
-            
-
-
-            See also
-               2.4.7: Focus Visible for techniques for indicating keyboard focus.
-
-## Benefits
-
-- People with low vision often have difficulty reading text that does not contrast with
-            its background. This can be exacerbated if the person has a color vision deficiency
-            that lowers the contrast even further. Providing a minimum luminance contrast ratio
-            between the text and its background can make the text more readable even if the person
-            does not see the full range of colors. It also works for the rare individuals who
-            see no color.
-
-## Resources
-
-- [Colour Contrast Analyser application](https://www.tpgi.com/color-contrast-checker/)
-- [Luminosity Colour Contrast Ratio Analyser](https://juicystudio.com/services/luminositycontrastratio.php)
-- [Colour Contrast Check](https://snook.ca/technical/colour_contrast/colour.html)
-- [Contrast Ratio Calculator](https://www.msfw.com/Services/ContrastRatioCalculator)
-- [Adobe Color - Color Contrast Analyzer Tool](https://color.adobe.com/create/color-contrast-analyzer)
-- [Atypical colour response](https://www.w3.org/Graphics/atypical-color-response)
-- [Colors On the Web Color Contrast Analyzer](http://www.colorsontheweb.com/colorcontrast.asp)
-- [Tool to convert images based on color loss](https://www.vischeck.com/daltonize/runDaltonize.php)
-- [List of color contrast tools](https://www.456bereastreet.com/archive/200709/10_colour_contrast_checking_tools_to_improve_the_accessibility_of_your_design/)
-- [The American Printing House for the Blind Guidelines for Large Printing](https://www.aph.org/resources/large-print-guidelines/)
-- [National Library Service for the Blind and Physically Handicapped (NLS), The Library of Congress reference guide on large print materials](https://www.loc.gov/nls/resources/general-resources-on-disabilities/large-print-materials/)
-- [Types of Color Vision Deficiency, National Eye Institute (NEI), National Institutes of Health (NIH), U.S. Department of Health and Human Services (HHS)](https://www.nei.nih.gov/learn-about-eye-health/eye-conditions-and-diseases/color-blindness/types-color-vision-deficiency)
-- [Effects of chromatic and luminance contrast on reading, Knoblauch et al., 1991](https://doi.org/10.1364/JOSAA.8.000428)
-- [Achromatic luminance contrast sensitivity in X-linked color-deficient observers: an addition to the debate, Márta Janáky et al., 2013](https://pubmed.ncbi.nlm.nih.gov/24103453/)
-- [Contrast sensitivity of patients with congenital color vision deficiency, Cagri Ilhan et al., 2018](https://link.springer.com/article/10.1007/s10792-018-0881-7)
-
 ## Links
 
 - [WCAG Specification](https://www.w3.org/TR/WCAG22/#contrast-minimum)
@@ -905,41 +577,103 @@ Intent of Contrast (Minimum)
 
 
 ----------------------------------------------------------------------
-[CALL 7] [HIT] [must_have] get_full_criterion_context({"ref_id": "1.4.3"})
-Result: 653 chars
+[CALL 5] [HIT] [must_have] get_success_criteria_detail({"ref_id": "2.4.11"})
+Result: 1059 chars
 ----------------------------------------------------------------------
-# Complete Context: 1.4.3 Contrast (Minimum)
-
-## Overview
+# 2.4.11 Focus Not Obscured (Minimum)
 
 **Level:** AA
-**Principle:** 1 Perceivable
-**Guideline:** 1.4 Distinguishable
-**WCAG Versions:** 2.0, 2.1, 2.2
+**Principle:** 2 Operable
+**Guideline:** 2.4 Navigable
+**WCAG Versions:** 2.2
 
-The visual presentation of text and images of text has a contrast ratio of at least 4.5:1, except for the following:
+## Success Criterion
 
-## Techniques Summary
+When a user interface component receives keyboard focus, the component is not entirely hidden due to author-created content.
 
-- **Sufficient:** 6 techniques
-- **Advisory:** 1 techniques
-- **Failure:** 2 techniques
+## Details
+
+> **Note 1:** Where content in a configurable interface can be repositioned by the user, then only the initial positions of user-movable content are considered for testing and conformance of this success criterion.
+
+> **Note 2:** Content opened by the <em>user</em> may obscure the component receiving focus. If the user can reveal the focused component without advancing the keyboard focus, the component with focus is not considered visually hidden due to author-created content.
 
 ## Links
 
-- [WCAG Specification](https://www.w3.org/TR/WCAG22/#contrast-minimum)
-- [Understanding 1.4.3](https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html)
-- [How to Meet 1.4.3](https://www.w3.org/WAI/WCAG22/quickref/#contrast-minimum)
+- [WCAG Specification](https://www.w3.org/TR/WCAG22/#focus-not-obscured-minimum)
+- [Understanding 2.4.11](https://www.w3.org/WAI/WCAG22/Understanding/focus-not-obscured-minimum.html)
+- [How to Meet 2.4.11](https://www.w3.org/WAI/WCAG22/quickref/#focus-not-obscured-minimum)
 
 
 ----------------------------------------------------------------------
-[CALL 8] [HIT] [optional] list_success_criteria({"guideline": "1.4 Distinguishable"})
-Result: 48 chars
+[CALL 6] [HIT] [must_have] get_success_criteria_detail({"ref_id": "2.4.12"})
+Result: 563 chars
 ----------------------------------------------------------------------
-No success criteria found matching your filters.
+# 2.4.12 Focus Not Obscured (Enhanced)
+
+**Level:** AAA
+**Principle:** 2 Operable
+**Guideline:** 2.4 Navigable
+**WCAG Versions:** 2.2
+
+## Success Criterion
+
+When a user interface component receives keyboard focus, no part of the component is hidden by author-created content.
+
+## Links
+
+- [WCAG Specification](https://www.w3.org/TR/WCAG22/#focus-not-obscured-enhanced)
+- [Understanding 2.4.12](https://www.w3.org/WAI/WCAG22/Understanding/focus-not-obscured-enhanced.html)
+- [How to Meet 2.4.12](https://www.w3.org/WAI/WCAG22/quickref/#focus-not-obscured-enhanced)
+
 
 ----------------------------------------------------------------------
-[CALL 9] [HIT] [must_have] get_technique({"id": "G18"})
+[CALL 7] [HIT] [must_have] get_success_criteria_detail({"ref_id": "2.5.7"})
+Result: 844 chars
+----------------------------------------------------------------------
+# 2.5.7 Dragging Movements
+
+**Level:** AA
+**Principle:** 2 Operable
+**Guideline:** 2.5 Input Modalities
+**WCAG Versions:** 2.2
+
+## Success Criterion
+
+All functionality that uses a dragging movement for operation can be achieved by a single pointer without dragging, unless dragging is essential or the functionality is determined by the user agent and not modified by the author.
+
+## Details
+
+> **Note:** This requirement applies to web content that interprets pointer actions (i.e., this does not apply to actions that are required to operate the user agent or assistive technology).
+
+## Links
+
+- [WCAG Specification](https://www.w3.org/TR/WCAG22/#dragging-movements)
+- [Understanding 2.5.7](https://www.w3.org/WAI/WCAG22/Understanding/dragging-movements.html)
+- [How to Meet 2.5.7](https://www.w3.org/WAI/WCAG22/quickref/#dragging-movements)
+
+
+----------------------------------------------------------------------
+[CALL 8] [HIT] [must_have] get_glossary_term({"term": "conformance"})
+Result: 166 chars
+----------------------------------------------------------------------
+# conformance
+
+satisfying all the requirements of a given standard, guideline or specification
+
+[View in WCAG 2.2 Glossary](https://www.w3.org/TR/WCAG22/#dfn-conform)
+
+----------------------------------------------------------------------
+[CALL 9] [HIT] [must_have] get_glossary_term({"term": "web page"})
+Result: 1529 chars
+----------------------------------------------------------------------
+# web page
+
+a non-embedded resource obtained from a single URI using HTTP plus any other resources that are used in the rendering or intended to be rendered together with it by a user agent Note 1Although any "other resources" would be rendered together with the primary resource, they would not necessarily be rendered simultaneously with each other. Note 2For the purposes of conformance with these guidelines, a resource must be "non-embedded" within the scope of conformance to be considered a web page. Example 1A web resource including all embedded images and media. Example 2A web mail program built using Asynchronous JavaScript and XML (AJAX). The program lives entirely at http://example.com/mail, but includes an inbox, a contacts area and a calendar. Links or buttons are provided that cause the inbox, contacts, or calendar to display, but do not change the URI of the page as a whole. Example 3A customizable portal site, where users can choose content to display from a set of different content modules. Example 4When you enter "http://shopping.example.com/" in your browser, you enter a movie-like interactive shopping environment where you visually move around in a store dragging products off of the shelves around you and into a visual shopping cart in front of you. Clicking on a product causes it to be demonstrated with a specification sheet floating alongside. This might be a single-page website or just one page within a website.
+
+[View in WCAG 2.2 Glossary](https://www.w3.org/TR/WCAG22/#dfn-web-page-s)
+
+----------------------------------------------------------------------
+[CALL 10] [HIT] [must_have] get_technique({"id": "G18"})
 Result: 424 chars
 ----------------------------------------------------------------------
 # G18: Ensuring that a contrast ratio of at least 4.5:1 exists between text (and images of text) and background behind the text
@@ -959,17 +693,66 @@ Result: 424 chars
 
 
 ----------------------------------------------------------------------
-[CALL 10] [HIT] [must_have] get_glossary_term({"term": "conformance"})
-Result: 166 chars
+[CALL 11] [HIT] [fallback] search_wcag({"query": "conformance level AA requirements all level A criteria"})
+Result: 92 chars
 ----------------------------------------------------------------------
-# conformance
-
-satisfying all the requirements of a given standard, guideline or specification
-
-[View in WCAG 2.2 Glossary](https://www.w3.org/TR/WCAG22/#dfn-conform)
+No success criteria found matching "conformance level AA requirements all level A criteria".
 
 ----------------------------------------------------------------------
-[CALL 11] [HIT] [optional] whats_new_in_wcag22({})
+[CALL 12] [HIT] [fallback] get_full_criterion_context({"ref_id": "1.1.1"})
+Result: 687 chars
+----------------------------------------------------------------------
+# Complete Context: 1.1.1 Non-text Content
+
+## Overview
+
+**Level:** A
+**Principle:** 1 Perceivable
+**Guideline:** 1.1 Text Alternatives
+**WCAG Versions:** 2.0, 2.1, 2.2
+
+All non-text content that is presented to the user has a text alternative that serves the equivalent purpose, except for the situations listed below.
+
+## Techniques Summary
+
+- **Sufficient:** 46 techniques
+- **Advisory:** 1 techniques
+- **Failure:** 10 techniques
+
+## Links
+
+- [WCAG Specification](https://www.w3.org/TR/WCAG22/#non-text-content)
+- [Understanding 1.1.1](https://www.w3.org/WAI/WCAG22/Understanding/non-text-content.html)
+- [How to Meet 1.1.1](https://www.w3.org/WAI/WCAG22/quickref/#non-text-content)
+
+
+----------------------------------------------------------------------
+[CALL 13] [HIT] [fallback] search_wcag({"query": "WCAG conformance requirement full pages"})
+Result: 77 chars
+----------------------------------------------------------------------
+No success criteria found matching "WCAG conformance requirement full pages".
+
+----------------------------------------------------------------------
+[CALL 14] [HIT] [fallback] search_wcag({"query": "techniques are informative not required for conformance"})
+Result: 93 chars
+----------------------------------------------------------------------
+No success criteria found matching "techniques are informative not required for conformance".
+
+----------------------------------------------------------------------
+[CALL 15] [HIT] [optional] count_criteria({"group_by": "level"})
+Result: 138 chars
+----------------------------------------------------------------------
+# WCAG 2.2 Success Criteria by Level
+
+Total: 87 success criteria
+
+- **Level **: 1
+- **Level A**: 31
+- **Level AA**: 24
+- **Level AAA**: 31
+
+----------------------------------------------------------------------
+[CALL 16] [HIT] [optional] whats_new_in_wcag22({})
 Result: 1785 chars
 ----------------------------------------------------------------------
 # What's New in WCAG 2.2
@@ -1012,58 +795,58 @@ A cognitive function test (such as remembering a password or solving a puzzle) i
 
 
 ----------------------------------------------------------------------
-[CALL 12] [HIT] [fallback] get_full_criterion_context({"ref_id": "1.1.1"})
-Result: 687 chars
+[CALL 17] [HIT] [optional] list_success_criteria({"guideline": "1.4"})
+Result: 992 chars
 ----------------------------------------------------------------------
-# Complete Context: 1.1.1 Non-text Content
+# WCAG 2.2 Success Criteria (13 found)
 
-## Overview
+Filters: Guideline: 1.4
 
-**Level:** A
-**Principle:** 1 Perceivable
-**Guideline:** 1.1 Text Alternatives
-**WCAG Versions:** 2.0, 2.1, 2.2
+**1.4.1 Use of Color** (Level A)
+Guideline: 1.4 Distinguishable
 
-All non-text content that is presented to the user has a text alternative that serves the equivalent purpose, except for the situations listed below.
+**1.4.2 Audio Control** (Level A)
+Guideline: 1.4 Distinguishable
 
-## Techniques Summary
+**1.4.3 Contrast (Minimum)** (Level AA)
+Guideline: 1.4 Distinguishable
 
-- **Sufficient:** 46 techniques
-- **Advisory:** 1 techniques
-- **Failure:** 10 techniques
+**1.4.4 Resize Text** (Level AA)
+Guideline: 1.4 Distinguishable
 
-## Links
+**1.4.5 Images of Text** (Level AA)
+Guideline: 1.4 Distinguishable
 
-- [WCAG Specification](https://www.w3.org/TR/WCAG22/#non-text-content)
-- [Understanding 1.1.1](https://www.w3.org/WAI/WCAG22/Understanding/non-text-content.html)
-- [How to Meet 1.1.1](https://www.w3.org/WAI/WCAG22/quickref/#non-text-content)
+**1.4.6 Contrast (Enhanced)** (Level AAA)
+Guideline: 1.4 Distinguishable
 
+**1.4.7 Low or No Background Audio** (Level AAA)
+Guideline: 1.4 Distinguishable
 
-----------------------------------------------------------------------
-[CALL 13] [HIT] [fallback] get_technique({"id": "G94"})
-Result: 397 chars
-----------------------------------------------------------------------
-# G94: Providing short text alternative for non-text content that serves the same purpose and presents the same information as the non-text content
+**1.4.8 Visual Presentation** (Level AAA)
+Guideline: 1.4 Distinguishable
 
-**Technology:** general
-**Types:** sufficient
-**Applies to:** 1 success criteria
+**1.4.9 Images of Text (No Exception)** (Level AAA)
+Guideline: 1.4 Distinguishable
 
-## Related Success Criteria
+**1.4.10 Reflow** (Level AA)
+Guideline: 1.4 Distinguishable
 
-- **1.1.1** Non-text Content (Level A)
+**1.4.11 Non-text Contrast** (Level AA)
+Guideline: 1.4 Distinguishable
 
-## Links
+**1.4.12 Text Spacing** (Level AA)
+Guideline: 1.4 Distinguishable
 
-- [Full Technique Documentation](https://www.w3.org/WAI/WCAG22/Techniques/general/G94)
-
+**1.4.13 Content on Hover or Focus** (Level AA)
+Guideline: 1.4 Distinguishable
 
 ================================================================================
-STEP 7: FINAL TEACHING CONTENT (deduplicated hits)
+STEP 7: FINAL TEACHING CONTENT
 ================================================================================
 
-Unique hit sections: 13
-Final content: 25810 chars
+Unique hit sections: 17
+Final content: 13769 chars
 
 # WCAG 2.2 Principles
 
@@ -1142,121 +925,31 @@ URL: https://www.w3.org/TR/WCAG22/#robust
 
 ---
 
-# WCAG 2.2 Level A
+# 1.1.1 Non-text Content
 
-Total: 31 success criteria
+**Level:** A
+**Principle:** 1 Perceivable
+**Guideline:** 1.1 Text Alternatives
+**WCAG Versions:** 2.0, 2.1, 2.2
 
-## Level A (31 criteria)
+## Success Criterion
 
-- **1.1.1** Non-text Content
-- **1.2.1** Audio-only and Video-only (Prerecorded)
-- **1.2.2** Captions (Prerecorded)
-- **1.2.3** Audio Description or Media Alternative (Prerecorded)
-- **1.3.1** Info and Relationships
-- **1.3.2** Meaningful Sequence
-- **1.3.3** Sensory Characteristics
-- **1.4.1** Use of Color
-- **1.4.2** Audio Control
-- **2.1.1** Keyboard
-- **2.1.2** No Keyboard Trap
-- **2.1.4** Character Key Shortcuts
-- **2.2.1** Timing Adjustable
-- **2.2.2** Pause, Stop, Hide
-- **2.3.1** Three Flashes or Below Threshold
-- **2.4.1** Bypass Blocks
-- **2.4.2** Page Titled
-- **2.4.3** Focus Order
-- **2.4.4** Link Purpose (In Context)
-- **2.5.1** Pointer Gestures
-- **2.5.2** Pointer Cancellation
-- **2.5.3** Label in Name
-- **2.5.4** Motion Actuation
-- **3.1.1** Language of Page
-- **3.2.1** On Focus
-- **3.2.2** On Input
-- **3.2.6** Consistent Help
-- **3.3.1** Error Identification
-- **3.3.2** Labels or Instructions
-- **3.3.7** Redundant Entry
-- **4.1.2** Name, Role, Value
+All non-text content that is presented to the user has a text alternative that serves the equivalent purpose, except for the situations listed below.
 
+## Details
 
+- **Controls, Input:** If non-text content is a control or accepts user input, then it has a name that describes its purpose. (Refer to Success Criterion 4.1.2 for additional requirements for controls and content that accepts user input.)
+- **Time-Based Media:** If non-text content is time-based media, then text alternatives at least provide descriptive identification of the non-text content. (Refer to Guideline 1.2 for additional requirements for media.)
+- **Test:** If non-text content is a test or exercise that would be invalid if presented in text, then text alternatives at least provide descriptive identification of the non-text content.
+- **Sensory:** If non-text content is primarily intended to create a specific sensory experience, then text alternatives at least provide descriptive identification of the non-text content.
+- **CAPTCHA:** If the purpose of non-text content is to confirm that content is being accessed by a person rather than a computer, then text alternatives that identify and describe the purpose of the non-text content are provided, and alternative forms of CAPTCHA using output modes for different types of sensory perception are provided to accommodate different disabilities.
+- **Decoration, Formatting, Invisible:** If non-text content is pure decoration, is used only for visual formatting, or is not presented to users, then it is implemented in a way that it can be ignored by assistive technology.
 
----
+## Links
 
-# WCAG 2.2 Level AA
-
-Total: 24 success criteria
-
-## Level AA (24 criteria)
-
-- **1.2.4** Captions (Live)
-- **1.2.5** Audio Description (Prerecorded)
-- **1.3.4** Orientation
-- **1.3.5** Identify Input Purpose
-- **1.4.3** Contrast (Minimum)
-- **1.4.4** Resize Text
-- **1.4.5** Images of Text
-- **1.4.10** Reflow
-- **1.4.11** Non-text Contrast
-- **1.4.12** Text Spacing
-- **1.4.13** Content on Hover or Focus
-- **2.4.5** Multiple Ways
-- **2.4.6** Headings and Labels
-- **2.4.7** Focus Visible
-- **2.4.11** Focus Not Obscured (Minimum)
-- **2.5.7** Dragging Movements
-- **2.5.8** Target Size (Minimum)
-- **3.1.2** Language of Parts
-- **3.2.3** Consistent Navigation
-- **3.2.4** Consistent Identification
-- **3.3.3** Error Suggestion
-- **3.3.4** Error Prevention (Legal, Financial, Data)
-- **3.3.8** Accessible Authentication (Minimum)
-- **4.1.3** Status Messages
-
-
-
----
-
-# WCAG 2.2 Level AAA
-
-Total: 31 success criteria
-
-## Level AAA (31 criteria)
-
-- **1.2.6** Sign Language (Prerecorded)
-- **1.2.7** Extended Audio Description (Prerecorded)
-- **1.2.8** Media Alternative (Prerecorded)
-- **1.2.9** Audio-only (Live)
-- **1.3.6** Identify Purpose
-- **1.4.6** Contrast (Enhanced)
-- **1.4.7** Low or No Background Audio
-- **1.4.8** Visual Presentation
-- **1.4.9** Images of Text (No Exception)
-- **2.1.3** Keyboard (No Exception)
-- **2.2.3** No Timing
-- **2.2.4** Interruptions
-- **2.2.5** Re-authenticating
-- **2.2.6** Timeouts
-- **2.3.2** Three Flashes
-- **2.3.3** Animation from Interactions
-- **2.4.8** Location
-- **2.4.9** Link Purpose (Link Only)
-- **2.4.10** Section Headings
-- **2.4.12** Focus Not Obscured (Enhanced)
-- **2.4.13** Focus Appearance
-- **2.5.5** Target Size (Enhanced)
-- **2.5.6** Concurrent Input Mechanisms
-- **3.1.3** Unusual Words
-- **3.1.4** Abbreviations
-- **3.1.5** Reading Level
-- **3.1.6** Pronunciation
-- **3.2.5** Change on Request
-- **3.3.5** Help
-- **3.3.6** Error Prevention (All)
-- **3.3.9** Accessible Authentication (Enhanced)
-
+- [WCAG Specification](https://www.w3.org/TR/WCAG22/#non-text-content)
+- [Understanding 1.1.1](https://www.w3.org/WAI/WCAG22/Understanding/non-text-content.html)
+- [How to Meet 1.1.1](https://www.w3.org/WAI/WCAG22/quickref/#non-text-content)
 
 
 ---
@@ -1268,13 +961,7 @@ Total: 31 success criteria
 **Guideline:** 1.4 Distinguishable
 **WCAG Versions:** 2.0, 2.1, 2.2
 
-## In Brief
-
-**Goal:** Text can be seen by more people.
-**What to do:** Provide sufficient contrast between text and its background.
-**Why it's important:** Some people cannot read faint text.
-
-## Description
+## Success Criterion
 
 The visual presentation of text and images of text has a contrast ratio of at least 4.5:1, except for the following:
 
@@ -1284,294 +971,6 @@ The visual presentation of text and images of text has a contrast ratio of at le
 - **Incidental:** Text or images of text that are part of an inactive user interface component, that are pure decoration, that are not visible to anyone, or that are part of a picture that contains significant other visual content, have no contrast requirement.
 - **Logotypes:** Text that is part of a logo or brand name has no contrast requirement.
 
-## Intent
-
-Intent of Contrast (Minimum)
-
-      The intent of this success criterion is to provide enough contrast between text and its background, so that it can be read by people with moderately low vision or impaired contrast perception, without the use of contrast-enhancing assistive technology.
-      
-
-
-      For all consumers of visual content, adequate light-dark contrast is needed between the relative luminance of text and its background for good readability.
-         Many different visual impairments can substantially impact contrast sensitivity, requiring more light-dark contrast, regardless of color (hue).
-         For people with color vision deficiency who are not able to distinguish certain shades of color, hue and saturation have minimal or no effect on legibility as assessed by reading performance.
-         Further, the inability to distinguish certain shades of color does not negatively affect light-dark contrast perception.
-         Therefore, in the recommendation, contrast is calculated in such a way that color (hue) is not a key factor.
-      
-
-
-
-      Text that is decorative and conveys no information is excluded. For example, if random
-         words are used to create a background and the words could be rearranged or substituted
-         without changing meaning, then it would be decorative and would not need to meet this
-         criterion.
-      
-
-
-
-      Text that is larger and has wider character strokes is easier to read at lower contrast.
-         The contrast requirement for larger text is therefore lower. This allows authors to
-         use a wider range of color choices for large text, which is helpful for design of
-         pages, particularly titles. 18 point text or 14 point bold text is judged to be large
-         enough to require a lower contrast ratio. (See The American Printing House for the
-         Blind Guidelines for Large Printing and The Library of Congress Guidelines for Large
-         Print under
-         Resources). "18 point" and "bold" can both have different meanings in
-         different fonts but, except for very thin or unusual fonts, they should be sufficient. Since there
-         are so many different fonts, the general measures are used and a note regarding thin or unusual
-         fonts is included in the definition for large-scale text.
-      
-
-
-
-      
-         When evaluating this Success Criterion, the font size in points should be obtained
-            from the user agent or calculated on font metrics in the way that user agents do.
-            Point sizes are based on the CSS `pt` size as defined in
-            CSS3 Values. The ratio between
-            sizes in points and CSS pixels is `1pt = 1.333px`, therefore `14pt`
-            and `18pt` are equivalent to approximately `18.5px` and `24px`.
-         
-
-
-         Because different image editing applications default to different pixel densities
-            (e.g., `72ppi` or `96ppi`), specifying point sizes for fonts from within an
-            image editing application can be unreliable when it comes to presenting text at a specific size.
-            When creating images of large-scale text, authors should ensure that the text in the
-            resulting image is roughly equivalent to 1.2 and 1.5 em or to 120% or 150% of the
-            default size for body text. For example, for a `72ppi` image, an author would need
-            to use approximately 19pt and 24pt font sizes in order to successfully present images
-            of large-scale text to a user.
-         
-
-
-         The 3:1 and 4.5:1 contrast ratios referenced in this success criterion are intended to be
-            treated as threshold values. When comparing the computed contrast ratio to the Success Criterion
-            ratio, the computed values should not be rounded (e.g., 4.499:1 would not meet the 4.5:1 threshold).
-
-
-      
-
-
-
-      
-         Because authors do not have control over user settings for font smoothing/anti-aliasing, when evaluating this
-            Success Criterion, refer to the foreground and background colors obtained from the user agent, or the underlying
-            markup and stylesheets, rather than the text as presented on screen.
-
-
-         Due to anti-aliasing, particularly thin or unusual fonts may be rendered by user agents with a much fainter
-            color than the actual text color defined in the underlying CSS. This can lead to situations where text has
-            a contrast ratio that nominally passes the Success Criterion, but has a much lower contrast in practice.
-            In these cases, best practice would be for authors to choose a font with stronger/thicker lines,
-            or to aim for a foreground/background color combination that exceeds the normative requirements
-            of this success criterion.
-         
-
-
-      
-
-
-
-      The contrast requirements for text also apply to images of text
-         (text that has been rendered into pixels and then stored in an image format) - see
-         Success Criterion 1.4.5: Images of Text.
-      
-
-
-
-      This requirement applies to situations in which images of text were intended to be
-         understood as text. Incidental text, such as in photographs that happen to include
-         a street sign, are not included. Nor is text that for some reason is designed to be
-         invisible to all viewers. Stylized text, such as in corporate logos, should be treated
-         in terms of its function on the page, which may or may not warrant including the content
-         in the text alternative. Corporate visual guidelines beyond logo and logotype are
-         not included in the exception.
-      
-
-
-
-      In this provision there is an exception that reads "that are part of a picture that
-         contains significant other visual content,". This exception is intended to separate
-         pictures that have text in them from images of text that are done to replace text
-         in order to get a particular look.
-      
-
-
-
-      
-         Images of text do not scale as well as text because they tend to pixelate. It is also
-            harder to change foreground and background contrast and color combinations for images
-            of text, which is necessary for some users. Therefore, we suggest using text wherever
-            possible, and when not, consider supplying an image of higher resolution.
-         
-
-
-      
-
-
-
-      This success criterion applies to text in the page, including
-         placeholder text and text that is shown when a pointer is hovering over an object
-         or when an object has keyboard focus. If any of these are used in a page, the text
-         needs to provide sufficient contrast.
-      
-
-
-
-      Although this success criterion only applies to text, similar issues occur for content presented
-         in charts, graphs, diagrams, and other non-text-based information, which is covered by
-         Success Criterion 1.4.11 Non-Text Contrast.
-      
-
-
-
-      See also
-         1.4.6: Contrast (Enhanced).
-      
-
-
-
-      
-         Rationale for the Ratios Chosen
-
-         A contrast ratio of 3:1 is the minimum level recommended by [[ISO-9241-3]] and [[ANSI-HFES-100-1988]]
-            for standard text and vision. The 4.5:1 ratio is used in this success criterion to account
-            for the loss in contrast that results from moderately low visual acuity, congenital
-            or acquired color deficiencies, or the loss of contrast sensitivity that typically
-            accompanies aging.
-         
-
-
-
-         The rationale is based on a) adoption of the 3:1 contrast ratio for minimum acceptable
-            contrast for normal observers, in the ANSI standard, and b) the empirical finding
-            that in the population, visual acuity of 20/40 is associated with a contrast sensitivity
-            loss of roughly 1.5 [[ARDITI-FAYE]]. A user with 20/40 would thus require a contrast ratio of
-            `3 * 1.5 = 4.5 to 1`. Following analogous empirical findings and the same logic,
-            the user with 20/80 visual acuity would require contrast of about 7:1. This ratio is used in
-            Success Criterion 1.4.6.
-         
-
-
-
-         Hues are perceived differently by users with color vision deficiencies (both congenital
-            and acquired) resulting in different colors and relative luminance contrasts than
-            for normally sighted users. Because of this, effective contrast and readability are
-            different for this population. However, color deficiencies are so diverse that prescribing
-            effective general use color pairs (for contrast) based on quantitative data is not
-            feasible. Requiring good luminance contrast accommodates this by requiring contrast
-            that is independent of color perception. Fortunately, most of the luminance contribution
-            is from the mid and long wave receptors which largely overlap in their spectral responses.
-            The result is that effective luminance contrast can generally be computed without
-            regard to specific color deficiency, except for the use of predominantly long wavelength
-            colors against darker colors (generally appearing black) for those who have protanopia.
-            (We provide an advisory technique on avoiding red on black for that reason). For more
-            information see [[ARDITI-KNOBLAUCH-1994]]
-            [[ARDITI-KNOBLAUCH-1996]]
-            [[ARDITI]].
-         
-
-
-         
-            Some people with cognitive disabilities require color combinations or hues that have
-               low contrast, and therefore we allow and encourage authors to provide mechanisms to
-               adjust the foreground and background colors of the content. Some of the combinations
-               that could be chosen may have contrast levels that will be lower than those those
-               specified here. This is not a violation of this Success Criterion, provided
-               there is a mechanism that will return to the required values set out here.
-            
-
-
-         
-
-
-         The contrast ratio of 4.5:1 was chosen for level AA because it compensated for the
-            loss in contrast sensitivity usually experienced by users with vision loss equivalent
-            to approximately 20/40 vision. (20/40 calculates to approximately 4.5:1.) 20/40 is
-            commonly reported as typical visual acuity of elders at roughly age 80. [[GITTINGS-FOZARD]]
-         
-
-
-         The contrast ratio of 7:1 was chosen for level AAA because it compensated for the
-            loss in contrast sensitivity usually experienced by users with vision loss equivalent
-            to approximately 20/80 vision. People with more than this degree of vision loss usually
-            use assistive technologies to access their content (and the assistive technologies
-            usually have contrast enhancing, as well as magnification capability built into them).
-            The 7:1 level therefore generally provides compensation for the loss in contrast sensitivity
-            experienced by users with low vision who do not use assistive technology and provides
-            contrast enhancement for color deficiency as well.
-         
-
-
-         
-            Calculations in [[ISO-9241-3]] and [[ANSI-HFES-100-1988]] are for body text. A relaxed contrast
-               ratio is provided for text that is much larger.
-
-
-         
-
-
-      
-      
-         Notes on formula
-         Conversion from nonlinear to linear RGB values is based on IEC/4WD 61966-2-1 [[IEC-4WD]].
-
-
-         The formula (`L1/L2`) for contrast is based on [[ISO-9241-3]] and [[ANSI-HFES-100-1988]] standards.
-
-
-         The ANSI/HFS 100-1988 standard calls for the contribution from ambient light to be
-            included in the calculation of L1 and L2. The `.05` value used is based on Typical Viewing
-            Flare from [[IEC-4WD]].
-         
-
-
-         This success criterion and its definitions use the terms "contrast ratio" and "relative
-            luminance" rather than "luminance" to reflect the fact that web content does not emit
-            light itself. The contrast ratio gives a measure of the relative luminance that would
-            result when displayed. (Because it is a ratio, it is dimensionless.)
-         
-
-
-         
-            
-               Refer to
-               related resources for a list of tools that utilize the contrast ratio
-               to analyze the contrast of web content.
-            
-
-
-            See also
-               2.4.7: Focus Visible for techniques for indicating keyboard focus.
-
-## Benefits
-
-- People with low vision often have difficulty reading text that does not contrast with
-            its background. This can be exacerbated if the person has a color vision deficiency
-            that lowers the contrast even further. Providing a minimum luminance contrast ratio
-            between the text and its background can make the text more readable even if the person
-            does not see the full range of colors. It also works for the rare individuals who
-            see no color.
-
-## Resources
-
-- [Colour Contrast Analyser application](https://www.tpgi.com/color-contrast-checker/)
-- [Luminosity Colour Contrast Ratio Analyser](https://juicystudio.com/services/luminositycontrastratio.php)
-- [Colour Contrast Check](https://snook.ca/technical/colour_contrast/colour.html)
-- [Contrast Ratio Calculator](https://www.msfw.com/Services/ContrastRatioCalculator)
-- [Adobe Color - Color Contrast Analyzer Tool](https://color.adobe.com/create/color-contrast-analyzer)
-- [Atypical colour response](https://www.w3.org/Graphics/atypical-color-response)
-- [Colors On the Web Color Contrast Analyzer](http://www.colorsontheweb.com/colorcontrast.asp)
-- [Tool to convert images based on color loss](https://www.vischeck.com/daltonize/runDaltonize.php)
-- [List of color contrast tools](https://www.456bereastreet.com/archive/200709/10_colour_contrast_checking_tools_to_improve_the_accessibility_of_your_design/)
-- [The American Printing House for the Blind Guidelines for Large Printing](https://www.aph.org/resources/large-print-guidelines/)
-- [National Library Service for the Blind and Physically Handicapped (NLS), The Library of Congress reference guide on large print materials](https://www.loc.gov/nls/resources/general-resources-on-disabilities/large-print-materials/)
-- [Types of Color Vision Deficiency, National Eye Institute (NEI), National Institutes of Health (NIH), U.S. Department of Health and Human Services (HHS)](https://www.nei.nih.gov/learn-about-eye-health/eye-conditions-and-diseases/color-blindness/types-color-vision-deficiency)
-- [Effects of chromatic and luminance contrast on reading, Knoblauch et al., 1991](https://doi.org/10.1364/JOSAA.8.000428)
-- [Achromatic luminance contrast sensitivity in X-linked color-deficient observers: an addition to the debate, Márta Janáky et al., 2013](https://pubmed.ncbi.nlm.nih.gov/24103453/)
-- [Contrast sensitivity of patients with congenital color vision deficiency, Cagri Ilhan et al., 2018](https://link.springer.com/article/10.1007/s10792-018-0881-7)
-
 ## Links
 
 - [WCAG Specification](https://www.w3.org/TR/WCAG22/#contrast-minimum)
@@ -1581,33 +980,89 @@ Intent of Contrast (Minimum)
 
 ---
 
-# Complete Context: 1.4.3 Contrast (Minimum)
-
-## Overview
+# 2.4.11 Focus Not Obscured (Minimum)
 
 **Level:** AA
-**Principle:** 1 Perceivable
-**Guideline:** 1.4 Distinguishable
-**WCAG Versions:** 2.0, 2.1, 2.2
+**Principle:** 2 Operable
+**Guideline:** 2.4 Navigable
+**WCAG Versions:** 2.2
 
-The visual presentation of text and images of text has a contrast ratio of at least 4.5:1, except for the following:
+## Success Criterion
 
-## Techniques Summary
+When a user interface component receives keyboard focus, the component is not entirely hidden due to author-created content.
 
-- **Sufficient:** 6 techniques
-- **Advisory:** 1 techniques
-- **Failure:** 2 techniques
+## Details
+
+> **Note 1:** Where content in a configurable interface can be repositioned by the user, then only the initial positions of user-movable content are considered for testing and conformance of this success criterion.
+
+> **Note 2:** Content opened by the <em>user</em> may obscure the component receiving focus. If the user can reveal the focused component without advancing the keyboard focus, the component with focus is not considered visually hidden due to author-created content.
 
 ## Links
 
-- [WCAG Specification](https://www.w3.org/TR/WCAG22/#contrast-minimum)
-- [Understanding 1.4.3](https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html)
-- [How to Meet 1.4.3](https://www.w3.org/WAI/WCAG22/quickref/#contrast-minimum)
+- [WCAG Specification](https://www.w3.org/TR/WCAG22/#focus-not-obscured-minimum)
+- [Understanding 2.4.11](https://www.w3.org/WAI/WCAG22/Understanding/focus-not-obscured-minimum.html)
+- [How to Meet 2.4.11](https://www.w3.org/WAI/WCAG22/quickref/#focus-not-obscured-minimum)
 
 
 ---
 
-No success criteria found matching your filters.
+# 2.4.12 Focus Not Obscured (Enhanced)
+
+**Level:** AAA
+**Principle:** 2 Operable
+**Guideline:** 2.4 Navigable
+**WCAG Versions:** 2.2
+
+## Success Criterion
+
+When a user interface component receives keyboard focus, no part of the component is hidden by author-created content.
+
+## Links
+
+- [WCAG Specification](https://www.w3.org/TR/WCAG22/#focus-not-obscured-enhanced)
+- [Understanding 2.4.12](https://www.w3.org/WAI/WCAG22/Understanding/focus-not-obscured-enhanced.html)
+- [How to Meet 2.4.12](https://www.w3.org/WAI/WCAG22/quickref/#focus-not-obscured-enhanced)
+
+
+---
+
+# 2.5.7 Dragging Movements
+
+**Level:** AA
+**Principle:** 2 Operable
+**Guideline:** 2.5 Input Modalities
+**WCAG Versions:** 2.2
+
+## Success Criterion
+
+All functionality that uses a dragging movement for operation can be achieved by a single pointer without dragging, unless dragging is essential or the functionality is determined by the user agent and not modified by the author.
+
+## Details
+
+> **Note:** This requirement applies to web content that interprets pointer actions (i.e., this does not apply to actions that are required to operate the user agent or assistive technology).
+
+## Links
+
+- [WCAG Specification](https://www.w3.org/TR/WCAG22/#dragging-movements)
+- [Understanding 2.5.7](https://www.w3.org/WAI/WCAG22/Understanding/dragging-movements.html)
+- [How to Meet 2.5.7](https://www.w3.org/WAI/WCAG22/quickref/#dragging-movements)
+
+
+---
+
+# conformance
+
+satisfying all the requirements of a given standard, guideline or specification
+
+[View in WCAG 2.2 Glossary](https://www.w3.org/TR/WCAG22/#dfn-conform)
+
+---
+
+# web page
+
+a non-embedded resource obtained from a single URI using HTTP plus any other resources that are used in the rendering or intended to be rendered together with it by a user agent Note 1Although any "other resources" would be rendered together with the primary resource, they would not necessarily be rendered simultaneously with each other. Note 2For the purposes of conformance with these guidelines, a resource must be "non-embedded" within the scope of conformance to be considered a web page. Example 1A web resource including all embedded images and media. Example 2A web mail program built using Asynchronous JavaScript and XML (AJAX). The program lives entirely at http://example.com/mail, but includes an inbox, a contacts area and a calendar. Links or buttons are provided that cause the inbox, contacts, or calendar to display, but do not change the URI of the page as a whole. Example 3A customizable portal site, where users can choose content to display from a set of different content modules. Example 4When you enter "http://shopping.example.com/" in your browser, you enter a movie-like interactive shopping environment where you visually move around in a store dragging products off of the shelves around you and into a visual shopping cart in front of you. Clicking on a product causes it to be demonstrated with a specification sheet floating alongside. This might be a single-page website or just one page within a website.
+
+[View in WCAG 2.2 Glossary](https://www.w3.org/TR/WCAG22/#dfn-web-page-s)
 
 ---
 
@@ -1629,11 +1084,52 @@ No success criteria found matching your filters.
 
 ---
 
-# conformance
+No success criteria found matching "conformance level AA requirements all level A criteria".
 
-satisfying all the requirements of a given standard, guideline or specification
+---
 
-[View in WCAG 2.2 Glossary](https://www.w3.org/TR/WCAG22/#dfn-conform)
+# Complete Context: 1.1.1 Non-text Content
+
+## Overview
+
+**Level:** A
+**Principle:** 1 Perceivable
+**Guideline:** 1.1 Text Alternatives
+**WCAG Versions:** 2.0, 2.1, 2.2
+
+All non-text content that is presented to the user has a text alternative that serves the equivalent purpose, except for the situations listed below.
+
+## Techniques Summary
+
+- **Sufficient:** 46 techniques
+- **Advisory:** 1 techniques
+- **Failure:** 10 techniques
+
+## Links
+
+- [WCAG Specification](https://www.w3.org/TR/WCAG22/#non-text-content)
+- [Understanding 1.1.1](https://www.w3.org/WAI/WCAG22/Understanding/non-text-content.html)
+- [How to Meet 1.1.1](https://www.w3.org/WAI/WCAG22/quickref/#non-text-content)
+
+
+---
+
+No success criteria found matching "WCAG conformance requirement full pages".
+
+---
+
+No success criteria found matching "techniques are informative not required for conformance".
+
+---
+
+# WCAG 2.2 Success Criteria by Level
+
+Total: 87 success criteria
+
+- **Level **: 1
+- **Level A**: 31
+- **Level AA**: 24
+- **Level AAA**: 31
 
 ---
 
@@ -1678,53 +1174,54 @@ A cognitive function test (such as remembering a password or solving a puzzle) i
 
 ---
 
-# Complete Context: 1.1.1 Non-text Content
+# WCAG 2.2 Success Criteria (13 found)
 
-## Overview
+Filters: Guideline: 1.4
 
-**Level:** A
-**Principle:** 1 Perceivable
-**Guideline:** 1.1 Text Alternatives
-**WCAG Versions:** 2.0, 2.1, 2.2
+**1.4.1 Use of Color** (Level A)
+Guideline: 1.4 Distinguishable
 
-All non-text content that is presented to the user has a text alternative that serves the equivalent purpose, except for the situations listed below.
+**1.4.2 Audio Control** (Level A)
+Guideline: 1.4 Distinguishable
 
-## Techniques Summary
+**1.4.3 Contrast (Minimum)** (Level AA)
+Guideline: 1.4 Distinguishable
 
-- **Sufficient:** 46 techniques
-- **Advisory:** 1 techniques
-- **Failure:** 10 techniques
+**1.4.4 Resize Text** (Level AA)
+Guideline: 1.4 Distinguishable
 
-## Links
+**1.4.5 Images of Text** (Level AA)
+Guideline: 1.4 Distinguishable
 
-- [WCAG Specification](https://www.w3.org/TR/WCAG22/#non-text-content)
-- [Understanding 1.1.1](https://www.w3.org/WAI/WCAG22/Understanding/non-text-content.html)
-- [How to Meet 1.1.1](https://www.w3.org/WAI/WCAG22/quickref/#non-text-content)
+**1.4.6 Contrast (Enhanced)** (Level AAA)
+Guideline: 1.4 Distinguishable
 
+**1.4.7 Low or No Background Audio** (Level AAA)
+Guideline: 1.4 Distinguishable
 
----
+**1.4.8 Visual Presentation** (Level AAA)
+Guideline: 1.4 Distinguishable
 
-# G94: Providing short text alternative for non-text content that serves the same purpose and presents the same information as the non-text content
+**1.4.9 Images of Text (No Exception)** (Level AAA)
+Guideline: 1.4 Distinguishable
 
-**Technology:** general
-**Types:** sufficient
-**Applies to:** 1 success criteria
+**1.4.10 Reflow** (Level AA)
+Guideline: 1.4 Distinguishable
 
-## Related Success Criteria
+**1.4.11 Non-text Contrast** (Level AA)
+Guideline: 1.4 Distinguishable
 
-- **1.1.1** Non-text Content (Level A)
+**1.4.12 Text Spacing** (Level AA)
+Guideline: 1.4 Distinguishable
 
-## Links
-
-- [Full Technique Documentation](https://www.w3.org/WAI/WCAG22/Techniques/general/G94)
-
+**1.4.13 Content on Hover or Focus** (Level AA)
+Guideline: 1.4 Distinguishable
 
 ================================================================================
 PIPELINE TOTALS
 ================================================================================
-LLM calls: 3 (teaching plan + retrieval plan + JSON extraction)
-LLM time: 103.8s
-LLM tokens: prompt=7407 completion=8091 total=15498
-MCP calls: 13 (hits: 13, misses: 0)
+LLM calls: 3 | LLM time: 112.9s
+LLM tokens: prompt=9063 completion=9396 total=18459
+MCP calls: 17 (hits: 17, misses: 0, blocked: 0)
 MCP time: 0.0s
-Final content: 13 unique sections, 25810 chars
+Final content: 17 sections, 13769 chars
