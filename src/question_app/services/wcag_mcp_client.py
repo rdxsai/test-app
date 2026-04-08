@@ -21,8 +21,24 @@ from mcp.client.stdio import stdio_client
 
 logger = logging.getLogger(__name__)
 
-# Phrases that indicate "no results" from the MCP server
-NO_RESULT_PHRASES = ("no success criteria found", "no techniques found", "no results")
+# Prefixes that indicate "no results" from the MCP server.
+# These are checked against the start of the response only; deep WCAG content
+# can legitimately contain phrases like "No results returned" in examples.
+NO_RESULT_PREFIXES = (
+    "no success criteria found",
+    "no techniques found",
+    "no glossary terms found",
+    "no glossary term found",
+    "no results",
+)
+
+
+def is_no_result_text(text: Optional[str]) -> bool:
+    """Return True only when the MCP response is an actual empty-result payload."""
+    if not text:
+        return True
+    normalized = text.strip().lower()
+    return any(normalized.startswith(prefix) for prefix in NO_RESULT_PREFIXES)
 
 # ---------------------------------------------------------------------------
 # OpenAI function-calling tool definitions
@@ -624,7 +640,7 @@ class WCAGMCPClient:
             if text is None:
                 text = ""
 
-            is_empty = not text or any(p in text.lower() for p in NO_RESULT_PHRASES)
+            is_empty = is_no_result_text(text)
             status = "MISS" if is_empty else "HIT"
 
             result = {
@@ -701,7 +717,7 @@ class WCAGMCPClient:
             mcp_tool_name, param_fn = mapping
             mcp_args = param_fn(fn_args)
             result = await self._call_tool(mcp_tool_name, mcp_args)
-            is_empty = not result or any(p in result.lower() for p in NO_RESULT_PHRASES)
+            is_empty = is_no_result_text(result)
             return {"tool_call_id": tc["id"], "fn_name": fn_name, "fn_args": fn_args,
                     "mcp_result": result, "is_empty": is_empty}
 

@@ -53,6 +53,25 @@ def test_guided_tool_definitions_expose_richer_retrieval_tools():
 
 
 @pytest.mark.asyncio
+async def test_execute_planned_tool_calls_does_not_false_miss_embedded_no_results_text(monkeypatch):
+    client = WCAGMCPClient()
+
+    async def fake_call_tool(tool_name, arguments):
+        return (
+            "# 4.1.3 Status Messages\n\n"
+            "Examples include status messages such as 'No results returned' after a search."
+        )
+
+    monkeypatch.setattr(client, "_call_tool", fake_call_tool)
+
+    results = await client.execute_planned_tool_calls(
+        [{"tool": "get_criterion", "args": {"ref_id": "4.1.3"}, "category": "agentic"}]
+    )
+
+    assert results[0]["status"] == "HIT"
+
+
+@pytest.mark.asyncio
 async def test_execute_planned_tool_calls_runs_concurrently(monkeypatch):
     client = WCAGMCPClient()
     both_started = asyncio.Event()
