@@ -123,6 +123,47 @@ class TestConvenienceMethods:
         assert exported["teaching_plan"]["objective"] == "Objective"
         assert exported["lesson_state"]["active_concept"] == "c1"
 
+    def test_export_session_slims_retrieval_bundle(self, cache):
+        """Verify export strips raw_hits and per-item round/sequence but keeps content."""
+        bundle = {
+            "version": 1,
+            "objective_text": "Test objective",
+            "coverage": {"hit_count": 2, "required_checks": {}},
+            "raw_hits": [
+                {"tool": "get_criterion", "args": {"id": "1.1.1"}, "round": 1, "sequence": 1, "chars": 500, "preview": "..."},
+                {"tool": "get_glossary_term", "args": {"term": "alt text"}, "round": 1, "sequence": 2, "chars": 200, "preview": "..."},
+            ],
+            "sections": {
+                "core_rules": [
+                    {"title": "SC 1.1.1", "content": "Non-text Content", "source_tool": "get_criterion", "source_args": {"id": "1.1.1"}, "round": 1, "sequence": 1},
+                ],
+                "definitions": [
+                    {"title": "Alt Text", "content": "Alternative text", "source_tool": "get_glossary_term", "source_args": {"term": "alt text"}, "round": 1, "sequence": 2},
+                ],
+                "examples": [],
+            },
+        }
+        cache.store("sess-slim", "obj-1", "Objective", [], "", "content", retrieval_bundle=bundle)
+
+        exported = cache.export_session("sess-slim")
+        slim = exported["retrieval_bundle"]
+
+        # raw_hits dropped entirely
+        assert "raw_hits" not in slim
+        # coverage and version preserved
+        assert slim["version"] == 1
+        assert slim["coverage"]["hit_count"] == 2
+        # section content preserved
+        assert slim["sections"]["core_rules"][0]["title"] == "SC 1.1.1"
+        assert slim["sections"]["core_rules"][0]["content"] == "Non-text Content"
+        assert slim["sections"]["core_rules"][0]["source_tool"] == "get_criterion"
+        # round/sequence stripped from items
+        assert "round" not in slim["sections"]["core_rules"][0]
+        assert "sequence" not in slim["sections"]["core_rules"][0]
+        assert "round" not in slim["sections"]["definitions"][0]
+        # empty sections preserved
+        assert slim["sections"]["examples"] == []
+
     def test_restore_rehydrates_entry(self, cache):
         cache.restore(
             "sess-restore",

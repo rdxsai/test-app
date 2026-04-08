@@ -159,10 +159,63 @@ class SessionContentCache:
             restored["teaching_plan"] = entry.get("teaching_plan")
         self._cache[session_id] = copy.deepcopy(restored)
 
+    # Fields persisted to durable storage.  The retrieval_bundle is included
+    # (slimmed) so the structured evidence can be re-rendered, audited, or
+    # fed to different prompts without re-running retrieval.  Legacy fields
+    # (rag_chunks, wcag_context) are never persisted.
+    _PERSIST_FIELDS = (
+        "objective_id",
+        "objective_text",
+        "teaching_content",
+        "teaching_plan",
+        "lesson_state",
+        "retrieved_at",
+        "retrieval_bundle",
+    )
+
+    # Per-item keys stripped from retrieval_bundle sections before persistence.
+    # These are retrieval-order diagnostics that aren't needed for re-rendering
+    # or audit — the content itself is what matters.
+    _BUNDLE_STRIP_KEYS = ("round", "sequence")
+
+    @classmethod
+    def _slim_bundle(cls, bundle: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+        """Return a persistence-friendly copy of the retrieval bundle.
+
+        Drops ``raw_hits`` (redundant diagnostic metadata already represented
+        in sections) and per-item retrieval-order fields to cut ~40% of the
+        JSONB size while preserving the structured evidence for re-rendering
+        and audit.
+        """
+        if not bundle or not isinstance(bundle, dict):
+            return bundle
+        slim = {k: v for k, v in bundle.items() if k != "raw_hits"}
+        sections = slim.get("sections")
+        if isinstance(sections, dict):
+            slim["sections"] = {
+                name: [
+                    {k: v for k, v in item.items() if k not in cls._BUNDLE_STRIP_KEYS}
+                    for item in items
+                ]
+                for name, items in sections.items()
+                if isinstance(items, list)
+            }
+        return slim
+
     def export_session(self, session_id: str) -> Optional[Dict[str, Any]]:
-        """Return a JSON-safe snapshot of the cache entry for persistence."""
+        """Return a slim, JSON-safe snapshot of the cache entry for persistence.
+
+        Includes a slimmed retrieval_bundle (no raw_hits, no per-item
+        round/sequence) so structured evidence survives restarts.  Legacy
+        fields (rag_chunks, wcag_context) are omitted.
+        """
         entry = self._cache.get(session_id)
-        return copy.deepcopy(entry) if entry else None
+        if not entry:
+            return None
+        snapshot = {k: entry[k] for k in self._PERSIST_FIELDS if k in entry}
+        if "retrieval_bundle" in snapshot:
+            snapshot["retrieval_bundle"] = self._slim_bundle(snapshot["retrieval_bundle"])
+        return copy.deepcopy(snapshot)
 
     def store(
         self,
