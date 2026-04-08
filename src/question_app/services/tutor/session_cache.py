@@ -47,6 +47,13 @@ def _parse_text_plan_sections(plan_text: str) -> Dict[str, str]:
     return sections
 
 
+_BOLD_RE = re.compile(r"^\*\*(.+?)\*\*\s*$")
+_NOISE_RE = re.compile(
+    r"^(?:#{2,}\s|depends on |no dependency)",
+    re.IGNORECASE,
+)
+
+
 def _extract_ordered_concepts_from_text_plan(plan_text: str) -> List[Dict[str, str]]:
     sections = _parse_text_plan_sections(plan_text)
     ordered_labels: List[str] = []
@@ -56,12 +63,27 @@ def _extract_ordered_concepts_from_text_plan(plan_text: str) -> List[Dict[str, s
         line = _clean_plan_line(raw_line)
         if not line:
             continue
+
+        # Arrow-separated chains (e.g., "A → B → C")
         if "->" in line or "→" in line:
             for part in re.split(r"\s*(?:->|→)\s*", line):
                 cleaned = _clean_plan_line(part)
-                if cleaned:
-                    ordered_labels.append(cleaned)
-        else:
+                if cleaned and not _NOISE_RE.match(cleaned):
+                    # Unwrap bold if present
+                    m = _BOLD_RE.match(cleaned)
+                    ordered_labels.append(m.group(1) if m else cleaned)
+            continue
+
+        # Skip sub-headings and dependency annotations
+        if _NOISE_RE.match(line):
+            continue
+
+        # Prefer bold-wrapped concept names; accept plain numbered items
+        # only when they look like concept labels (short, no trailing period).
+        m = _BOLD_RE.match(line)
+        if m:
+            ordered_labels.append(m.group(1))
+        elif len(line.split()) >= 2 and not line.endswith("."):
             ordered_labels.append(line)
 
     if not ordered_labels:
@@ -70,7 +92,8 @@ def _extract_ordered_concepts_from_text_plan(plan_text: str) -> List[Dict[str, s
             line = _clean_plan_line(raw_line)
             if not line or len(line.split()) < 2:
                 continue
-            ordered_labels.append(line)
+            m = _BOLD_RE.match(line)
+            ordered_labels.append(m.group(1) if m else line)
 
     seen = set()
     concepts = []
