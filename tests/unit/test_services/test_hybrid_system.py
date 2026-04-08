@@ -16,7 +16,7 @@ class FakeAzureClient:
         self.api_key = api_key
         self.api_version = api_version
 
-    def chat(self, messages, temperature=0.7, max_tokens=1000, reasoning_effort=None):
+    def chat(self, messages, temperature=0.7, max_tokens=1000, reasoning_effort=None, response_format=None):
         return ""
 
     async def chat_with_tools(
@@ -594,13 +594,18 @@ class TestGuidedRetrieval:
         async def ws_send(data):
             ws_events.append(data)
 
-        teaching_plan, evidence_pack, retrieval_bundle = await hybrid_system._run_teaching_content_pipeline(
-            objective_text="Explain the hierarchy of WCAG",
-            session_id="sess-1",
-            objective_id="obj-1",
-            ws_send=ws_send,
+        teaching_plan, evidence_pack, retrieval_bundle, extracted_concepts = (
+            await hybrid_system._run_teaching_content_pipeline(
+                objective_text="Explain the hierarchy of WCAG",
+                session_id="sess-1",
+                objective_id="obj-1",
+                ws_send=ws_send,
+            )
         )
 
         assert teaching_plan.startswith("1. plain_language_goal")
         assert evidence_pack == "EVIDENCE PACK"
         assert retrieval_bundle["version"] == 1
+        # extracted_concepts may be None when the fake client doesn't
+        # support response_format — that's the expected fallback.
+        assert extracted_concepts is None or isinstance(extracted_concepts, list)

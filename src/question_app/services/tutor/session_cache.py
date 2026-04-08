@@ -110,10 +110,31 @@ def _extract_ordered_concepts_from_text_plan(plan_text: str) -> List[Dict[str, s
     return concepts
 
 
-def _build_lesson_state(plan: Any) -> Dict[str, Any]:
+def _build_lesson_state(
+    plan: Any,
+    extracted_concepts: Optional[List[Dict[str, str]]] = None,
+) -> Dict[str, Any]:
     concepts: List[Dict[str, str]] = []
 
-    if isinstance(plan, dict) and plan.get("concepts"):
+    # Priority 1: LLM-extracted concept list (structured, no regex needed)
+    if extracted_concepts:
+        seen: set = set()
+        for item in extracted_concepts:
+            cid = str(
+                item.get("id")
+                or _normalize_concept_id(item.get("label", ""))
+            )
+            if cid in seen:
+                continue
+            seen.add(cid)
+            concepts.append({
+                "id": cid,
+                "label": item.get("label", cid),
+                "status": "not_covered",
+            })
+
+    # Priority 2: Legacy JSON plan with concepts array
+    if not concepts and isinstance(plan, dict) and plan.get("concepts"):
         order = plan.get("recommended_order") or []
         concepts_by_id = {}
         for concept in plan.get("concepts", []):
@@ -128,7 +149,9 @@ def _build_lesson_state(plan: Any) -> Dict[str, Any]:
             if normalized in concepts_by_id:
                 concepts.append(concepts_by_id.pop(normalized))
         concepts.extend(concepts_by_id.values())
-    elif isinstance(plan, str):
+
+    # Priority 3: Regex fallback for text plans
+    if not concepts and isinstance(plan, str):
         concepts = _extract_ordered_concepts_from_text_plan(plan)
 
     if not concepts:
@@ -318,20 +341,34 @@ class SessionContentCache:
     # Teaching plan (concept decomposition)
     # ------------------------------------------------------------------
 
-    def store_teaching_plan(self, session_id: str, plan) -> None:
+    def store_teaching_plan(
+        self,
+        session_id: str,
+        plan,
+        extracted_concepts: Optional[List[Dict[str, str]]] = None,
+    ) -> None:
         """Store a teaching plan for the active objective.
 
-        Accepts either a dict (legacy JSON format) or str (new 17-section text format).
+        Args:
+            session_id: Session identifier.
+            plan: Either a dict (legacy JSON) or str (17-section text).
+            extracted_concepts: Pre-extracted concept list from a
+                lightweight LLM call.  When provided, ``_build_lesson_state``
+                uses it directly instead of regex-parsing the text plan.
         """
         entry = self._cache.get(session_id)
         if entry:
             entry["teaching_plan"] = plan
-            entry["lesson_state"] = _build_lesson_state(plan)
+            entry["lesson_state"] = _build_lesson_state(plan, extracted_concepts)
+            n = len(entry["lesson_state"].get("concepts", []))
             if isinstance(plan, dict):
                 detail = f"{len(plan.get('concepts', []))} concepts"
             else:
                 detail = f"{len(str(plan))} chars"
-            logger.info(f"Teaching plan stored for session={session_id} ({detail})")
+            logger.info(
+                "Teaching plan stored for session=%s (%s, %d lesson concepts)",
+                session_id, detail, n,
+            )
 
     def get_teaching_plan(self, session_id: str):
         """Get the teaching plan for the current objective. Returns None if not set."""

@@ -1509,9 +1509,11 @@ class HybridCrewAISocraticSystem:
             # Step 2: Check session content cache — run pipeline if needed
             if self._session_cache.needs_retrieval(session_id, objective_id):
                 try:
-                    teaching_plan, teaching_content, retrieval_bundle = await self._run_teaching_content_pipeline(
-                        objective_text or student_response,
-                        session_id, objective_id, ws_send,
+                    teaching_plan, teaching_content, retrieval_bundle, extracted_concepts = (
+                        await self._run_teaching_content_pipeline(
+                            objective_text or student_response,
+                            session_id, objective_id, ws_send,
+                        )
                     )
                     # Cache results
                     self._session_cache.store(
@@ -1519,7 +1521,10 @@ class HybridCrewAISocraticSystem:
                         [], "", teaching_content,  # no RAG chunks or wcag_context in new pipeline
                         retrieval_bundle=retrieval_bundle,
                     )
-                    self._session_cache.store_teaching_plan(session_id, teaching_plan)
+                    self._session_cache.store_teaching_plan(
+                        session_id, teaching_plan,
+                        extracted_concepts=extracted_concepts,
+                    )
                 except Exception as e:
                     logger.error(f"Teaching content pipeline failed: {e}", exc_info=True)
                     # Fallback: try old retrieval path
@@ -2182,6 +2187,59 @@ class HybridCrewAISocraticSystem:
             "recommended_order": ["c1"],
         }
 
+    async def _extract_concept_order(self, teaching_plan: str) -> Optional[List[Dict[str, str]]]:
+        """Use a lightweight LLM call to extract the ordered concept list
+        from a free-text teaching plan.
+
+        Returns a list of ``{"id": "...", "label": "..."}`` dicts in
+        teaching order, or *None* if extraction fails.
+        """
+        if not teaching_plan or not isinstance(teaching_plan, str):
+            return None
+
+        messages = [
+            {
+                "role": "system",
+                "content": (
+                    "You are a precise extraction tool. Given a teaching plan, "
+                    "extract the ordered list of teachable concepts from the "
+                    "dependency_order or concept_decomposition section.\n\n"
+                    "Rules:\n"
+                    "- Return ONLY the atomic teachable concepts, in teaching order.\n"
+                    "- Each concept should have a short snake_case 'id' and a "
+                    "human-readable 'label'.\n"
+                    "- Do NOT include dependency annotations, section headings, "
+                    "or explanatory text.\n"
+                    "- Typical plans have 5-15 concepts.\n"
+                    "- Output JSON: {\"concepts\": [{\"id\": \"...\", \"label\": \"...\"}]}"
+                ),
+            },
+            {"role": "user", "content": teaching_plan},
+        ]
+
+        try:
+            raw = await asyncio.to_thread(
+                self.tutor_client.chat,
+                messages,
+                0.0,
+                800,
+                response_format={"type": "json_object"},
+            )
+            parsed = json.loads(raw)
+            concepts = parsed.get("concepts", [])
+            if concepts and isinstance(concepts, list):
+                logger.info(
+                    "Concept extraction (LLM): %d concepts from teaching plan",
+                    len(concepts),
+                )
+                return concepts
+        except (json.JSONDecodeError, TypeError, KeyError) as exc:
+            logger.warning("Concept extraction LLM call failed to parse: %s", exc)
+        except Exception as exc:
+            logger.warning("Concept extraction LLM call failed: %s", exc)
+
+        return None
+
     # ------------------------------------------------------------------
     # Plan-first teaching content pipeline (Instance B)
     # ------------------------------------------------------------------
@@ -2512,11 +2570,14 @@ Available WCAG MCP tools:
         """Run the plan-first teaching content pipeline for Instance B.
 
         Steps:
-        1. Generate teaching plan from objective (LLM)
-        2. Run bounded agentic WCAG retrieval from the teaching plan (LLM + tools)
+        1. Generate teaching plan from objective (LLM reasoning)
+        2. In parallel:
+           a. Run bounded agentic WCAG retrieval (LLM + tools)
+           b. Extract ordered concept list (lightweight LLM, JSON mode)
         3. Evidence checks + deterministic fallbacks
         4. Build deterministic retrieval bundle + compact teaching pack
-        5. Return (teaching_plan, teaching_content, retrieval_bundle)
+        5. Return (teaching_plan, teaching_content, retrieval_bundle,
+           extracted_concepts)
 
         This replaces the old get_combined_context() + _generate_teaching_plan()
         flow for Instance B. Instance A still uses the old flow.
@@ -2527,13 +2588,19 @@ Available WCAG MCP tools:
         teaching_plan = await self._generate_teaching_plan(objective_text)
         logger.info(f"Pipeline step 1: teaching plan ({len(str(teaching_plan))} chars)")
 
-        # Step 2: Agentic retrieval
+        # Step 2: Agentic retrieval + concept extraction (parallel)
         await ws_send({"type": "stage", "stage": "searching",
                        "detail": "Researching WCAG content..."})
-        results = await self._run_agentic_retrieval(
+        retrieval_coro = self._run_agentic_retrieval(
             objective_text=objective_text,
             teaching_plan=teaching_plan,
             ws_send=ws_send,
+        )
+        # Lightweight LLM call on tutor_client (gpt-5.4-mini) to extract
+        # the ordered concept list — runs in parallel with retrieval.
+        extract_coro = self._extract_concept_order(teaching_plan)
+        results, extracted_concepts = await asyncio.gather(
+            retrieval_coro, extract_coro,
         )
         hits = [r for r in results if r["status"] == "HIT"]
         logger.info(
@@ -2559,7 +2626,7 @@ Available WCAG MCP tools:
         await ws_send({"type": "stage", "stage": "searching",
                        "detail": f"Teaching pack: {len(teaching_content)} chars from {len(hits)} sources"})
 
-        return teaching_plan, teaching_content, retrieval_bundle
+        return teaching_plan, teaching_content, retrieval_bundle, extracted_concepts
 
     async def _generate_retrieval_plan(
         self, objective_text: str, teaching_plan,

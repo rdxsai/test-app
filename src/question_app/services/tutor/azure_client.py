@@ -42,6 +42,7 @@ class AzureAPIMClient:
         temperature: float = 0.7,
         max_tokens: int = 1000,
         reasoning_effort: Optional[str] = None,
+        response_format: Optional[Dict[str, Any]] = None,
     ) -> str:
         """Send a non-streaming chat completion request."""
         url = f"{self.endpoint}/deployments/{self.deployment}/chat/completions"
@@ -58,6 +59,9 @@ class AzureAPIMClient:
         else:
             payload["max_tokens"] = max_tokens
             payload["temperature"] = temperature
+
+        if response_format:
+            payload["response_format"] = response_format
 
         try:
             response = requests.post(
