@@ -540,6 +540,59 @@ class HybridCrewAISocraticSystem:
             bundle.get("objective_memory"),
         )
 
+    async def _restore_session_cache(
+        self, session_id: str, objective_id: str = "",
+    ) -> None:
+        """Rehydrate the in-memory session cache from durable storage if available."""
+        if self._session_cache.get(session_id):
+            return
+        if not self.student_mcp or not hasattr(self.student_mcp, "get_session_runtime_cache"):
+            return
+        try:
+            payload = await self.student_mcp.get_session_runtime_cache(session_id)
+        except Exception as e:
+            logger.warning(f"Failed to restore session runtime cache: {e}")
+            return
+        if not payload or not isinstance(payload, dict):
+            return
+        cached_objective = str(payload.get("objective_id", "") or "")
+        if objective_id and cached_objective and cached_objective != objective_id:
+            logger.info(
+                "Skipping persisted runtime cache for session=%s because objective changed "
+                "(cached=%s current=%s)",
+                session_id,
+                cached_objective,
+                objective_id,
+            )
+            return
+        self._session_cache.restore(session_id, payload)
+        logger.info(
+            "Restored session runtime cache for session=%s objective=%s",
+            session_id,
+            cached_objective or objective_id,
+        )
+
+    async def _persist_session_cache(self, session_id: str) -> None:
+        """Persist the current in-memory session cache payload when supported."""
+        if not self.student_mcp or not hasattr(self.student_mcp, "save_session_runtime_cache"):
+            return
+        payload = self._session_cache.export_session(session_id)
+        if not payload:
+            return
+        try:
+            await self.student_mcp.save_session_runtime_cache(session_id, payload)
+        except Exception as e:
+            logger.warning(f"Failed to persist session runtime cache: {e}")
+
+    async def _clear_persisted_session_cache(self, session_id: str) -> None:
+        """Remove any durable runtime cache for a session."""
+        if not self.student_mcp or not hasattr(self.student_mcp, "clear_session_runtime_cache"):
+            return
+        try:
+            await self.student_mcp.clear_session_runtime_cache(session_id)
+        except Exception as e:
+            logger.warning(f"Failed to clear session runtime cache: {e}")
+
     def _format_student_context(
         self, profile: Optional[Dict], mastery: List[Dict],
         session: Optional[Dict], misconceptions: List[Dict],
@@ -982,6 +1035,7 @@ class HybridCrewAISocraticSystem:
             session_id,
             analysis.get("lesson_state_patch"),
         )
+        await self._persist_session_cache(session_id)
 
         await self._apply_memory_patches(
             student_id,
@@ -1073,6 +1127,7 @@ class HybridCrewAISocraticSystem:
             turns=0,
         )
         self._session_cache.invalidate(session_id)
+        await self._clear_persisted_session_cache(session_id)
         await ws_send(
             {
                 "type": "stage_update",
@@ -1449,6 +1504,8 @@ class HybridCrewAISocraticSystem:
                 except Exception as e:
                     logger.warning(f"Failed to fetch objective text for {objective_id}: {e}")
 
+            await self._restore_session_cache(session_id, objective_id)
+
             # Step 2: Check session content cache — run pipeline if needed
             if self._session_cache.needs_retrieval(session_id, objective_id):
                 try:
@@ -1484,6 +1541,7 @@ class HybridCrewAISocraticSystem:
                         self._session_cache.store_teaching_plan(session_id, teaching_plan)
                     except Exception as plan_err:
                         logger.warning(f"Fallback teaching plan failed: {plan_err}")
+                await self._persist_session_cache(session_id)
             else:
                 teaching_content = self._session_cache.get_teaching_content(session_id)
 

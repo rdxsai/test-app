@@ -16,6 +16,7 @@ This is NOT a persistent cache. It's a Python dict on the
 HybridCrewAISocraticSystem instance, scoped to the process lifetime.
 """
 
+import copy
 import logging
 import re
 from datetime import datetime
@@ -137,6 +138,31 @@ class SessionContentCache:
     def get(self, session_id: str) -> Optional[Dict[str, Any]]:
         """Get cached content for a session. Returns None if not cached."""
         return self._cache.get(session_id)
+
+    def restore(self, session_id: str, entry: Dict[str, Any]) -> None:
+        """Restore a previously persisted cache entry."""
+        if not entry:
+            return
+        restored = {
+            "objective_id": str(entry.get("objective_id", "") or ""),
+            "objective_text": str(entry.get("objective_text", "") or ""),
+            "rag_chunks": list(entry.get("rag_chunks", []) or []),
+            "wcag_context": str(entry.get("wcag_context", "") or ""),
+            "teaching_content": str(entry.get("teaching_content", "") or ""),
+            "retrieval_bundle": entry.get("retrieval_bundle"),
+            "lesson_state": dict(entry.get("lesson_state", {}) or {}),
+            "retrieved_at": str(
+                entry.get("retrieved_at") or datetime.now().isoformat()
+            ),
+        }
+        if "teaching_plan" in entry:
+            restored["teaching_plan"] = entry.get("teaching_plan")
+        self._cache[session_id] = copy.deepcopy(restored)
+
+    def export_session(self, session_id: str) -> Optional[Dict[str, Any]]:
+        """Return a JSON-safe snapshot of the cache entry for persistence."""
+        entry = self._cache.get(session_id)
+        return copy.deepcopy(entry) if entry else None
 
     def store(
         self,

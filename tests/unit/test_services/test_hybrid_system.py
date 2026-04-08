@@ -37,11 +37,24 @@ class FakeAzureClient:
 
 
 class FakeStudentService:
-    def __init__(self, session_state):
+    def __init__(self, session_state, runtime_cache_store=None):
         self.session_state = session_state
+        self.runtime_cache_store = runtime_cache_store or {}
 
     async def get_active_session(self, student_id: str):
         return dict(self.session_state)
+
+    async def get_session_runtime_cache(self, session_id: str):
+        payload = self.runtime_cache_store.get(session_id)
+        return dict(payload) if isinstance(payload, dict) else payload
+
+    async def save_session_runtime_cache(self, session_id: str, runtime_cache):
+        self.runtime_cache_store[session_id] = dict(runtime_cache)
+        return dict(runtime_cache)
+
+    async def clear_session_runtime_cache(self, session_id: str):
+        self.runtime_cache_store[session_id] = {}
+        return {}
 
 
 class FakeWCAGClient:
@@ -167,6 +180,74 @@ class TestGuidedTutorMessages:
         )
         assert "Route: adjacent_topic" in turn_analysis_block
         assert "Answer current question first: yes" in turn_analysis_block
+
+
+class TestSessionRuntimeCachePersistence:
+    @pytest.mark.asyncio
+    async def test_restore_session_cache_from_persistence(self, hybrid_system):
+        hybrid_system.student_mcp.runtime_cache_store["sess-restore"] = {
+            "objective_id": "obj-1",
+            "objective_text": "Explain WCAG structure",
+            "rag_chunks": [],
+            "wcag_context": "",
+            "teaching_content": "Persisted evidence pack",
+            "retrieval_bundle": {"version": 1},
+            "teaching_plan": "8. dependency_order\n1. Principles vs guidelines\n",
+            "lesson_state": {
+                "active_concept": "principles-vs-guidelines",
+                "pending_check": "Principles vs guidelines",
+                "bridge_back_target": "principles-vs-guidelines",
+                "teaching_order": ["principles-vs-guidelines"],
+                "concepts": [
+                    {
+                        "id": "principles-vs-guidelines",
+                        "label": "Principles vs guidelines",
+                        "status": "in_progress",
+                    }
+                ],
+            },
+            "retrieved_at": "2026-04-08T12:00:00",
+        }
+
+        await hybrid_system._restore_session_cache("sess-restore", "obj-1")
+
+        assert hybrid_system._session_cache.get_teaching_content("sess-restore") == (
+            "Persisted evidence pack"
+        )
+        assert hybrid_system._session_cache.get_teaching_plan("sess-restore") == (
+            "8. dependency_order\n1. Principles vs guidelines\n"
+        )
+        assert hybrid_system._session_cache.get_lesson_state("sess-restore")[
+            "active_concept"
+        ] == "principles-vs-guidelines"
+
+    @pytest.mark.asyncio
+    async def test_persist_session_cache_writes_runtime_cache(self, hybrid_system):
+        hybrid_system._session_cache.store(
+            "sess-1", "obj-1", "Explain WCAG structure", [], "", "Evidence pack"
+        )
+        hybrid_system._session_cache.store_teaching_plan(
+            "sess-1",
+            {
+                "objective": "Explain WCAG structure",
+                "concepts": [
+                    {
+                        "id": "c1",
+                        "name": "Principles vs guidelines",
+                        "status": "not_covered",
+                    }
+                ],
+                "recommended_order": ["c1"],
+            },
+        )
+
+        await hybrid_system._persist_session_cache("sess-1")
+
+        persisted = hybrid_system.student_mcp.runtime_cache_store["sess-1"]
+        assert persisted["objective_id"] == "obj-1"
+        assert persisted["teaching_content"] == "Evidence pack"
+        assert persisted["teaching_plan"]["objective"] == "Explain WCAG structure"
+        assert persisted["lesson_state"]["active_concept"] == "c1"
 
 
 class TestGuidedTurnOrdering:

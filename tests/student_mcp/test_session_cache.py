@@ -105,6 +105,51 @@ class TestConvenienceMethods:
     def test_get_retrieval_bundle_empty(self, cache):
         assert cache.get_retrieval_bundle("nonexistent") is None
 
+    def test_export_session_returns_snapshot(self, cache):
+        cache.store("sess-1", "obj-1", "Objective", [], "", "content")
+        cache.store_teaching_plan(
+            "sess-1",
+            {
+                "objective": "Objective",
+                "concepts": [{"id": "c1", "name": "Hierarchy", "status": "not_covered"}],
+                "recommended_order": ["c1"],
+            },
+        )
+
+        exported = cache.export_session("sess-1")
+
+        assert exported is not None
+        assert exported["objective_id"] == "obj-1"
+        assert exported["teaching_plan"]["objective"] == "Objective"
+        assert exported["lesson_state"]["active_concept"] == "c1"
+
+    def test_restore_rehydrates_entry(self, cache):
+        cache.restore(
+            "sess-restore",
+            {
+                "objective_id": "obj-1",
+                "objective_text": "Objective",
+                "rag_chunks": [{"content": "chunk"}],
+                "wcag_context": "WCAG context",
+                "teaching_content": "Rendered evidence pack",
+                "retrieval_bundle": {"version": 1},
+                "teaching_plan": "8. dependency_order\n1. Hierarchy\n",
+                "lesson_state": {
+                    "active_concept": "hierarchy",
+                    "pending_check": "Hierarchy",
+                    "bridge_back_target": "hierarchy",
+                    "teaching_order": ["hierarchy"],
+                    "concepts": [{"id": "hierarchy", "label": "Hierarchy", "status": "in_progress"}],
+                },
+                "retrieved_at": "2026-04-08T12:00:00",
+            },
+        )
+
+        assert cache.get_teaching_content("sess-restore") == "Rendered evidence pack"
+        assert cache.get_retrieval_bundle("sess-restore") == {"version": 1}
+        assert cache.get_teaching_plan("sess-restore") == "8. dependency_order\n1. Hierarchy\n"
+        assert cache.get_lesson_state("sess-restore")["active_concept"] == "hierarchy"
+
 
 class TestMultipleSessions:
 

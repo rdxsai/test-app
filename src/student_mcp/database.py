@@ -172,8 +172,13 @@ class StudentDatabase:
                         mini_assessment_progress    JSONB DEFAULT '{}'::jsonb,
                         final_assessment_progress   JSONB DEFAULT '{}'::jsonb,
                         stage_summary               TEXT DEFAULT '',
+                        runtime_cache               JSONB DEFAULT '{}'::jsonb,
                         started_at                  TIMESTAMPTZ NOT NULL DEFAULT NOW()
                     )
+                """)
+                cur.execute("""
+                    ALTER TABLE session_state
+                    ADD COLUMN IF NOT EXISTS runtime_cache JSONB DEFAULT '{}'::jsonb
                 """)
                 cur.execute("""
                     CREATE INDEX IF NOT EXISTS idx_session_state_student
@@ -554,12 +559,25 @@ class StudentDatabase:
             with conn.cursor() as cur:
                 cur.execute(
                     """
-                    INSERT INTO session_state (session_id, student_id)
-                    VALUES (%s, %s)
+                    SELECT runtime_cache FROM session_state
+                    WHERE student_id = %s
+                    ORDER BY started_at DESC
+                    LIMIT 1
+                    """,
+                    (student_id,),
+                )
+                prior = cur.fetchone() or {}
+                runtime_cache_json = self._coerce_jsonb(
+                    prior.get("runtime_cache"), {}
+                )
+                cur.execute(
+                    """
+                    INSERT INTO session_state (session_id, student_id, runtime_cache)
+                    VALUES (%s, %s, %s::jsonb)
                     ON CONFLICT (session_id) DO NOTHING
                     RETURNING *
                     """,
-                    (session_id, student_id),
+                    (session_id, student_id, runtime_cache_json),
                 )
                 row = cur.fetchone()
                 conn.commit()
@@ -629,6 +647,50 @@ class StudentDatabase:
                 row = cur.fetchone()
                 conn.commit()
                 return dict(row) if row else None
+
+    def get_session_runtime_cache(self, session_id: str) -> Optional[Dict[str, Any]]:
+        """Read the persisted runtime cache payload for a session."""
+        with self.get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    SELECT runtime_cache FROM session_state
+                    WHERE session_id = %s
+                    """,
+                    (session_id,),
+                )
+                row = cur.fetchone()
+                if not row:
+                    return None
+                payload = row.get("runtime_cache")
+                return dict(payload) if isinstance(payload, dict) and payload else None
+
+    def save_session_runtime_cache(
+        self, session_id: str, runtime_cache: Any,
+    ) -> Optional[Dict[str, Any]]:
+        """Persist the session runtime cache as JSONB."""
+        cache_json = self._coerce_jsonb(runtime_cache, {})
+        with self.get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    UPDATE session_state
+                    SET runtime_cache = %s::jsonb
+                    WHERE session_id = %s
+                    RETURNING runtime_cache
+                    """,
+                    (cache_json, session_id),
+                )
+                row = cur.fetchone()
+                conn.commit()
+                if not row:
+                    return None
+                payload = row.get("runtime_cache")
+                return dict(payload) if isinstance(payload, dict) and payload else None
+
+    def clear_session_runtime_cache(self, session_id: str) -> Optional[Dict[str, Any]]:
+        """Remove any persisted runtime cache for a session."""
+        return self.save_session_runtime_cache(session_id, {})
 
     # ------------------------------------------------------------------
     # Read: Misconceptions

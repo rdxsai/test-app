@@ -303,6 +303,37 @@ class TestSessionState:
         result = db.update_session("session-noop")
         assert result is not None
 
+    def test_save_and_get_session_runtime_cache(self, db):
+        db.create_profile(student_id="sess-cache")
+        db.create_session("session-cache", "sess-cache")
+
+        payload = {
+            "objective_id": "obj-1",
+            "teaching_content": "Persisted evidence pack",
+            "lesson_state": {"active_concept": "c1"},
+        }
+        db.save_session_runtime_cache("session-cache", payload)
+
+        result = db.get_session_runtime_cache("session-cache")
+        assert result is not None
+        assert result["objective_id"] == "obj-1"
+        assert result["lesson_state"]["active_concept"] == "c1"
+
+    def test_create_session_copies_runtime_cache_from_previous_session(self, db):
+        db.create_profile(student_id="sess-copy")
+        db.create_session("session-old", "sess-copy")
+        db.save_session_runtime_cache(
+            "session-old",
+            {"objective_id": "obj-1", "teaching_content": "Warm cache"},
+        )
+
+        result = db.create_session("session-new", "sess-copy")
+
+        assert result["session_id"] == "session-new"
+        assert result["current_stage"] == "onboarding"
+        assert result["runtime_cache"]["objective_id"] == "obj-1"
+        assert result["runtime_cache"]["teaching_content"] == "Warm cache"
+
 
 # ---------------------------------------------------------------------------
 # Tests: Personalized Memory

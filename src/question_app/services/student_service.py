@@ -79,6 +79,22 @@ class StudentService:
         """Get current session state. Returns None if no session exists."""
         return await self._run(self._db.get_active_session, student_id)
 
+    async def get_session_runtime_cache(self, session_id: str) -> Optional[Dict]:
+        """Get persisted runtime cache for a session."""
+        return await self._run(self._db.get_session_runtime_cache, session_id)
+
+    async def save_session_runtime_cache(
+        self, session_id: str, runtime_cache: Dict[str, Any],
+    ) -> Optional[Dict]:
+        """Persist runtime cache for a session."""
+        return await self._run(
+            self._db.save_session_runtime_cache, session_id, runtime_cache,
+        )
+
+    async def clear_session_runtime_cache(self, session_id: str) -> Optional[Dict]:
+        """Clear any persisted runtime cache for a session."""
+        return await self._run(self._db.clear_session_runtime_cache, session_id)
+
     async def get_misconception_patterns(self, student_id: str) -> List[Dict]:
         """Get unresolved misconceptions. Returns empty list on error."""
         result = await self._run(self._db.get_misconception_patterns, student_id)

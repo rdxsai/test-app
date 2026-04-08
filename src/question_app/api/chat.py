@@ -499,6 +499,13 @@ async def websocket_guided_chat(websocket: WebSocket):
                     # Invalidate session cache
                     if session_id:
                         tutor_system._session_cache.invalidate(session_id)
+                        if (
+                            tutor_system.student_mcp
+                            and hasattr(tutor_system.student_mcp, "clear_session_runtime_cache")
+                        ):
+                            await tutor_system.student_mcp.clear_session_runtime_cache(
+                                session_id
+                            )
                     logger.info(f"WS Guided: Session reset for {student_id}")
                     await websocket.send_json({"type": "session_reset", "student_id": student_id})
 
