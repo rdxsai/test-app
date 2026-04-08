@@ -146,6 +146,7 @@ class SessionContentCache:
         rag_chunks: List[Dict],
         wcag_context: str,
         teaching_content: str,
+        retrieval_bundle: Optional[Dict[str, Any]] = None,
     ) -> None:
         """Cache teaching content for a session's active objective.
 
@@ -156,6 +157,8 @@ class SessionContentCache:
             rag_chunks:       Full quiz chunks with feedback (for assessment rubrics).
             wcag_context:     Full WCAG MCP content (authoritative reference).
             teaching_content: Combined formatted string for prompt injection.
+            retrieval_bundle: Structured retrieval artifact used to build the
+                compact teaching content for guided sessions.
         """
         self._cache[session_id] = {
             "objective_id": objective_id,
@@ -163,6 +166,7 @@ class SessionContentCache:
             "rag_chunks": rag_chunks,
             "wcag_context": wcag_context,
             "teaching_content": teaching_content,
+            "retrieval_bundle": retrieval_bundle,
             "lesson_state": {},
             "retrieved_at": datetime.now().isoformat(),
         }
@@ -201,6 +205,12 @@ class SessionContentCache:
         """Get the combined teaching content string for prompt injection."""
         entry = self._cache.get(session_id)
         return entry.get("teaching_content", "") if entry else ""
+
+    def get_retrieval_bundle(self, session_id: str) -> Optional[Dict[str, Any]]:
+        """Get the structured retrieval bundle for the active objective."""
+        entry = self._cache.get(session_id)
+        bundle = entry.get("retrieval_bundle") if entry else None
+        return bundle if bundle else None
 
     # ------------------------------------------------------------------
     # Teaching plan (concept decomposition)

@@ -1452,7 +1452,7 @@ class HybridCrewAISocraticSystem:
             # Step 2: Check session content cache — run pipeline if needed
             if self._session_cache.needs_retrieval(session_id, objective_id):
                 try:
-                    teaching_plan, teaching_content, _retrieval_bundle = await self._run_teaching_content_pipeline(
+                    teaching_plan, teaching_content, retrieval_bundle = await self._run_teaching_content_pipeline(
                         objective_text or student_response,
                         session_id, objective_id, ws_send,
                     )
@@ -1460,6 +1460,7 @@ class HybridCrewAISocraticSystem:
                     self._session_cache.store(
                         session_id, objective_id, objective_text,
                         [], "", teaching_content,  # no RAG chunks or wcag_context in new pipeline
+                        retrieval_bundle=retrieval_bundle,
                     )
                     self._session_cache.store_teaching_plan(session_id, teaching_plan)
                 except Exception as e:

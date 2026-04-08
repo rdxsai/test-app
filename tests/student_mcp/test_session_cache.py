@@ -97,6 +97,14 @@ class TestConvenienceMethods:
     def test_get_teaching_content_empty(self, cache):
         assert cache.get_teaching_content("nonexistent") == ""
 
+    def test_get_retrieval_bundle(self, cache):
+        bundle = {"version": 1, "sections": {"core_rules": []}}
+        cache.store("sess-1", "obj-1", "", [], "", "content", retrieval_bundle=bundle)
+        assert cache.get_retrieval_bundle("sess-1") == bundle
+
+    def test_get_retrieval_bundle_empty(self, cache):
+        assert cache.get_retrieval_bundle("nonexistent") is None
+
 
 class TestMultipleSessions:
 
