@@ -8,6 +8,7 @@ import asyncio
 import json
 import logging
 import os
+import re
 import uuid
 from dataclasses import asdict
 from datetime import datetime
@@ -1451,17 +1452,16 @@ class HybridCrewAISocraticSystem:
             # Step 2: Check session content cache — run pipeline if needed
             if self._session_cache.needs_retrieval(session_id, objective_id):
                 try:
-                    teaching_plan, evidence_pack = await self._run_teaching_content_pipeline(
+                    teaching_plan, teaching_content, _retrieval_bundle = await self._run_teaching_content_pipeline(
                         objective_text or student_response,
                         session_id, objective_id, ws_send,
                     )
                     # Cache results
                     self._session_cache.store(
                         session_id, objective_id, objective_text,
-                        [], "", evidence_pack,  # no RAG chunks or wcag_context in new pipeline
+                        [], "", teaching_content,  # no RAG chunks or wcag_context in new pipeline
                     )
                     self._session_cache.store_teaching_plan(session_id, teaching_plan)
-                    teaching_content = evidence_pack
                 except Exception as e:
                     logger.error(f"Teaching content pipeline failed: {e}", exc_info=True)
                     # Fallback: try old retrieval path
@@ -2456,7 +2456,8 @@ Available WCAG MCP tools:
         1. Generate teaching plan from objective (LLM)
         2. Run bounded agentic WCAG retrieval from the teaching plan (LLM + tools)
         3. Evidence checks + deterministic fallbacks
-        4. Return (teaching_plan, evidence_pack)
+        4. Build deterministic retrieval bundle + compact teaching pack
+        5. Return (teaching_plan, teaching_content, retrieval_bundle)
 
         This replaces the old get_combined_context() + _generate_teaching_plan()
         flow for Instance B. Instance A still uses the old flow.
@@ -2484,17 +2485,22 @@ Available WCAG MCP tools:
         # Step 3: Evidence checks + fallbacks
         await ws_send({"type": "stage", "stage": "searching",
                        "detail": "Validating evidence..."})
-        evidence_pack = await self._build_evidence_pack(
+        retrieval_bundle = await self._build_retrieval_bundle(
             results,
             objective_text=objective_text,
             teaching_plan=teaching_plan,
         )
-        logger.info(f"Pipeline step 3: evidence pack ({len(evidence_pack)} chars)")
+        teaching_content = self._render_retrieval_bundle(retrieval_bundle)
+        logger.info(
+            "Pipeline step 3: teaching pack (%s chars, %s raw hits)",
+            len(teaching_content),
+            len(retrieval_bundle.get("raw_hits", [])),
+        )
 
         await ws_send({"type": "stage", "stage": "searching",
-                       "detail": f"Evidence pack: {len(evidence_pack)} chars from {len(hits)} sources"})
+                       "detail": f"Teaching pack: {len(teaching_content)} chars from {len(hits)} sources"})
 
-        return teaching_plan, evidence_pack
+        return teaching_plan, teaching_content, retrieval_bundle
 
     async def _generate_retrieval_plan(
         self, objective_text: str, teaching_plan,
@@ -2550,13 +2556,263 @@ Available WCAG MCP tools:
             {"tool": "get_glossary_term", "args": {"term": "conformance"}, "category": "must_have"},
         ]
 
-    async def _build_evidence_pack(
+    @staticmethod
+    def _truncate_text(text: str, max_chars: int) -> str:
+        text = (text or "").strip()
+        if len(text) <= max_chars:
+            return text
+        return text[: max_chars - 3].rstrip() + "..."
+
+    @staticmethod
+    def _normalize_excerpt(text: str) -> str:
+        cleaned = (text or "").replace("\t", " ")
+        cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
+        cleaned = re.sub(r"[ ]{2,}", " ", cleaned)
+        return cleaned.strip()
+
+    @staticmethod
+    def _first_markdown_heading(text: str) -> str:
+        for line in (text or "").splitlines():
+            stripped = line.strip()
+            if stripped.startswith("#"):
+                return stripped.lstrip("#").strip()
+        return ""
+
+    @staticmethod
+    def _parse_markdown_sections(text: str) -> Dict[str, str]:
+        sections: Dict[str, List[str]] = {}
+        current: Optional[str] = None
+        for line in (text or "").splitlines():
+            if line.startswith("## "):
+                current = line[3:].strip()
+                sections[current] = []
+                continue
+            if current is not None:
+                sections[current].append(line)
+        return {
+            name: "\n".join(lines).strip()
+            for name, lines in sections.items()
+            if "\n".join(lines).strip()
+        }
+
+    def _add_bundle_item(
+        self,
+        bucket: List[Dict[str, Any]],
+        *,
+        title: str,
+        content: str,
+        result: Dict[str, Any],
+    ) -> None:
+        normalized_title = (title or "").strip()
+        normalized_content = self._normalize_excerpt(content)
+        if not normalized_content:
+            return
+        dedupe_key = (
+            normalized_title.lower(),
+            re.sub(r"\s+", " ", normalized_content).strip().lower(),
+        )
+        for existing in bucket:
+            existing_key = (
+                str(existing.get("title", "")).strip().lower(),
+                re.sub(r"\s+", " ", str(existing.get("content", ""))).strip().lower(),
+            )
+            if existing_key == dedupe_key:
+                return
+        bucket.append(
+            {
+                "title": normalized_title,
+                "content": normalized_content,
+                "source_tool": result.get("tool", ""),
+                "source_args": result.get("args", {}),
+                "round": result.get("round"),
+                "sequence": result.get("sequence"),
+            }
+        )
+
+    def _extract_glossary_definition_item(self, result: Dict[str, Any]) -> Optional[Dict[str, str]]:
+        text = result.get("result", "") or ""
+        title = self._first_markdown_heading(text)
+        body = text
+        if "\n\n" in text:
+            body = text.split("\n\n", 1)[1]
+        body = body.split("\n\n[View in", 1)[0].strip()
+        body = self._normalize_excerpt(body)
+        if not body:
+            return None
+        return {"title": title or result.get("args", {}).get("term", "Glossary term"), "content": body}
+
+    def _extract_success_criteria_detail_item(self, result: Dict[str, Any]) -> Optional[Dict[str, str]]:
+        text = result.get("result", "") or ""
+        title = self._first_markdown_heading(text) or result.get("args", {}).get("ref_id", "Success Criterion")
+        sections = self._parse_markdown_sections(text)
+        meta_lines = []
+        for line in text.splitlines():
+            stripped = line.strip()
+            if stripped.startswith("**Level:**") or stripped.startswith("**Principle:**") or stripped.startswith("**Guideline:**"):
+                meta_lines.append(stripped)
+        body_parts = []
+        if meta_lines:
+            body_parts.append(" | ".join(meta_lines))
+        if sections.get("Success Criterion"):
+            body_parts.append(sections["Success Criterion"])
+        elif sections.get("Description"):
+            body_parts.append(sections["Description"])
+        content = self._normalize_excerpt("\n\n".join(body_parts))
+        if not content:
+            return None
+        return {"title": title, "content": self._truncate_text(content, 1200)}
+
+    def _extract_criterion_items(
+        self, result: Dict[str, Any]
+    ) -> Dict[str, Optional[Dict[str, str]]]:
+        text = result.get("result", "") or ""
+        title = self._first_markdown_heading(text) or result.get("args", {}).get("ref_id", "Success Criterion")
+        sections = self._parse_markdown_sections(text)
+
+        core_parts = []
+        if sections.get("In Brief"):
+            core_parts.append(sections["In Brief"])
+        if sections.get("Description"):
+            core_parts.append(sections["Description"])
+        core_content = self._normalize_excerpt("\n\n".join(core_parts))
+
+        intent_text = sections.get("Intent", "")
+        intent_blocks = [
+            self._normalize_excerpt(block)
+            for block in re.split(r"\n\s*\n", intent_text)
+            if self._normalize_excerpt(block)
+        ]
+        decision_blocks = [
+            block for block in intent_blocks
+            if any(
+                marker in block.lower()
+                for marker in (
+                    "scope",
+                    "criteria",
+                    "change of context",
+                    "without receiving focus",
+                    "not considered",
+                    "do not need",
+                    "not within the scope",
+                    "does not meet",
+                )
+            )
+        ] or intent_blocks[:2]
+        decision_content = self._normalize_excerpt("\n\n".join(decision_blocks[:3]))
+
+        examples_text = sections.get("Examples", "")
+        example_blocks = [
+            self._normalize_excerpt(block)
+            for block in re.split(r"\n###\s+Example\s+\d+\s*\n", examples_text)
+            if self._normalize_excerpt(block)
+        ]
+        positive_blocks = []
+        contrast_blocks = []
+        risk_blocks = []
+        for block in example_blocks:
+            lowered = block.lower()
+            if any(
+                marker in lowered
+                for marker in (
+                    "too \"chatty\"",
+                    "too chatty",
+                    "unnecessarily interrupt",
+                    "best practices but are not requirements",
+                    "not to force authors",
+                )
+            ):
+                risk_blocks.append(block)
+                continue
+            if any(
+                marker in lowered
+                for marker in (
+                    "not status messages",
+                    "do not meet the definition",
+                    "not required",
+                    "does not meet the definition",
+                    "does not need",
+                    "excepted from this success criterion",
+                )
+            ):
+                contrast_blocks.append(block)
+                continue
+            positive_blocks.append(block)
+
+        return {
+            "core": {
+                "title": title,
+                "content": self._truncate_text(core_content, 1600),
+            } if core_content else None,
+            "decision": {
+                "title": f"Decision Boundaries for {title}",
+                "content": self._truncate_text(decision_content, 1800),
+            } if decision_content else None,
+            "examples": {
+                "title": f"Examples from {title}",
+                "content": self._truncate_text("\n\n".join(positive_blocks[:2]), 1800),
+            } if positive_blocks else None,
+            "contrast": {
+                "title": f"Contrast Cases from {title}",
+                "content": self._truncate_text("\n\n".join(contrast_blocks[:2]), 1500),
+            } if contrast_blocks else None,
+            "risks": {
+                "title": f"Risks and Misuse Notes for {title}",
+                "content": self._truncate_text("\n\n".join(risk_blocks[:2]), 1200),
+            } if risk_blocks else None,
+        }
+
+    def _extract_technique_items(
+        self, result: Dict[str, Any]
+    ) -> Dict[str, Optional[Dict[str, str]]]:
+        text = result.get("result", "") or ""
+        title = self._first_markdown_heading(text) or "Technique guidance"
+        sections = self._parse_markdown_sections(text)
+
+        technique_parts = []
+        if sections.get("Sufficient Techniques"):
+            technique_parts.append("Sufficient techniques:\n" + sections["Sufficient Techniques"])
+        if sections.get("Advisory Techniques"):
+            technique_parts.append("Advisory techniques:\n" + sections["Advisory Techniques"])
+        technique_content = self._normalize_excerpt("\n\n".join(technique_parts))
+
+        risk_parts = []
+        if sections.get("Failure Techniques"):
+            risk_parts.append("Failure techniques:\n" + sections["Failure Techniques"])
+        if "role=\"alert\" or aria-live=\"assertive\"" in text:
+            risk_parts.append('Use of role="alert" or aria-live="assertive" on non-urgent content is a misuse risk.')
+        risk_content = self._normalize_excerpt("\n\n".join(risk_parts))
+
+        return {
+            "techniques": {
+                "title": title,
+                "content": self._truncate_text(technique_content, 2200),
+            } if technique_content else None,
+            "risks": {
+                "title": f"Failure and Misuse Notes for {title}",
+                "content": self._truncate_text(risk_content, 1400),
+            } if risk_content else None,
+        }
+
+    @staticmethod
+    def _summarize_raw_hit(result: Dict[str, Any]) -> Dict[str, Any]:
+        preview = (result.get("result") or "").strip()
+        preview = preview[:240] + ("..." if len(preview) > 240 else "")
+        return {
+            "tool": result.get("tool", ""),
+            "args": result.get("args", {}),
+            "round": result.get("round"),
+            "sequence": result.get("sequence"),
+            "chars": result.get("chars", 0),
+            "preview": preview,
+        }
+
+    async def _build_retrieval_bundle(
         self,
         results: list,
         objective_text: str = "",
         teaching_plan: Any = None,
-    ) -> str:
-        """Build the evidence pack from tool call results, with evidence checks.
+    ) -> Dict[str, Any]:
+        """Build a structured retrieval bundle from raw tool results.
 
         Runs deterministic evidence checks and targeted fallback tool calls
         if required evidence is still missing for the current objective.
@@ -2565,7 +2821,6 @@ Available WCAG MCP tools:
             objective_text, teaching_plan, results
         )
 
-        # Fallback calls if evidence is missing
         fallback_calls = []
         if "conformance_rollup_rule" in coverage["missing_checks"]:
             logger.info("Evidence check: roll-up rule MISSING, running fallbacks")
@@ -2580,23 +2835,187 @@ Available WCAG MCP tools:
                 {"tool": "get_glossary_term", "args": {"term": "accessibility supported"}, "category": "fallback"},
             ])
 
+        working_results = list(results)
         if fallback_calls and self.wcag_mcp:
             fallback_results = await self.wcag_mcp.execute_planned_tool_calls(fallback_calls)
-            results.extend(self._annotate_retrieval_results(fallback_calls, fallback_results))
+            working_results.extend(self._annotate_retrieval_results(fallback_calls, fallback_results))
+            coverage = self._assess_retrieval_coverage(
+                objective_text, teaching_plan, working_results
+            )
 
-        # Build final evidence pack from all hits (deduplicated)
+        hits = []
         seen = set()
-        sections = []
-        for r in results:
-            if r["status"] != "HIT":
+        for result in working_results:
+            if result.get("status") != "HIT":
                 continue
-            key = (r["tool"], json.dumps(r["args"], sort_keys=True))
+            key = (result.get("tool"), json.dumps(result.get("args", {}), sort_keys=True))
             if key in seen:
                 continue
             seen.add(key)
-            sections.append(r["result"])
+            hits.append(result)
 
-        return "\n\n---\n\n".join(sections)
+        bundle = {
+            "version": 1,
+            "objective_text": objective_text,
+            "coverage": coverage,
+            "sections": {
+                "core_rules": [],
+                "definitions": [],
+                "decision_rules": [],
+                "examples": [],
+                "contrast_cases": [],
+                "technique_patterns": [],
+                "risks": [],
+                "structural_context": [],
+            },
+            "raw_hits": [self._summarize_raw_hit(result) for result in hits],
+        }
+
+        glossary_terms = {
+            str(result.get("args", {}).get("term", "")).strip().lower()
+            for result in hits
+            if result.get("tool") == "get_glossary_term"
+        }
+
+        for result in hits:
+            tool = result.get("tool", "")
+            args = result.get("args", {})
+
+            if tool == "search_glossary":
+                query = str(args.get("query", "")).strip().lower()
+                if query in glossary_terms:
+                    continue
+                continue
+
+            if tool == "get_glossary_term":
+                item = self._extract_glossary_definition_item(result)
+                if item:
+                    self._add_bundle_item(
+                        bundle["sections"]["definitions"],
+                        title=item["title"],
+                        content=item["content"],
+                        result=result,
+                    )
+                continue
+
+            if tool in {"list_principles", "list_guidelines", "list_success_criteria", "get_guideline", "get_criteria_by_level", "count_criteria"}:
+                self._add_bundle_item(
+                    bundle["sections"]["structural_context"],
+                    title=self._first_markdown_heading(result.get("result", "")) or tool.replace("_", " ").title(),
+                    content=self._truncate_text(result.get("result", ""), 1600),
+                    result=result,
+                )
+                continue
+
+            if tool == "get_success_criteria_detail":
+                item = self._extract_success_criteria_detail_item(result)
+                if item:
+                    self._add_bundle_item(
+                        bundle["sections"]["core_rules"],
+                        title=item["title"],
+                        content=item["content"],
+                        result=result,
+                    )
+                continue
+
+            if tool == "get_criterion":
+                items = self._extract_criterion_items(result)
+                if items.get("core"):
+                    self._add_bundle_item(bundle["sections"]["core_rules"], result=result, **items["core"])
+                if items.get("decision"):
+                    self._add_bundle_item(bundle["sections"]["decision_rules"], result=result, **items["decision"])
+                if items.get("examples"):
+                    self._add_bundle_item(bundle["sections"]["examples"], result=result, **items["examples"])
+                if items.get("contrast"):
+                    self._add_bundle_item(bundle["sections"]["contrast_cases"], result=result, **items["contrast"])
+                if items.get("risks"):
+                    self._add_bundle_item(bundle["sections"]["risks"], result=result, **items["risks"])
+                continue
+
+            if tool == "get_full_criterion_context":
+                item = self._extract_success_criteria_detail_item(result)
+                if item:
+                    self._add_bundle_item(
+                        bundle["sections"]["core_rules"],
+                        title=item["title"],
+                        content=item["content"],
+                        result=result,
+                    )
+                continue
+
+            if tool == "get_techniques_for_criterion":
+                items = self._extract_technique_items(result)
+                if items.get("techniques"):
+                    self._add_bundle_item(bundle["sections"]["technique_patterns"], result=result, **items["techniques"])
+                if items.get("risks"):
+                    self._add_bundle_item(bundle["sections"]["risks"], result=result, **items["risks"])
+                continue
+
+            if tool in {"get_technique", "search_techniques"}:
+                self._add_bundle_item(
+                    bundle["sections"]["technique_patterns"],
+                    title=self._first_markdown_heading(result.get("result", "")) or str(args.get("id", args.get("query", "Technique"))),
+                    content=self._truncate_text(result.get("result", ""), 1200),
+                    result=result,
+                )
+                continue
+
+            if tool == "search_wcag":
+                self._add_bundle_item(
+                    bundle["sections"]["core_rules"],
+                    title=f"Search Results for {args.get('query', '')}".strip(),
+                    content=self._truncate_text(result.get("result", ""), 1200),
+                    result=result,
+                )
+
+        return bundle
+
+    def _render_retrieval_bundle(self, bundle: Dict[str, Any]) -> str:
+        """Render a compact tutor-facing teaching pack from a retrieval bundle."""
+        if not bundle:
+            return ""
+
+        sections = bundle.get("sections", {})
+        section_specs = [
+            ("CORE FACTS", sections.get("core_rules", []), 2, 1400),
+            ("DEFINITIONS", sections.get("definitions", []), 3, 600),
+            ("DECISION BOUNDARIES", sections.get("decision_rules", []), 2, 1400),
+            ("EXAMPLES", sections.get("examples", []), 2, 1400),
+            ("CONTRAST CASES", sections.get("contrast_cases", []), 2, 1200),
+            ("TECHNIQUE PATTERNS", sections.get("technique_patterns", []), 3, 1200),
+            ("RISKS / MISUSE", sections.get("risks", []), 2, 900),
+            ("STRUCTURE NOTES", sections.get("structural_context", []), 2, 1200),
+        ]
+
+        rendered_sections = []
+        for heading, items, max_items, max_chars in section_specs:
+            if not items:
+                continue
+            lines = [f"## {heading}"]
+            for item in items[:max_items]:
+                title = str(item.get("title", "")).strip()
+                content = self._truncate_text(str(item.get("content", "")).strip(), max_chars)
+                if title:
+                    lines.append(f"### {title}")
+                lines.append(content)
+                lines.append("")
+            rendered_sections.append("\n".join(lines).strip())
+
+        return "\n\n".join(section for section in rendered_sections if section)
+
+    async def _build_evidence_pack(
+        self,
+        results: list,
+        objective_text: str = "",
+        teaching_plan: Any = None,
+    ) -> str:
+        """Build a compact tutor-facing pack from deterministic bundle output."""
+        bundle = await self._build_retrieval_bundle(
+            results,
+            objective_text=objective_text,
+            teaching_plan=teaching_plan,
+        )
+        return self._render_retrieval_bundle(bundle)
 
     async def _get_assessment_context(self, objective_id: str) -> str:
         """Fetch quiz questions mapped to an objective for assessment generation.

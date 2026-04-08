@@ -372,6 +372,105 @@ class TestGuidedRetrieval:
         assert any(event["detail"].startswith("Researching WCAG sources") for event in ws_events)
 
     @pytest.mark.asyncio
+    async def test_build_retrieval_bundle_and_renderer_create_structured_teaching_pack(
+        self, hybrid_system
+    ):
+        bundle = await hybrid_system._build_retrieval_bundle(
+            results=[
+                {
+                    "tool": "get_success_criteria_detail",
+                    "args": {"ref_id": "4.1.3"},
+                    "category": "agentic",
+                    "result": (
+                        "# 4.1.3 Status Messages\n\n"
+                        "**Level:** AA\n"
+                        "**Principle:** 4 Robust\n"
+                        "**Guideline:** 4.1 Compatible\n\n"
+                        "## Success Criterion\n\n"
+                        "Status messages can be presented without receiving focus."
+                    ),
+                    "chars": 180,
+                    "status": "HIT",
+                },
+                {
+                    "tool": "search_glossary",
+                    "args": {"query": "status message"},
+                    "category": "agentic",
+                    "result": "# Glossary Search Results for \"status message\" (1 found)",
+                    "chars": 52,
+                    "status": "HIT",
+                },
+                {
+                    "tool": "get_glossary_term",
+                    "args": {"term": "status message"},
+                    "category": "agentic",
+                    "result": (
+                        "# status message\n\n"
+                        "change in content that is not a change of context\n\n"
+                        "[View in WCAG 2.2 Glossary](https://example.test)"
+                    ),
+                    "chars": 112,
+                    "status": "HIT",
+                },
+                {
+                    "tool": "get_criterion",
+                    "args": {"ref_id": "4.1.3"},
+                    "category": "agentic",
+                    "result": (
+                        "# 4.1.3 Status Messages\n\n"
+                        "## In Brief\n\n"
+                        "Use assistive technology announcements without moving focus.\n\n"
+                        "## Description\n\n"
+                        "Status messages are announced without receiving focus.\n\n"
+                        "## Intent\n\n"
+                        "The scope is specific to status messages and changes that are not delivered via a change of context.\n\n"
+                        "## Examples\n\n"
+                        "### Example 1\n\n"
+                        "After a user presses Search, a message says 5 results returned.\n\n"
+                        "### Example 2\n\n"
+                        "Examples of Changes That Are Not Status Messages. An author displays an error message in a dialog. This does not meet the definition.\n\n"
+                        "### Example 3\n\n"
+                        "Other uses of live regions or alerts can make an application too chatty."
+                    ),
+                    "chars": 650,
+                    "status": "HIT",
+                },
+                {
+                    "tool": "get_techniques_for_criterion",
+                    "args": {"ref_id": "4.1.3"},
+                    "category": "agentic",
+                    "result": (
+                        "# Techniques for 4.1.3 Status Messages\n\n"
+                        "## Sufficient Techniques\n\n"
+                        "- **ARIA22**: Using role=status\n\n"
+                        "## Failure Techniques\n\n"
+                        "- **F103**: Messages not programmatically determined"
+                    ),
+                    "chars": 176,
+                    "status": "HIT",
+                },
+            ],
+            objective_text="Apply ARIA live regions to communicate updates without moving focus",
+            teaching_plan="1. plain_language_goal\nExplain live regions.\n",
+        )
+
+        rendered = hybrid_system._render_retrieval_bundle(bundle)
+
+        assert bundle["sections"]["definitions"]
+        assert bundle["sections"]["core_rules"]
+        assert bundle["sections"]["decision_rules"]
+        assert bundle["sections"]["contrast_cases"]
+        assert bundle["sections"]["technique_patterns"]
+        assert "Glossary Search Results" not in rendered
+        assert "## CORE FACTS" in rendered
+        assert "## DEFINITIONS" in rendered
+        assert "## DECISION BOUNDARIES" in rendered
+        assert "## CONTRAST CASES" in rendered
+        assert "## TECHNIQUE PATTERNS" in rendered
+        assert "status message" in rendered
+        assert "ARIA22" in rendered
+
+    @pytest.mark.asyncio
     async def test_teaching_content_pipeline_uses_agentic_retrieval(self, hybrid_system, monkeypatch):
         async def fake_generate_teaching_plan(objective_text, teaching_content=""):
             return "1. plain_language_goal\nExplain the hierarchy.\n"
@@ -388,7 +487,15 @@ class TestGuidedRetrieval:
                 }
             ]
 
-        async def fake_build_evidence_pack(results, objective_text="", teaching_plan=None):
+        async def fake_build_bundle(results, objective_text="", teaching_plan=None):
+            return {
+                "version": 1,
+                "sections": {"core_rules": []},
+                "raw_hits": [],
+            }
+
+        def fake_render_bundle(bundle):
+            assert bundle["version"] == 1
             return "EVIDENCE PACK"
 
         def fail_if_called(*args, **kwargs):
@@ -396,7 +503,8 @@ class TestGuidedRetrieval:
 
         monkeypatch.setattr(hybrid_system, "_generate_teaching_plan", fake_generate_teaching_plan)
         monkeypatch.setattr(hybrid_system, "_run_agentic_retrieval", fake_agentic_retrieval)
-        monkeypatch.setattr(hybrid_system, "_build_evidence_pack", fake_build_evidence_pack)
+        monkeypatch.setattr(hybrid_system, "_build_retrieval_bundle", fake_build_bundle)
+        monkeypatch.setattr(hybrid_system, "_render_retrieval_bundle", fake_render_bundle)
         monkeypatch.setattr(hybrid_system, "_generate_retrieval_plan", fail_if_called)
         monkeypatch.setattr(hybrid_system, "_extract_tool_calls", fail_if_called)
 
@@ -405,7 +513,7 @@ class TestGuidedRetrieval:
         async def ws_send(data):
             ws_events.append(data)
 
-        teaching_plan, evidence_pack = await hybrid_system._run_teaching_content_pipeline(
+        teaching_plan, evidence_pack, retrieval_bundle = await hybrid_system._run_teaching_content_pipeline(
             objective_text="Explain the hierarchy of WCAG",
             session_id="sess-1",
             objective_id="obj-1",
@@ -414,3 +522,4 @@ class TestGuidedRetrieval:
 
         assert teaching_plan.startswith("1. plain_language_goal")
         assert evidence_pack == "EVIDENCE PACK"
+        assert retrieval_bundle["version"] == 1
