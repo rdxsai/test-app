@@ -2143,8 +2143,309 @@ Available WCAG MCP tools:
 12. get_technique(id) — Gets details for a specific technique by ID.
 13. search_techniques(query) — Searches techniques by keyword.
 14. get_glossary_term(term) — Gets official WCAG definition of a glossary term.
-15. whats_new_in_wcag22() — Lists all SC added in WCAG 2.2.
+15. search_glossary(query) — Searches glossary terms by keyword.
+16. list_glossary_terms() — Lists glossary terms available in WCAG.
+17. whats_new_in_wcag22() — Lists all SC added in WCAG 2.2.
 """
+
+    def _assess_retrieval_coverage(
+        self, objective_text: str, teaching_plan: Any, results: List[Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        hits = [result for result in results if result.get("status") == "HIT"]
+        hit_content = "\n".join(result.get("result", "") for result in hits).lower()
+        context = f"{objective_text}\n{str(teaching_plan)[:3000]}".lower()
+
+        require_rollup = any(
+            marker in context
+            for marker in (
+                "conformance",
+                "level aa",
+                "level aaa",
+                "level a",
+                "criteria by level",
+            )
+        )
+        require_techniques = any(
+            marker in context
+            for marker in (
+                "technique",
+                "techniques",
+                "sufficient",
+                "advisory",
+                "informative",
+                "normative",
+                "requirement",
+                "requirements",
+            )
+        )
+
+        rollup_phrases = [
+            "all level a and level aa",
+            "all a and aa",
+            "all a and all aa",
+            "meet all level a",
+            "all level a success criteria",
+        ]
+        technique_phrases = [
+            "sufficient technique",
+            "advisory technique",
+            "informative",
+            "techniques are not required",
+            "sufficient and advisory",
+        ]
+
+        missing_checks = []
+        if require_rollup and not any(phrase in hit_content for phrase in rollup_phrases):
+            missing_checks.append("conformance_rollup_rule")
+        if require_techniques and not any(phrase in hit_content for phrase in technique_phrases):
+            missing_checks.append("techniques_vs_requirements")
+
+        budget_chars = 20000
+
+        return {
+            "hit_count": len(hits),
+            "hit_chars": sum(result.get("chars", 0) for result in hits),
+            "missing_checks": missing_checks,
+            "required_checks": {
+                "conformance_rollup_rule": require_rollup,
+                "techniques_vs_requirements": require_techniques,
+            },
+            "budget_chars": budget_chars,
+        }
+
+    @staticmethod
+    def _build_retrieval_feedback_message(
+        coverage: Dict[str, Any], remaining_calls: int, budget_chars: int,
+    ) -> str:
+        lines = [
+            f"Research status: hits={coverage['hit_count']}, chars={coverage['hit_chars']}.",
+        ]
+        if coverage.get("missing_checks"):
+            lines.append(
+                "Still missing explicit evidence for: "
+                + ", ".join(coverage["missing_checks"])
+                + "."
+            )
+        else:
+            lines.append(
+                "No deterministic evidence checks are currently failing, but you may "
+                "continue retrieving if the teaching plan still needs more support."
+            )
+        lines.append(
+            f"Remaining budget: {remaining_calls} tool calls, about "
+            f"{max(budget_chars - coverage['hit_chars'], 0)} chars."
+        )
+        lines.append(
+            "Do not repeat prior tool calls. Prefer smaller, more targeted tools "
+            "before deep criterion fetches. Stop only when you judge the teaching plan "
+            "has enough supporting evidence."
+        )
+        return "\n".join(lines)
+
+    @staticmethod
+    def _annotate_retrieval_results(
+        planned_calls: List[Dict[str, Any]], results: List[Dict[str, Any]],
+    ) -> List[Dict[str, Any]]:
+        annotated = []
+        for planned_call, result in zip(planned_calls, results):
+            enriched = dict(result)
+            for field in ("tool_call_id", "round", "sequence", "source"):
+                value = planned_call.get(field)
+                if value not in (None, ""):
+                    enriched[field] = value
+            annotated.append(enriched)
+        return annotated
+
+    def _extract_agentic_planned_calls(
+        self,
+        tool_calls: List[Dict[str, Any]],
+        round_number: int,
+        seen_calls: set,
+        max_new_calls: int,
+    ) -> List[Dict[str, Any]]:
+        try:
+            from ..wcag_mcp_client import normalize_tool_args
+        except ModuleNotFoundError:
+            normalize_tool_args = lambda _fn_name, fn_args: dict(fn_args)
+
+        planned_calls = []
+        for tool_call in tool_calls:
+            if len(planned_calls) >= max_new_calls:
+                break
+
+            function = tool_call.get("function", {})
+            fn_name = function.get("name", "")
+            if not fn_name:
+                continue
+
+            args_text = function.get("arguments", "") or "{}"
+            try:
+                fn_args = json.loads(args_text)
+            except (json.JSONDecodeError, TypeError):
+                logger.warning(
+                    "Guided retrieval: invalid tool arguments for %s: %s",
+                    fn_name,
+                    args_text,
+                )
+                continue
+
+            normalized_args = normalize_tool_args(fn_name, fn_args)
+            dedupe_key = (fn_name, json.dumps(normalized_args, sort_keys=True))
+            if dedupe_key in seen_calls:
+                logger.info(
+                    "Guided retrieval: skipping duplicate call %s(%s)",
+                    fn_name,
+                    normalized_args,
+                )
+                continue
+            seen_calls.add(dedupe_key)
+
+            planned_calls.append(
+                {
+                    "tool_call_id": tool_call.get("id", ""),
+                    "tool": fn_name,
+                    "args": fn_args,
+                    "category": "agentic",
+                    "round": round_number,
+                    "sequence": len(planned_calls) + 1,
+                    "source": "guided_retrieval",
+                }
+            )
+
+        return planned_calls
+
+    async def _run_agentic_retrieval(
+        self, objective_text: str, teaching_plan: Any, ws_send,
+    ) -> List[Dict[str, Any]]:
+        from .prompts import build_guided_retrieval_agent_prompt
+
+        try:
+            from ..wcag_mcp_client import GUIDED_WCAG_TOOL_DEFINITIONS
+        except ModuleNotFoundError:
+            GUIDED_WCAG_TOOL_DEFINITIONS = getattr(self.wcag_mcp, "tool_definitions", [])
+
+        if not self.wcag_mcp:
+            logger.warning("Guided retrieval skipped: WCAG MCP client unavailable")
+            return []
+
+        base_prompt = build_guided_retrieval_agent_prompt(
+            objective_text=objective_text,
+            teaching_plan=teaching_plan,
+        )
+        coverage = self._assess_retrieval_coverage(
+            objective_text, teaching_plan, []
+        )
+        budget_chars = coverage["budget_chars"]
+        max_rounds = 4
+        max_tool_calls = 10
+
+        messages = [
+            {"role": "system", "content": base_prompt},
+            {
+                "role": "user",
+                "content": (
+                    "Research the WCAG evidence needed for this guided lesson. "
+                    "Use tools until you judge the teaching plan has enough supporting "
+                    "evidence, then stop. "
+                    f"Current retrieval budget: about {budget_chars} characters."
+                ),
+            },
+        ]
+
+        all_results: List[Dict[str, Any]] = []
+        seen_calls = set()
+        total_tool_calls = 0
+
+        for round_number in range(1, max_rounds + 1):
+            remaining_calls = max_tool_calls - total_tool_calls
+            if remaining_calls <= 0:
+                logger.info("Guided retrieval: tool-call budget exhausted")
+                break
+
+            await ws_send(
+                {
+                    "type": "stage",
+                    "stage": "searching",
+                    "detail": f"Researching WCAG sources (round {round_number}/{max_rounds})...",
+                }
+            )
+            response_msg = await self.reasoning_client.chat_with_tools(
+                messages=messages,
+                tools=GUIDED_WCAG_TOOL_DEFINITIONS,
+                temperature=0.0,
+                max_tokens=500,
+                tool_choice="required" if round_number == 1 else "auto",
+                reasoning_effort="medium",
+            )
+            tool_calls = response_msg.get("tool_calls") or []
+            messages.append(response_msg)
+
+            if not tool_calls:
+                logger.info(
+                    "Guided retrieval: model stopped after round %s with no tool calls",
+                    round_number,
+                )
+                break
+
+            planned_calls = self._extract_agentic_planned_calls(
+                tool_calls=tool_calls,
+                round_number=round_number,
+                seen_calls=seen_calls,
+                max_new_calls=remaining_calls,
+            )
+            if not planned_calls:
+                messages.append(
+                    {
+                        "role": "user",
+                        "content": (
+                            "You repeated prior tool calls or produced invalid tool "
+                            "arguments. Choose a different retrieval strategy or stop "
+                            "if you judge the existing evidence is already enough."
+                        ),
+                    }
+                )
+                continue
+
+            round_results = await self.wcag_mcp.execute_planned_tool_calls(planned_calls)
+            round_results = self._annotate_retrieval_results(planned_calls, round_results)
+            all_results.extend(round_results)
+            total_tool_calls += len(planned_calls)
+
+            for result in round_results:
+                messages.append(
+                    {
+                        "role": "tool",
+                        "tool_call_id": result.get("tool_call_id", ""),
+                        "content": result.get("result") or "No results found.",
+                    }
+                )
+
+            coverage = self._assess_retrieval_coverage(
+                objective_text, teaching_plan, all_results
+            )
+            logger.info(
+                "Guided retrieval round %s: %s hits, %s chars, missing=%s",
+                round_number,
+                coverage["hit_count"],
+                coverage["hit_chars"],
+                coverage["missing_checks"],
+            )
+            if coverage["hit_chars"] >= budget_chars:
+                logger.info("Guided retrieval: content budget reached")
+                break
+
+            messages.append(
+                {
+                    "role": "user",
+                    "content": self._build_retrieval_feedback_message(
+                        coverage=coverage,
+                        remaining_calls=max_tool_calls - total_tool_calls,
+                        budget_chars=budget_chars,
+                    ),
+                }
+            )
+
+        return all_results
 
     async def _run_teaching_content_pipeline(
         self, objective_text: str, session_id: str, objective_id: str, ws_send,
@@ -2153,11 +2454,9 @@ Available WCAG MCP tools:
 
         Steps:
         1. Generate teaching plan from objective (LLM)
-        2. Generate retrieval plan from teaching plan (LLM)
-        3. Extract tool calls as JSON (LLM)
-        4. Execute tool calls deterministically (MCP, no LLM)
-        5. Evidence checks + fallbacks
-        6. Return (teaching_plan, evidence_pack)
+        2. Run bounded agentic WCAG retrieval from the teaching plan (LLM + tools)
+        3. Evidence checks + deterministic fallbacks
+        4. Return (teaching_plan, evidence_pack)
 
         This replaces the old get_combined_context() + _generate_teaching_plan()
         flow for Instance B. Instance A still uses the old flow.
@@ -2168,35 +2467,29 @@ Available WCAG MCP tools:
         teaching_plan = await self._generate_teaching_plan(objective_text)
         logger.info(f"Pipeline step 1: teaching plan ({len(str(teaching_plan))} chars)")
 
-        # Step 2: Retrieval plan
+        # Step 2: Agentic retrieval
         await ws_send({"type": "stage", "stage": "searching",
-                       "detail": "Planning content retrieval..."})
-        retrieval_plan = await self._generate_retrieval_plan(
-            objective_text, teaching_plan
+                       "detail": "Researching WCAG content..."})
+        results = await self._run_agentic_retrieval(
+            objective_text=objective_text,
+            teaching_plan=teaching_plan,
+            ws_send=ws_send,
         )
-        logger.info(f"Pipeline step 2: retrieval plan ({len(retrieval_plan)} chars)")
-
-        # Step 3: Extract tool calls
-        await ws_send({"type": "stage", "stage": "searching",
-                       "detail": "Extracting tool calls..."})
-        planned_calls = await self._extract_tool_calls(retrieval_plan)
-        logger.info(f"Pipeline step 3: extracted {len(planned_calls)} tool calls")
-
-        # Step 4: Execute deterministically
-        await ws_send({"type": "stage", "stage": "searching",
-                       "detail": f"Retrieving WCAG content ({len(planned_calls)} calls)..."})
-        results = await self.wcag_mcp.execute_planned_tool_calls(planned_calls)
         hits = [r for r in results if r["status"] == "HIT"]
         logger.info(
-            f"Pipeline step 4: {len(hits)}/{len(results)} hits, "
+            f"Pipeline step 2: {len(hits)}/{len(results)} hits, "
             f"{sum(r['chars'] for r in hits)} chars"
         )
 
-        # Step 5: Evidence checks + fallbacks
+        # Step 3: Evidence checks + fallbacks
         await ws_send({"type": "stage", "stage": "searching",
                        "detail": "Validating evidence..."})
-        evidence_pack = await self._build_evidence_pack(results)
-        logger.info(f"Pipeline step 5: evidence pack ({len(evidence_pack)} chars)")
+        evidence_pack = await self._build_evidence_pack(
+            results,
+            objective_text=objective_text,
+            teaching_plan=teaching_plan,
+        )
+        logger.info(f"Pipeline step 3: evidence pack ({len(evidence_pack)} chars)")
 
         await ws_send({"type": "stage", "stage": "searching",
                        "detail": f"Evidence pack: {len(evidence_pack)} chars from {len(hits)} sources"})
@@ -2257,42 +2550,30 @@ Available WCAG MCP tools:
             {"tool": "get_glossary_term", "args": {"term": "conformance"}, "category": "must_have"},
         ]
 
-    async def _build_evidence_pack(self, results: list) -> str:
+    async def _build_evidence_pack(
+        self,
+        results: list,
+        objective_text: str = "",
+        teaching_plan: Any = None,
+    ) -> str:
         """Build the evidence pack from tool call results, with evidence checks.
 
-        Checks for two critical evidence items:
-        - Conformance roll-up rule (AA = all A + all AA)
-        - Techniques vs requirements distinction
-
-        Runs fallback tool calls if either is missing.
+        Runs deterministic evidence checks and targeted fallback tool calls
+        if required evidence is still missing for the current objective.
         """
-        # Collect hit content
-        hit_content = "\n".join(r["result"] for r in results if r["status"] == "HIT")
-
-        # Evidence check: conformance roll-up rule
-        rollup_phrases = [
-            "all level a and level aa", "all a and aa", "satisfying all",
-            "all a and all aa", "meet all level a",
-            "all level a success criteria",
-        ]
-        has_rollup = any(p in hit_content.lower() for p in rollup_phrases)
-
-        # Evidence check: techniques vs requirements
-        technique_phrases = [
-            "sufficient technique", "advisory technique", "informative",
-            "techniques are not required", "sufficient and advisory",
-        ]
-        has_techniques = any(p in hit_content.lower() for p in technique_phrases)
+        coverage = self._assess_retrieval_coverage(
+            objective_text, teaching_plan, results
+        )
 
         # Fallback calls if evidence is missing
         fallback_calls = []
-        if not has_rollup:
+        if "conformance_rollup_rule" in coverage["missing_checks"]:
             logger.info("Evidence check: roll-up rule MISSING, running fallbacks")
             fallback_calls.extend([
                 {"tool": "get_glossary_term", "args": {"term": "conformance"}, "category": "fallback"},
                 {"tool": "get_criterion", "args": {"ref_id": "1.1.1"}, "category": "fallback"},
             ])
-        if not has_techniques:
+        if "techniques_vs_requirements" in coverage["missing_checks"]:
             logger.info("Evidence check: techniques distinction MISSING, running fallbacks")
             fallback_calls.extend([
                 {"tool": "get_technique", "args": {"id": "H37"}, "category": "fallback"},
@@ -2301,7 +2582,7 @@ Available WCAG MCP tools:
 
         if fallback_calls and self.wcag_mcp:
             fallback_results = await self.wcag_mcp.execute_planned_tool_calls(fallback_calls)
-            results.extend(fallback_results)
+            results.extend(self._annotate_retrieval_results(fallback_calls, fallback_results))
 
         # Build final evidence pack from all hits (deduplicated)
         seen = set()

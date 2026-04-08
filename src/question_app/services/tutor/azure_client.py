@@ -156,6 +156,7 @@ class AzureAPIMClient:
         temperature: float = 0.3,
         max_tokens: int = 300,
         tool_choice: str = "auto",
+        parallel_tool_calls: bool = True,
         reasoning_effort: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Send a tool-enabled chat completion request."""
@@ -169,6 +170,7 @@ class AzureAPIMClient:
             "messages": messages,
             "tools": tools,
             "tool_choice": tool_choice,
+            "parallel_tool_calls": parallel_tool_calls,
         }
         if self._reasoning:
             payload["max_completion_tokens"] = max(max_tokens * 5, 4000)

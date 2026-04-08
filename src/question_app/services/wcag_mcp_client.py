@@ -25,8 +25,10 @@ logger = logging.getLogger(__name__)
 NO_RESULT_PHRASES = ("no success criteria found", "no techniques found", "no results")
 
 # ---------------------------------------------------------------------------
-# OpenAI function-calling tool definitions for the 3 MCP tools we use
+# OpenAI function-calling tool definitions
 # ---------------------------------------------------------------------------
+
+# Instance A keeps a narrower lookup-oriented tool surface.
 WCAG_TOOL_DEFINITIONS = [
     {
         "type": "function",
@@ -230,6 +232,156 @@ WCAG_TOOL_DEFINITIONS = [
     },
 ]
 
+# Instance B guided retrieval needs the richer tool surface already exposed by
+# the MCP server so it can gather deeper teaching evidence when needed.
+GUIDED_WCAG_TOOL_DEFINITIONS = WCAG_TOOL_DEFINITIONS + [
+    {
+        "type": "function",
+        "function": {
+            "name": "list_success_criteria",
+            "description": (
+                "Lists success criteria, optionally filtered by level, guideline, "
+                "or principle. Use for structural overviews or compact SC lists."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "level": {
+                        "type": "string",
+                        "description": "Optional conformance level filter",
+                        "enum": ["A", "AA", "AAA"],
+                    },
+                    "guideline": {
+                        "type": "string",
+                        "description": "Optional guideline reference, e.g. '1.1' or '4.1'",
+                    },
+                    "principle": {
+                        "type": "string",
+                        "description": "Optional principle number filter (1-4)",
+                        "enum": ["1", "2", "3", "4"],
+                    },
+                },
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_success_criteria_detail",
+            "description": (
+                "Gets the normative text and basic metadata for a specific WCAG "
+                "success criterion. Use for compact SC detail without the full "
+                "Understanding document."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "ref_id": {
+                        "type": "string",
+                        "description": "The WCAG SC number, e.g. '4.1.3'",
+                    }
+                },
+                "required": ["ref_id"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_criterion",
+            "description": (
+                "Gets the full WCAG success criterion detail including richer "
+                "Understanding content, examples, intent, and boundaries. Use when "
+                "the lesson needs deep explanatory support for a specific SC."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "ref_id": {
+                        "type": "string",
+                        "description": "The WCAG SC number, e.g. '4.1.3'",
+                    }
+                },
+                "required": ["ref_id"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_techniques_for_criterion",
+            "description": (
+                "Gets the technique set for a specific WCAG success criterion, "
+                "including sufficient, advisory, and failure techniques."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "ref_id": {
+                        "type": "string",
+                        "description": "The WCAG SC number, e.g. '4.1.3'",
+                    }
+                },
+                "required": ["ref_id"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_technique",
+            "description": (
+                "Gets details for a specific WCAG technique or failure by ID, "
+                "such as 'ARIA22' or 'F103'."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "description": "Technique or failure ID, e.g. 'ARIA22' or 'F103'",
+                    }
+                },
+                "required": ["id"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "search_glossary",
+            "description": (
+                "Searches the WCAG glossary by keyword. Use to discover official "
+                "glossary terms before fetching one directly."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "Keywords to search for in glossary terms and definitions",
+                    }
+                },
+                "required": ["query"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "list_glossary_terms",
+            "description": (
+                "Lists glossary terms available in WCAG. Use only when you need a "
+                "broad glossary inventory."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {},
+            },
+        },
+    },
+]
+
 # Map OpenAI function names → (MCP tool name, param remapping function)
 _TOOL_NAME_TO_MCP = {
     "search_wcag": ("search-wcag", lambda args: {"query": args["query"]}),
@@ -247,6 +399,8 @@ _TOOL_NAME_TO_MCP = {
     "get_criterion": ("get-criterion", lambda args: {"ref_id": args["ref_id"]}),
     "get_technique": ("get-technique", lambda args: {"id": args.get("id", args.get("ref_id", ""))}),
     "get_techniques_for_criterion": ("get-techniques-for-criterion", lambda args: {"ref_id": args["ref_id"]}),
+    "search_glossary": ("search-glossary", lambda args: {"query": args["query"]}),
+    "list_glossary_terms": ("list-glossary-terms", lambda args: {}),
 }
 
 
@@ -435,8 +589,7 @@ class WCAGMCPClient:
                 tool, args, category, result (str), chars (int),
                 status ("HIT" | "MISS" | "BLOCKED" | "ERROR")
         """
-        results = []
-        for i, tc in enumerate(planned_calls):
+        async def _execute_one(i: int, tc: Dict[str, Any]) -> Dict[str, Any]:
             fn_name = tc.get("tool", "")
             fn_args = tc.get("args", {})
             category = tc.get("category", "must_have")
@@ -445,12 +598,11 @@ class WCAGMCPClient:
             if fn_name == "get_glossary_term" and "term" in fn_args:
                 if not filter_glossary_call(fn_args["term"]):
                     logger.info(f"Pipeline: blocked glossary lookup '{fn_args['term']}' (blocklist)")
-                    results.append({
+                    return {
                         "tool": fn_name, "args": fn_args, "category": category,
                         "result": f"BLOCKED: '{fn_args['term']}' not in WCAG glossary",
                         "chars": 0, "status": "BLOCKED",
-                    })
-                    continue
+                    }
 
             # Normalize args (id<->ref_id, strip descriptive text)
             fn_args = normalize_tool_args(fn_name, fn_args)
@@ -459,11 +611,10 @@ class WCAGMCPClient:
             mapping = _TOOL_NAME_TO_MCP.get(fn_name)
             if not mapping:
                 logger.warning(f"Pipeline: unknown tool '{fn_name}', skipping")
-                results.append({
+                return {
                     "tool": fn_name, "args": fn_args, "category": category,
                     "result": f"Unknown tool: {fn_name}", "chars": 0, "status": "ERROR",
-                })
-                continue
+                }
 
             mcp_tool_name, param_fn = mapping
             mcp_args = param_fn(fn_args)
@@ -476,14 +627,41 @@ class WCAGMCPClient:
             is_empty = not text or any(p in text.lower() for p in NO_RESULT_PHRASES)
             status = "MISS" if is_empty else "HIT"
 
-            results.append({
+            result = {
                 "tool": fn_name, "args": fn_args, "category": category,
                 "result": text, "chars": len(text), "status": status,
-            })
+            }
             logger.info(
                 f"Pipeline [{i+1}/{len(planned_calls)}] [{status}] "
                 f"{fn_name}({fn_args}) -> {len(text)} chars"
             )
+            return result
+
+        if not planned_calls:
+            return []
+
+        raw_results = await asyncio.gather(
+            *[_execute_one(i, tc) for i, tc in enumerate(planned_calls)],
+            return_exceptions=True,
+        )
+
+        results = []
+        for i, raw in enumerate(raw_results):
+            if isinstance(raw, Exception):
+                logger.warning(f"Pipeline tool execution raised: {raw}")
+                tc = planned_calls[i]
+                results.append(
+                    {
+                        "tool": tc.get("tool", ""),
+                        "args": tc.get("args", {}),
+                        "category": tc.get("category", "must_have"),
+                        "result": f"Execution error: {raw}",
+                        "chars": 0,
+                        "status": "ERROR",
+                    }
+                )
+            else:
+                results.append(raw)
 
         return results
 

@@ -9,6 +9,7 @@ import pytest
 from question_app.services.tutor.prompts.socratic_tutor import (
     build_assessment_reflector_prompt,
     build_guided_reflector_prompt,
+    build_guided_retrieval_agent_prompt,
     build_turn_analyzer_prompt,
     build_instance_a_prompt,
     build_instance_b_prompt,
@@ -295,3 +296,30 @@ class TestReflectorPrompts:
         )
         assert "LESSON STATE:" in prompt
         assert "ACTIVE CONCEPT: Principles vs guidelines" in prompt
+
+
+class TestGuidedRetrievalPrompt:
+    def test_guided_retrieval_prompt_includes_objective_and_plan(self):
+        prompt = build_guided_retrieval_agent_prompt(
+            objective_text="Explain the hierarchy of WCAG",
+            teaching_plan=(
+                "1. plain_language_goal\nExplain the hierarchy.\n\n"
+                "7. concept_decomposition\n- Principles\n- Guidelines\n\n"
+                "8. dependency_order\n1. Principles\n2. Guidelines\n"
+            ),
+        )
+        assert "LEARNING OBJECTIVE:" in prompt
+        assert "Explain the hierarchy of WCAG" in prompt
+        assert "TEACHING PLAN:" in prompt
+        assert "CONCEPTS TO TEACH:" in prompt
+
+    def test_guided_retrieval_prompt_contains_research_rules(self):
+        prompt = build_guided_retrieval_agent_prompt()
+        assert "Infer the objective type" in prompt
+        assert "structure/hierarchy" in prompt
+        assert "implementation/application" in prompt
+        assert "Do not repeat the same tool call" in prompt
+        assert "You are NOT writing lesson content" in prompt
+        assert "prefer get_criterion(ref_id)" in prompt
+        assert "get_techniques_for_criterion(ref_id)" in prompt
+        assert "search_glossary first" in prompt

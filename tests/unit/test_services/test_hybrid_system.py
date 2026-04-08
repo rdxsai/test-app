@@ -19,6 +19,18 @@ class FakeAzureClient:
     def chat(self, messages, temperature=0.7, max_tokens=1000, reasoning_effort=None):
         return ""
 
+    async def chat_with_tools(
+        self,
+        messages,
+        tools,
+        temperature=0.3,
+        max_tokens=300,
+        tool_choice="auto",
+        parallel_tool_calls=True,
+        reasoning_effort=None,
+    ):
+        return {"role": "assistant", "content": "", "tool_calls": []}
+
     async def chat_stream_async(self, messages, temperature=0.7, max_tokens=1000):
         if False:
             yield ""
@@ -30,6 +42,36 @@ class FakeStudentService:
 
     async def get_active_session(self, student_id: str):
         return dict(self.session_state)
+
+
+class FakeWCAGClient:
+    def __init__(self):
+        self.calls = []
+
+    async def execute_planned_tool_calls(self, planned_calls):
+        self.calls.append(planned_calls)
+        results = []
+        for call in planned_calls:
+            if call["tool"] == "list_principles":
+                text = "WCAG has four principles: Perceivable, Operable, Understandable, Robust."
+                status = "HIT"
+            elif call["tool"] == "list_guidelines":
+                text = "Guidelines sit under principles and organize success criteria."
+                status = "HIT"
+            else:
+                text = ""
+                status = "MISS"
+            results.append(
+                {
+                    "tool": call["tool"],
+                    "args": call["args"],
+                    "category": call.get("category", "agentic"),
+                    "result": text,
+                    "chars": len(text),
+                    "status": status,
+                }
+            )
+        return results
 
 
 def _azure_config():
@@ -238,3 +280,137 @@ class TestGuidedTurnOrdering:
         assert call_order.index("analyzer") < call_order.index("tutor")
         assert call_order.index("tutor") < call_order.index("write")
         assert result["stage"] == "introduction"
+
+
+class TestGuidedRetrieval:
+    def test_retrieval_coverage_uses_fixed_caps_and_direct_checks(
+        self, hybrid_system
+    ):
+        coverage = hybrid_system._assess_retrieval_coverage(
+            objective_text="Explain WCAG conformance levels",
+            teaching_plan="8. dependency_order\n1. Conformance levels\n",
+            results=[
+                {
+                    "tool": "get_glossary_term",
+                    "args": {"term": "conformance"},
+                    "category": "agentic",
+                    "result": "Conformance means satisfying all Level A and Level AA success criteria.",
+                    "chars": 67,
+                    "status": "HIT",
+                },
+                {
+                    "tool": "count_criteria",
+                    "args": {"group_by": "level"},
+                    "category": "agentic",
+                    "result": "Counts by level: A, AA, AAA.",
+                    "chars": 29,
+                    "status": "HIT",
+                },
+            ],
+        )
+
+        assert "objective_type" not in coverage
+        assert coverage["required_checks"]["conformance_rollup_rule"] is True
+        assert coverage["missing_checks"] == []
+        assert coverage["budget_chars"] == 20000
+
+    @pytest.mark.asyncio
+    async def test_agentic_retrieval_keeps_ordered_tool_trace(self, hybrid_system, monkeypatch):
+        hybrid_system.wcag_mcp = FakeWCAGClient()
+        seen_tool_names = set()
+
+        async def fake_chat_with_tools(**kwargs):
+            nonlocal seen_tool_names
+            seen_tool_names = {
+                tool_def["function"]["name"] for tool_def in kwargs["tools"]
+            }
+            return {
+                "role": "assistant",
+                "content": "",
+                "tool_calls": [
+                    {
+                        "id": "call-1",
+                        "type": "function",
+                        "function": {"name": "list_principles", "arguments": "{}"},
+                    },
+                    {
+                        "id": "call-2",
+                        "type": "function",
+                        "function": {"name": "list_guidelines", "arguments": "{}"},
+                    },
+                ],
+            }
+
+        monkeypatch.setattr(hybrid_system.reasoning_client, "chat_with_tools", fake_chat_with_tools)
+
+        ws_events = []
+
+        async def ws_send(data):
+            ws_events.append(data)
+
+        results = await hybrid_system._run_agentic_retrieval(
+            objective_text="Explain the hierarchy of WCAG",
+            teaching_plan=(
+                "1. plain_language_goal\nExplain the hierarchy.\n\n"
+                "8. dependency_order\n1. Principles\n2. Guidelines\n"
+            ),
+            ws_send=ws_send,
+        )
+
+        assert len(hybrid_system.wcag_mcp.calls) == 1
+        assert [call["tool"] for call in hybrid_system.wcag_mcp.calls[0]] == [
+            "list_principles",
+            "list_guidelines",
+        ]
+        assert "get_criterion" in seen_tool_names
+        assert "get_techniques_for_criterion" in seen_tool_names
+        assert "get_technique" in seen_tool_names
+        assert "search_glossary" in seen_tool_names
+        assert results[0]["round"] == 1
+        assert results[0]["sequence"] == 1
+        assert results[1]["sequence"] == 2
+        assert any(event["detail"].startswith("Researching WCAG sources") for event in ws_events)
+
+    @pytest.mark.asyncio
+    async def test_teaching_content_pipeline_uses_agentic_retrieval(self, hybrid_system, monkeypatch):
+        async def fake_generate_teaching_plan(objective_text, teaching_content=""):
+            return "1. plain_language_goal\nExplain the hierarchy.\n"
+
+        async def fake_agentic_retrieval(objective_text, teaching_plan, ws_send):
+            return [
+                {
+                    "tool": "list_principles",
+                    "args": {},
+                    "category": "agentic",
+                    "result": "WCAG has four principles.",
+                    "chars": 25,
+                    "status": "HIT",
+                }
+            ]
+
+        async def fake_build_evidence_pack(results, objective_text="", teaching_plan=None):
+            return "EVIDENCE PACK"
+
+        def fail_if_called(*args, **kwargs):
+            raise AssertionError("legacy retrieval planner path should not run")
+
+        monkeypatch.setattr(hybrid_system, "_generate_teaching_plan", fake_generate_teaching_plan)
+        monkeypatch.setattr(hybrid_system, "_run_agentic_retrieval", fake_agentic_retrieval)
+        monkeypatch.setattr(hybrid_system, "_build_evidence_pack", fake_build_evidence_pack)
+        monkeypatch.setattr(hybrid_system, "_generate_retrieval_plan", fail_if_called)
+        monkeypatch.setattr(hybrid_system, "_extract_tool_calls", fail_if_called)
+
+        ws_events = []
+
+        async def ws_send(data):
+            ws_events.append(data)
+
+        teaching_plan, evidence_pack = await hybrid_system._run_teaching_content_pipeline(
+            objective_text="Explain the hierarchy of WCAG",
+            session_id="sess-1",
+            objective_id="obj-1",
+            ws_send=ws_send,
+        )
+
+        assert teaching_plan.startswith("1. plain_language_goal")
+        assert evidence_pack == "EVIDENCE PACK"
