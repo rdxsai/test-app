@@ -858,12 +858,12 @@ def format_lesson_state(lesson_state) -> str:
         lines.append(f"BRIDGE BACK TARGET: {bridge_label}")
 
     ordered_labels = []
-    for concept_id in lesson_state.get("teaching_order", [])[:8]:
+    for concept_id in lesson_state.get("teaching_order", []):
         concept = concept_lookup.get(concept_id)
         if not concept:
             continue
         ordered_labels.append(
-            f"{concept.get('label', concept_id)} [{concept.get('status', 'not_covered')}]"
+            f"{concept.get('label', concept_id)} (id={concept_id}) [{concept.get('status', 'not_covered')}]"
         )
     if ordered_labels:
         lines.append("ORDER: " + " -> ".join(ordered_labels))

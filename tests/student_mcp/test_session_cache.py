@@ -298,3 +298,56 @@ class TestLessonState:
         lesson_state = cache.get_lesson_state("sess-1")
         assert lesson_state is not None
         assert lesson_state["active_concept"] == "success-criteria-placement"
+
+    def test_apply_patch_deduplicates_variant_concept_ids(self, cache):
+        """Turn analyzer may use hyphens, underscores, or raw labels for the
+        same concept. Verify that all variants match the canonical concept
+        instead of creating duplicates."""
+        cache.store("sess-1", "obj-1", "Objective", [], "", "content")
+        cache.store_teaching_plan(
+            "sess-1",
+            plan=None,
+            extracted_concepts=[
+                {"id": "prefer_native_html", "label": "Rule 1: prefer native HTML"},
+                {"id": "dont_change_semantics", "label": "Rule 2: don't change native semantics"},
+            ],
+        )
+        lesson_state = cache.get_lesson_state("sess-1")
+        assert len(lesson_state["concepts"]) == 2
+
+        # Patch with hyphenated ID — should match prefer_native_html
+        cache.apply_lesson_state_patch("sess-1", {
+            "concept_updates": [
+                {"concept_id": "prefer-native-html", "status": "covered"},
+            ],
+        })
+        lesson_state = cache.get_lesson_state("sess-1")
+        assert len(lesson_state["concepts"]) == 2  # no duplicate
+        assert lesson_state["concepts"][0]["status"] == "covered"
+
+        # Patch with raw label as ID — should match dont_change_semantics
+        cache.apply_lesson_state_patch("sess-1", {
+            "concept_updates": [
+                {"concept_id": "Rule 2: don't change native semantics", "status": "in_progress"},
+            ],
+        })
+        lesson_state = cache.get_lesson_state("sess-1")
+        assert len(lesson_state["concepts"]) == 2  # still no duplicate
+        assert lesson_state["concepts"][1]["status"] == "in_progress"
+
+    def test_apply_patch_resolves_active_concept_fuzzy(self, cache):
+        """active_concept in a patch should resolve to canonical ID."""
+        cache.store("sess-1", "obj-1", "Objective", [], "", "content")
+        cache.store_teaching_plan(
+            "sess-1",
+            plan=None,
+            extracted_concepts=[
+                {"id": "prefer_native_html", "label": "Prefer native HTML"},
+                {"id": "keyboard_support", "label": "Keyboard support"},
+            ],
+        )
+        cache.apply_lesson_state_patch("sess-1", {
+            "active_concept": "prefer-native-html",  # hyphenated variant
+        })
+        lesson_state = cache.get_lesson_state("sess-1")
+        assert lesson_state["active_concept"] == "prefer_native_html"  # resolved to canonical

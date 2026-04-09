@@ -30,6 +30,16 @@ def _normalize_concept_id(label: str) -> str:
     return raw or "concept"
 
 
+def _concept_match_key(text: str) -> str:
+    """Collapse a concept ID or label to a canonical match key.
+
+    Strips all non-alphanumeric characters and lowercases so that
+    ``prefer_native_html``, ``prefer-native-html``, and
+    ``Prefer native HTML`` all produce the same key.
+    """
+    return re.sub(r"[^a-z0-9]", "", (text or "").lower())
+
+
 def _clean_plan_line(line: str) -> str:
     cleaned = re.sub(r"^\s*[-*+]\s*", "", line.strip())
     cleaned = re.sub(r"^\s*\d+[.)]\s*", "", cleaned)
@@ -415,30 +425,60 @@ class SessionContentCache:
         lesson_state = entry.setdefault("lesson_state", {})
         concepts = lesson_state.setdefault("concepts", [])
 
+        # Build a fuzzy lookup so the turn analyzer's concept IDs
+        # (which may use hyphens, underscores, or raw labels) match
+        # the canonical concepts from the LLM extraction.
+        fuzzy_lookup: Dict[str, Dict[str, str]] = {}
+        for concept in concepts:
+            key = _concept_match_key(concept.get("id", ""))
+            if key:
+                fuzzy_lookup[key] = concept
+            label_key = _concept_match_key(concept.get("label", ""))
+            if label_key and label_key not in fuzzy_lookup:
+                fuzzy_lookup[label_key] = concept
+
         for update in patch.get("concept_updates", []) or []:
             concept_id = str(update.get("concept_id", "")).strip()
             if not concept_id:
                 continue
             status = str(update.get("status", "")).strip() or "in_progress"
             label = str(update.get("label", concept_id)).strip() or concept_id
+
+            # Try exact match first, then fuzzy match by ID, then by label
             existing = next(
-                (concept for concept in concepts if concept.get("id") == concept_id),
+                (c for c in concepts if c.get("id") == concept_id),
                 None,
             )
+            if not existing:
+                match_key = _concept_match_key(concept_id)
+                existing = fuzzy_lookup.get(match_key)
+            if not existing:
+                label_key = _concept_match_key(label)
+                existing = fuzzy_lookup.get(label_key)
+
             if existing:
                 existing["status"] = status
-                if label:
-                    existing["label"] = label
             else:
                 concepts.append({"id": concept_id, "label": label, "status": status})
                 order = lesson_state.setdefault("teaching_order", [])
                 if concept_id not in order:
                     order.append(concept_id)
+                # Register in fuzzy lookup for subsequent updates in same patch
+                key = _concept_match_key(concept_id)
+                if key:
+                    fuzzy_lookup[key] = concepts[-1]
 
-        for field in ("active_concept", "pending_check", "bridge_back_target"):
+        for field in ("active_concept", "bridge_back_target"):
             value = str(patch.get(field, "") or "").strip()
-            if value:
-                lesson_state[field] = value
+            if not value:
+                continue
+            # Resolve to a canonical concept ID via fuzzy match
+            resolved = fuzzy_lookup.get(_concept_match_key(value))
+            lesson_state[field] = resolved["id"] if resolved else value
+
+        pending = str(patch.get("pending_check", "") or "").strip()
+        if pending:
+            lesson_state["pending_check"] = pending
 
         self._sync_active_concept(lesson_state)
         return lesson_state
