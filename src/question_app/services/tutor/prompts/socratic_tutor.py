@@ -403,8 +403,13 @@ Given a learning objective, produce a teaching plan with the following sections:
 - Explain what the tutor should do if the learner lacks the essential prerequisites.
 
 7. concept_decomposition
-- Break the objective into the smallest teachable sub-concepts or sub-skills.
-- Each item should be atomic and instructionally meaningful.
+- Break the objective into teachable sub-concepts or sub-skills.
+- Target 6-10 concepts. Merge closely related ideas into one concept rather \
+than splitting them (e.g., "roles require states" and "required states must \
+be present" is one concept).
+- Do NOT include application or assessment tasks (e.g., "diagnose violations", \
+"revise flawed markup", "justify choices") — those belong in assessment_evidence.
+- Each item should be instructionally meaningful and teachable in 1-2 tutor turns.
 
 8. dependency_order
 - Put the decomposed concepts in the best teaching order.

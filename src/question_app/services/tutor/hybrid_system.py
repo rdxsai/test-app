@@ -2245,12 +2245,19 @@ class HybridCrewAISocraticSystem:
                     "extract the ordered list of teachable concepts from the "
                     "dependency_order or concept_decomposition section.\n\n"
                     "Rules:\n"
-                    "- Return ONLY the atomic teachable concepts, in teaching order.\n"
+                    "- Return ONLY the teachable concepts, in teaching order.\n"
                     "- Each concept should have a short snake_case 'id' and a "
                     "human-readable 'label'.\n"
                     "- Do NOT include dependency annotations, section headings, "
                     "or explanatory text.\n"
-                    "- Typical plans have 5-15 concepts.\n"
+                    "- Merge closely related sub-concepts into one entry. For "
+                    "example, 'roles require states' and 'required states must "
+                    "be present' is one concept, not two.\n"
+                    "- Do NOT include application/assessment tasks like "
+                    "'diagnose violations' or 'justify choices' — those are "
+                    "tested in assessment, not taught as concepts.\n"
+                    "- Target 6-10 concepts. Fewer than 6 is too coarse, more "
+                    "than 10 is over-decomposed.\n"
                     "- Output JSON: {\"concepts\": [{\"id\": \"...\", \"label\": \"...\"}]}"
                 ),
             },
@@ -2268,6 +2275,13 @@ class HybridCrewAISocraticSystem:
             parsed = json.loads(raw)
             concepts = parsed.get("concepts", [])
             if concepts and isinstance(concepts, list):
+                if len(concepts) > 10:
+                    logger.info(
+                        "Concept extraction (LLM): %d concepts, "
+                        "capping to 10",
+                        len(concepts),
+                    )
+                    concepts = concepts[:10]
                 logger.info(
                     "Concept extraction (LLM): %d concepts from teaching plan",
                     len(concepts),
