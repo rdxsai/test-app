@@ -27,6 +27,7 @@ from .socratic_tutor import (
     TOOL_CALL_EXTRACTION_PROMPT,
     AGENT_TOOL_INSTRUCTIONS,
     format_lesson_state,
+    format_pacing_state,
     format_teaching_plan,
 )
 
@@ -47,5 +48,6 @@ __all__ = [
     "TOOL_CALL_EXTRACTION_PROMPT",
     "AGENT_TOOL_INSTRUCTIONS",
     "format_lesson_state",
+    "format_pacing_state",
     "format_teaching_plan",
 ]

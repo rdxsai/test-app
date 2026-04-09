@@ -25,6 +25,10 @@ from typing import Any, Dict, List, Optional
 logger = logging.getLogger(__name__)
 
 
+_PACING_SIGNAL_WINDOW = 4
+_PACE_CHANGE_COOLDOWN = 2
+
+
 def _normalize_concept_id(label: str) -> str:
     raw = re.sub(r"[^a-z0-9]+", "-", (label or "").strip().lower()).strip("-")
     return raw or "concept"
@@ -207,6 +211,9 @@ class SessionContentCache:
             "teaching_content": str(entry.get("teaching_content", "") or ""),
             "retrieval_bundle": entry.get("retrieval_bundle"),
             "lesson_state": dict(entry.get("lesson_state", {}) or {}),
+            "pacing_state": self._normalize_pacing_state(
+                entry.get("pacing_state")
+            ),
             "retrieved_at": str(
                 entry.get("retrieved_at") or datetime.now().isoformat()
             ),
@@ -225,6 +232,7 @@ class SessionContentCache:
         "teaching_content",
         "teaching_plan",
         "lesson_state",
+        "pacing_state",
         "retrieved_at",
         "retrieval_bundle",
     )
@@ -303,6 +311,7 @@ class SessionContentCache:
             "teaching_content": teaching_content,
             "retrieval_bundle": retrieval_bundle,
             "lesson_state": {},
+            "pacing_state": self._default_pacing_state(),
             "retrieved_at": datetime.now().isoformat(),
         }
         logger.info(
@@ -346,6 +355,278 @@ class SessionContentCache:
         entry = self._cache.get(session_id)
         bundle = entry.get("retrieval_bundle") if entry else None
         return bundle if bundle else None
+
+    # ------------------------------------------------------------------
+    # Adaptive pacing runtime state
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _default_pacing_state() -> Dict[str, Any]:
+        return {
+            "current_pace": "steady",
+            "pace_reason": "Default steady pace until enough recent evidence accumulates.",
+            "turns_at_current_pace": 0,
+            "cooldown_remaining": 0,
+            "recent_signals": [],
+        }
+
+    @classmethod
+    def _normalize_pacing_state(
+        cls, pacing_state: Optional[Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        normalized = cls._default_pacing_state()
+        if not pacing_state or not isinstance(pacing_state, dict):
+            return normalized
+
+        pace = str(pacing_state.get("current_pace", "") or "").strip().lower()
+        if pace in {"slow", "steady", "fast"}:
+            normalized["current_pace"] = pace
+
+        reason = str(pacing_state.get("pace_reason", "") or "").strip()
+        if reason:
+            normalized["pace_reason"] = reason
+
+        try:
+            normalized["turns_at_current_pace"] = max(
+                0, int(pacing_state.get("turns_at_current_pace", 0) or 0)
+            )
+        except (TypeError, ValueError):
+            normalized["turns_at_current_pace"] = 0
+
+        try:
+            normalized["cooldown_remaining"] = max(
+                0, int(pacing_state.get("cooldown_remaining", 0) or 0)
+            )
+        except (TypeError, ValueError):
+            normalized["cooldown_remaining"] = 0
+
+        normalized["recent_signals"] = [
+            cls._compact_pacing_signal(signal)
+            for signal in (pacing_state.get("recent_signals", []) or [])
+            if isinstance(signal, dict)
+        ][-_PACING_SIGNAL_WINDOW:]
+        return normalized
+
+    @staticmethod
+    def _compact_pacing_signal(signal: Optional[Dict[str, Any]]) -> Dict[str, str]:
+        if not signal or not isinstance(signal, dict):
+            return {}
+
+        allowed = {
+            "grasp_level": {"fragile", "emerging", "solid"},
+            "reasoning_mode": {
+                "guessing", "recall", "paraphrase", "application", "transfer",
+            },
+            "support_needed": {"heavy", "moderate", "light", "none"},
+            "confusion_level": {"high", "medium", "low"},
+            "response_pattern": {
+                "guessing", "hedging", "direct", "self_correcting",
+            },
+            "concept_closure": {"not_ready", "almost_ready", "ready"},
+            "override_pace": {"none", "slow", "steady", "fast"},
+            "override_reason": None,
+            "recommended_next_step": {
+                "re-explain", "give_example", "ask_narrower",
+                "ask_same_level", "advance",
+            },
+        }
+
+        compact: Dict[str, str] = {}
+        for key, valid_values in allowed.items():
+            value = str(signal.get(key, "") or "").strip()
+            if not value:
+                continue
+            if valid_values is not None:
+                normalized = value.lower()
+                if normalized not in valid_values:
+                    continue
+                compact[key] = normalized
+            else:
+                compact[key] = value
+        if "override_pace" not in compact:
+            compact["override_pace"] = "none"
+        return compact
+
+    @classmethod
+    def _is_strong_confusion_signal(cls, signal: Optional[Dict[str, Any]]) -> bool:
+        compact = cls._compact_pacing_signal(signal)
+        return (
+            compact.get("override_pace") == "slow"
+            or compact.get("confusion_level") == "high"
+            or compact.get("support_needed") == "heavy"
+        )
+
+    @classmethod
+    def _count_matching(
+        cls,
+        signals: List[Dict[str, str]],
+        key: str,
+        values: Any,
+    ) -> int:
+        allowed = {values} if isinstance(values, str) else set(values or [])
+        return sum(1 for signal in signals if signal.get(key) in allowed)
+
+    @classmethod
+    def _determine_target_pace(
+        cls,
+        current_pace: str,
+        window: List[Dict[str, str]],
+    ) -> Dict[str, str]:
+        if len(window) < 3:
+            return {
+                "target_pace": current_pace or "steady",
+                "pace_reason": "Collecting more turns before changing pace.",
+            }
+
+        n = len(window)
+        solid = cls._count_matching(window, "grasp_level", "solid")
+        fragile = cls._count_matching(window, "grasp_level", "fragile")
+        app_transfer = cls._count_matching(
+            window, "reasoning_mode", {"application", "transfer"}
+        )
+        low_reasoning = cls._count_matching(
+            window, "reasoning_mode", {"guessing", "recall", "paraphrase"}
+        )
+        heavy_support = cls._count_matching(
+            window, "support_needed", {"heavy", "moderate"}
+        )
+        high_confusion = cls._count_matching(window, "confusion_level", "high")
+        medium_or_high_confusion = cls._count_matching(
+            window, "confusion_level", {"high", "medium"}
+        )
+        ready = cls._count_matching(window, "concept_closure", "ready")
+        guessing_or_hedging = cls._count_matching(
+            window, "response_pattern", {"guessing", "hedging"}
+        )
+
+        if (
+            high_confusion >= 2
+            or heavy_support >= max(2, n - 1)
+            or fragile >= 2
+            or guessing_or_hedging >= 2
+            or (low_reasoning >= max(2, n - 1) and ready == 0)
+        ):
+            if high_confusion >= 2:
+                reason = "Recent turns show repeated confusion; slow down and re-scaffold."
+            elif heavy_support >= max(2, n - 1):
+                reason = "Recent turns needed repeated support; keep the pace slower."
+            elif fragile >= 2 or guessing_or_hedging >= 2:
+                reason = "Understanding looks fragile across recent turns; consolidate before advancing."
+            else:
+                reason = "Recent answers stayed at recall/paraphrase; narrow the next step before moving on."
+            return {"target_pace": "slow", "pace_reason": reason}
+
+        if (
+            solid >= max(3, n - 1)
+            and app_transfer >= max(2, n - 1)
+            and heavy_support == 0
+            and medium_or_high_confusion <= 1
+            and ready >= max(2, n - 1)
+        ):
+            return {
+                "target_pace": "fast",
+                "pace_reason": (
+                    "Recent turns show stable application with little support; pace can increase."
+                ),
+            }
+
+        return {
+            "target_pace": "steady",
+            "pace_reason": "Recent turns are mixed; keep a steady pace and keep checking understanding.",
+        }
+
+    @classmethod
+    def _roll_pacing_state(
+        cls,
+        pacing_state: Optional[Dict[str, Any]],
+        signal: Optional[Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        state = cls._normalize_pacing_state(pacing_state)
+        compact_signal = cls._compact_pacing_signal(signal)
+        recent = list(state.get("recent_signals", []) or [])
+        if compact_signal:
+            recent.append(compact_signal)
+        recent = recent[-_PACING_SIGNAL_WINDOW:]
+
+        current_pace = state.get("current_pace", "steady")
+        cooldown = max(0, int(state.get("cooldown_remaining", 0) or 0))
+        turns = max(0, int(state.get("turns_at_current_pace", 0) or 0))
+        current_reason = state.get("pace_reason", "") or ""
+
+        override_pace = compact_signal.get("override_pace", "none")
+        if override_pace in {"slow", "steady", "fast"}:
+            target_pace = override_pace
+            target_reason = (
+                compact_signal.get("override_reason")
+                or "Immediate pacing override from the latest turn."
+            )
+            forced = True
+        else:
+            decision = cls._determine_target_pace(current_pace, recent)
+            target_pace = decision["target_pace"]
+            target_reason = decision["pace_reason"]
+            forced = False
+
+        next_cooldown = max(0, cooldown - 1)
+        next_pace = current_pace
+        next_reason = current_reason or target_reason
+        next_turns = turns + 1
+
+        if target_pace != current_pace:
+            allow_change = False
+            if forced or cooldown == 0:
+                allow_change = True
+            elif target_pace == "slow" and cls._is_strong_confusion_signal(compact_signal):
+                allow_change = True
+
+            if allow_change:
+                next_pace = target_pace
+                next_reason = target_reason
+                next_turns = 1
+                next_cooldown = _PACE_CHANGE_COOLDOWN
+
+        elif target_reason:
+            next_reason = target_reason
+
+        return {
+            "current_pace": next_pace,
+            "pace_reason": next_reason,
+            "turns_at_current_pace": next_turns,
+            "cooldown_remaining": next_cooldown,
+            "recent_signals": recent,
+        }
+
+    def get_pacing_state(self, session_id: str) -> Optional[Dict[str, Any]]:
+        entry = self._cache.get(session_id)
+        if not entry:
+            return None
+        pacing_state = entry.get("pacing_state")
+        if not pacing_state:
+            pacing_state = self._default_pacing_state()
+            entry["pacing_state"] = pacing_state
+        return copy.deepcopy(self._normalize_pacing_state(pacing_state))
+
+    def preview_pacing_state(
+        self,
+        session_id: str,
+        signal: Optional[Dict[str, Any]] = None,
+    ) -> Optional[Dict[str, Any]]:
+        entry = self._cache.get(session_id)
+        if not entry:
+            return None
+        return self._roll_pacing_state(entry.get("pacing_state"), signal)
+
+    def apply_pacing_signal(
+        self,
+        session_id: str,
+        signal: Optional[Dict[str, Any]],
+    ) -> Optional[Dict[str, Any]]:
+        entry = self._cache.get(session_id)
+        if not entry:
+            return None
+        rolled = self._roll_pacing_state(entry.get("pacing_state"), signal)
+        entry["pacing_state"] = rolled
+        return copy.deepcopy(rolled)
 
     # ------------------------------------------------------------------
     # Teaching plan (concept decomposition)

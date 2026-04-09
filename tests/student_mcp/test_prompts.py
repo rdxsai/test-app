@@ -270,6 +270,7 @@ class TestReflectorPrompts:
         assert "turn_route" in prompt
         assert "answer_current_question_first" in prompt
         assert "lesson_state_patch" in prompt
+        assert "pacing_signal" in prompt
         assert "stage_action" in prompt
         assert "objective_memory_patch" in prompt
         assert "learner_memory_patch" in prompt
@@ -296,6 +297,14 @@ class TestReflectorPrompts:
         )
         assert "LESSON STATE:" in prompt
         assert "ACTIVE CONCEPT: Principles vs guidelines" in prompt
+
+    def test_analyzer_includes_pacing_state(self):
+        prompt = build_turn_analyzer_prompt(
+            current_stage="exploration",
+            pacing_state_context="CURRENT PACE: slow\nPACE REASON: repeated confusion",
+        )
+        assert "CURRENT PACING STATE:" in prompt
+        assert "CURRENT PACE: slow" in prompt
 
 
 class TestGuidedRetrievalPrompt:

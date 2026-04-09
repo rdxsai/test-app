@@ -770,6 +770,69 @@ class HybridCrewAISocraticSystem:
             lines.append(
                 f"- Stage recommendation: {turn_analysis.get('stage_action', 'stay')} -> {target_stage}"
             )
+        pacing_signal = turn_analysis.get("pacing_signal") or {}
+        if pacing_signal:
+            parts = []
+            for key in (
+                "grasp_level",
+                "reasoning_mode",
+                "support_needed",
+                "confusion_level",
+                "concept_closure",
+            ):
+                value = pacing_signal.get(key)
+                if value:
+                    parts.append(f"{key}={value}")
+            if parts:
+                lines.append(f"- Pacing signal: {', '.join(parts)}")
+            if pacing_signal.get("recommended_next_step"):
+                lines.append(
+                    f"- Pacing next step: {pacing_signal['recommended_next_step']}"
+                )
+        return "\n".join(lines)
+
+    @staticmethod
+    def _format_adaptive_pacing_for_tutor(
+        pacing_state: Optional[Dict[str, Any]]
+    ) -> str:
+        if not pacing_state:
+            return ""
+
+        pace = str(pacing_state.get("current_pace", "") or "").strip().lower()
+        if pace not in {"slow", "steady", "fast"}:
+            return ""
+
+        lines = ["ADAPTIVE PACING:"]
+        lines.append(f"- Current pace: {pace}")
+        if pacing_state.get("pace_reason"):
+            lines.append(f"- Reason: {pacing_state['pace_reason']}")
+        lines.append(
+            f"- Turns at current pace: {int(pacing_state.get('turns_at_current_pace', 0) or 0)}"
+        )
+
+        if pace == "slow":
+            lines.append(
+                "- Response calibration: stay on the current concept, add concrete scaffold, and ask a narrower check."
+            )
+            lines.append(
+                "- Advancement rule: do not treat a single good answer as enough to move on."
+            )
+        elif pace == "steady":
+            lines.append(
+                "- Response calibration: keep normal concept flow with one focused explanation or one focused question."
+            )
+            lines.append(
+                "- Advancement rule: advance only after a clear sign of understanding."
+            )
+        else:
+            lines.append(
+                "- Response calibration: use shorter setup and prefer application, comparison, or transfer."
+            )
+            lines.append(
+                "- Advancement rule: you may move faster, but still keep to one concept and one question."
+            )
+
+        lines.append("- If pacing and instinct conflict, bias slightly slower.")
         return "\n".join(lines)
 
     def _build_guided_tutor_messages(
@@ -783,6 +846,7 @@ class HybridCrewAISocraticSystem:
         teaching_plan: Any,
         lesson_state: Optional[Dict[str, Any]] = None,
         turn_analysis: Optional[Dict[str, Any]] = None,
+        pacing_state: Optional[Dict[str, Any]] = None,
         extra_system_messages: Optional[List[str]] = None,
     ) -> List[Dict[str, str]]:
         """Build tutor-pass messages for guided learning."""
@@ -800,6 +864,9 @@ class HybridCrewAISocraticSystem:
         turn_analysis_block = self._format_turn_analysis_for_tutor(turn_analysis)
         if turn_analysis_block:
             messages.append({"role": "system", "content": turn_analysis_block})
+        pacing_block = self._format_adaptive_pacing_for_tutor(pacing_state)
+        if pacing_block:
+            messages.append({"role": "system", "content": pacing_block})
         for extra in extra_system_messages or []:
             if extra:
                 messages.append({"role": "system", "content": extra})
@@ -818,9 +885,14 @@ class HybridCrewAISocraticSystem:
         active_objective: str,
         teaching_plan: Any,
         lesson_state: Optional[Dict[str, Any]] = None,
+        pacing_state: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """Run the structured turn-analysis pass before the tutor responds."""
-        from .prompts import build_turn_analyzer_prompt, format_lesson_state
+        from .prompts import (
+            build_turn_analyzer_prompt,
+            format_lesson_state,
+            format_pacing_state,
+        )
 
         prompt = build_turn_analyzer_prompt(
             knowledge_context=teaching_content,
@@ -829,6 +901,7 @@ class HybridCrewAISocraticSystem:
             active_objective=active_objective,
             teaching_plan=teaching_plan,
             lesson_state_context=format_lesson_state(lesson_state),
+            pacing_state_context=format_pacing_state(pacing_state),
         )
         transcript = self._format_reflection_transcript(history, student_response)
         response = await asyncio.to_thread(
@@ -863,6 +936,17 @@ class HybridCrewAISocraticSystem:
                     "pending_check": "",
                     "bridge_back_target": "",
                     "concept_updates": [],
+                },
+                "pacing_signal": {
+                    "grasp_level": "emerging",
+                    "reasoning_mode": "paraphrase",
+                    "support_needed": "moderate",
+                    "confusion_level": "medium",
+                    "response_pattern": "direct",
+                    "concept_closure": "not_ready",
+                    "override_pace": "none",
+                    "override_reason": "",
+                    "recommended_next_step": "ask_same_level",
                 },
                 "objective_memory_patch": {
                     "summary": "",
@@ -1034,6 +1118,10 @@ class HybridCrewAISocraticSystem:
         self._session_cache.apply_lesson_state_patch(
             session_id,
             analysis.get("lesson_state_patch"),
+        )
+        self._session_cache.apply_pacing_signal(
+            session_id,
+            analysis.get("pacing_signal"),
         )
         await self._persist_session_cache(session_id)
 
@@ -1592,6 +1680,7 @@ class HybridCrewAISocraticSystem:
 
             teaching_plan = self._session_cache.get_teaching_plan(session_id)
             lesson_state = self._session_cache.get_lesson_state(session_id)
+            pacing_state = self._session_cache.get_pacing_state(session_id)
             bundle = await self._load_student_bundle(student_id, objective_id)
             student_context = self._format_student_context(
                 bundle.get("profile"),
@@ -1769,6 +1858,7 @@ class HybridCrewAISocraticSystem:
                     active_objective=objective_text,
                     teaching_plan=teaching_plan,
                     lesson_state=lesson_state,
+                    pacing_state=pacing_state,
                     extra_system_messages=extra_messages,
                 )
                 final_text = await self._stream_response(tutor_messages, ws_send)
@@ -1798,6 +1888,11 @@ class HybridCrewAISocraticSystem:
                     active_objective=objective_text,
                     teaching_plan=teaching_plan,
                     lesson_state=lesson_state,
+                    pacing_state=pacing_state,
+                )
+                preview_pacing_state = self._session_cache.preview_pacing_state(
+                    session_id,
+                    turn_analysis.get("pacing_signal"),
                 )
 
                 await ws_send(
@@ -1817,6 +1912,7 @@ class HybridCrewAISocraticSystem:
                     teaching_plan=teaching_plan,
                     lesson_state=lesson_state,
                     turn_analysis=turn_analysis,
+                    pacing_state=preview_pacing_state,
                 )
                 final_text = await self._stream_response(tutor_messages, ws_send)
                 self.append_to_conversation(student_id, "assistant", final_text)

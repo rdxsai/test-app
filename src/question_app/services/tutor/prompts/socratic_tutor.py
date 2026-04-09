@@ -881,6 +881,50 @@ def format_lesson_state(lesson_state) -> str:
     return "\n".join(lines)
 
 
+def format_pacing_state(pacing_state) -> str:
+    """Format adaptive pacing state for tutor/analyzer prompts."""
+    if not pacing_state or not isinstance(pacing_state, dict):
+        return ""
+
+    pace = str(pacing_state.get("current_pace", "") or "").strip()
+    reason = str(pacing_state.get("pace_reason", "") or "").strip()
+    turns = pacing_state.get("turns_at_current_pace", 0)
+    cooldown = pacing_state.get("cooldown_remaining", 0)
+    recent = pacing_state.get("recent_signals", []) or []
+
+    lines = []
+    if pace:
+        lines.append(f"CURRENT PACE: {pace}")
+    if reason:
+        lines.append(f"PACE REASON: {reason}")
+    lines.append(f"TURNS AT CURRENT PACE: {turns}")
+    lines.append(f"PACE CHANGE COOLDOWN: {cooldown}")
+
+    rendered_recent = []
+    for signal in recent[-4:]:
+        if not isinstance(signal, dict):
+            continue
+        parts = []
+        for key, label in (
+            ("grasp_level", "grasp"),
+            ("reasoning_mode", "reasoning"),
+            ("support_needed", "support"),
+            ("confusion_level", "confusion"),
+            ("concept_closure", "closure"),
+            ("recommended_next_step", "next"),
+        ):
+            value = str(signal.get(key, "") or "").strip()
+            if value:
+                parts.append(f"{label}={value}")
+        if parts:
+            rendered_recent.append("- " + ", ".join(parts))
+    if rendered_recent:
+        lines.append("RECENT PACING SIGNALS:")
+        lines.extend(rendered_recent)
+
+    return "\n".join(lines)
+
+
 def _format_text_plan(plan_text: str) -> str:
     """Extract and compress key sections from the 17-section teaching plan text.
 
@@ -1287,6 +1331,31 @@ You may receive a LESSON STATE block containing:
 Use it to stay anchored to the current concept. Do not drift to a new concept unless the \
 turn analysis or lesson state indicates it is time to move.
 
+== ADAPTIVE PACING ==
+
+You may receive an ADAPTIVE PACING block. Treat it as a binding instruction for \
+how much scaffold to give, how hard to make the next question, and how quickly to \
+advance the concept.
+
+If the pace is `slow`:
+- stay on the current concept unless the student explicitly asks to move on
+- add more concrete setup before the next question
+- ask a narrower, easier question
+- do not treat one good answer as enough evidence to move on
+
+If the pace is `steady`:
+- keep normal concept flow
+- use one focused question or one focused explanation
+- advance only after a reasonable sign of understanding
+
+If the pace is `fast`:
+- use shorter setup
+- prefer application, comparison, or transfer questions
+- still keep to one question and one concept at a time
+
+If the ADAPTIVE PACING block conflicts with your instinct, follow the block. \
+When in doubt, bias slightly slower rather than faster.
+
 == USE OF EVIDENCE PACK ==
 
 Use the evidence pack to support: definitions, hierarchy anchors, examples, contrastive \
@@ -1353,6 +1422,7 @@ You are responsible for:
 - routing the student's turn so the tutor answers the current question first when needed
 - judging whether the student showed conceptual footing, reasoning, transfer, or confusion
 - deciding whether the current teaching stage should stay, advance, or regress
+- emitting compact pacing signals that describe how much scaffold the learner needs
 - identifying misconceptions to log or resolve
 - generating concise memory patches for objective-specific and learner-level memory
 - updating structured lesson state (active concept, pending check, bridge-back target)
@@ -1400,6 +1470,17 @@ Output ONLY a JSON object with this exact top-level shape:
     "concept_updates": [
       {"concept_id": "...", "status": "not_covered|in_progress|covered", "label": "optional short string"}
     ]
+  },
+  "pacing_signal": {
+    "grasp_level": "fragile|emerging|solid",
+    "reasoning_mode": "guessing|recall|paraphrase|application|transfer",
+    "support_needed": "heavy|moderate|light|none",
+    "confusion_level": "high|medium|low",
+    "response_pattern": "guessing|hedging|direct|self_correcting",
+    "concept_closure": "not_ready|almost_ready|ready",
+    "override_pace": "none|slow|steady|fast",
+    "override_reason": "short string",
+    "recommended_next_step": "re-explain|give_example|ask_narrower|ask_same_level|advance"
   },
   "objective_memory_patch": {
     "summary": "short string",
@@ -1538,6 +1619,7 @@ def build_turn_analyzer_prompt(
     active_objective: str = "",
     teaching_plan=None,
     lesson_state_context: str = "",
+    pacing_state_context: str = "",
 ) -> str:
     """Build the structured analyzer prompt for normal guided turns."""
     context_sections = [f"CURRENT STAGE: {current_stage.upper()}"]
@@ -1558,6 +1640,9 @@ def build_turn_analyzer_prompt(
     if lesson_state_context:
         context_sections.append(f"LESSON STATE:\n{lesson_state_context}")
 
+    if pacing_state_context:
+        context_sections.append(f"CURRENT PACING STATE:\n{pacing_state_context}")
+
     if knowledge_context:
         context_sections.append(f"VALIDATED EVIDENCE PACK:\n{knowledge_context}")
 
@@ -1573,6 +1658,7 @@ def build_guided_reflector_prompt(
     active_objective: str = "",
     teaching_plan=None,
     lesson_state_context: str = "",
+    pacing_state_context: str = "",
 ) -> str:
     """Backward-compatible alias for the guided turn analyzer prompt."""
     return build_turn_analyzer_prompt(
@@ -1582,6 +1668,7 @@ def build_guided_reflector_prompt(
         active_objective=active_objective,
         teaching_plan=teaching_plan,
         lesson_state_context=lesson_state_context,
+        pacing_state_context=pacing_state_context,
     )
 
 

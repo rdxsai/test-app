@@ -122,6 +122,7 @@ class TestConvenienceMethods:
         assert exported["objective_id"] == "obj-1"
         assert exported["teaching_plan"]["objective"] == "Objective"
         assert exported["lesson_state"]["active_concept"] == "c1"
+        assert exported["pacing_state"]["current_pace"] == "steady"
 
     def test_export_session_slims_retrieval_bundle(self, cache):
         """Verify export strips raw_hits and per-item round/sequence but keeps content."""
@@ -182,6 +183,24 @@ class TestConvenienceMethods:
                     "teaching_order": ["hierarchy"],
                     "concepts": [{"id": "hierarchy", "label": "Hierarchy", "status": "in_progress"}],
                 },
+                "pacing_state": {
+                    "current_pace": "slow",
+                    "pace_reason": "Needs more scaffold",
+                    "turns_at_current_pace": 2,
+                    "cooldown_remaining": 1,
+                    "recent_signals": [
+                        {
+                            "grasp_level": "fragile",
+                            "reasoning_mode": "paraphrase",
+                            "support_needed": "heavy",
+                            "confusion_level": "high",
+                            "response_pattern": "hedging",
+                            "concept_closure": "not_ready",
+                            "override_pace": "none",
+                            "recommended_next_step": "re-explain",
+                        }
+                    ],
+                },
                 "retrieved_at": "2026-04-08T12:00:00",
             },
         )
@@ -190,6 +209,7 @@ class TestConvenienceMethods:
         assert cache.get_retrieval_bundle("sess-restore") == {"version": 1}
         assert cache.get_teaching_plan("sess-restore") == "8. dependency_order\n1. Hierarchy\n"
         assert cache.get_lesson_state("sess-restore")["active_concept"] == "hierarchy"
+        assert cache.get_pacing_state("sess-restore")["current_pace"] == "slow"
 
 
 class TestMultipleSessions:
@@ -351,3 +371,95 @@ class TestLessonState:
         })
         lesson_state = cache.get_lesson_state("sess-1")
         assert lesson_state["active_concept"] == "prefer_native_html"  # resolved to canonical
+
+
+class TestAdaptivePacing:
+    def test_preview_pacing_state_waits_for_window(self, cache):
+        cache.store("sess-1", "obj-1", "Objective", [], "", "content")
+
+        preview = cache.preview_pacing_state(
+            "sess-1",
+            {
+                "grasp_level": "fragile",
+                "reasoning_mode": "paraphrase",
+                "support_needed": "moderate",
+                "confusion_level": "medium",
+                "response_pattern": "hedging",
+                "concept_closure": "not_ready",
+                "override_pace": "none",
+                "recommended_next_step": "ask_narrower",
+            },
+        )
+
+        assert preview["current_pace"] == "steady"
+        assert len(preview["recent_signals"]) == 1
+
+    def test_apply_pacing_signal_slows_after_repeated_confusion(self, cache):
+        cache.store("sess-1", "obj-1", "Objective", [], "", "content")
+        signal = {
+            "grasp_level": "fragile",
+            "reasoning_mode": "paraphrase",
+            "support_needed": "heavy",
+            "confusion_level": "high",
+            "response_pattern": "hedging",
+            "concept_closure": "not_ready",
+            "override_pace": "none",
+            "recommended_next_step": "re-explain",
+        }
+
+        for _ in range(3):
+            pacing_state = cache.apply_pacing_signal("sess-1", signal)
+
+        assert pacing_state["current_pace"] == "slow"
+        assert "slow" in pacing_state["pace_reason"].lower() or "scaffold" in pacing_state["pace_reason"].lower()
+        assert pacing_state["cooldown_remaining"] == 2
+
+    def test_apply_pacing_signal_speeds_up_after_stable_transfer(self, cache):
+        cache.store("sess-1", "obj-1", "Objective", [], "", "content")
+        signal = {
+            "grasp_level": "solid",
+            "reasoning_mode": "transfer",
+            "support_needed": "none",
+            "confusion_level": "low",
+            "response_pattern": "direct",
+            "concept_closure": "ready",
+            "override_pace": "none",
+            "recommended_next_step": "advance",
+        }
+
+        for _ in range(3):
+            pacing_state = cache.apply_pacing_signal("sess-1", signal)
+
+        assert pacing_state["current_pace"] == "fast"
+        assert "pace can increase" in pacing_state["pace_reason"].lower()
+
+    def test_cooldown_blocks_immediate_flip_from_slow_to_fast(self, cache):
+        cache.store("sess-1", "obj-1", "Objective", [], "", "content")
+        slow_signal = {
+            "grasp_level": "fragile",
+            "reasoning_mode": "paraphrase",
+            "support_needed": "heavy",
+            "confusion_level": "high",
+            "response_pattern": "hedging",
+            "concept_closure": "not_ready",
+            "override_pace": "none",
+            "recommended_next_step": "re-explain",
+        }
+        fast_signal = {
+            "grasp_level": "solid",
+            "reasoning_mode": "transfer",
+            "support_needed": "none",
+            "confusion_level": "low",
+            "response_pattern": "direct",
+            "concept_closure": "ready",
+            "override_pace": "none",
+            "recommended_next_step": "advance",
+        }
+
+        for _ in range(3):
+            cache.apply_pacing_signal("sess-1", slow_signal)
+
+        pacing_state = cache.apply_pacing_signal("sess-1", fast_signal)
+        pacing_state = cache.apply_pacing_signal("sess-1", fast_signal)
+
+        assert pacing_state["current_pace"] == "slow"

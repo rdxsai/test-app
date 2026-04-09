@@ -169,6 +169,13 @@ class TestGuidedTutorMessages:
                     "bridge_back_target": "principles-vs-guidelines"
                 },
             },
+            pacing_state={
+                "current_pace": "slow",
+                "pace_reason": "Recent turns show repeated confusion; slow down and re-scaffold.",
+                "turns_at_current_pace": 2,
+                "cooldown_remaining": 1,
+                "recent_signals": [],
+            },
         )
 
         assert "TURN ROUTING" in messages[0]["content"]
@@ -178,8 +185,15 @@ class TestGuidedTutorMessages:
             for message in messages
             if message["role"] == "system" and message["content"].startswith("TURN ANALYSIS:")
         )
+        pacing_block = next(
+            message["content"]
+            for message in messages
+            if message["role"] == "system" and message["content"].startswith("ADAPTIVE PACING:")
+        )
         assert "Route: adjacent_topic" in turn_analysis_block
         assert "Answer current question first: yes" in turn_analysis_block
+        assert "Current pace: slow" in pacing_block
+        assert "stay on the current concept" in pacing_block
 
 
 class TestSessionRuntimeCachePersistence:
@@ -310,6 +324,17 @@ class TestGuidedTurnOrdering:
                         {"concept_id": "c1", "status": "in_progress"}
                     ],
                 },
+                "pacing_signal": {
+                    "grasp_level": "fragile",
+                    "reasoning_mode": "paraphrase",
+                    "support_needed": "heavy",
+                    "confusion_level": "high",
+                    "response_pattern": "hedging",
+                    "concept_closure": "not_ready",
+                    "override_pace": "slow",
+                    "override_reason": "Student explicitly needs a slower pace.",
+                    "recommended_next_step": "re-explain",
+                },
                 "objective_memory_patch": {
                     "summary": "",
                     "demonstrated_skills": [],
@@ -328,6 +353,7 @@ class TestGuidedTurnOrdering:
         def fake_build_messages(**kwargs):
             call_order.append("build_messages")
             assert kwargs["turn_analysis"]["turn_route"] == "objective_answer"
+            assert kwargs["pacing_state"]["current_pace"] == "slow"
             return [{"role": "system", "content": "test"}]
 
         async def fake_stream_response(messages, ws_send):
