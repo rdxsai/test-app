@@ -1083,6 +1083,46 @@ class HybridCrewAISocraticSystem:
         stage_action = analysis.get("stage_action", "stay")
         target_stage = analysis.get("target_stage", current_stage)
         stage_reason = analysis.get("stage_reason", "")
+
+        # Guardrail: block premature assessment if concept coverage is too low.
+        # The turn analyzer may recommend assessment after a strong answer on
+        # one concept, but if the teaching plan still has uncovered knowledge
+        # concepts, the student hasn't been taught enough material yet.
+        if (
+            stage_action == "advance"
+            and target_stage in ("mini_assessment", "final_assessment")
+        ):
+            lesson_state = self._session_cache.get_lesson_state(session_id)
+            concepts = (lesson_state or {}).get("concepts", [])
+            if concepts:
+                covered = sum(
+                    1 for c in concepts if c.get("status") == "covered"
+                )
+                ratio = covered / len(concepts)
+                if ratio < 0.6:
+                    logger.info(
+                        "Assessment guardrail: denied %s → %s "
+                        "(coverage %d/%d = %.0f%%, threshold 60%%)",
+                        current_stage,
+                        target_stage,
+                        covered,
+                        len(concepts),
+                        ratio * 100,
+                    )
+                    await ws_send(
+                        {
+                            "type": "stage",
+                            "stage": "analyzing",
+                            "detail": (
+                                f"Continuing exploration "
+                                f"({covered}/{len(concepts)} concepts covered)"
+                            ),
+                        }
+                    )
+                    # Override: stay in current stage
+                    stage_action = "stay"
+                    target_stage = current_stage
+
         if (
             stage_action in ("advance", "regress")
             and target_stage

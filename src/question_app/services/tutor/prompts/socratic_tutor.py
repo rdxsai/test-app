@@ -868,6 +868,11 @@ def format_lesson_state(lesson_state) -> str:
     if ordered_labels:
         lines.append("ORDER: " + " -> ".join(ordered_labels))
 
+    # Coverage summary so the analyzer can judge assessment readiness
+    if concepts:
+        covered = sum(1 for c in concepts if c.get("status") == "covered")
+        lines.append(f"COVERAGE: {covered}/{len(concepts)} concepts covered")
+
     return "\n".join(lines)
 
 
@@ -1354,8 +1359,12 @@ Important constraints:
   `not_attempted`, `misconception`, `in_progress`, `assessment_ready`
 - Advance to `exploration` only when the student can reason from the concept,
   not merely repeat wording.
-- Advance to `mini_assessment` only when the student has shown constructive,
-  comparative, causal, or transfer reasoning with enough stability.
+- Advance to `mini_assessment` only when BOTH conditions are met:
+  1. The student has shown constructive, comparative, causal, or transfer reasoning
+     with enough stability.
+  2. The COVERAGE line in the lesson state shows that most knowledge concepts are
+     covered. If less than 60% of concepts are covered, there is still significant
+     teaching to do — keep exploring instead of jumping to assessment.
 - If the student is confused, fragile, or guessing, keep or regress the stage.
 - If the student asks a real question, capture it and make the tutor answer that
   current question before returning to the plan.
