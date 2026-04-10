@@ -42,6 +42,8 @@ class FakeStudentService:
         self.runtime_cache_store = runtime_cache_store or {}
         self.logged_misconceptions = []
         self.resolved_misconceptions = []
+        self.objective_memory_upserts = []
+        self.learner_memory_upserts = []
 
     async def get_active_session(self, student_id: str):
         return dict(self.session_state)
@@ -65,6 +67,46 @@ class FakeStudentService:
     async def resolve_misconception(self, student_id: str, objective_id: str, misconception_text: str):
         self.resolved_misconceptions.append((student_id, objective_id, misconception_text))
         return {"misconception_text": misconception_text, "resolved": True}
+
+    async def upsert_objective_memory(
+        self,
+        student_id: str,
+        objective_id: str,
+        summary: str = "",
+        demonstrated_skills=None,
+        active_gaps=None,
+        next_focus: str = "",
+    ):
+        payload = {
+            "student_id": student_id,
+            "objective_id": objective_id,
+            "summary": summary,
+            "demonstrated_skills": demonstrated_skills or [],
+            "active_gaps": active_gaps or [],
+            "next_focus": next_focus,
+        }
+        self.objective_memory_upserts.append(payload)
+        return payload
+
+    async def upsert_learner_memory(
+        self,
+        student_id: str,
+        summary: str = "",
+        strengths=None,
+        support_needs=None,
+        tendencies=None,
+        successful_strategies=None,
+    ):
+        payload = {
+            "student_id": student_id,
+            "summary": summary,
+            "strengths": strengths or [],
+            "support_needs": support_needs or [],
+            "tendencies": tendencies or [],
+            "successful_strategies": successful_strategies or [],
+        }
+        self.learner_memory_upserts.append(payload)
+        return payload
 
 
 class FakeWCAGClient:
@@ -307,6 +349,62 @@ class TestSessionRuntimeCachePersistence:
         assert persisted["teaching_content"] == "Evidence pack"
         assert persisted["teaching_plan"]["objective"] == "Explain WCAG structure"
         assert persisted["lesson_state"]["active_concept"] == "c1"
+
+
+class TestMemoryPatchMerging:
+    @pytest.mark.asyncio
+    async def test_memory_patches_replace_current_gap_and_support_snapshots(
+        self, hybrid_system
+    ):
+        bundle = {
+            "objective_memory": {
+                "summary": "Old summary",
+                "demonstrated_skills": ["uses native-first"],
+                "active_gaps": ["old stale gap"],
+                "next_focus": "Old focus",
+            },
+            "learner_memory": {
+                "summary": "Old learner summary",
+                "strengths": ["asks clarifying questions"],
+                "support_needs": ["old support need"],
+                "tendencies": ["old tendency"],
+                "successful_strategies": ["contrastive examples"],
+            },
+        }
+
+        await hybrid_system._apply_memory_patches(
+            student_id="student-1",
+            objective_id="obj-1",
+            objective_memory_patch={
+                "summary": "New summary",
+                "demonstrated_skills_add": ["maps rules to examples"],
+                "active_gaps_current": ["needs one more transfer check"],
+                "next_focus": "Fresh focus",
+            },
+            learner_memory_patch={
+                "summary": "New learner summary",
+                "strengths_add": ["updates after correction"],
+                "support_needs_current": ["brief transfer checks"],
+                "tendencies_current": ["self-corrects after contrast"],
+                "successful_strategies_add": ["short misconception checks"],
+            },
+            bundle=bundle,
+        )
+
+        objective_upsert = hybrid_system.student_mcp.objective_memory_upserts[-1]
+        learner_upsert = hybrid_system.student_mcp.learner_memory_upserts[-1]
+
+        assert objective_upsert["demonstrated_skills"] == [
+            "uses native-first",
+            "maps rules to examples",
+        ]
+        assert objective_upsert["active_gaps"] == ["needs one more transfer check"]
+        assert learner_upsert["support_needs"] == ["brief transfer checks"]
+        assert learner_upsert["tendencies"] == ["self-corrects after contrast"]
+        assert learner_upsert["strengths"] == [
+            "asks clarifying questions",
+            "updates after correction",
+        ]
 
 
 class TestGuidedTurnOrdering:

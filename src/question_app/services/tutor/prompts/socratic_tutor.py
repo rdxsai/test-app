@@ -1521,16 +1521,16 @@ Output ONLY a JSON object with this exact top-level shape:
   },
   "objective_memory_patch": {
     "summary": "short string",
-    "demonstrated_skills": ["..."],
-    "active_gaps": ["..."],
+    "demonstrated_skills_add": ["..."],
+    "active_gaps_current": ["..."],
     "next_focus": "short string"
   },
   "learner_memory_patch": {
     "summary": "short string",
-    "strengths": ["..."],
-    "support_needs": ["..."],
-    "tendencies": ["..."],
-    "successful_strategies": ["..."]
+    "strengths_add": ["..."],
+    "support_needs_current": ["..."],
+    "tendencies_current": ["..."],
+    "successful_strategies_add": ["..."]
   }
 }
 
@@ -1538,6 +1538,10 @@ Rules:
 - Use empty strings or empty arrays when there is nothing to add.
 - Keep every string compact.
 - Use stable misconception keys whenever possible.
+- `active_gaps_current`, `support_needs_current`, and `tendencies_current` are
+  current-state snapshots, not append-only logs.
+- Keep current-state lists short and prune stale items that no longer fit the
+  student's latest demonstrated understanding.
 - Emit `resolve_candidate` only when the student has actually demonstrated the
   corrected distinction on a direct check, fresh example, or assessment item.
 - Use `must_address_now` when the misconception should be explicitly repaired in
@@ -1580,22 +1584,25 @@ Output ONLY a JSON object with this exact shape:
   ],
   "objective_memory_patch": {
     "summary": "short string",
-    "demonstrated_skills": ["..."],
-    "active_gaps": ["..."],
+    "demonstrated_skills_add": ["..."],
+    "active_gaps_current": ["..."],
     "next_focus": "short string"
   },
   "learner_memory_patch": {
     "summary": "short string",
-    "strengths": ["..."],
-    "support_needs": ["..."],
-    "tendencies": ["..."],
-    "successful_strategies": ["..."]
+    "strengths_add": ["..."],
+    "support_needs_current": ["..."],
+    "tendencies_current": ["..."],
+    "successful_strategies_add": ["..."]
   }
 }
 
 Rules:
 - Use empty strings or empty arrays when there is nothing to add.
 - Keep the rationale under 30 words.
+- `active_gaps_current`, `support_needs_current`, and `tendencies_current` are
+  current-state snapshots and should drop stale items when the learner has
+  shown the opposite understanding.
 - Emit `resolve_candidate` only when the student's answer directly demonstrates
   the corrected distinction.
 - Use `must_address_now` when the misconception should shape the tutor's very

@@ -275,6 +275,8 @@ class TestReflectorPrompts:
         assert "misconception_events" in prompt
         assert "objective_memory_patch" in prompt
         assert "learner_memory_patch" in prompt
+        assert "active_gaps_current" in prompt
+        assert "support_needs_current" in prompt
         assert "CURRENT STAGE: EXPLORATION" in prompt
 
     def test_turn_analyzer_alias_matches_guided_reflector(self):
@@ -290,6 +292,7 @@ class TestReflectorPrompts:
         assert "is_correct" in prompt
         assert "rationale" in prompt
         assert "misconception_events" in prompt
+        assert "active_gaps_current" in prompt
         assert "ACTIVE OBJECTIVE: Apply alt text to images" in prompt
 
     def test_analyzer_includes_lesson_state(self):

@@ -725,6 +725,35 @@ class HybridCrewAISocraticSystem:
                 merged.append(normalized)
         return merged
 
+    @classmethod
+    def _merge_unique_capped(
+        cls,
+        existing: Any,
+        incoming: Any,
+        limit: int = 8,
+    ) -> List[str]:
+        merged = cls._merge_unique(existing, incoming)
+        if limit > 0 and len(merged) > limit:
+            merged = merged[-limit:]
+        return merged
+
+    @staticmethod
+    def _normalize_memory_list(value: Any, limit: int = 8) -> List[str]:
+        items = []
+        seen = set()
+        source = value or []
+        if isinstance(source, str):
+            source = [source]
+        for item in source:
+            normalized = str(item or "").strip()
+            if not normalized or normalized in seen:
+                continue
+            seen.add(normalized)
+            items.append(normalized)
+        if limit > 0 and len(items) > limit:
+            items = items[:limit]
+        return items
+
     @staticmethod
     def _normalize_misconception_key(text: str = "", key: str = "") -> str:
         raw = (key or text or "").strip().lower()
@@ -1090,16 +1119,16 @@ class HybridCrewAISocraticSystem:
                 },
                 "objective_memory_patch": {
                     "summary": "",
-                    "demonstrated_skills": [],
-                    "active_gaps": [],
+                    "demonstrated_skills_add": [],
+                    "active_gaps_current": [],
                     "next_focus": "",
                 },
                 "learner_memory_patch": {
                     "summary": "",
-                    "strengths": [],
-                    "support_needs": [],
-                    "tendencies": [],
-                    "successful_strategies": [],
+                    "strengths_add": [],
+                    "support_needs_current": [],
+                    "tendencies_current": [],
+                    "successful_strategies_add": [],
                 },
             },
         )
@@ -1153,16 +1182,16 @@ class HybridCrewAISocraticSystem:
                 "misconception_events": [],
                 "objective_memory_patch": {
                     "summary": "",
-                    "demonstrated_skills": [],
-                    "active_gaps": [],
+                    "demonstrated_skills_add": [],
+                    "active_gaps_current": [],
                     "next_focus": "",
                 },
                 "learner_memory_patch": {
                     "summary": "",
-                    "strengths": [],
-                    "support_needs": [],
-                    "tendencies": [],
-                    "successful_strategies": [],
+                    "strengths_add": [],
+                    "support_needs_current": [],
+                    "tendencies_current": [],
+                    "successful_strategies_add": [],
                 },
             },
         )
@@ -1181,14 +1210,22 @@ class HybridCrewAISocraticSystem:
         existing_learner = bundle.get("learner_memory") or {}
 
         if objective_memory_patch and objective_id:
-            demonstrated_skills = self._merge_unique(
+            demonstrated_skills = self._merge_unique_capped(
                 existing_objective.get("demonstrated_skills", []),
-                objective_memory_patch.get("demonstrated_skills", []),
+                objective_memory_patch.get(
+                    "demonstrated_skills_add",
+                    objective_memory_patch.get("demonstrated_skills", []),
+                ),
             )
-            active_gaps = self._merge_unique(
-                existing_objective.get("active_gaps", []),
-                objective_memory_patch.get("active_gaps", []),
-            )
+            if "active_gaps_current" in objective_memory_patch:
+                active_gaps = self._normalize_memory_list(
+                    objective_memory_patch.get("active_gaps_current", []),
+                )
+            else:
+                active_gaps = self._merge_unique(
+                    existing_objective.get("active_gaps", []),
+                    objective_memory_patch.get("active_gaps", []),
+                )
             summary = (
                 objective_memory_patch.get("summary")
                 or existing_objective.get("summary", "")
@@ -1207,21 +1244,37 @@ class HybridCrewAISocraticSystem:
             )
 
         if learner_memory_patch:
-            strengths = self._merge_unique(
+            strengths = self._merge_unique_capped(
                 existing_learner.get("strengths", []),
-                learner_memory_patch.get("strengths", []),
+                learner_memory_patch.get(
+                    "strengths_add",
+                    learner_memory_patch.get("strengths", []),
+                ),
             )
-            support_needs = self._merge_unique(
-                existing_learner.get("support_needs", []),
-                learner_memory_patch.get("support_needs", []),
-            )
-            tendencies = self._merge_unique(
-                existing_learner.get("tendencies", []),
-                learner_memory_patch.get("tendencies", []),
-            )
-            successful_strategies = self._merge_unique(
+            if "support_needs_current" in learner_memory_patch:
+                support_needs = self._normalize_memory_list(
+                    learner_memory_patch.get("support_needs_current", []),
+                )
+            else:
+                support_needs = self._merge_unique(
+                    existing_learner.get("support_needs", []),
+                    learner_memory_patch.get("support_needs", []),
+                )
+            if "tendencies_current" in learner_memory_patch:
+                tendencies = self._normalize_memory_list(
+                    learner_memory_patch.get("tendencies_current", []),
+                )
+            else:
+                tendencies = self._merge_unique(
+                    existing_learner.get("tendencies", []),
+                    learner_memory_patch.get("tendencies", []),
+                )
+            successful_strategies = self._merge_unique_capped(
                 existing_learner.get("successful_strategies", []),
-                learner_memory_patch.get("successful_strategies", []),
+                learner_memory_patch.get(
+                    "successful_strategies_add",
+                    learner_memory_patch.get("successful_strategies", []),
+                ),
             )
             summary = (
                 learner_memory_patch.get("summary")
