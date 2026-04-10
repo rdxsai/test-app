@@ -940,9 +940,11 @@ def format_misconception_state(misconception_state) -> str:
             if not isinstance(item, dict):
                 continue
             text = str(item.get("text", "") or item.get("key", "")).strip()
+            key = str(item.get("key", "") or "").strip()
             priority = str(item.get("repair_priority", "") or "normal").strip()
             if text:
-                lines.append(f"- {text} [priority={priority}]")
+                suffix = f" [key={key} priority={priority}]" if key else f" [priority={priority}]"
+                lines.append(f"- {text}{suffix}")
 
     if resolved:
         lines.append("RECENTLY RESOLVED MISCONCEPTIONS:")
@@ -950,8 +952,10 @@ def format_misconception_state(misconception_state) -> str:
             if not isinstance(item, dict):
                 continue
             text = str(item.get("text", "") or item.get("key", "")).strip()
+            key = str(item.get("key", "") or "").strip()
             if text:
-                lines.append(f"- {text}")
+                suffix = f" [key={key}]" if key else ""
+                lines.append(f"- {text}{suffix}")
 
     return "\n".join(lines)
 
@@ -1538,6 +1542,8 @@ Rules:
 - Use empty strings or empty arrays when there is nothing to add.
 - Keep every string compact.
 - Use stable misconception keys whenever possible.
+- If the live misconception state already shows the same issue, reuse that exact
+  key for `still_active` or `resolve_candidate` instead of inventing a new key.
 - `active_gaps_current`, `support_needs_current`, and `tendencies_current` are
   current-state snapshots, not append-only logs.
 - Keep current-state lists short and prune stale items that no longer fit the
@@ -1600,6 +1606,8 @@ Output ONLY a JSON object with this exact shape:
 Rules:
 - Use empty strings or empty arrays when there is nothing to add.
 - Keep the rationale under 30 words.
+- If the live misconception state already shows the same issue, reuse that exact
+  key for `still_active` or `resolve_candidate` instead of inventing a new key.
 - `active_gaps_current`, `support_needs_current`, and `tendencies_current` are
   current-state snapshots and should drop stale items when the learner has
   shown the opposite understanding.

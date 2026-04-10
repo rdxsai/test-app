@@ -316,11 +316,12 @@ class TestReflectorPrompts:
             current_stage="exploration",
             misconception_state_context=(
                 "ACTIVE LIVE MISCONCEPTIONS:\n"
-                "- Role alone is enough [priority=must_address_now]"
+                "- Role alone is enough [key=role_alone_enough priority=must_address_now]"
             ),
         )
         assert "CURRENT LIVE MISCONCEPTION STATE:" in prompt
         assert "Role alone is enough" in prompt
+        assert "key=role_alone_enough" in prompt
 
 
 class TestGuidedRetrievalPrompt:

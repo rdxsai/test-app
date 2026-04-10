@@ -266,6 +266,16 @@ class TestGuidedTutorMessages:
             active_objective="Apply the five rules for using ARIA correctly",
             teaching_plan="8. dependency_order\n1. Native first\n",
             lesson_state=None,
+            turn_analysis={
+                "misconception_events": [
+                    {
+                        "key": "role_alone_enough",
+                        "text": "Believes a role alone is enough.",
+                        "action": "still_active",
+                        "repair_priority": "must_address_now",
+                    }
+                ]
+            },
             pacing_state=None,
             misconception_state={
                 "active_misconceptions": [
@@ -425,6 +435,14 @@ class TestResponseGuards:
                 "target_stage": "readiness_check",
                 "stage_reason": "Learner looks ready.",
                 "teaching_move": "continue",
+                "misconception_events": [
+                    {
+                        "key": "role_alone_enough",
+                        "text": "Believes role alone is enough.",
+                        "action": "still_active",
+                        "repair_priority": "must_address_now",
+                    }
+                ],
                 "pacing_signal": {
                     "concept_closure": "ready",
                     "override_pace": "steady",
@@ -454,6 +472,56 @@ class TestResponseGuards:
         assert guarded["target_stage"] == "exploration"
         assert guarded["pacing_signal"]["override_pace"] == "slow"
         assert guarded["pacing_signal"]["recommended_next_step"] == "ask_narrower"
+
+    def test_enforce_turn_response_controls_does_not_block_on_stale_runtime_misconception(
+        self, hybrid_system
+    ):
+        guarded = hybrid_system._enforce_turn_response_controls(
+            current_stage="exploration",
+            analysis={
+                "stage_action": "advance",
+                "target_stage": "readiness_check",
+                "stage_reason": "Learner looks ready.",
+                "teaching_move": "continue",
+                "misconception_events": [
+                    {
+                        "key": "role_alone_enough",
+                        "text": "Student now rejects role-only fixes on a fresh example.",
+                        "action": "resolve_candidate",
+                        "repair_priority": "normal",
+                    }
+                ],
+                "pacing_signal": {
+                    "concept_closure": "ready",
+                    "override_pace": "steady",
+                    "override_reason": "",
+                    "recommended_next_step": "advance",
+                },
+            },
+            lesson_state={
+                "concepts": [
+                    {"id": "c1", "status": "covered"},
+                    {"id": "c2", "status": "covered"},
+                    {"id": "c3", "status": "covered"},
+                    {"id": "c4", "status": "covered"},
+                ]
+            },
+            pacing_state={"current_pace": "slow"},
+            misconception_state={
+                "active_misconceptions": [
+                    {
+                        "key": "role_alone_enough",
+                        "text": "Believes role alone is enough.",
+                        "repair_priority": "must_address_now",
+                    }
+                ]
+            },
+        )
+
+        assert guarded["stage_action"] == "advance"
+        assert guarded["target_stage"] == "readiness_check"
+        assert guarded["pacing_signal"]["override_pace"] == "steady"
+        assert guarded["pacing_signal"]["recommended_next_step"] == "advance"
 
 
 class TestGuidedTurnOrdering:

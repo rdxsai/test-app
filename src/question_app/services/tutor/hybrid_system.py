@@ -848,17 +848,12 @@ class HybridCrewAISocraticSystem:
 
     @staticmethod
     def _format_active_misconception_guidance(
+        turn_analysis: Optional[Dict[str, Any]],
         misconception_state: Optional[Dict[str, Any]],
     ) -> str:
-        if not misconception_state:
-            return ""
-
-        active = misconception_state.get("active_misconceptions", []) or []
-        if not active:
-            return ""
-
         must_address = [
-            item for item in active
+            item
+            for item in (((turn_analysis or {}).get("misconception_events", []) or []))
             if isinstance(item, dict)
             and str(item.get("repair_priority", "") or "") == "must_address_now"
         ]
@@ -913,21 +908,19 @@ class HybridCrewAISocraticSystem:
         ).strip().lower()
         target_stage = str(guarded.get("target_stage", "") or "").strip()
 
-        active_misconceptions = [
+        current_turn_misconceptions = [
             item
-            for item in ((misconception_state or {}).get("active_misconceptions", []) or [])
+            for item in ((guarded.get("misconception_events", []) or []))
             if isinstance(item, dict)
         ]
-        must_repair = any(
+        must_repair_now = any(
             str(item.get("repair_priority", "") or "") == "must_address_now"
-            for item in active_misconceptions
+            for item in current_turn_misconceptions
         )
 
         reasons: List[str] = []
-        if must_repair:
+        if must_repair_now:
             reasons.append("Open must-repair misconception still needs explicit correction.")
-        if current_pace == "slow" and target_stage and target_stage != current_stage:
-            reasons.append("Slow pace holds the tutor on the current concept for this turn.")
         if (
             str(guarded.get("stage_action", "") or "") == "advance"
             and concept_closure != "ready"
@@ -951,11 +944,11 @@ class HybridCrewAISocraticSystem:
                 if existing_reason
                 else joined
             )
-            if must_repair and str(
+            if must_repair_now and str(
                 guarded.get("teaching_move", "") or ""
             ).strip().lower() not in {"repair", "clarify"}:
                 guarded["teaching_move"] = "repair"
-            if must_repair:
+            if must_repair_now:
                 pacing_signal["override_pace"] = "slow"
                 pacing_signal["override_reason"] = (
                     "Active misconception requires explicit repair before moving on."
@@ -978,7 +971,7 @@ class HybridCrewAISocraticSystem:
         must_repair = any(
             isinstance(item, dict)
             and str(item.get("repair_priority", "") or "") == "must_address_now"
-            for item in ((misconception_state or {}).get("active_misconceptions", []) or [])
+            for item in (((turn_analysis or {}).get("misconception_events", []) or []))
         )
         pacing_signal = (turn_analysis or {}).get("pacing_signal", {}) or {}
         recommended_next_step = str(
@@ -1176,6 +1169,7 @@ class HybridCrewAISocraticSystem:
         if response_constraints_block:
             messages.append({"role": "system", "content": response_constraints_block})
         misconception_block = self._format_active_misconception_guidance(
+            turn_analysis,
             misconception_state
         )
         if misconception_block:
