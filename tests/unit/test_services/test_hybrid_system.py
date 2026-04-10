@@ -40,6 +40,8 @@ class FakeStudentService:
     def __init__(self, session_state, runtime_cache_store=None):
         self.session_state = session_state
         self.runtime_cache_store = runtime_cache_store or {}
+        self.logged_misconceptions = []
+        self.resolved_misconceptions = []
 
     async def get_active_session(self, student_id: str):
         return dict(self.session_state)
@@ -55,6 +57,14 @@ class FakeStudentService:
     async def clear_session_runtime_cache(self, session_id: str):
         self.runtime_cache_store[session_id] = {}
         return {}
+
+    async def log_misconception(self, student_id: str, objective_id: str, misconception_text: str):
+        self.logged_misconceptions.append((student_id, objective_id, misconception_text))
+        return {"misconception_text": misconception_text}
+
+    async def resolve_misconception(self, student_id: str, objective_id: str, misconception_text: str):
+        self.resolved_misconceptions.append((student_id, objective_id, misconception_text))
+        return {"misconception_text": misconception_text, "resolved": True}
 
 
 class FakeWCAGClient:
@@ -195,6 +205,41 @@ class TestGuidedTutorMessages:
         assert "Current pace: slow" in pacing_block
         assert "stay on the current concept" in pacing_block
 
+    def test_guided_tutor_messages_include_active_misconception_repair_block(
+        self, hybrid_system
+    ):
+        messages = hybrid_system._build_guided_tutor_messages(
+            student_response="I think role alone is enough.",
+            history=[],
+            teaching_content="Evidence pack",
+            student_context="",
+            current_stage="exploration",
+            active_objective="Apply the five rules for using ARIA correctly",
+            teaching_plan="8. dependency_order\n1. Native first\n",
+            lesson_state=None,
+            pacing_state=None,
+            misconception_state={
+                "active_misconceptions": [
+                    {
+                        "key": "role_alone_enough",
+                        "text": "Believes a role alone is enough.",
+                        "repair_priority": "must_address_now",
+                        "times_seen": 1,
+                    }
+                ],
+                "recently_resolved": [],
+            },
+        )
+
+        misconception_block = next(
+            message["content"]
+            for message in messages
+            if message["role"] == "system"
+            and message["content"].startswith("ACTIVE MISCONCEPTION REPAIR:")
+        )
+        assert "Believes a role alone is enough." in misconception_block
+        assert "Repair the misconception explicitly" in misconception_block
+
 
 class TestSessionRuntimeCachePersistence:
     @pytest.mark.asyncio
@@ -314,8 +359,14 @@ class TestGuidedTurnOrdering:
                     "confidence": 0.0,
                     "evidence_summary": "",
                 },
-                "misconceptions_to_log": [],
-                "misconceptions_to_resolve": [],
+                "misconception_events": [
+                    {
+                        "key": "principle_vs_guideline_confusion",
+                        "text": "Confuses principles with guidelines.",
+                        "action": "log",
+                        "repair_priority": "must_address_now",
+                    }
+                ],
                 "lesson_state_patch": {
                     "active_concept": "c1",
                     "pending_check": "Explain what a guideline does",
@@ -354,6 +405,9 @@ class TestGuidedTurnOrdering:
             call_order.append("build_messages")
             assert kwargs["turn_analysis"]["turn_route"] == "objective_answer"
             assert kwargs["pacing_state"]["current_pace"] == "slow"
+            assert kwargs["misconception_state"]["active_misconceptions"][0]["key"] == (
+                "principle_vs_guideline_confusion"
+            )
             return [{"role": "system", "content": "test"}]
 
         async def fake_stream_response(messages, ws_send):

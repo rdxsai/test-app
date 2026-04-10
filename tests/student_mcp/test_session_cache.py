@@ -123,6 +123,7 @@ class TestConvenienceMethods:
         assert exported["teaching_plan"]["objective"] == "Objective"
         assert exported["lesson_state"]["active_concept"] == "c1"
         assert exported["pacing_state"]["current_pace"] == "steady"
+        assert exported["misconception_state"]["active_misconceptions"] == []
 
     def test_export_session_slims_retrieval_bundle(self, cache):
         """Verify export strips raw_hits and per-item round/sequence but keeps content."""
@@ -201,6 +202,17 @@ class TestConvenienceMethods:
                         }
                     ],
                 },
+                "misconception_state": {
+                    "active_misconceptions": [
+                        {
+                            "key": "role_alone_not_enough",
+                            "text": "Role alone is enough for a button",
+                            "repair_priority": "must_address_now",
+                            "times_seen": 2,
+                        }
+                    ],
+                    "recently_resolved": [],
+                },
                 "retrieved_at": "2026-04-08T12:00:00",
             },
         )
@@ -210,6 +222,7 @@ class TestConvenienceMethods:
         assert cache.get_teaching_plan("sess-restore") == "8. dependency_order\n1. Hierarchy\n"
         assert cache.get_lesson_state("sess-restore")["active_concept"] == "hierarchy"
         assert cache.get_pacing_state("sess-restore")["current_pace"] == "slow"
+        assert cache.get_misconception_state("sess-restore")["active_misconceptions"][0]["key"] == "role_alone_not_enough"
 
 
 class TestMultipleSessions:
@@ -463,3 +476,74 @@ class TestAdaptivePacing:
         pacing_state = cache.apply_pacing_signal("sess-1", fast_signal)
 
         assert pacing_state["current_pace"] == "slow"
+
+
+class TestMisconceptionState:
+    def test_preview_misconception_state_tracks_active_items(self, cache):
+        cache.store("sess-1", "obj-1", "Objective", [], "", "content")
+
+        preview = cache.preview_misconception_state(
+            "sess-1",
+            [
+                {
+                    "key": "role_alone_enough",
+                    "text": "Believes role alone is enough.",
+                    "action": "log",
+                    "repair_priority": "must_address_now",
+                }
+            ],
+        )
+
+        assert preview["active_misconceptions"][0]["key"] == "role_alone_enough"
+        assert preview["active_misconceptions"][0]["repair_priority"] == "must_address_now"
+
+    def test_apply_misconception_events_resolves_by_key(self, cache):
+        cache.store("sess-1", "obj-1", "Objective", [], "", "content")
+        cache.apply_misconception_events(
+            "sess-1",
+            [
+                {
+                    "key": "focusable_means_accessible",
+                    "text": "Focusable means accessible.",
+                    "action": "log",
+                    "repair_priority": "normal",
+                }
+            ],
+        )
+
+        state = cache.apply_misconception_events(
+            "sess-1",
+            [
+                {
+                    "key": "focusable_means_accessible",
+                    "action": "resolve_candidate",
+                    "text": "Focusable means accessible.",
+                }
+            ],
+        )
+
+        assert state["active_misconceptions"] == []
+        assert state["recently_resolved"][0]["key"] == "focusable_means_accessible"
+
+    def test_seed_misconception_state_uses_db_records_once(self, cache):
+        cache.store("sess-1", "obj-1", "Objective", [], "", "content")
+
+        state = cache.seed_misconception_state(
+            "sess-1",
+            [
+                {
+                    "misconception_text": "Thinks role changes native behavior.",
+                }
+            ],
+        )
+        assert len(state["active_misconceptions"]) == 1
+
+        state = cache.seed_misconception_state(
+            "sess-1",
+            [
+                {
+                    "misconception_text": "Different wording should not duplicate once seeded.",
+                }
+            ],
+        )
+        assert len(state["active_misconceptions"]) == 1

@@ -925,6 +925,37 @@ def format_pacing_state(pacing_state) -> str:
     return "\n".join(lines)
 
 
+def format_misconception_state(misconception_state) -> str:
+    """Format live misconception state for tutor/analyzer prompts."""
+    if not misconception_state or not isinstance(misconception_state, dict):
+        return ""
+
+    active = misconception_state.get("active_misconceptions", []) or []
+    resolved = misconception_state.get("recently_resolved", []) or []
+    lines = []
+
+    if active:
+        lines.append("ACTIVE LIVE MISCONCEPTIONS:")
+        for item in active[:4]:
+            if not isinstance(item, dict):
+                continue
+            text = str(item.get("text", "") or item.get("key", "")).strip()
+            priority = str(item.get("repair_priority", "") or "normal").strip()
+            if text:
+                lines.append(f"- {text} [priority={priority}]")
+
+    if resolved:
+        lines.append("RECENTLY RESOLVED MISCONCEPTIONS:")
+        for item in resolved[-3:]:
+            if not isinstance(item, dict):
+                continue
+            text = str(item.get("text", "") or item.get("key", "")).strip()
+            if text:
+                lines.append(f"- {text}")
+
+    return "\n".join(lines)
+
+
 def _format_text_plan(plan_text: str) -> str:
     """Extract and compress key sections from the 17-section teaching plan text.
 
@@ -1461,8 +1492,14 @@ Output ONLY a JSON object with this exact top-level shape:
     "confidence": 0.0,
     "evidence_summary": "short string"
   },
-  "misconceptions_to_log": ["..."],
-  "misconceptions_to_resolve": ["..."],
+  "misconception_events": [
+    {
+      "key": "short_snake_case_key",
+      "text": "short string",
+      "action": "log|still_active|resolve_candidate",
+      "repair_priority": "normal|must_address_now"
+    }
+  ],
   "lesson_state_patch": {
     "active_concept": "short string",
     "pending_check": "short string",
@@ -1500,6 +1537,11 @@ Output ONLY a JSON object with this exact top-level shape:
 Rules:
 - Use empty strings or empty arrays when there is nothing to add.
 - Keep every string compact.
+- Use stable misconception keys whenever possible.
+- Emit `resolve_candidate` only when the student has actually demonstrated the
+  corrected distinction on a direct check, fresh example, or assessment item.
+- Use `must_address_now` when the misconception should be explicitly repaired in
+  the tutor's next response before moving on.
 - Do not include markdown fences.
 - Do not include extra keys."""
 
@@ -1528,8 +1570,14 @@ Output ONLY a JSON object with this exact shape:
   "is_correct": true,
   "confidence": 0.0,
   "rationale": "short string",
-  "misconceptions_to_log": ["..."],
-  "misconceptions_to_resolve": ["..."],
+  "misconception_events": [
+    {
+      "key": "short_snake_case_key",
+      "text": "short string",
+      "action": "log|still_active|resolve_candidate",
+      "repair_priority": "normal|must_address_now"
+    }
+  ],
   "objective_memory_patch": {
     "summary": "short string",
     "demonstrated_skills": ["..."],
@@ -1548,6 +1596,10 @@ Output ONLY a JSON object with this exact shape:
 Rules:
 - Use empty strings or empty arrays when there is nothing to add.
 - Keep the rationale under 30 words.
+- Emit `resolve_candidate` only when the student's answer directly demonstrates
+  the corrected distinction.
+- Use `must_address_now` when the misconception should shape the tutor's very
+  next response.
 - Do not include markdown fences.
 - Do not include extra keys."""
 
@@ -1559,6 +1611,7 @@ def build_instance_b_prompt(
     active_objective: str = "",
     teaching_plan=None,
     lesson_state_context: str = "",
+    misconception_state_context: str = "",
 ) -> str:
     """Build the system prompt for Instance B (Guided Learning, Socratic tutor).
 
@@ -1597,6 +1650,11 @@ def build_instance_b_prompt(
     if lesson_state_context:
         context_sections.append(f"LESSON STATE:\n{lesson_state_context}")
 
+    if misconception_state_context:
+        context_sections.append(
+            f"LIVE MISCONCEPTION STATE:\n{misconception_state_context}"
+        )
+
     # Evidence pack (retrieved WCAG content)
     if knowledge_context:
         context_sections.append(
@@ -1620,6 +1678,7 @@ def build_turn_analyzer_prompt(
     teaching_plan=None,
     lesson_state_context: str = "",
     pacing_state_context: str = "",
+    misconception_state_context: str = "",
 ) -> str:
     """Build the structured analyzer prompt for normal guided turns."""
     context_sections = [f"CURRENT STAGE: {current_stage.upper()}"]
@@ -1643,6 +1702,11 @@ def build_turn_analyzer_prompt(
     if pacing_state_context:
         context_sections.append(f"CURRENT PACING STATE:\n{pacing_state_context}")
 
+    if misconception_state_context:
+        context_sections.append(
+            f"CURRENT LIVE MISCONCEPTION STATE:\n{misconception_state_context}"
+        )
+
     if knowledge_context:
         context_sections.append(f"VALIDATED EVIDENCE PACK:\n{knowledge_context}")
 
@@ -1659,6 +1723,7 @@ def build_guided_reflector_prompt(
     teaching_plan=None,
     lesson_state_context: str = "",
     pacing_state_context: str = "",
+    misconception_state_context: str = "",
 ) -> str:
     """Backward-compatible alias for the guided turn analyzer prompt."""
     return build_turn_analyzer_prompt(
@@ -1669,6 +1734,7 @@ def build_guided_reflector_prompt(
         teaching_plan=teaching_plan,
         lesson_state_context=lesson_state_context,
         pacing_state_context=pacing_state_context,
+        misconception_state_context=misconception_state_context,
     )
 
 
@@ -1679,6 +1745,7 @@ def build_assessment_reflector_prompt(
     active_objective: str = "",
     teaching_plan=None,
     lesson_state_context: str = "",
+    misconception_state_context: str = "",
 ) -> str:
     """Build the structured reflector prompt for assessment turns."""
     context_sections = [f"CURRENT STAGE: {current_stage.upper()}"]
@@ -1698,6 +1765,11 @@ def build_assessment_reflector_prompt(
 
     if lesson_state_context:
         context_sections.append(f"LESSON STATE:\n{lesson_state_context}")
+
+    if misconception_state_context:
+        context_sections.append(
+            f"CURRENT LIVE MISCONCEPTION STATE:\n{misconception_state_context}"
+        )
 
     if knowledge_context:
         context_sections.append(

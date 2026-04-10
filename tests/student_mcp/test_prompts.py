@@ -272,6 +272,7 @@ class TestReflectorPrompts:
         assert "lesson_state_patch" in prompt
         assert "pacing_signal" in prompt
         assert "stage_action" in prompt
+        assert "misconception_events" in prompt
         assert "objective_memory_patch" in prompt
         assert "learner_memory_patch" in prompt
         assert "CURRENT STAGE: EXPLORATION" in prompt
@@ -288,6 +289,7 @@ class TestReflectorPrompts:
         )
         assert "is_correct" in prompt
         assert "rationale" in prompt
+        assert "misconception_events" in prompt
         assert "ACTIVE OBJECTIVE: Apply alt text to images" in prompt
 
     def test_analyzer_includes_lesson_state(self):
@@ -305,6 +307,17 @@ class TestReflectorPrompts:
         )
         assert "CURRENT PACING STATE:" in prompt
         assert "CURRENT PACE: slow" in prompt
+
+    def test_analyzer_includes_misconception_state(self):
+        prompt = build_turn_analyzer_prompt(
+            current_stage="exploration",
+            misconception_state_context=(
+                "ACTIVE LIVE MISCONCEPTIONS:\n"
+                "- Role alone is enough [priority=must_address_now]"
+            ),
+        )
+        assert "CURRENT LIVE MISCONCEPTION STATE:" in prompt
+        assert "Role alone is enough" in prompt
 
 
 class TestGuidedRetrievalPrompt:

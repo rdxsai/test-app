@@ -44,6 +44,11 @@ def _concept_match_key(text: str) -> str:
     return re.sub(r"[^a-z0-9]", "", (text or "").lower())
 
 
+def _normalize_runtime_key(text: str) -> str:
+    raw = re.sub(r"[^a-z0-9]+", "_", (text or "").strip().lower()).strip("_")
+    return raw or "item"
+
+
 def _clean_plan_line(line: str) -> str:
     cleaned = re.sub(r"^\s*[-*+]\s*", "", line.strip())
     cleaned = re.sub(r"^\s*\d+[.)]\s*", "", cleaned)
@@ -214,6 +219,9 @@ class SessionContentCache:
             "pacing_state": self._normalize_pacing_state(
                 entry.get("pacing_state")
             ),
+            "misconception_state": self._normalize_misconception_state(
+                entry.get("misconception_state")
+            ),
             "retrieved_at": str(
                 entry.get("retrieved_at") or datetime.now().isoformat()
             ),
@@ -233,6 +241,7 @@ class SessionContentCache:
         "teaching_plan",
         "lesson_state",
         "pacing_state",
+        "misconception_state",
         "retrieved_at",
         "retrieval_bundle",
     )
@@ -312,6 +321,7 @@ class SessionContentCache:
             "retrieval_bundle": retrieval_bundle,
             "lesson_state": {},
             "pacing_state": self._default_pacing_state(),
+            "misconception_state": self._default_misconception_state(),
             "retrieved_at": datetime.now().isoformat(),
         }
         logger.info(
@@ -626,6 +636,225 @@ class SessionContentCache:
             return None
         rolled = self._roll_pacing_state(entry.get("pacing_state"), signal)
         entry["pacing_state"] = rolled
+        return copy.deepcopy(rolled)
+
+    # ------------------------------------------------------------------
+    # Misconception runtime state
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _default_misconception_state() -> Dict[str, Any]:
+        return {
+            "active_misconceptions": [],
+            "recently_resolved": [],
+        }
+
+    @classmethod
+    def _normalize_misconception_state(
+        cls, misconception_state: Optional[Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        normalized = cls._default_misconception_state()
+        if not misconception_state or not isinstance(misconception_state, dict):
+            return normalized
+
+        def _normalize_item(item: Any) -> Optional[Dict[str, Any]]:
+            if not isinstance(item, dict):
+                return None
+            text = str(item.get("text", "") or "").strip()
+            key = str(item.get("key", "") or "").strip()
+            normalized_key = _normalize_runtime_key(key or text)
+            if not normalized_key:
+                return None
+            priority = str(item.get("repair_priority", "") or "").strip().lower()
+            if priority not in {"normal", "must_address_now"}:
+                priority = "normal"
+            try:
+                times_seen = max(0, int(item.get("times_seen", 0) or 0))
+            except (TypeError, ValueError):
+                times_seen = 0
+            return {
+                "key": normalized_key,
+                "text": text or normalized_key.replace("_", " "),
+                "repair_priority": priority,
+                "times_seen": times_seen,
+            }
+
+        normalized["active_misconceptions"] = [
+            item
+            for item in (
+                _normalize_item(raw)
+                for raw in (misconception_state.get("active_misconceptions", []) or [])
+            )
+            if item
+        ]
+        normalized["recently_resolved"] = [
+            item
+            for item in (
+                _normalize_item(raw)
+                for raw in (misconception_state.get("recently_resolved", []) or [])
+            )
+            if item
+        ][-6:]
+        return normalized
+
+    @staticmethod
+    def _compact_misconception_event(
+        event: Optional[Dict[str, Any]],
+    ) -> Dict[str, str]:
+        if not event or not isinstance(event, dict):
+            return {}
+        action = str(event.get("action", "") or "").strip().lower()
+        if action not in {"log", "still_active", "resolve_candidate"}:
+            return {}
+        text = str(event.get("text", "") or "").strip()
+        key = str(event.get("key", "") or "").strip()
+        normalized_key = _normalize_runtime_key(key or text)
+        if not normalized_key:
+            return {}
+        priority = str(event.get("repair_priority", "") or "").strip().lower()
+        if priority not in {"normal", "must_address_now"}:
+            priority = "normal"
+        return {
+            "key": normalized_key,
+            "text": text,
+            "action": action,
+            "repair_priority": priority,
+        }
+
+    @classmethod
+    def _roll_misconception_state(
+        cls,
+        misconception_state: Optional[Dict[str, Any]],
+        events: Optional[List[Dict[str, Any]]],
+    ) -> Dict[str, Any]:
+        state = cls._normalize_misconception_state(misconception_state)
+        active_order = [
+            item.get("key")
+            for item in state.get("active_misconceptions", [])
+            if item.get("key")
+        ]
+        active_map = {
+            item["key"]: dict(item)
+            for item in state.get("active_misconceptions", [])
+            if item.get("key")
+        }
+        resolved_map = {
+            item["key"]: dict(item)
+            for item in state.get("recently_resolved", [])
+            if item.get("key")
+        }
+
+        for raw_event in (events or []):
+            event = cls._compact_misconception_event(raw_event)
+            if not event:
+                continue
+            key = event["key"]
+            text = event.get("text", "") or key.replace("_", " ")
+            action = event["action"]
+            priority = event.get("repair_priority", "normal")
+
+            if action in {"log", "still_active"}:
+                item = active_map.get(key, {
+                    "key": key,
+                    "text": text,
+                    "repair_priority": priority,
+                    "times_seen": 0,
+                })
+                item["text"] = text or item.get("text", key.replace("_", " "))
+                if priority == "must_address_now":
+                    item["repair_priority"] = "must_address_now"
+                item["times_seen"] = int(item.get("times_seen", 0) or 0) + 1
+                active_map[key] = item
+                if key not in active_order:
+                    active_order.append(key)
+                resolved_map.pop(key, None)
+            elif action == "resolve_candidate":
+                item = active_map.pop(key, None)
+                if key in active_order:
+                    active_order = [existing for existing in active_order if existing != key]
+                resolved_map[key] = {
+                    "key": key,
+                    "text": text or (item or {}).get("text", key.replace("_", " ")),
+                    "repair_priority": priority,
+                    "times_seen": int((item or {}).get("times_seen", 0) or 0),
+                }
+
+        return {
+            "active_misconceptions": [
+                active_map[key]
+                for key in active_order
+                if key in active_map
+            ],
+            "recently_resolved": list(resolved_map.values())[-6:],
+        }
+
+    def get_misconception_state(self, session_id: str) -> Optional[Dict[str, Any]]:
+        entry = self._cache.get(session_id)
+        if not entry:
+            return None
+        misconception_state = entry.get("misconception_state")
+        if not misconception_state:
+            misconception_state = self._default_misconception_state()
+            entry["misconception_state"] = misconception_state
+        return copy.deepcopy(self._normalize_misconception_state(misconception_state))
+
+    def preview_misconception_state(
+        self,
+        session_id: str,
+        events: Optional[List[Dict[str, Any]]] = None,
+    ) -> Optional[Dict[str, Any]]:
+        entry = self._cache.get(session_id)
+        if not entry:
+            return None
+        return self._roll_misconception_state(
+            entry.get("misconception_state"),
+            events,
+        )
+
+    def apply_misconception_events(
+        self,
+        session_id: str,
+        events: Optional[List[Dict[str, Any]]] = None,
+    ) -> Optional[Dict[str, Any]]:
+        entry = self._cache.get(session_id)
+        if not entry:
+            return None
+        rolled = self._roll_misconception_state(
+            entry.get("misconception_state"),
+            events,
+        )
+        entry["misconception_state"] = rolled
+        return copy.deepcopy(rolled)
+
+    def seed_misconception_state(
+        self,
+        session_id: str,
+        misconceptions: Optional[List[Dict[str, Any]]] = None,
+    ) -> Optional[Dict[str, Any]]:
+        entry = self._cache.get(session_id)
+        if not entry:
+            return None
+        current = self._normalize_misconception_state(
+            entry.get("misconception_state")
+        )
+        if current.get("active_misconceptions"):
+            return copy.deepcopy(current)
+        seed_events = []
+        for misconception in (misconceptions or []):
+            if not isinstance(misconception, dict):
+                continue
+            text = str(misconception.get("misconception_text", "") or "").strip()
+            if not text:
+                continue
+            seed_events.append(
+                {
+                    "text": text,
+                    "action": "log",
+                    "repair_priority": "normal",
+                }
+            )
+        rolled = self._roll_misconception_state(current, seed_events)
+        entry["misconception_state"] = rolled
         return copy.deepcopy(rolled)
 
     # ------------------------------------------------------------------

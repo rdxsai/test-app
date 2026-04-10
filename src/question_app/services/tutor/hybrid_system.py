@@ -725,6 +725,129 @@ class HybridCrewAISocraticSystem:
                 merged.append(normalized)
         return merged
 
+    @staticmethod
+    def _normalize_misconception_key(text: str = "", key: str = "") -> str:
+        raw = (key or text or "").strip().lower()
+        raw = re.sub(r"[^a-z0-9]+", "_", raw).strip("_")
+        return raw or "misconception"
+
+    @classmethod
+    def _coerce_misconception_events(
+        cls,
+        payload: Optional[Dict[str, Any]],
+        default_priority: str = "normal",
+    ) -> List[Dict[str, str]]:
+        if default_priority not in {"normal", "must_address_now"}:
+            default_priority = "normal"
+
+        events: List[Dict[str, str]] = []
+        seen = set()
+        payload = payload or {}
+
+        raw_events = payload.get("misconception_events", []) or []
+        if isinstance(raw_events, dict):
+            raw_events = [raw_events]
+
+        for raw_event in raw_events:
+            if not isinstance(raw_event, dict):
+                continue
+            action = str(raw_event.get("action", "") or "").strip().lower()
+            if action not in {"log", "still_active", "resolve_candidate"}:
+                continue
+            text = str(raw_event.get("text", "") or "").strip()
+            key = cls._normalize_misconception_key(
+                text=text,
+                key=str(raw_event.get("key", "") or ""),
+            )
+            priority = str(
+                raw_event.get("repair_priority", "") or default_priority
+            ).strip().lower()
+            if priority not in {"normal", "must_address_now"}:
+                priority = default_priority
+            identity = (key, action, text)
+            if identity in seen:
+                continue
+            seen.add(identity)
+            events.append(
+                {
+                    "key": key,
+                    "text": text,
+                    "action": action,
+                    "repair_priority": priority,
+                }
+            )
+
+        legacy_log_priority = default_priority
+        for text in payload.get("misconceptions_to_log", []) or []:
+            normalized = str(text or "").strip()
+            if not normalized:
+                continue
+            key = cls._normalize_misconception_key(text=normalized)
+            identity = (key, "log", normalized)
+            if identity in seen:
+                continue
+            seen.add(identity)
+            events.append(
+                {
+                    "key": key,
+                    "text": normalized,
+                    "action": "log",
+                    "repair_priority": legacy_log_priority,
+                }
+            )
+
+        for text in payload.get("misconceptions_to_resolve", []) or []:
+            normalized = str(text or "").strip()
+            if not normalized:
+                continue
+            key = cls._normalize_misconception_key(text=normalized)
+            identity = (key, "resolve_candidate", normalized)
+            if identity in seen:
+                continue
+            seen.add(identity)
+            events.append(
+                {
+                    "key": key,
+                    "text": normalized,
+                    "action": "resolve_candidate",
+                    "repair_priority": "normal",
+                }
+            )
+
+        return events
+
+    @staticmethod
+    def _format_active_misconception_guidance(
+        misconception_state: Optional[Dict[str, Any]],
+    ) -> str:
+        if not misconception_state:
+            return ""
+
+        active = misconception_state.get("active_misconceptions", []) or []
+        if not active:
+            return ""
+
+        must_address = [
+            item for item in active
+            if isinstance(item, dict)
+            and str(item.get("repair_priority", "") or "") == "must_address_now"
+        ]
+        if not must_address:
+            return ""
+
+        lines = ["ACTIVE MISCONCEPTION REPAIR:"]
+        for item in must_address[:2]:
+            text = str(item.get("text", "") or item.get("key", "")).strip()
+            if text:
+                lines.append(f"- Open misconception: {text}")
+        lines.append(
+            "- Repair the misconception explicitly before introducing a new concept."
+        )
+        lines.append(
+            "- Contrast the incorrect model with the correct one, use one concrete example, and ask one narrow check."
+        )
+        return "\n".join(lines)
+
     def _format_reflection_transcript(
         self,
         history: Optional[List[Dict[str, str]]],
@@ -847,10 +970,15 @@ class HybridCrewAISocraticSystem:
         lesson_state: Optional[Dict[str, Any]] = None,
         turn_analysis: Optional[Dict[str, Any]] = None,
         pacing_state: Optional[Dict[str, Any]] = None,
+        misconception_state: Optional[Dict[str, Any]] = None,
         extra_system_messages: Optional[List[str]] = None,
     ) -> List[Dict[str, str]]:
         """Build tutor-pass messages for guided learning."""
-        from .prompts import build_instance_b_prompt, format_lesson_state
+        from .prompts import (
+            build_instance_b_prompt,
+            format_lesson_state,
+            format_misconception_state,
+        )
 
         system_prompt = build_instance_b_prompt(
             knowledge_context=teaching_content,
@@ -859,6 +987,9 @@ class HybridCrewAISocraticSystem:
             active_objective=active_objective,
             teaching_plan=teaching_plan,
             lesson_state_context=format_lesson_state(lesson_state),
+            misconception_state_context=format_misconception_state(
+                misconception_state
+            ),
         )
         messages = [{"role": "system", "content": system_prompt}]
         turn_analysis_block = self._format_turn_analysis_for_tutor(turn_analysis)
@@ -867,6 +998,11 @@ class HybridCrewAISocraticSystem:
         pacing_block = self._format_adaptive_pacing_for_tutor(pacing_state)
         if pacing_block:
             messages.append({"role": "system", "content": pacing_block})
+        misconception_block = self._format_active_misconception_guidance(
+            misconception_state
+        )
+        if misconception_block:
+            messages.append({"role": "system", "content": misconception_block})
         for extra in extra_system_messages or []:
             if extra:
                 messages.append({"role": "system", "content": extra})
@@ -886,11 +1022,13 @@ class HybridCrewAISocraticSystem:
         teaching_plan: Any,
         lesson_state: Optional[Dict[str, Any]] = None,
         pacing_state: Optional[Dict[str, Any]] = None,
+        misconception_state: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """Run the structured turn-analysis pass before the tutor responds."""
         from .prompts import (
             build_turn_analyzer_prompt,
             format_lesson_state,
+            format_misconception_state,
             format_pacing_state,
         )
 
@@ -902,6 +1040,9 @@ class HybridCrewAISocraticSystem:
             teaching_plan=teaching_plan,
             lesson_state_context=format_lesson_state(lesson_state),
             pacing_state_context=format_pacing_state(pacing_state),
+            misconception_state_context=format_misconception_state(
+                misconception_state
+            ),
         )
         transcript = self._format_reflection_transcript(history, student_response)
         response = await asyncio.to_thread(
@@ -929,8 +1070,7 @@ class HybridCrewAISocraticSystem:
                     "confidence": 0.0,
                     "evidence_summary": "",
                 },
-                "misconceptions_to_log": [],
-                "misconceptions_to_resolve": [],
+                "misconception_events": [],
                 "lesson_state_patch": {
                     "active_concept": "",
                     "pending_check": "",
@@ -974,9 +1114,14 @@ class HybridCrewAISocraticSystem:
         active_objective: str,
         teaching_plan: Any,
         lesson_state: Optional[Dict[str, Any]] = None,
+        misconception_state: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """Run the structured reflection pass for an assessment answer."""
-        from .prompts import build_assessment_reflector_prompt, format_lesson_state
+        from .prompts import (
+            build_assessment_reflector_prompt,
+            format_lesson_state,
+            format_misconception_state,
+        )
 
         prompt = build_assessment_reflector_prompt(
             knowledge_context=teaching_content,
@@ -985,6 +1130,9 @@ class HybridCrewAISocraticSystem:
             active_objective=active_objective,
             teaching_plan=teaching_plan,
             lesson_state_context=format_lesson_state(lesson_state),
+            misconception_state_context=format_misconception_state(
+                misconception_state
+            ),
         )
         transcript = self._format_reflection_transcript(history, student_response)
         response = await asyncio.to_thread(
@@ -1002,8 +1150,7 @@ class HybridCrewAISocraticSystem:
                 "is_correct": False,
                 "confidence": 0.0,
                 "rationale": "",
-                "misconceptions_to_log": [],
-                "misconceptions_to_resolve": [],
+                "misconception_events": [],
                 "objective_memory_patch": {
                     "summary": "",
                     "demonstrated_skills": [],
@@ -1089,6 +1236,65 @@ class HybridCrewAISocraticSystem:
                 successful_strategies=successful_strategies,
             )
 
+    async def _apply_misconception_events(
+        self,
+        student_id: str,
+        session_id: str,
+        objective_id: str,
+        events: Optional[List[Dict[str, Any]]],
+    ) -> Optional[Dict[str, Any]]:
+        """Apply misconception state changes to runtime cache and durable log."""
+        events = events or []
+        if not events:
+            return self._session_cache.get_misconception_state(session_id)
+
+        existing_state = self._session_cache.get_misconception_state(session_id) or {}
+        active_lookup = {
+            item.get("key"): item
+            for item in (existing_state.get("active_misconceptions", []) or [])
+            if isinstance(item, dict) and item.get("key")
+        }
+
+        for event in events:
+            if not isinstance(event, dict):
+                continue
+            action = str(event.get("action", "") or "").strip().lower()
+            key = str(event.get("key", "") or "").strip()
+            text = str(event.get("text", "") or "").strip()
+
+            if action == "log":
+                # Only create one durable record per live misconception key.
+                if key and key in active_lookup:
+                    continue
+                if text:
+                    await self.student_mcp.log_misconception(
+                        student_id,
+                        objective_id,
+                        text,
+                    )
+            elif action == "resolve_candidate":
+                resolve_targets: List[str] = []
+                if key and key in active_lookup:
+                    tracked_text = str(
+                        active_lookup[key].get("text", "") or ""
+                    ).strip()
+                    if tracked_text:
+                        resolve_targets.append(tracked_text)
+                if text and text not in resolve_targets:
+                    resolve_targets.append(text)
+                for resolve_text in resolve_targets:
+                    await self.student_mcp.resolve_misconception(
+                        student_id,
+                        objective_id,
+                        resolve_text,
+                    )
+
+        updated_state = self._session_cache.apply_misconception_events(
+            session_id,
+            events,
+        )
+        return updated_state
+
     async def _apply_turn_analysis_updates(
         self,
         student_id: str,
@@ -1104,16 +1310,21 @@ class HybridCrewAISocraticSystem:
         result = {"stage": current_stage, "stage_advanced": False}
 
         await self.student_mcp.increment_turn_count(session_id)
-
-        for misconception in analysis.get("misconceptions_to_log", []):
-            await self.student_mcp.log_misconception(
-                student_id, objective_id, misconception
-            )
-
-        for misconception in analysis.get("misconceptions_to_resolve", []):
-            await self.student_mcp.resolve_misconception(
-                student_id, objective_id, misconception
-            )
+        misconception_events = self._coerce_misconception_events(
+            analysis,
+            default_priority=(
+                "must_address_now"
+                if str(analysis.get("teaching_move", "") or "").strip().lower()
+                == "repair"
+                else "normal"
+            ),
+        )
+        await self._apply_misconception_events(
+            student_id=student_id,
+            session_id=session_id,
+            objective_id=objective_id,
+            events=misconception_events,
+        )
 
         self._session_cache.apply_lesson_state_patch(
             session_id,
@@ -1682,6 +1893,10 @@ class HybridCrewAISocraticSystem:
             lesson_state = self._session_cache.get_lesson_state(session_id)
             pacing_state = self._session_cache.get_pacing_state(session_id)
             bundle = await self._load_student_bundle(student_id, objective_id)
+            misconception_state = self._session_cache.seed_misconception_state(
+                session_id,
+                bundle.get("misconceptions", []),
+            )
             student_context = self._format_student_context(
                 bundle.get("profile"),
                 bundle.get("mastery", []),
@@ -1722,20 +1937,23 @@ class HybridCrewAISocraticSystem:
                     active_objective=objective_text,
                     teaching_plan=teaching_plan,
                     lesson_state=lesson_state,
+                    misconception_state=misconception_state,
                 )
-
-                for misconception in assessment_reflection.get(
-                    "misconceptions_to_log", []
-                ):
-                    await self.student_mcp.log_misconception(
-                        student_id, objective_id, misconception
-                    )
-                for misconception in assessment_reflection.get(
-                    "misconceptions_to_resolve", []
-                ):
-                    await self.student_mcp.resolve_misconception(
-                        student_id, objective_id, misconception
-                    )
+                assessment_misconception_events = self._coerce_misconception_events(
+                    assessment_reflection,
+                    default_priority=(
+                        "must_address_now"
+                        if not bool(assessment_reflection.get("is_correct", False))
+                        else "normal"
+                    ),
+                )
+                misconception_state = await self._apply_misconception_events(
+                    student_id=student_id,
+                    session_id=session_id,
+                    objective_id=objective_id,
+                    events=assessment_misconception_events,
+                )
+                await self._persist_session_cache(session_id)
                 await self._apply_memory_patches(
                     student_id,
                     objective_id,
@@ -1859,6 +2077,7 @@ class HybridCrewAISocraticSystem:
                     teaching_plan=teaching_plan,
                     lesson_state=lesson_state,
                     pacing_state=pacing_state,
+                    misconception_state=misconception_state,
                     extra_system_messages=extra_messages,
                 )
                 final_text = await self._stream_response(tutor_messages, ws_send)
@@ -1889,6 +2108,19 @@ class HybridCrewAISocraticSystem:
                     teaching_plan=teaching_plan,
                     lesson_state=lesson_state,
                     pacing_state=pacing_state,
+                    misconception_state=misconception_state,
+                )
+                preview_misconception_state = self._session_cache.preview_misconception_state(
+                    session_id,
+                    self._coerce_misconception_events(
+                        turn_analysis,
+                        default_priority=(
+                            "must_address_now"
+                            if str(turn_analysis.get("teaching_move", "") or "").strip().lower()
+                            == "repair"
+                            else "normal"
+                        ),
+                    ),
                 )
                 preview_pacing_state = self._session_cache.preview_pacing_state(
                     session_id,
@@ -1913,6 +2145,7 @@ class HybridCrewAISocraticSystem:
                     lesson_state=lesson_state,
                     turn_analysis=turn_analysis,
                     pacing_state=preview_pacing_state,
+                    misconception_state=preview_misconception_state,
                 )
                 final_text = await self._stream_response(tutor_messages, ws_send)
                 self.append_to_conversation(student_id, "assistant", final_text)
