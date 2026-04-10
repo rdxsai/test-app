@@ -242,10 +242,17 @@ class TestGuidedTutorMessages:
             for message in messages
             if message["role"] == "system" and message["content"].startswith("ADAPTIVE PACING:")
         )
+        constraints_block = next(
+            message["content"]
+            for message in messages
+            if message["role"] == "system" and message["content"].startswith("RESPONSE CONSTRAINTS:")
+        )
         assert "Route: adjacent_topic" in turn_analysis_block
         assert "Answer current question first: yes" in turn_analysis_block
         assert "Current pace: slow" in pacing_block
         assert "stay on the current concept" in pacing_block
+        assert "Max new concepts: 0" in constraints_block
+        assert "Max questions: 1" in constraints_block
 
     def test_guided_tutor_messages_include_active_misconception_repair_block(
         self, hybrid_system
@@ -405,6 +412,48 @@ class TestMemoryPatchMerging:
             "asks clarifying questions",
             "updates after correction",
         ]
+
+
+class TestResponseGuards:
+    def test_enforce_turn_response_controls_blocks_advance_on_open_misconception(
+        self, hybrid_system
+    ):
+        guarded = hybrid_system._enforce_turn_response_controls(
+            current_stage="exploration",
+            analysis={
+                "stage_action": "advance",
+                "target_stage": "readiness_check",
+                "stage_reason": "Learner looks ready.",
+                "teaching_move": "continue",
+                "pacing_signal": {
+                    "concept_closure": "ready",
+                    "override_pace": "steady",
+                    "override_reason": "",
+                    "recommended_next_step": "advance",
+                },
+            },
+            lesson_state={
+                "concepts": [
+                    {"id": "c1", "status": "covered"},
+                    {"id": "c2", "status": "covered"},
+                ]
+            },
+            pacing_state={"current_pace": "steady"},
+            misconception_state={
+                "active_misconceptions": [
+                    {
+                        "key": "role_alone_enough",
+                        "text": "Believes role alone is enough.",
+                        "repair_priority": "must_address_now",
+                    }
+                ]
+            },
+        )
+
+        assert guarded["stage_action"] == "stay"
+        assert guarded["target_stage"] == "exploration"
+        assert guarded["pacing_signal"]["override_pace"] == "slow"
+        assert guarded["pacing_signal"]["recommended_next_step"] == "ask_narrower"
 
 
 class TestGuidedTurnOrdering:

@@ -5,6 +5,7 @@ Hybrid CrewAI Socratic System
 """
 
 import asyncio
+import copy
 import json
 import logging
 import os
@@ -877,6 +878,137 @@ class HybridCrewAISocraticSystem:
         )
         return "\n".join(lines)
 
+    @staticmethod
+    def _lesson_coverage_ratio(lesson_state: Optional[Dict[str, Any]]) -> float:
+        if not lesson_state or not isinstance(lesson_state, dict):
+            return 0.0
+        concepts = lesson_state.get("concepts", []) or []
+        if not concepts:
+            return 0.0
+        covered = sum(
+            1 for concept in concepts
+            if isinstance(concept, dict) and concept.get("status") == "covered"
+        )
+        return covered / len(concepts)
+
+    @classmethod
+    def _enforce_turn_response_controls(
+        cls,
+        current_stage: str,
+        analysis: Optional[Dict[str, Any]],
+        lesson_state: Optional[Dict[str, Any]],
+        pacing_state: Optional[Dict[str, Any]],
+        misconception_state: Optional[Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        guarded = copy.deepcopy(analysis or {})
+        if not guarded:
+            return {}
+
+        pacing_signal = guarded.setdefault("pacing_signal", {})
+        current_pace = str(
+            (pacing_state or {}).get("current_pace", "") or ""
+        ).strip().lower()
+        concept_closure = str(
+            pacing_signal.get("concept_closure", "") or ""
+        ).strip().lower()
+        target_stage = str(guarded.get("target_stage", "") or "").strip()
+
+        active_misconceptions = [
+            item
+            for item in ((misconception_state or {}).get("active_misconceptions", []) or [])
+            if isinstance(item, dict)
+        ]
+        must_repair = any(
+            str(item.get("repair_priority", "") or "") == "must_address_now"
+            for item in active_misconceptions
+        )
+
+        reasons: List[str] = []
+        if must_repair:
+            reasons.append("Open must-repair misconception still needs explicit correction.")
+        if current_pace == "slow" and target_stage and target_stage != current_stage:
+            reasons.append("Slow pace holds the tutor on the current concept for this turn.")
+        if (
+            str(guarded.get("stage_action", "") or "") == "advance"
+            and concept_closure != "ready"
+        ):
+            reasons.append("Concept closure is not ready yet.")
+        coverage_ratio = cls._lesson_coverage_ratio(lesson_state)
+        if (
+            str(guarded.get("stage_action", "") or "") == "advance"
+            and target_stage in {"readiness_check", "mini_assessment", "final_assessment"}
+            and coverage_ratio < 0.6
+        ):
+            reasons.append("Objective coverage is still too low for the next stage.")
+
+        if reasons:
+            guarded["stage_action"] = "stay"
+            guarded["target_stage"] = current_stage
+            existing_reason = str(guarded.get("stage_reason", "") or "").strip()
+            joined = " ".join(reasons)
+            guarded["stage_reason"] = (
+                f"{existing_reason} {joined}".strip()
+                if existing_reason
+                else joined
+            )
+            if must_repair and str(
+                guarded.get("teaching_move", "") or ""
+            ).strip().lower() not in {"repair", "clarify"}:
+                guarded["teaching_move"] = "repair"
+            if must_repair:
+                pacing_signal["override_pace"] = "slow"
+                pacing_signal["override_reason"] = (
+                    "Active misconception requires explicit repair before moving on."
+                )
+                if pacing_signal.get("recommended_next_step") == "advance":
+                    pacing_signal["recommended_next_step"] = "ask_narrower"
+
+        return guarded
+
+    @staticmethod
+    def _format_response_constraints_for_tutor(
+        pacing_state: Optional[Dict[str, Any]],
+        turn_analysis: Optional[Dict[str, Any]] = None,
+        misconception_state: Optional[Dict[str, Any]] = None,
+    ) -> str:
+        pace = str((pacing_state or {}).get("current_pace", "") or "").strip().lower()
+        if pace not in {"slow", "steady", "fast"}:
+            pace = "steady"
+
+        must_repair = any(
+            isinstance(item, dict)
+            and str(item.get("repair_priority", "") or "") == "must_address_now"
+            for item in ((misconception_state or {}).get("active_misconceptions", []) or [])
+        )
+        pacing_signal = (turn_analysis or {}).get("pacing_signal", {}) or {}
+        recommended_next_step = str(
+            pacing_signal.get("recommended_next_step", "") or ""
+        ).strip().lower()
+
+        response_shape = "question_only"
+        if must_repair or recommended_next_step in {"re-explain", "ask_narrower"}:
+            response_shape = "repair_and_check"
+        elif recommended_next_step == "give_example":
+            response_shape = "example_then_check"
+        elif pace == "fast":
+            response_shape = "brief_test"
+
+        max_new_concepts = 0 if pace == "slow" or must_repair else 1
+        max_setup_sentences = 2 if pace == "fast" else 4 if pace == "slow" else 3
+
+        lines = ["RESPONSE CONSTRAINTS:"]
+        lines.append(f"- Response shape: {response_shape}")
+        lines.append(f"- Max new concepts: {max_new_concepts}")
+        lines.append("- Max questions: 1")
+        lines.append(f"- Max setup sentences before the question: {max_setup_sentences}")
+        if must_repair:
+            lines.append("- Advancement lock: open misconception")
+        elif str((turn_analysis or {}).get("stage_action", "") or "") != "advance":
+            lines.append("- Advancement lock: stay on the current stage for this response")
+        else:
+            lines.append("- Advancement lock: none")
+        return "\n".join(lines)
+
     def _format_reflection_transcript(
         self,
         history: Optional[List[Dict[str, str]]],
@@ -969,6 +1101,9 @@ class HybridCrewAISocraticSystem:
             lines.append(
                 "- Advancement rule: do not treat a single good answer as enough to move on."
             )
+            lines.append(
+                "- Hard limit: do not introduce a new concept in this response."
+            )
         elif pace == "steady":
             lines.append(
                 "- Response calibration: keep normal concept flow with one focused explanation or one focused question."
@@ -976,12 +1111,18 @@ class HybridCrewAISocraticSystem:
             lines.append(
                 "- Advancement rule: advance only after a clear sign of understanding."
             )
+            lines.append(
+                "- Hard limit: keep the response inside one concept and one question."
+            )
         else:
             lines.append(
                 "- Response calibration: use shorter setup and prefer application, comparison, or transfer."
             )
             lines.append(
                 "- Advancement rule: you may move faster, but still keep to one concept and one question."
+            )
+            lines.append(
+                "- Hard limit: keep setup brief and do not bundle multiple new rules together."
             )
 
         lines.append("- If pacing and instinct conflict, bias slightly slower.")
@@ -1027,6 +1168,13 @@ class HybridCrewAISocraticSystem:
         pacing_block = self._format_adaptive_pacing_for_tutor(pacing_state)
         if pacing_block:
             messages.append({"role": "system", "content": pacing_block})
+        response_constraints_block = self._format_response_constraints_for_tutor(
+            pacing_state=pacing_state,
+            turn_analysis=turn_analysis,
+            misconception_state=misconception_state,
+        )
+        if response_constraints_block:
+            messages.append({"role": "system", "content": response_constraints_block})
         misconception_block = self._format_active_misconception_guidance(
             misconception_state
         )
@@ -1361,6 +1509,29 @@ class HybridCrewAISocraticSystem:
     ) -> Dict[str, Any]:
         """Apply deterministic state changes from the structured turn analyzer."""
         result = {"stage": current_stage, "stage_advanced": False}
+        preview_misconception_state = self._session_cache.preview_misconception_state(
+            session_id,
+            self._coerce_misconception_events(
+                analysis,
+                default_priority=(
+                    "must_address_now"
+                    if str(analysis.get("teaching_move", "") or "").strip().lower()
+                    == "repair"
+                    else "normal"
+                ),
+            ),
+        )
+        preview_pacing_state = self._session_cache.preview_pacing_state(
+            session_id,
+            analysis.get("pacing_signal"),
+        )
+        analysis = self._enforce_turn_response_controls(
+            current_stage=current_stage,
+            analysis=analysis,
+            lesson_state=self._session_cache.get_lesson_state(session_id),
+            pacing_state=preview_pacing_state,
+            misconception_state=preview_misconception_state,
+        )
 
         await self.student_mcp.increment_turn_count(session_id)
         misconception_events = self._coerce_misconception_events(
@@ -2174,6 +2345,17 @@ class HybridCrewAISocraticSystem:
                             else "normal"
                         ),
                     ),
+                )
+                preview_pacing_state = self._session_cache.preview_pacing_state(
+                    session_id,
+                    turn_analysis.get("pacing_signal"),
+                )
+                turn_analysis = self._enforce_turn_response_controls(
+                    current_stage=current_stage,
+                    analysis=turn_analysis,
+                    lesson_state=lesson_state,
+                    pacing_state=preview_pacing_state,
+                    misconception_state=preview_misconception_state,
                 )
                 preview_pacing_state = self._session_cache.preview_pacing_state(
                     session_id,
