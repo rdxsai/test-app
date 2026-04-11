@@ -925,6 +925,63 @@ class HybridCrewAISocraticSystem:
         )
         return covered / len(concepts)
 
+    @staticmethod
+    def _has_repeated_full_sequence_signal(
+        misconception_state: Optional[Dict[str, Any]],
+        bucket: str,
+        min_times_seen: int = 2,
+    ) -> bool:
+        if not misconception_state or not isinstance(misconception_state, dict):
+            return False
+        items = misconception_state.get(bucket, []) or []
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            scope = str(item.get("repair_scope", "") or "").strip().lower()
+            pattern = str(item.get("repair_pattern", "") or "").strip().lower()
+            try:
+                times_seen = int(item.get("times_seen", 0) or 0)
+            except (TypeError, ValueError):
+                times_seen = 0
+            if (
+                times_seen >= min_times_seen
+                and (
+                    scope == "full_sequence"
+                    or pattern == "same_snippet_walkthrough"
+                )
+            ):
+                return True
+        return False
+
+    @staticmethod
+    def _supports_repair_exit(pacing_signal: Optional[Dict[str, Any]]) -> bool:
+        pacing_signal = pacing_signal or {}
+        concept_closure = str(
+            pacing_signal.get("concept_closure", "") or ""
+        ).strip().lower()
+        reasoning_mode = str(
+            pacing_signal.get("reasoning_mode", "") or ""
+        ).strip().lower()
+        return (
+            concept_closure in {"almost_ready", "ready"}
+            and reasoning_mode in {"application", "transfer"}
+        )
+
+    @classmethod
+    def _suggest_next_stage_after_repair(
+        cls,
+        current_stage: str,
+        coverage_ratio: float,
+    ) -> Optional[str]:
+        stage = str(current_stage or "").strip().lower()
+        if stage == "introduction":
+            return "exploration"
+        if stage == "exploration" and coverage_ratio >= 0.6:
+            return "readiness_check"
+        if stage == "readiness_check" and coverage_ratio >= 0.6:
+            return "mini_assessment"
+        return None
+
     @classmethod
     def _enforce_turn_response_controls(
         cls,
@@ -956,6 +1013,15 @@ class HybridCrewAISocraticSystem:
             str(item.get("repair_priority", "") or "") == "must_address_now"
             for item in current_turn_misconceptions
         )
+        repeated_active_sequence = cls._has_repeated_full_sequence_signal(
+            misconception_state,
+            "active_misconceptions",
+        )
+        repeated_resolved_sequence = cls._has_repeated_full_sequence_signal(
+            misconception_state,
+            "recently_resolved",
+        )
+        supports_repair_exit = cls._supports_repair_exit(pacing_signal)
 
         reasons: List[str] = []
         if must_repair_now:
@@ -995,6 +1061,52 @@ class HybridCrewAISocraticSystem:
                 if pacing_signal.get("recommended_next_step") == "advance":
                     pacing_signal["recommended_next_step"] = "ask_narrower"
 
+        if (
+            not must_repair_now
+            and repeated_active_sequence
+            and supports_repair_exit
+            and str(pacing_signal.get("recommended_next_step", "") or "").strip().lower()
+            == "ask_narrower"
+        ):
+            pacing_signal["recommended_next_step"] = "give_example"
+            pacing_signal["override_pace"] = "steady"
+            pacing_signal["override_reason"] = (
+                "Repeated full-sequence repair now has enough evidence for a fresh transfer check."
+            )
+
+        if (
+            not must_repair_now
+            and repeated_resolved_sequence
+            and supports_repair_exit
+            and str(guarded.get("stage_action", "") or "").strip().lower() != "advance"
+        ):
+            next_stage = cls._suggest_next_stage_after_repair(
+                current_stage=current_stage,
+                coverage_ratio=coverage_ratio,
+            )
+            if next_stage:
+                guarded["stage_action"] = "advance"
+                guarded["target_stage"] = next_stage
+                existing_reason = str(guarded.get("stage_reason", "") or "").strip()
+                repair_reason = (
+                    "Repeated full-sequence repair now looks stable after transfer-level reasoning."
+                )
+                guarded["stage_reason"] = (
+                    f"{existing_reason} {repair_reason}".strip()
+                    if existing_reason
+                    else repair_reason
+                )
+                if str(pacing_signal.get("recommended_next_step", "") or "").strip().lower() in {
+                    "ask_narrower",
+                    "ask_same_level",
+                    "give_example",
+                }:
+                    pacing_signal["recommended_next_step"] = "advance"
+                pacing_signal["override_pace"] = "steady"
+                pacing_signal["override_reason"] = (
+                    "Repeated full-sequence repair was resolved with application-level evidence."
+                )
+
         return guarded
 
     @staticmethod
@@ -1025,6 +1137,10 @@ class HybridCrewAISocraticSystem:
         recommended_next_step = str(
             pacing_signal.get("recommended_next_step", "") or ""
         ).strip().lower()
+        repeated_active_sequence = HybridCrewAISocraticSystem._has_repeated_full_sequence_signal(
+            misconception_state,
+            "active_misconceptions",
+        )
 
         response_shape = "question_only"
         if requires_full_sequence_repair:
@@ -1035,6 +1151,13 @@ class HybridCrewAISocraticSystem:
             response_shape = "example_then_check"
         elif pace == "fast":
             response_shape = "brief_test"
+
+        if (
+            not must_repair
+            and repeated_active_sequence
+            and recommended_next_step in {"ask_narrower", "ask_same_level", "give_example"}
+        ):
+            response_shape = "example_then_check"
 
         max_new_concepts = 0 if pace == "slow" or must_repair else 1
         max_setup_sentences = 2 if pace == "fast" else 4 if pace == "slow" else 3
@@ -1050,6 +1173,12 @@ class HybridCrewAISocraticSystem:
                 "- Hard requirement: require the learner to walk native-first, semantic override, behavior, focus, and required state/property in order."
             )
             lines.append("- Do not reduce the repair to one local sub-question.")
+        elif (
+            not must_repair
+            and repeated_active_sequence
+            and response_shape == "example_then_check"
+        ):
+            lines.append("- Prefer one fresh transfer example over another paraphrase recheck.")
         if must_repair:
             lines.append("- Advancement lock: open misconception")
         elif str((turn_analysis or {}).get("stage_action", "") or "") != "advance":

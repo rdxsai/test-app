@@ -613,6 +613,141 @@ class TestResponseGuards:
         assert guarded["pacing_signal"]["override_pace"] == "steady"
         assert guarded["pacing_signal"]["recommended_next_step"] == "advance"
 
+    def test_enforce_turn_response_controls_escalates_repeated_sequence_repair_to_fresh_example(
+        self, hybrid_system
+    ):
+        guarded = hybrid_system._enforce_turn_response_controls(
+            current_stage="exploration",
+            analysis={
+                "stage_action": "stay",
+                "target_stage": "exploration",
+                "stage_reason": "Almost there.",
+                "teaching_move": "repair",
+                "misconception_events": [],
+                "pacing_signal": {
+                    "concept_closure": "almost_ready",
+                    "reasoning_mode": "application",
+                    "override_pace": "slow",
+                    "override_reason": "",
+                    "recommended_next_step": "ask_narrower",
+                },
+            },
+            lesson_state={
+                "concepts": [
+                    {"id": "c1", "status": "covered"},
+                    {"id": "c2", "status": "covered"},
+                    {"id": "c3", "status": "covered"},
+                ]
+            },
+            pacing_state={"current_pace": "slow"},
+            misconception_state={
+                "active_misconceptions": [
+                    {
+                        "key": "full_rule_sequence_gap",
+                        "text": "Stops after one local check instead of walking the full rule sequence.",
+                        "repair_priority": "must_address_now",
+                        "repair_scope": "full_sequence",
+                        "repair_pattern": "same_snippet_walkthrough",
+                        "times_seen": 3,
+                    }
+                ]
+            },
+        )
+
+        assert guarded["stage_action"] == "stay"
+        assert guarded["target_stage"] == "exploration"
+        assert guarded["pacing_signal"]["recommended_next_step"] == "give_example"
+        assert guarded["pacing_signal"]["override_pace"] == "steady"
+        assert "fresh transfer check" in guarded["pacing_signal"]["override_reason"]
+
+    def test_enforce_turn_response_controls_advances_after_repeated_sequence_resolution(
+        self, hybrid_system
+    ):
+        guarded = hybrid_system._enforce_turn_response_controls(
+            current_stage="exploration",
+            analysis={
+                "stage_action": "stay",
+                "target_stage": "exploration",
+                "stage_reason": "Learner corrected the sequence.",
+                "teaching_move": "consolidate",
+                "misconception_events": [
+                    {
+                        "key": "full_rule_sequence_gap",
+                        "text": "Stops after one local check instead of walking the full rule sequence.",
+                        "action": "resolve_candidate",
+                        "repair_priority": "normal",
+                        "repair_scope": "full_sequence",
+                        "repair_pattern": "same_snippet_walkthrough",
+                    }
+                ],
+                "pacing_signal": {
+                    "concept_closure": "ready",
+                    "reasoning_mode": "transfer",
+                    "override_pace": "slow",
+                    "override_reason": "",
+                    "recommended_next_step": "ask_same_level",
+                },
+            },
+            lesson_state={
+                "concepts": [
+                    {"id": "c1", "status": "covered"},
+                    {"id": "c2", "status": "covered"},
+                    {"id": "c3", "status": "covered"},
+                    {"id": "c4", "status": "not_covered"},
+                ]
+            },
+            pacing_state={"current_pace": "slow"},
+            misconception_state={
+                "active_misconceptions": [],
+                "recently_resolved": [
+                    {
+                        "key": "full_rule_sequence_gap",
+                        "text": "Stops after one local check instead of walking the full rule sequence.",
+                        "repair_priority": "must_address_now",
+                        "repair_scope": "full_sequence",
+                        "repair_pattern": "same_snippet_walkthrough",
+                        "times_seen": 3,
+                    }
+                ],
+            },
+        )
+
+        assert guarded["stage_action"] == "advance"
+        assert guarded["target_stage"] == "readiness_check"
+        assert guarded["pacing_signal"]["recommended_next_step"] == "advance"
+        assert guarded["pacing_signal"]["override_pace"] == "steady"
+        assert "resolved with application-level evidence" in guarded["pacing_signal"]["override_reason"]
+        assert "Repeated full-sequence repair now looks stable" in guarded["stage_reason"]
+
+    def test_response_constraints_prefer_fresh_example_after_repeated_sequence_repair(
+        self, hybrid_system
+    ):
+        constraints = hybrid_system._format_response_constraints_for_tutor(
+            pacing_state={"current_pace": "steady"},
+            turn_analysis={
+                "stage_action": "stay",
+                "pacing_signal": {
+                    "recommended_next_step": "give_example",
+                },
+                "misconception_events": [],
+            },
+            misconception_state={
+                "active_misconceptions": [
+                    {
+                        "key": "full_rule_sequence_gap",
+                        "text": "Stops after one local check instead of walking the full rule sequence.",
+                        "repair_priority": "must_address_now",
+                        "repair_scope": "full_sequence",
+                        "repair_pattern": "same_snippet_walkthrough",
+                        "times_seen": 2,
+                    }
+                ]
+            },
+        )
+
+        assert "Response shape: example_then_check" in constraints
+        assert "Prefer one fresh transfer example over another paraphrase recheck." in constraints
+
     def test_coerce_misconception_events_preserves_sequence_repair_metadata(
         self, hybrid_system
     ):
