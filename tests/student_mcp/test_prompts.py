@@ -299,6 +299,22 @@ class TestReflectorPrompts:
         assert "active_gaps_current" in prompt
         assert "ACTIVE OBJECTIVE: Apply alt text to images" in prompt
 
+    def test_turn_analyzer_rewards_causal_understanding_over_exact_rephrasing(self):
+        prompt = build_turn_analyzer_prompt(current_stage="exploration")
+        assert "Treat causal understanding as stronger evidence than wording fidelity" in prompt
+        assert "did not mirror the tutor's phrasing" in prompt
+
+    def test_turn_analyzer_allows_full_sequence_repair_to_exit_after_transfer(self):
+        prompt = build_turn_analyzer_prompt(current_stage="exploration")
+        assert "one correct ordered walkthrough on" in prompt
+        assert "one fresh transfer example is enough evidence to move on" in prompt
+        assert "Do not spend repeated turns asking the learner to restate the same checklist" in prompt
+
+    def test_assessment_reflector_accepts_compressed_but_causally_correct_answers(self):
+        prompt = build_assessment_reflector_prompt(current_stage="mini_assessment")
+        assert "count answers as correct when the key distinction and causal reasoning are" in prompt
+        assert "do not mark it wrong just because it omits the tutor's preferred phrasing" in prompt
+
     def test_analyzer_includes_lesson_state(self):
         prompt = build_turn_analyzer_prompt(
             current_stage="introduction",

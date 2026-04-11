@@ -1488,12 +1488,19 @@ Important constraints:
   `not_attempted`, `misconception`, `in_progress`, `assessment_ready`
 - Advance to `exploration` only when the student can reason from the concept,
   not merely repeat wording.
+- Treat causal understanding as stronger evidence than wording fidelity. If the
+  learner explains the right mechanism or tradeoff in their own words, do not
+  keep the concept open only because they did not mirror the tutor's phrasing.
 - Advance to `mini_assessment` only when BOTH conditions are met:
   1. The student has shown constructive, comparative, causal, or transfer reasoning
      with enough stability.
   2. The COVERAGE line in the lesson state shows that most knowledge concepts are
      covered. If less than 60% of concepts are covered, there is still significant
      teaching to do — keep exploring instead of jumping to assessment.
+- After a same-snippet full-sequence repair, one correct ordered walkthrough on
+  that snippet plus one fresh transfer example is enough evidence to move on.
+- Do not spend repeated turns asking the learner to restate the same checklist
+  once they have already shown the correct order and causal reasoning.
 - If the student is confused, fragile, or guessing, keep or regress the stage.
 - If the student asks a real question, capture it and make the tutor answer that
   current question before returning to the plan.
@@ -1570,6 +1577,10 @@ Rules:
 - When `repair_scope=full_sequence`, use
   `repair_pattern=same_snippet_walkthrough`, mark it `must_address_now`, and
   keep it active until the learner walks the whole sequence on the same snippet.
+- After a `same_snippet_walkthrough` repair, emit `resolve_candidate` as soon as
+  the learner gives the correct ordered pass and explains the key causal
+  distinction. Prefer `recommended_next_step=give_example` or `advance`, not
+  another paraphrase-only check.
 - `active_gaps_current`, `support_needs_current`, and `tendencies_current` are
   current-state snapshots, not append-only logs.
 - Keep current-state lists short and prune stale items that no longer fit the
@@ -1600,6 +1611,8 @@ Be strict but fair:
 - mark incorrect if the answer contradicts the evidence, misses the required distinction,
   or only partially answers a clearly multi-part requirement
 - do not infer understanding that is not present
+- count answers as correct when the key distinction and causal reasoning are
+  present, even if the wording is compressed or does not enumerate every step
 
 Output ONLY a JSON object with this exact shape:
 {
@@ -1641,6 +1654,9 @@ Rules:
 - When `repair_scope=full_sequence`, prefer
   `repair_pattern=same_snippet_walkthrough` and require end-to-end evidence
   before resolving it.
+- If the answer contains the key distinction and the required causal reasoning,
+  do not mark it wrong just because it omits the tutor's preferred phrasing or
+  compresses one obvious sub-step.
 - `active_gaps_current`, `support_needs_current`, and `tendencies_current` are
   current-state snapshots and should drop stale items when the learner has
   shown the opposite understanding.
