@@ -13,6 +13,7 @@ from question_app.services.tutor.prompts.socratic_tutor import (
     build_turn_analyzer_prompt,
     build_instance_a_prompt,
     build_instance_b_prompt,
+    format_misconception_state,
 )
 
 
@@ -343,6 +344,43 @@ class TestReflectorPrompts:
         assert "Role alone is enough" in prompt
         assert "key=role_alone_enough" in prompt
         assert "scope=full_sequence" in prompt
+
+
+class TestMisconceptionFormatting:
+    def test_active_misconceptions_include_times_seen(self):
+        formatted = format_misconception_state(
+            {
+                "active_misconceptions": [
+                    {
+                        "key": "role_alone_enough",
+                        "text": "Role alone is enough",
+                        "repair_priority": "must_address_now",
+                        "repair_scope": "full_sequence",
+                        "repair_pattern": "same_snippet_walkthrough",
+                        "times_seen": 3,
+                    }
+                ]
+            }
+        )
+        assert "times_seen=3" in formatted
+        assert "key=role_alone_enough" in formatted
+
+    def test_resolved_misconceptions_include_times_seen(self):
+        formatted = format_misconception_state(
+            {
+                "recently_resolved": [
+                    {
+                        "key": "native_first_order",
+                        "text": "Native first order",
+                        "repair_scope": "full_sequence",
+                        "repair_pattern": "same_snippet_walkthrough",
+                        "times_seen": 2,
+                    }
+                ]
+            }
+        )
+        assert "times_seen=2" in formatted
+        assert "key=native_first_order" in formatted
 
 
 class TestGuidedRetrievalPrompt:

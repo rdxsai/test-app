@@ -944,6 +944,7 @@ def format_misconception_state(misconception_state) -> str:
             priority = str(item.get("repair_priority", "") or "normal").strip()
             scope = str(item.get("repair_scope", "") or "").strip()
             pattern = str(item.get("repair_pattern", "") or "").strip()
+            times_seen = item.get("times_seen", 0)
             if text:
                 detail_parts = []
                 if key:
@@ -953,6 +954,7 @@ def format_misconception_state(misconception_state) -> str:
                     detail_parts.append(f"scope={scope}")
                 if pattern:
                     detail_parts.append(f"pattern={pattern}")
+                detail_parts.append(f"times_seen={int(times_seen or 0)}")
                 suffix = f" [{' '.join(detail_parts)}]"
                 lines.append(f"- {text}{suffix}")
 
@@ -965,6 +967,7 @@ def format_misconception_state(misconception_state) -> str:
             key = str(item.get("key", "") or "").strip()
             scope = str(item.get("repair_scope", "") or "").strip()
             pattern = str(item.get("repair_pattern", "") or "").strip()
+            times_seen = item.get("times_seen", 0)
             if text:
                 detail_parts = []
                 if key:
@@ -973,6 +976,7 @@ def format_misconception_state(misconception_state) -> str:
                     detail_parts.append(f"scope={scope}")
                 if pattern:
                     detail_parts.append(f"pattern={pattern}")
+                detail_parts.append(f"times_seen={int(times_seen or 0)}")
                 suffix = f" [{' '.join(detail_parts)}]" if detail_parts else ""
                 lines.append(f"- {text}{suffix}")
 
