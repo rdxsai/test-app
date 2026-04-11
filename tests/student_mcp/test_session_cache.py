@@ -412,6 +412,57 @@ class TestLessonState:
         assert active["repair_scope"] == "full_sequence"
         assert active["repair_pattern"] == "same_snippet_walkthrough"
 
+    def test_recompute_lesson_state_closes_stale_earlier_concept(self, cache):
+        cache.store("sess-1", "obj-1", "Objective", [], "", "content")
+        cache.store_teaching_plan(
+            "sess-1",
+            plan=None,
+            extracted_concepts=[
+                {"id": "purpose_of_five_aria_rules", "label": "Purpose of the five ARIA rules"},
+                {"id": "prefer_native_html", "label": "Prefer native HTML"},
+                {"id": "behavior_focus_required_states", "label": "Behavior, focus, and required states"},
+            ],
+        )
+        cache.apply_lesson_state_patch(
+            "sess-1",
+            {
+                "active_concept": "behavior_focus_required_states",
+                "bridge_back_target": "behavior_focus_required_states",
+                "pending_check": "Walk the full checklist on the same snippet",
+                "concept_updates": [
+                    {"concept_id": "purpose_of_five_aria_rules", "status": "in_progress"},
+                    {"concept_id": "prefer_native_html", "status": "covered"},
+                    {"concept_id": "behavior_focus_required_states", "status": "in_progress"},
+                ],
+            },
+        )
+
+        lesson_state = cache.recompute_lesson_state(
+            "sess-1",
+            objective_memory={
+                "active_gaps": ["Needs one more full checklist pass on behavior, focus, and required states."],
+                "next_focus": "Behavior, focus, and required states",
+            },
+            misconception_state={
+                "active_misconceptions": [
+                    {
+                        "key": "behavior_focus_required_states",
+                        "text": "Stops before checking behavior and focus.",
+                        "repair_priority": "must_address_now",
+                    }
+                ]
+            },
+        )
+
+        assert lesson_state is not None
+        statuses = {
+            concept["id"]: concept["status"]
+            for concept in lesson_state["concepts"]
+        }
+        assert statuses["purpose_of_five_aria_rules"] == "covered"
+        assert statuses["behavior_focus_required_states"] == "in_progress"
+        assert lesson_state["active_concept"] == "behavior_focus_required_states"
+
 
 class TestAdaptivePacing:
     def test_preview_pacing_state_waits_for_window(self, cache):

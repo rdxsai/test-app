@@ -431,6 +431,34 @@ class TestSessionRuntimeCachePersistence:
 
 
 class TestMemoryPatchMerging:
+    def test_preview_objective_memory_state_replaces_current_gap_snapshot(
+        self, hybrid_system
+    ):
+        preview = hybrid_system._preview_objective_memory_state(
+            existing_objective={
+                "summary": "Old summary",
+                "demonstrated_skills": ["uses native-first"],
+                "active_gaps": ["stale earlier gap"],
+                "next_focus": "Old focus",
+            },
+            objective_memory_patch={
+                "summary": "Fresh summary",
+                "demonstrated_skills_add": ["walks the full checklist"],
+                "active_gaps_current": ["needs one same-snippet walkthrough"],
+                "next_focus": "Behavior, focus, and required states",
+            },
+        )
+
+        assert preview == {
+            "summary": "Fresh summary",
+            "demonstrated_skills": [
+                "uses native-first",
+                "walks the full checklist",
+            ],
+            "active_gaps": ["needs one same-snippet walkthrough"],
+            "next_focus": "Behavior, focus, and required states",
+        }
+
     @pytest.mark.asyncio
     async def test_memory_patches_replace_current_gap_and_support_snapshots(
         self, hybrid_system

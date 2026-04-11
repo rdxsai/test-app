@@ -44,6 +44,53 @@ def _concept_match_key(text: str) -> str:
     return re.sub(r"[^a-z0-9]", "", (text or "").lower())
 
 
+def _resolve_concept_reference(
+    text: str,
+    concepts: List[Dict[str, Any]],
+) -> Optional[str]:
+    """Best-effort concept resolution from IDs, labels, or short free text."""
+    match_key = _concept_match_key(text)
+    if not match_key:
+        return None
+
+    exact_matches: List[str] = []
+    fuzzy_matches: List[str] = []
+    for concept in concepts:
+        concept_id = str(concept.get("id", "") or "").strip()
+        label = str(concept.get("label", "") or "").strip()
+        for candidate in (concept_id, label):
+            candidate_key = _concept_match_key(candidate)
+            if not candidate_key:
+                continue
+            if match_key == candidate_key:
+                exact_matches.append(concept_id)
+                break
+            if candidate_key in match_key or match_key in candidate_key:
+                fuzzy_matches.append(concept_id)
+                break
+
+    if exact_matches:
+        return exact_matches[0]
+    if fuzzy_matches:
+        fuzzy_matches.sort(
+            key=lambda concept_id: len(
+                _concept_match_key(
+                    next(
+                        (
+                            concept.get("label", concept_id)
+                            for concept in concepts
+                            if concept.get("id") == concept_id
+                        ),
+                        concept_id,
+                    )
+                )
+            ),
+            reverse=True,
+        )
+        return fuzzy_matches[0]
+    return None
+
+
 def _normalize_runtime_key(text: str) -> str:
     raw = re.sub(r"[^a-z0-9]+", "_", (text or "").strip().lower()).strip("_")
     return raw or "item"
@@ -1030,6 +1077,119 @@ class SessionContentCache:
 
         self._sync_active_concept(lesson_state)
         return lesson_state
+
+    def recompute_lesson_state(
+        self,
+        session_id: str,
+        objective_memory: Optional[Dict[str, Any]] = None,
+        misconception_state: Optional[Dict[str, Any]] = None,
+    ) -> Optional[Dict[str, Any]]:
+        """Clean up stale concept state from current runtime evidence.
+
+        This is intentionally conservative:
+        - Keep explicitly covered concepts covered.
+        - Preserve the currently focused concept when current evidence points to it.
+        - Auto-close earlier stale concepts once the lesson has clearly moved past
+          them and no current gap/misconception still maps back to them.
+        """
+        entry = self._cache.get(session_id)
+        if not entry:
+            return None
+
+        lesson_state = entry.get("lesson_state") or {}
+        concepts = lesson_state.get("concepts", []) or []
+        if not concepts:
+            return copy.deepcopy(lesson_state) if lesson_state else None
+
+        concept_lookup = {
+            str(concept.get("id", "") or ""): concept for concept in concepts
+        }
+        ordered_ids = [
+            concept_id
+            for concept_id in (lesson_state.get("teaching_order") or [])
+            if concept_id in concept_lookup
+        ] or [str(concept.get("id", "") or "") for concept in concepts]
+        order_index = {
+            concept_id: idx for idx, concept_id in enumerate(ordered_ids)
+        }
+
+        direct_open: set[str] = set()
+
+        def _track_reference(raw_text: str) -> None:
+            concept_id = _resolve_concept_reference(raw_text, concepts)
+            if concept_id:
+                direct_open.add(concept_id)
+
+        for field in ("active_concept", "bridge_back_target", "pending_check"):
+            _track_reference(str(lesson_state.get(field, "") or ""))
+
+        objective_memory = objective_memory or {}
+        for gap in (objective_memory.get("active_gaps", []) or []):
+            _track_reference(str(gap or ""))
+        _track_reference(str(objective_memory.get("next_focus", "") or ""))
+
+        misconception_state = misconception_state or {}
+        for item in (misconception_state.get("active_misconceptions", []) or []):
+            if not isinstance(item, dict):
+                continue
+            _track_reference(str(item.get("key", "") or ""))
+            _track_reference(str(item.get("text", "") or ""))
+
+        focus_id = _resolve_concept_reference(
+            str(objective_memory.get("next_focus", "") or ""),
+            concepts,
+        )
+        if not focus_id:
+            for candidate in (
+                str(lesson_state.get("active_concept", "") or ""),
+                str(lesson_state.get("bridge_back_target", "") or ""),
+            ):
+                resolved = _resolve_concept_reference(candidate, concepts)
+                if resolved:
+                    focus_id = resolved
+                    break
+        if not focus_id and direct_open:
+            focus_id = min(
+                direct_open,
+                key=lambda concept_id: order_index.get(concept_id, 10**6),
+            )
+        if not focus_id:
+            focus_id = next(
+                (
+                    concept_id
+                    for concept_id in ordered_ids
+                    if concept_lookup[concept_id].get("status") != "covered"
+                ),
+                ordered_ids[0],
+            )
+
+        focus_index = order_index.get(focus_id, 0)
+        focus_changed = str(lesson_state.get("active_concept", "") or "") != focus_id
+
+        later_progress_exists = any(
+            concept_lookup[concept_id].get("status") in {"covered", "in_progress"}
+            for concept_id in ordered_ids[focus_index + 1 :]
+        )
+        if focus_index > 0 or later_progress_exists:
+            for concept_id in ordered_ids[:focus_index]:
+                if concept_id in direct_open:
+                    continue
+                concept = concept_lookup[concept_id]
+                if concept.get("status") != "covered":
+                    concept["status"] = "covered"
+
+        focus_concept = concept_lookup.get(focus_id)
+        if focus_concept and focus_concept.get("status") != "covered":
+            focus_concept["status"] = "in_progress"
+            lesson_state["active_concept"] = focus_id
+            lesson_state["bridge_back_target"] = focus_id
+            if focus_changed:
+                lesson_state["pending_check"] = str(
+                    focus_concept.get("label", focus_id) or focus_id
+                )
+
+        self._sync_active_concept(lesson_state)
+        return copy.deepcopy(lesson_state)
 
     @staticmethod
     def _sync_active_concept(lesson_state: Dict[str, Any]) -> None:

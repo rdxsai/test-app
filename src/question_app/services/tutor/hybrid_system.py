@@ -1487,6 +1487,44 @@ class HybridCrewAISocraticSystem:
                 successful_strategies=successful_strategies,
             )
 
+    def _preview_objective_memory_state(
+        self,
+        existing_objective: Optional[Dict[str, Any]],
+        objective_memory_patch: Optional[Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        existing_objective = existing_objective or {}
+        objective_memory_patch = objective_memory_patch or {}
+
+        demonstrated_skills = self._merge_unique_capped(
+            existing_objective.get("demonstrated_skills", []),
+            objective_memory_patch.get(
+                "demonstrated_skills_add",
+                objective_memory_patch.get("demonstrated_skills", []),
+            ),
+        )
+        if "active_gaps_current" in objective_memory_patch:
+            active_gaps = self._normalize_memory_list(
+                objective_memory_patch.get("active_gaps_current", []),
+            )
+        else:
+            active_gaps = self._merge_unique(
+                existing_objective.get("active_gaps", []),
+                objective_memory_patch.get("active_gaps", []),
+            )
+
+        return {
+            "summary": (
+                objective_memory_patch.get("summary")
+                or existing_objective.get("summary", "")
+            ),
+            "demonstrated_skills": demonstrated_skills,
+            "active_gaps": active_gaps,
+            "next_focus": (
+                objective_memory_patch.get("next_focus")
+                or existing_objective.get("next_focus", "")
+            ),
+        }
+
     async def _apply_misconception_events(
         self,
         student_id: str,
@@ -1575,6 +1613,10 @@ class HybridCrewAISocraticSystem:
             session_id,
             analysis.get("pacing_signal"),
         )
+        preview_objective_memory = self._preview_objective_memory_state(
+            (bundle or {}).get("objective_memory") or {},
+            analysis.get("objective_memory_patch"),
+        )
         analysis = self._enforce_turn_response_controls(
             current_stage=current_stage,
             analysis=analysis,
@@ -1603,6 +1645,13 @@ class HybridCrewAISocraticSystem:
         self._session_cache.apply_lesson_state_patch(
             session_id,
             analysis.get("lesson_state_patch"),
+        )
+        self._session_cache.recompute_lesson_state(
+            session_id,
+            objective_memory=preview_objective_memory,
+            misconception_state=self._session_cache.get_misconception_state(
+                session_id
+            ),
         )
         self._session_cache.apply_pacing_signal(
             session_id,
