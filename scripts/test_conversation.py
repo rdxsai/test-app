@@ -15,12 +15,15 @@ Usage:
 """
 
 import asyncio
+import copy
 import json
 import os
+import re
 import sys
 import time
 from datetime import datetime
 from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
@@ -50,40 +53,44 @@ You are a frontend developer with intermediate JavaScript skills but
 limited accessibility knowledge.  You've heard of ARIA but never
 studied it formally.
 
-Behavioral rules — follow these to create a realistic, rigorous test:
+Behavioral rules — follow these to create a RIGOROUS, CHALLENGING test:
 
 1. RESPOND TO WHAT THE TUTOR ACTUALLY SAID.  Read the tutor's message
    carefully and reply to their specific question or explanation.
 
-2. Vary your response quality across turns to test the tutor:
-   - Sometimes answer correctly and confidently.
-   - Sometimes give a partial answer that's mostly right but missing a key detail.
-   - Sometimes introduce a misconception (e.g., confuse ARIA with HTML semantics).
-   - Sometimes ask a genuine clarification question about something you didn't understand.
-   - Sometimes go slightly off-topic to test scope boundaries.
-   - Occasionally try to summarize what you've learned so far.
+2. You MUST vary your response quality to stress-test the tutor's
+   adaptive pacing.  Follow this pattern strictly:
+   - Turns 1-3: Be genuinely confused.  Give wrong answers, say "I don't
+     know", or mix up concepts.  Force the tutor to slow down.
+   - Turns 4-5: Start to get it but still make mistakes.  Give partial
+     answers with one wrong detail.
+   - Turns 6-8: Show growing understanding.  Answer mostly correctly but
+     ask clarification questions about edge cases.
+   - Turns 9-11: Answer confidently and correctly.  Apply concepts to
+     new examples.  Show transfer reasoning.  Force the tutor to speed up.
+   - Turns 12-15: If not in assessment yet, surface one procedural mistake
+     where you stop at a local check instead of applying the full checklist.
+   - After the tutor repairs that procedural mistake, do the full walkthrough
+     on the same snippet and then apply it to one fresh example.
+   - During assessment, give your best answer, but occasionally get one wrong
+     to test how the tutor handles it.
 
-3. Be natural.  Use casual language, make typos occasionally, show
-   enthusiasm or confusion as appropriate.
+3. CHALLENGE THE TUTOR specifically:
+   - At least once, give a WRONG answer confidently (misconception test)
+   - At least once, say "I don't get it" or "can you explain that differently?"
+   - At least once, ask about something adjacent but off-topic
+   - At least once, try to summarize everything and get a detail wrong
 
-4. Keep responses SHORT — 1-3 sentences typically.  Students don't write
-   essays.
+4. Keep responses SHORT — 1-3 sentences.  Students don't write essays.
 
-5. If the tutor asks you a specific question, ANSWER IT (correctly or
-   incorrectly based on your simulated knowledge level).
+5. Be natural.  Use casual language.  Show frustration when confused,
+   excitement when things click.
 
-6. If the tutor is teaching you something new, show engagement: ask a
-   follow-up, connect it to something you know, or try to restate it.
+6. If the tutor asks an assessment question, give your best attempt
+   but you're allowed to get ~30% wrong.
 
-7. Your knowledge should GROW over the conversation.  Early turns: more
-   confusion and misconceptions.  Later turns: more correct answers and
-   synthesis.
-
-8. If the tutor asks an assessment question, give your best attempt
-   based on what you've learned in the conversation.
-
-You are NOT trying to be a perfect student.  You are trying to be a
-REALISTIC student who tests the tutor's ability to handle varied inputs.\
+You are testing whether the tutor can ADAPT its pace — slowing down when
+you struggle, speeding up when you're clearly getting it.\
 """
 
 
@@ -91,6 +98,414 @@ def pretty_json(obj, indent=2):
     def _default(o):
         return repr(o)
     return json.dumps(obj, indent=indent, default=_default, ensure_ascii=False)
+
+
+def short_text(text: str, limit: int = 220) -> str:
+    text = (text or "").strip().replace("\n", " ")
+    return text if len(text) <= limit else text[: limit - 3] + "..."
+
+
+def next_result_number(results_dir: Path) -> int:
+    numbered = []
+    pattern = re.compile(r"^(\d+)_conversation_test\.md$")
+    for path in results_dir.glob("*_conversation_test.md"):
+        match = pattern.match(path.name)
+        if match:
+            numbered.append(int(match.group(1)))
+    return (max(numbered) + 1) if numbered else 1
+
+
+def collect_run_diagnostics(turns: List[Dict[str, Any]], final_session: Dict[str, Any]) -> Dict[str, Any]:
+    stage_sequence: List[str] = []
+    procedural_repair_turns: List[int] = []
+    procedural_resolution_turns: List[int] = []
+    assessment_turns: List[int] = []
+    readiness_turns: List[int] = []
+
+    def _append_stage(stage: str) -> None:
+        normalized = str(stage or "").strip()
+        if normalized and normalized not in stage_sequence:
+            stage_sequence.append(normalized)
+
+    for turn in turns:
+        _append_stage(turn.get("stage_before", ""))
+        _append_stage(turn.get("stage_after", ""))
+        if turn.get("stage_before") == "readiness_check" or turn.get("stage_after") == "readiness_check":
+            readiness_turns.append(turn.get("turn"))
+        if turn.get("stage_before") in {"mini_assessment", "final_assessment"} or turn.get("stage_after") in {"mini_assessment", "final_assessment"}:
+            assessment_turns.append(turn.get("turn"))
+
+        trace = (turn.get("internal_trace") or {}).get("events", []) or []
+        for event in trace:
+            payload = event.get("payload") or {}
+            if event.get("name") not in {"turn_analysis", "assessment_reflection"}:
+                continue
+            for item in payload.get("misconception_events", []) or []:
+                if not isinstance(item, dict):
+                    continue
+                scope = str(item.get("repair_scope", "") or "")
+                pattern = str(item.get("repair_pattern", "") or "")
+                if scope == "full_sequence" or pattern == "same_snippet_walkthrough":
+                    if turn.get("turn") not in procedural_repair_turns:
+                        procedural_repair_turns.append(turn.get("turn"))
+                    if str(item.get("action", "") or "") == "resolve_candidate":
+                        if turn.get("turn") not in procedural_resolution_turns:
+                            procedural_resolution_turns.append(turn.get("turn"))
+
+    _append_stage((final_session or {}).get("current_stage", ""))
+    return {
+        "stages_reached": stage_sequence,
+        "readiness_turns": readiness_turns,
+        "assessment_turns": assessment_turns,
+        "procedural_repair_turns": procedural_repair_turns,
+        "procedural_resolution_turns": procedural_resolution_turns,
+    }
+
+
+class StudentProbeScenario:
+    """Turn planner for a richer, more diagnostic student simulation."""
+
+    TARGETS: Dict[str, Dict[str, Any]] = {
+        "baseline_confusion": {
+            "label": "Baseline confusion",
+            "instruction": (
+                "Be genuinely unsure about the concept. Answer briefly, but show that you do not yet "
+                "have a stable mental model."
+            ),
+            "validator": [r"\b(not sure|don't know|i guess|maybe|i think)\b"],
+            "retry_on_fail": False,
+        },
+        "explicit_slow_down": {
+            "label": "Explicit slow-down request",
+            "instruction": (
+                "Tell the tutor you are lost or that they are moving too fast. Ask them to slow down "
+                "or explain it differently while still engaging with the topic."
+            ),
+            "validator": [r"\bslow\b", r"\bexplain (that )?differently\b", r"\b(i'?m|i am) lost\b", r"\bdon't get it\b"],
+            "retry_on_fail": True,
+        },
+        "confident_misconception": {
+            "label": "Confident misconception",
+            "instruction": (
+                "Give a concise but confidently stated wrong interpretation of the tutor's point. "
+                "Do not hedge too much."
+            ),
+            "validator": [r"\b(definitely|pretty sure|basically|so that means)\b"],
+            "retry_on_fail": False,
+        },
+        "partial_with_error": {
+            "label": "Partial understanding with one wrong detail",
+            "instruction": (
+                "Show partial understanding, but include one detail that is still wrong or incomplete."
+            ),
+            "validator": [r"\b(i think|maybe|so)\b"],
+            "retry_on_fail": False,
+        },
+        "ask_for_example": {
+            "label": "Ask for a concrete example",
+            "instruction": (
+                "Ask the tutor for a concrete example, snippet, or comparison to make the concept clearer."
+            ),
+            "validator": [r"\bexample\b", r"\bsnippet\b", r"\bshow me\b", r"\bconcrete\b"],
+            "retry_on_fail": True,
+        },
+        "adjacent_topic": {
+            "label": "Adjacent-topic detour",
+            "instruction": (
+                "Ask one adjacent accessibility question that is related but not the exact current objective. "
+                "Examples: keyboard accessibility, color contrast, screen readers, headings."
+            ),
+            "validator": [r"\b(keyboard|contrast|screen reader|heading|focus)\b"],
+            "retry_on_fail": True,
+        },
+        "rephrase_request": {
+            "label": "Ask for rephrasing",
+            "instruction": (
+                "Say the tutor's explanation did not fully click and ask for a simpler rephrase."
+            ),
+            "validator": [r"\brephrase\b", r"\bsimpler\b", r"\bplain english\b", r"\bexplain (it )?another way\b"],
+            "retry_on_fail": True,
+        },
+        "transfer_reasoning": {
+            "label": "Transfer to a nearby example",
+            "instruction": (
+                "Apply the concept to a fresh but nearby case and reason it through briefly."
+            ),
+            "validator": [r"\blike if\b", r"\bfor example\b", r"\bif i had\b", r"\bso in a\b"],
+            "retry_on_fail": False,
+        },
+        "meta_faster": {
+            "label": "Meta request to move faster",
+            "instruction": (
+                "Tell the tutor this part now makes sense and ask if they can move a little faster or test you."
+            ),
+            "validator": [r"\bfaster\b", r"\bmove on\b", r"\btest me\b", r"\bskip ahead\b"],
+            "retry_on_fail": True,
+        },
+        "bad_summary": {
+            "label": "Summary with one wrong detail",
+            "instruction": (
+                "Try to summarize the rule so far in your own words, but include one detail that is slightly wrong."
+            ),
+            "validator": [r"\bso basically\b", r"\bso the rule is\b", r"\bi think the idea is\b"],
+            "retry_on_fail": False,
+        },
+        "strong_transfer": {
+            "label": "Strong transfer reasoning",
+            "instruction": (
+                "Answer confidently and apply the concept to a new example with clear cause-and-effect reasoning."
+            ),
+            "validator": [r"\bbecause\b", r"\bwould\b", r"\bif\b"],
+            "retry_on_fail": False,
+        },
+        "procedural_misconception": {
+            "label": "Procedural misconception",
+            "instruction": (
+                "Answer as if one local ARIA check is enough. Do not walk the whole checklist. "
+                "For example, stop at role/state validity and skip behavior or focus."
+            ),
+            "validator": [r"\b(just|only)\b", r"\b(role|aria-|state)\b"],
+            "retry_on_fail": True,
+        },
+        "post_repair_walkthrough": {
+            "label": "Post-repair same-snippet walkthrough",
+            "instruction": (
+                "Follow the tutor's repaired checklist on the SAME snippet in order. Explicitly walk native-first, "
+                "semantic override, behavior, focus, and required state/property."
+            ),
+            "validator": [
+                r"\bnative\b",
+                r"\bbehavior\b",
+                r"\bfocus\b",
+                r"\b(role|state|aria-)\b",
+            ],
+            "retry_on_fail": True,
+        },
+        "post_repair_transfer": {
+            "label": "Post-repair transfer",
+            "instruction": (
+                "Now apply the repaired full checklist to one fresh example and reason briefly why."
+            ),
+            "validator": [r"\bif i had\b", r"\bfor example\b", r"\bbecause\b", r"\bwould\b"],
+            "retry_on_fail": False,
+        },
+        "assessment_best_effort": {
+            "label": "Assessment best effort",
+            "instruction": (
+                "Give your best direct answer to the assessment question. Be concise and committed."
+            ),
+            "validator": [],
+            "retry_on_fail": False,
+        },
+        "assessment_incorrect": {
+            "label": "Assessment miss",
+            "instruction": (
+                "Give your best attempt, but allow one plausible mistake so we can test the tutor's recovery."
+            ),
+            "validator": [],
+            "retry_on_fail": False,
+        },
+    }
+
+    PHASES = [
+        {
+            "name": "destabilize",
+            "start": 1,
+            "end": 3,
+            "default_target": "baseline_confusion",
+            "priority_targets": [
+                "baseline_confusion",
+                "explicit_slow_down",
+                "confident_misconception",
+            ],
+            "goal": "Force the tutor to slow down and re-scaffold.",
+        },
+        {
+            "name": "repair",
+            "start": 4,
+            "end": 6,
+            "default_target": "partial_with_error",
+            "priority_targets": [
+                "partial_with_error",
+                "ask_for_example",
+                "rephrase_request",
+            ],
+            "goal": "Show partial recovery but still surface unstable understanding.",
+        },
+        {
+            "name": "variation",
+            "start": 7,
+            "end": 9,
+            "default_target": "transfer_reasoning",
+            "priority_targets": [
+                "adjacent_topic",
+                "transfer_reasoning",
+                "bad_summary",
+            ],
+            "goal": "Test routing, clarification, and recovery from mixed-quality reasoning.",
+        },
+        {
+            "name": "acceleration",
+            "start": 10,
+            "end": 12,
+            "default_target": "strong_transfer",
+            "priority_targets": [
+                "meta_faster",
+                "strong_transfer",
+                "bad_summary",
+            ],
+            "goal": "Create evidence that the tutor can now safely speed up.",
+        },
+        {
+            "name": "late_repair",
+            "start": 13,
+            "end": 15,
+            "default_target": "procedural_misconception",
+            "priority_targets": [
+                "procedural_misconception",
+                "post_repair_walkthrough",
+            ],
+            "goal": "Trigger a late procedural repair about applying the full checklist.",
+        },
+        {
+            "name": "post_repair_validation",
+            "start": 16,
+            "end": 18,
+            "default_target": "post_repair_transfer",
+            "priority_targets": [
+                "post_repair_walkthrough",
+                "post_repair_transfer",
+                "meta_faster",
+            ],
+            "goal": "Verify the repair holds on the same snippet and then on transfer.",
+        },
+        {
+            "name": "readiness_push",
+            "start": 19,
+            "end": 24,
+            "default_target": "strong_transfer",
+            "priority_targets": [
+                "post_repair_transfer",
+                "meta_faster",
+                "strong_transfer",
+            ],
+            "goal": "Keep moving until readiness and assessment are exercised.",
+        },
+    ]
+
+    def __init__(self, objective_text: str):
+        self.objective_text = objective_text
+        self.completed_targets: List[str] = []
+        self.turn_plans: List[Dict[str, Any]] = []
+
+    def _phase_for_turn(self, turn_num: int, current_stage: str) -> Dict[str, Any]:
+        if current_stage in {"mini_assessment", "final_assessment"}:
+            return {
+                "name": "assessment",
+                "default_target": "assessment_best_effort",
+                "priority_targets": [
+                    "assessment_incorrect",
+                    "assessment_best_effort",
+                ],
+                "goal": "Test answer evaluation and assessment recovery.",
+            }
+        for phase in self.PHASES:
+            if phase["start"] <= turn_num <= phase["end"]:
+                return phase
+        return self.PHASES[-1]
+
+    @staticmethod
+    def _tutor_requests_full_walkthrough(tutor_message: str) -> bool:
+        text = (tutor_message or "").lower()
+        patterns = (
+            r"walk .* through",
+            r"same snippet",
+            r"in order",
+            r"full checklist",
+            r"native-first",
+            r"native first",
+            r"behavior",
+            r"required state",
+        )
+        return any(re.search(pattern, text) for pattern in patterns)
+
+    def build_turn_plan(
+        self,
+        turn_num: int,
+        current_stage: str,
+        tutor_message: str = "",
+    ) -> Dict[str, Any]:
+        phase = self._phase_for_turn(turn_num, current_stage)
+        target = phase["default_target"]
+        for candidate in phase.get("priority_targets", []):
+            if candidate not in self.completed_targets:
+                target = candidate
+                break
+
+        if (
+            current_stage not in {"mini_assessment", "final_assessment"}
+            and self._tutor_requests_full_walkthrough(tutor_message)
+            and "post_repair_walkthrough" not in self.completed_targets
+        ):
+            target = "post_repair_walkthrough"
+        elif (
+            current_stage == "readiness_check"
+            and "post_repair_transfer" not in self.completed_targets
+        ):
+            target = "post_repair_transfer"
+
+        target_info = self.TARGETS[target]
+        directive = (
+            f"Probe phase: {phase['name']}. Goal: {phase['goal']}\n"
+            f"Primary target: {target_info['label']}.\n"
+            f"{target_info['instruction']}\n"
+            "Always respond to what the tutor actually just said. Keep it to 1-3 sentences."
+        )
+        plan = {
+            "turn": turn_num,
+            "stage": current_stage,
+            "phase": phase["name"],
+            "phase_goal": phase["goal"],
+            "target": target,
+            "target_label": target_info["label"],
+            "directive": directive,
+            "retry_on_fail": bool(target_info.get("retry_on_fail")),
+            "validator_patterns": list(target_info.get("validator", [])),
+            "tutor_message_excerpt": short_text(tutor_message),
+        }
+        self.turn_plans.append(copy.deepcopy(plan))
+        return plan
+
+    def validate_response(self, plan: Dict[str, Any], response: str) -> Dict[str, Any]:
+        patterns = plan.get("validator_patterns", []) or []
+        if not patterns:
+            passed = True
+            matched = []
+        else:
+            matched = [
+                pattern for pattern in patterns
+                if re.search(pattern, response or "", re.IGNORECASE)
+            ]
+            passed = bool(matched)
+
+        if passed and plan.get("target") not in self.completed_targets:
+            self.completed_targets.append(plan["target"])
+
+        return {
+            "passed": passed,
+            "matched_patterns": matched,
+        }
+
+    def summary(self) -> Dict[str, Any]:
+        remaining = [
+            key for key in self.TARGETS.keys()
+            if key not in self.completed_targets
+        ]
+        return {
+            "completed_targets": list(self.completed_targets),
+            "remaining_targets": remaining,
+            "turn_plans": copy.deepcopy(self.turn_plans),
+        }
 
 
 class StudentAgent:
@@ -101,60 +516,275 @@ class StudentAgent:
         self.objective_text = objective_text
         self.conversation: list = []
 
-    def generate_response(self, tutor_message: str, turn_num: int) -> str:
-        """Generate a student response based on the tutor's message."""
-        self.conversation.append({"role": "assistant", "content": tutor_message})
+    def _phase_hint(self, turn_num: int, current_stage: str) -> str:
+        if current_stage in {"mini_assessment", "final_assessment"}:
+            return "ASSESSMENT PHASE: answer directly, but occasional mistakes are allowed."
+        if turn_num <= 3:
+            return "CONFUSED PHASE: be confused, mix things up, and force the tutor to slow down."
+        if 4 <= turn_num <= 6:
+            return "REPAIR PHASE: show partial understanding, but still make at least one mistake or ask for more support."
+        if 7 <= turn_num <= 9:
+            return "VARIATION PHASE: start connecting ideas, ask edge-case or adjacent questions, and test the tutor's routing."
+        if 10 <= turn_num <= 12:
+            return "ACCELERATION PHASE: respond confidently, transfer to new examples, and sometimes ask the tutor to move faster."
+        return "LATE PHASE: answer naturally based on the tutor's latest response."
 
-        # Build context with turn number so the student "grows"
-        messages = [
+    def _build_messages(
+        self,
+        turn_num: int,
+        current_stage: str,
+        directive: str,
+        tutor_message: str = "",
+        retry_note: str = "",
+        opening: bool = False,
+    ) -> List[Dict[str, str]]:
+        messages: List[Dict[str, str]] = [
             {"role": "system", "content": STUDENT_SYSTEM_PROMPT},
             {
                 "role": "system",
                 "content": (
                     f"Topic being taught: {self.objective_text}\n"
                     f"This is turn {turn_num} of the conversation.\n"
-                    f"{'Early turns: be more confused, ask basic questions, make mistakes.' if turn_num <= 4 else ''}"
-                    f"{'Mid turns: show growing understanding, still some gaps.' if 5 <= turn_num <= 8 else ''}"
-                    f"{'Late turns: demonstrate good understanding, try to synthesize.' if turn_num > 8 else ''}"
-                ),
+                    f"Current tutor stage: {current_stage}\n"
+                    f"{self._phase_hint(turn_num, current_stage)}\n"
+                    f"Turn directive:\n{directive}\n"
+                    f"{retry_note}"
+                ).strip(),
             },
         ]
-        # Add conversation history (tutor messages as "assistant", student as "user"
-        # but from the student's perspective the tutor talks and student responds)
+
+        if opening:
+            messages.append(
+                {
+                    "role": "user",
+                    "content": (
+                        f"The tutor is about to teach you: {self.objective_text}\n"
+                        "Generate your first message as the student. You're just "
+                        "starting and don't know much about this topic yet. "
+                        "Be eager but show your current limited understanding."
+                    ),
+                }
+            )
+            return messages
+
+        self.conversation.append({"role": "assistant", "content": tutor_message})
         for msg in self.conversation:
             if msg["role"] == "assistant":
-                # Tutor's message — student sees it as incoming
                 messages.append({"role": "user", "content": msg["content"]})
             else:
-                # Student's own previous response
                 messages.append({"role": "assistant", "content": msg["content"]})
+        return messages
 
-        response = self.client.chat(messages, temperature=0.8, max_tokens=200)
-        self.conversation.append({"role": "user", "content": response})
-        return response
+    def _generate_with_trace(
+        self,
+        *,
+        turn_num: int,
+        current_stage: str,
+        directive_plan: Dict[str, Any],
+        tutor_message: str = "",
+        opening: bool = False,
+    ) -> Dict[str, Any]:
+        attempts: List[Dict[str, Any]] = []
+        final_response = ""
 
-    def generate_first_message(self) -> str:
-        """Generate the student's opening message."""
-        messages = [
-            {"role": "system", "content": STUDENT_SYSTEM_PROMPT},
-            {
-                "role": "user",
-                "content": (
-                    f"The tutor is about to teach you: {self.objective_text}\n"
-                    "Generate your first message as the student. You're just "
-                    "starting and don't know much about this topic yet. "
-                    "Be eager but show your current (limited) understanding."
-                ),
+        for attempt_num in range(1, 3):
+            retry_note = ""
+            if attempt_num > 1:
+                retry_note = (
+                    "The previous reply missed the requested probe behavior. Keep the same topic response, "
+                    "but satisfy the directive more explicitly."
+                )
+
+            messages = self._build_messages(
+                turn_num=turn_num,
+                current_stage=current_stage,
+                directive=directive_plan["directive"],
+                tutor_message=tutor_message,
+                retry_note=retry_note,
+                opening=opening,
+            )
+            response = self.client.chat(
+                messages, temperature=0.8, max_tokens=200 if not opening else 150
+            )
+            validation = directive_plan["scenario"].validate_response(
+                directive_plan, response
+            )
+            attempts.append(
+                {
+                    "attempt": attempt_num,
+                    "response": response,
+                    "validation": validation,
+                    "messages_used": len(messages),
+                    "retry_note": retry_note,
+                }
+            )
+            final_response = response
+
+            if validation["passed"] or not directive_plan.get("retry_on_fail"):
+                break
+
+            if not opening and self.conversation and self.conversation[-1].get("role") == "assistant":
+                self.conversation.pop()
+
+        self.conversation.append({"role": "user", "content": final_response})
+        return {
+            "response": final_response,
+            "directive_plan": {
+                key: value
+                for key, value in directive_plan.items()
+                if key != "scenario"
             },
+            "attempts": attempts,
+        }
+
+    def generate_response(
+        self,
+        tutor_message: str,
+        turn_num: int,
+        current_stage: str,
+        directive_plan: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """Generate a student response based on the tutor's message."""
+        return self._generate_with_trace(
+            turn_num=turn_num,
+            current_stage=current_stage,
+            directive_plan=directive_plan,
+            tutor_message=tutor_message,
+            opening=False,
+        )
+
+    def generate_first_message(
+        self,
+        turn_num: int,
+        current_stage: str,
+        directive_plan: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """Generate the student's opening message."""
+        return self._generate_with_trace(
+            turn_num=turn_num,
+            current_stage=current_stage,
+            directive_plan=directive_plan,
+            opening=True,
+        )
+
+
+class InstrumentedHybridCrewAISocraticSystem(HybridCrewAISocraticSystem):
+    """Guided tutor with per-turn internal artifact capture for analysis."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._current_turn_trace: Dict[str, Any] = {}
+
+    def begin_turn_trace(
+        self,
+        turn_num: int,
+        student_message: str,
+        stage_before: str,
+    ) -> None:
+        self._current_turn_trace = {
+            "turn": turn_num,
+            "student_message": student_message,
+            "stage_before": stage_before,
+            "events": [],
+            "timings": {},
+        }
+
+    def get_turn_trace(self) -> Dict[str, Any]:
+        return copy.deepcopy(self._current_turn_trace)
+
+    def _record_trace_event(self, name: str, payload: Dict[str, Any]) -> None:
+        self._current_turn_trace.setdefault("events", []).append(
+            {"name": name, "payload": copy.deepcopy(payload)}
+        )
+
+    async def _run_turn_analyzer(self, *args, **kwargs):
+        history = kwargs.get("history") or []
+        student_response = kwargs.get("student_response", "")
+        lesson_state = kwargs.get("lesson_state")
+        pacing_state = kwargs.get("pacing_state")
+        start = time.perf_counter()
+        self._record_trace_event(
+            "turn_analyzer_input",
+            {
+                "current_stage": kwargs.get("current_stage"),
+                "active_objective": kwargs.get("active_objective"),
+                "lesson_state_before": copy.deepcopy(lesson_state),
+                "pacing_state_before": copy.deepcopy(pacing_state),
+                "transcript": self._format_reflection_transcript(history, student_response),
+            },
+        )
+        result = await super()._run_turn_analyzer(*args, **kwargs)
+        self._current_turn_trace.setdefault("timings", {})["turn_analyzer"] = round(
+            time.perf_counter() - start, 2
+        )
+        self._record_trace_event("turn_analysis", result)
+        return result
+
+    async def _run_assessment_reflector(self, *args, **kwargs):
+        history = kwargs.get("history") or []
+        student_response = kwargs.get("student_response", "")
+        start = time.perf_counter()
+        self._record_trace_event(
+            "assessment_reflector_input",
+            {
+                "current_stage": kwargs.get("current_stage"),
+                "active_objective": kwargs.get("active_objective"),
+                "transcript": self._format_reflection_transcript(history, student_response),
+            },
+        )
+        result = await super()._run_assessment_reflector(*args, **kwargs)
+        self._current_turn_trace.setdefault("timings", {})[
+            "assessment_reflector"
+        ] = round(time.perf_counter() - start, 2)
+        self._record_trace_event("assessment_reflection", result)
+        return result
+
+    def _build_guided_tutor_messages(self, *args, **kwargs):
+        messages = super()._build_guided_tutor_messages(*args, **kwargs)
+        system_blocks = [
+            m["content"] for m in messages
+            if m.get("role") == "system"
         ]
-        response = self.client.chat(messages, temperature=0.8, max_tokens=150)
-        self.conversation.append({"role": "user", "content": response})
-        return response
+        self._record_trace_event(
+            "tutor_message_build",
+            {
+                "message_count": len(messages),
+                "system_block_count": len(system_blocks),
+                "system_block_char_counts": [len(block) for block in system_blocks],
+                "turn_analysis_block": next(
+                    (block for block in system_blocks if block.startswith("TURN ANALYSIS:")),
+                    "",
+                ),
+                "adaptive_pacing_block": next(
+                    (block for block in system_blocks if block.startswith("ADAPTIVE PACING:")),
+                    "",
+                ),
+                "extra_system_blocks": [
+                    block for block in system_blocks
+                    if not block.startswith("TURN ANALYSIS:")
+                    and not block.startswith("ADAPTIVE PACING:")
+                ][1:],
+            },
+        )
+        return messages
+
+    async def _apply_turn_analysis_updates(self, *args, **kwargs):
+        start = time.perf_counter()
+        self._record_trace_event(
+            "apply_turn_analysis_updates_input",
+            {"analysis": copy.deepcopy(kwargs.get("analysis", {}))},
+        )
+        result = await super()._apply_turn_analysis_updates(*args, **kwargs)
+        self._current_turn_trace.setdefault("timings", {})[
+            "apply_turn_analysis_updates"
+        ] = round(time.perf_counter() - start, 2)
+        self._record_trace_event("apply_turn_analysis_updates_result", result)
+        return result
 
 
 async def main():
     objective_id = sys.argv[1] if len(sys.argv) > 1 else "038d7bf5-eb16-4ac0-a22b-42c8fa964d97"
-    max_turns = int(sys.argv[2]) if len(sys.argv) > 2 else 14
+    max_turns = int(sys.argv[2]) if len(sys.argv) > 2 else 24
 
     student_id = f"test-conv-{datetime.now().strftime('%H%M%S')}"
     session_id = f"guided-test-{datetime.now().strftime('%H%M%S')}"
@@ -179,7 +809,7 @@ async def main():
     wcag_mcp = WCAGMCPClient(command=config.WCAG_MCP_COMMAND, azure_client=azure_client) if config.WCAG_MCP_ENABLED else None
     student_service = StudentService() if config.STUDENT_MCP_ENABLED else None
 
-    system = HybridCrewAISocraticSystem(
+    system = InstrumentedHybridCrewAISocraticSystem(
         azure_config=azure_config,
         vector_store_service=vector_service,
         wcag_mcp_client=wcag_mcp,
@@ -202,6 +832,7 @@ async def main():
     objective_text = objective["text"]
 
     student_agent = StudentAgent(student_agent_client, objective_text)
+    probe_scenario = StudentProbeScenario(objective_text)
 
     print(f"{'='*70}")
     print(f"CONVERSATION TEST (LLM-driven student)")
@@ -236,12 +867,28 @@ async def main():
         all_ws_events.append(data)
 
     # --- Generate first student message ---
-    first_msg = await asyncio.to_thread(student_agent.generate_first_message)
+    first_plan = probe_scenario.build_turn_plan(
+        turn_num=1,
+        current_stage="introduction",
+        tutor_message="",
+    )
+    first_plan["scenario"] = probe_scenario
+    first_student = await asyncio.to_thread(
+        student_agent.generate_first_message,
+        1,
+        "introduction",
+        first_plan,
+    )
 
     # --- Run conversation turn by turn ---
-    student_msg = first_msg
+    student_msg = first_student["response"]
+    pending_student_trace = first_student
 
-    for turn_num in range(1, max_turns + 1):
+    turn_num = 1
+    max_turns_hard = max_turns + 4
+    extended_for_assessment = False
+
+    while turn_num <= max_turns:
         print(f"\n{'─'*70}")
 
         # Get current session state
@@ -255,6 +902,7 @@ async def main():
         turn_data = {
             "turn": turn_num,
             "student_message": student_msg,
+            "student_probe": copy.deepcopy(pending_student_trace),
             "stage_before": current_stage,
             "turns_on_objective_before": turns_on_obj,
             "ws_events": [],
@@ -264,6 +912,7 @@ async def main():
 
         # Capture WS events for this turn
         ws_start_idx = len(all_ws_events)
+        system.begin_turn_trace(turn_num, student_msg, current_stage)
 
         # --- Run tutor turn ---
         t0 = time.perf_counter()
@@ -303,9 +952,12 @@ async def main():
         turn_data["turns_on_objective_after"] = (post_session or {}).get("turns_on_objective", 0)
         turn_data["session_state_after"] = post_session
 
-        import copy
         lesson_state = system._session_cache.get_lesson_state(session_id)
         turn_data["lesson_state_snapshot"] = copy.deepcopy(lesson_state)
+
+        pacing_state = system._session_cache.get_pacing_state(session_id)
+        turn_data["pacing_state_snapshot"] = copy.deepcopy(pacing_state)
+        turn_data["internal_trace"] = system.get_turn_trace()
 
         mastery = await student_service.get_mastery_state(student_id)
         turn_data["mastery_snapshot"] = mastery
@@ -324,6 +976,9 @@ async def main():
         # Print summary
         print(f"\nTUTOR: {tutor_response[:200]}{'...' if len(tutor_response) > 200 else ''}")
         print(f"  Time: {turn_data['timings']['tutor']}s | Stage: {turn_data['stage_before']} → {turn_data['stage_after']}")
+        probe = turn_data.get("student_probe", {}).get("directive_plan", {})
+        if probe:
+            print(f"  Student probe: {probe.get('phase')} / {probe.get('target')} | {probe.get('target_label')}")
 
         if lesson_state and lesson_state.get("concepts"):
             active = lesson_state.get("active_concept", "?")
@@ -331,18 +986,59 @@ async def main():
             total = len(lesson_state.get("concepts", []))
             print(f"  Concepts: {covered}/{total} covered | Active: {active}")
 
+        if pacing_state:
+            pace = pacing_state.get("current_pace", "?")
+            pace_turns = pacing_state.get("turns_at_current_pace", 0)
+            cooldown = pacing_state.get("cooldown_remaining", 0)
+            recent = pacing_state.get("recent_signals", [])
+            last_grasp = recent[-1].get("grasp_level", "?") if recent else "?"
+            last_closure = recent[-1].get("concept_closure", "?") if recent else "?"
+            print(f"  Pacing: {pace} (turns={pace_turns}, cd={cooldown}) | last: grasp={last_grasp} closure={last_closure}")
+
         if misconceptions:
             print(f"  Misconceptions: {len(misconceptions)} active")
+
+        if (
+            turn_num == max_turns
+            and not extended_for_assessment
+            and turn_num < max_turns_hard
+        ):
+            seen_assessment = any(
+                stage in {"mini_assessment", "final_assessment"}
+                for stage in [
+                    turn_data.get("stage_after"),
+                    *(turn.get("stage_after") for turn in all_turns),
+                ]
+            )
+            if not seen_assessment:
+                max_turns = min(max_turns + 4, max_turns_hard)
+                extended_for_assessment = True
+                print(
+                    f"  Extending run to {max_turns} turns to exercise readiness/assessment."
+                )
 
         # --- Generate next student message ---
         if turn_num < max_turns and tutor_response:
             t0 = time.perf_counter()
-            student_msg = await asyncio.to_thread(
-                student_agent.generate_response, tutor_response, turn_num + 1,
+            next_plan = probe_scenario.build_turn_plan(
+                turn_num=turn_num + 1,
+                current_stage=turn_data["stage_after"],
+                tutor_message=tutor_response,
             )
+            next_plan["scenario"] = probe_scenario
+            pending_student_trace = await asyncio.to_thread(
+                student_agent.generate_response,
+                tutor_response,
+                turn_num + 1,
+                turn_data["stage_after"],
+                next_plan,
+            )
+            student_msg = pending_student_trace["response"]
             turn_data["timings"]["student_agent"] = round(time.perf_counter() - t0, 2)
         else:
             break
+
+        turn_num += 1
 
     # ===================================================================
     # Write comprehensive results
@@ -355,12 +1051,16 @@ async def main():
     final_mastery = await student_service.get_mastery_state(student_id)
     final_misconceptions = await student_service.get_misconception_patterns(student_id)
     final_lesson_state = system._session_cache.get_lesson_state(session_id)
+    final_pacing_state = system._session_cache.get_pacing_state(session_id)
     final_learner_memory = await student_service.get_learner_memory(student_id)
     final_objective_memory = await student_service.get_objective_memory(student_id, objective_id)
     teaching_plan = system._session_cache.get_teaching_plan(session_id)
     teaching_content = system._session_cache.get_teaching_content(session_id)
     retrieval_bundle = system._session_cache.get_retrieval_bundle(session_id)
     slim_payload = system._session_cache.export_session(session_id)
+    probe_summary = probe_scenario.summary()
+    diagnostics = collect_run_diagnostics(all_turns, final_session)
+    result_number = next_result_number(RESULTS_DIR)
 
     lines = []
     lines.append(f"# Conversation Test: {objective_text}")
@@ -371,6 +1071,15 @@ async def main():
     lines.append(f"**Total turns**: {len(all_turns)}")
     total_time = sum(t.get("timings", {}).get("tutor", 0) for t in all_turns)
     lines.append(f"**Total tutor time**: {round(total_time, 1)}s")
+    lines.append(f"**Probe coverage**: {len(probe_summary['completed_targets'])}/{len(StudentProbeScenario.TARGETS)} targets hit")
+    lines.append(f"**Stages reached**: {', '.join(diagnostics['stages_reached']) or '(none)'}")
+    lines.append(
+        f"**Procedural repair turns**: {diagnostics['procedural_repair_turns'] or 'none'} | "
+        f"**Procedural resolution turns**: {diagnostics['procedural_resolution_turns'] or 'none'}"
+    )
+    lines.append(
+        f"**Assessment turns**: {diagnostics['assessment_turns'] or 'none'}"
+    )
 
     # --- Pipeline artifacts ---
     lines.append(f"\n---\n\n## Pipeline Artifacts\n")
@@ -405,6 +1114,15 @@ async def main():
     lines.append(pretty_json(initial_ls))
     lines.append("```")
 
+    lines.append(f"\n### Probe Scenario Summary\n")
+    lines.append("```json")
+    lines.append(pretty_json({
+        "completed_targets": probe_summary["completed_targets"],
+        "remaining_targets": probe_summary["remaining_targets"],
+        "diagnostics": diagnostics,
+    }))
+    lines.append("```")
+
     if slim_payload:
         lines.append(f"\n### Slim Persisted Payload\n")
         lines.append("| Field | Size |")
@@ -427,6 +1145,29 @@ async def main():
         lines.append(f"**Student**:")
         lines.append(f"> {turn['student_message']}")
         lines.append("")
+
+        probe = turn.get("student_probe") or {}
+        directive_plan = probe.get("directive_plan") or {}
+        if directive_plan:
+            lines.append(
+                f"**Student Probe**: phase=`{directive_plan.get('phase', '?')}` "
+                f"target=`{directive_plan.get('target', '?')}` "
+                f"({directive_plan.get('target_label', '')})"
+            )
+            lines.append(f"  Goal: {directive_plan.get('phase_goal', '')}")
+            lines.append(f"  Directive: {directive_plan.get('directive', '')}")
+            attempts = probe.get("attempts", [])
+            if attempts:
+                lines.append(f"  Attempts: {len(attempts)}")
+                for attempt in attempts:
+                    validation = attempt.get("validation", {})
+                    lines.append(
+                        f"  - attempt {attempt.get('attempt')}: "
+                        f"passed={validation.get('passed')} "
+                        f"matched={validation.get('matched_patterns', [])} "
+                        f"response={short_text(attempt.get('response', ''), 160)}"
+                    )
+            lines.append("")
 
         lines.append(f"**Tutor**:")
         lines.append(f"> {turn.get('tutor_response', '(no response)')}")
@@ -451,6 +1192,30 @@ async def main():
             lines.append(f"**Lesson State**: active=`{active}`")
             lines.append(f"  {', '.join(concept_lines)}")
             lines.append("")
+
+        # Pacing state
+        ps = turn.get("pacing_state_snapshot")
+        if ps:
+            pace = ps.get("current_pace", "?")
+            pace_turns = ps.get("turns_at_current_pace", 0)
+            cooldown = ps.get("cooldown_remaining", 0)
+            reason = ps.get("pace_reason", "")
+            recent = ps.get("recent_signals", [])
+            lines.append(f"**Pacing**: `{pace}` (turns={pace_turns}, cooldown={cooldown})")
+            if reason:
+                lines.append(f"  Reason: {reason}")
+            if recent:
+                last = recent[-1]
+                sig_parts = [f"{k}={v}" for k, v in last.items() if v and k != "override_reason"]
+                lines.append(f"  Last signal: {', '.join(sig_parts)}")
+            lines.append("")
+
+        internal_trace = turn.get("internal_trace") or {}
+        if internal_trace:
+            lines.append("<details><summary>Internal Tutor Trace</summary>\n")
+            lines.append("```json")
+            lines.append(pretty_json(internal_trace))
+            lines.append("```\n</details>\n")
 
         # Misconceptions
         misconceptions = turn.get("misconceptions_snapshot")
@@ -510,6 +1275,10 @@ async def main():
     lines.append(pretty_json(final_lesson_state))
     lines.append("```\n")
 
+    lines.append("### Pacing State (final)\n```json")
+    lines.append(pretty_json(final_pacing_state))
+    lines.append("```\n")
+
     lines.append("### Learner Memory\n```json")
     lines.append(pretty_json(final_learner_memory))
     lines.append("```\n")
@@ -526,24 +1295,27 @@ async def main():
         content = msg.get("content", "")
         lines.append(f"**{role}** (msg {i+1}):\n> {content}\n")
 
-    result_path = RESULTS_DIR / "3_conversation_test.md"
+    result_path = RESULTS_DIR / f"{result_number}_conversation_test.md"
     result_path.write_text("\n".join(lines), encoding="utf-8")
     size_kb = result_path.stat().st_size / 1024
     print(f"Written to {result_path} ({len(lines)} lines, {size_kb:.0f} KB)")
 
     # Also dump raw JSON for programmatic access
-    raw_path = RESULTS_DIR / "3_conversation_test_raw.json"
+    raw_path = RESULTS_DIR / f"{result_number}_conversation_test_raw.json"
     raw_data = {
         "objective_id": objective_id,
         "objective_text": objective_text,
         "student_id": student_id,
         "session_id": session_id,
         "turns": all_turns,
+        "probe_summary": probe_summary,
+        "diagnostics": diagnostics,
         "final_state": {
             "session": final_session,
             "mastery": final_mastery,
             "misconceptions": final_misconceptions,
             "lesson_state": final_lesson_state,
+            "pacing_state": final_pacing_state,
             "learner_memory": final_learner_memory,
             "objective_memory": final_objective_memory,
         },
