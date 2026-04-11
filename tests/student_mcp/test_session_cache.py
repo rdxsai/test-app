@@ -208,6 +208,8 @@ class TestConvenienceMethods:
                             "key": "role_alone_not_enough",
                             "text": "Role alone is enough for a button",
                             "repair_priority": "must_address_now",
+                            "repair_scope": "full_sequence",
+                            "repair_pattern": "same_snippet_walkthrough",
                             "times_seen": 2,
                         }
                     ],
@@ -222,7 +224,10 @@ class TestConvenienceMethods:
         assert cache.get_teaching_plan("sess-restore") == "8. dependency_order\n1. Hierarchy\n"
         assert cache.get_lesson_state("sess-restore")["active_concept"] == "hierarchy"
         assert cache.get_pacing_state("sess-restore")["current_pace"] == "slow"
-        assert cache.get_misconception_state("sess-restore")["active_misconceptions"][0]["key"] == "role_alone_not_enough"
+        misconception = cache.get_misconception_state("sess-restore")["active_misconceptions"][0]
+        assert misconception["key"] == "role_alone_not_enough"
+        assert misconception["repair_scope"] == "full_sequence"
+        assert misconception["repair_pattern"] == "same_snippet_walkthrough"
 
 
 class TestMultipleSessions:
@@ -384,6 +389,28 @@ class TestLessonState:
         })
         lesson_state = cache.get_lesson_state("sess-1")
         assert lesson_state["active_concept"] == "prefer_native_html"  # resolved to canonical
+
+    def test_apply_misconception_events_preserves_full_sequence_repair_metadata(self, cache):
+        cache.store("sess-1", "obj-1", "Objective", [], "", "content")
+
+        state = cache.apply_misconception_events(
+            "sess-1",
+            [
+                {
+                    "key": "full_rule_sequence_gap",
+                    "text": "Stops after one local check instead of walking the full rule sequence.",
+                    "action": "log",
+                    "repair_priority": "must_address_now",
+                    "repair_scope": "full_sequence",
+                    "repair_pattern": "same_snippet_walkthrough",
+                }
+            ],
+        )
+
+        assert state is not None
+        active = state["active_misconceptions"][0]
+        assert active["repair_scope"] == "full_sequence"
+        assert active["repair_pattern"] == "same_snippet_walkthrough"
 
 
 class TestAdaptivePacing:

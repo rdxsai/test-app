@@ -299,6 +299,68 @@ class TestGuidedTutorMessages:
         assert "Believes a role alone is enough." in misconception_block
         assert "Repair the misconception explicitly" in misconception_block
 
+    def test_guided_tutor_messages_force_full_sequence_repair_shape(
+        self, hybrid_system
+    ):
+        messages = hybrid_system._build_guided_tutor_messages(
+            student_response="I would just check aria-checked.",
+            history=[],
+            teaching_content="Evidence pack",
+            student_context="",
+            current_stage="exploration",
+            active_objective="Apply the five rules for using ARIA correctly",
+            teaching_plan="8. dependency_order\n1. Native first\n",
+            lesson_state=None,
+            turn_analysis={
+                "misconception_events": [
+                    {
+                        "key": "full_rule_sequence_gap",
+                        "text": "Stops after one local check instead of walking the full rule sequence.",
+                        "action": "still_active",
+                        "repair_priority": "must_address_now",
+                        "repair_scope": "full_sequence",
+                        "repair_pattern": "same_snippet_walkthrough",
+                    }
+                ],
+                "pacing_signal": {
+                    "recommended_next_step": "ask_same_level",
+                },
+                "stage_action": "stay",
+            },
+            pacing_state={"current_pace": "slow"},
+            misconception_state={
+                "active_misconceptions": [
+                    {
+                        "key": "full_rule_sequence_gap",
+                        "text": "Stops after one local check instead of walking the full rule sequence.",
+                        "repair_priority": "must_address_now",
+                        "repair_scope": "full_sequence",
+                        "repair_pattern": "same_snippet_walkthrough",
+                        "times_seen": 1,
+                    }
+                ],
+                "recently_resolved": [],
+            },
+        )
+
+        constraints_block = next(
+            message["content"]
+            for message in messages
+            if message["role"] == "system"
+            and message["content"].startswith("RESPONSE CONSTRAINTS:")
+        )
+        misconception_block = next(
+            message["content"]
+            for message in messages
+            if message["role"] == "system"
+            and message["content"].startswith("ACTIVE MISCONCEPTION REPAIR:")
+        )
+        assert "Response shape: full_sequence_repair" in constraints_block
+        assert "same snippet ordered walkthrough" in constraints_block
+        assert "native-first" in constraints_block
+        assert "Do not ask for a localized explanation" in misconception_block
+        assert "Required order: native-first -> semantic override -> behavior -> focus -> required state/property." in misconception_block
+
 
 class TestSessionRuntimeCachePersistence:
     @pytest.mark.asyncio
@@ -522,6 +584,35 @@ class TestResponseGuards:
         assert guarded["target_stage"] == "readiness_check"
         assert guarded["pacing_signal"]["override_pace"] == "steady"
         assert guarded["pacing_signal"]["recommended_next_step"] == "advance"
+
+    def test_coerce_misconception_events_preserves_sequence_repair_metadata(
+        self, hybrid_system
+    ):
+        events = hybrid_system._coerce_misconception_events(
+            {
+                "misconception_events": [
+                    {
+                        "key": "full_rule_sequence_gap",
+                        "text": "Stops after one local check instead of walking the full rule sequence.",
+                        "action": "still_active",
+                        "repair_priority": "must_address_now",
+                        "repair_scope": "full_sequence",
+                        "repair_pattern": "same_snippet_walkthrough",
+                    }
+                ]
+            }
+        )
+
+        assert events == [
+            {
+                "key": "full_rule_sequence_gap",
+                "text": "Stops after one local check instead of walking the full rule sequence.",
+                "action": "still_active",
+                "repair_priority": "must_address_now",
+                "repair_scope": "full_sequence",
+                "repair_pattern": "same_snippet_walkthrough",
+            }
+        ]
 
 
 class TestGuidedTurnOrdering:

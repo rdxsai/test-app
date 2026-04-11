@@ -273,6 +273,8 @@ class TestReflectorPrompts:
         assert "pacing_signal" in prompt
         assert "stage_action" in prompt
         assert "misconception_events" in prompt
+        assert "repair_scope" in prompt
+        assert "repair_pattern" in prompt
         assert "objective_memory_patch" in prompt
         assert "learner_memory_patch" in prompt
         assert "active_gaps_current" in prompt
@@ -292,6 +294,8 @@ class TestReflectorPrompts:
         assert "is_correct" in prompt
         assert "rationale" in prompt
         assert "misconception_events" in prompt
+        assert "repair_scope" in prompt
+        assert "repair_pattern" in prompt
         assert "active_gaps_current" in prompt
         assert "ACTIVE OBJECTIVE: Apply alt text to images" in prompt
 
@@ -316,12 +320,13 @@ class TestReflectorPrompts:
             current_stage="exploration",
             misconception_state_context=(
                 "ACTIVE LIVE MISCONCEPTIONS:\n"
-                "- Role alone is enough [key=role_alone_enough priority=must_address_now]"
+                "- Role alone is enough [key=role_alone_enough priority=must_address_now scope=full_sequence pattern=same_snippet_walkthrough]"
             ),
         )
         assert "CURRENT LIVE MISCONCEPTION STATE:" in prompt
         assert "Role alone is enough" in prompt
         assert "key=role_alone_enough" in prompt
+        assert "scope=full_sequence" in prompt
 
 
 class TestGuidedRetrievalPrompt:

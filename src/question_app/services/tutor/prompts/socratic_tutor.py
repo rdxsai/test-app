@@ -942,8 +942,18 @@ def format_misconception_state(misconception_state) -> str:
             text = str(item.get("text", "") or item.get("key", "")).strip()
             key = str(item.get("key", "") or "").strip()
             priority = str(item.get("repair_priority", "") or "normal").strip()
+            scope = str(item.get("repair_scope", "") or "").strip()
+            pattern = str(item.get("repair_pattern", "") or "").strip()
             if text:
-                suffix = f" [key={key} priority={priority}]" if key else f" [priority={priority}]"
+                detail_parts = []
+                if key:
+                    detail_parts.append(f"key={key}")
+                detail_parts.append(f"priority={priority}")
+                if scope:
+                    detail_parts.append(f"scope={scope}")
+                if pattern:
+                    detail_parts.append(f"pattern={pattern}")
+                suffix = f" [{' '.join(detail_parts)}]"
                 lines.append(f"- {text}{suffix}")
 
     if resolved:
@@ -953,8 +963,17 @@ def format_misconception_state(misconception_state) -> str:
                 continue
             text = str(item.get("text", "") or item.get("key", "")).strip()
             key = str(item.get("key", "") or "").strip()
+            scope = str(item.get("repair_scope", "") or "").strip()
+            pattern = str(item.get("repair_pattern", "") or "").strip()
             if text:
-                suffix = f" [key={key}]" if key else ""
+                detail_parts = []
+                if key:
+                    detail_parts.append(f"key={key}")
+                if scope:
+                    detail_parts.append(f"scope={scope}")
+                if pattern:
+                    detail_parts.append(f"pattern={pattern}")
+                suffix = f" [{' '.join(detail_parts)}]" if detail_parts else ""
                 lines.append(f"- {text}{suffix}")
 
     return "\n".join(lines)
@@ -1501,7 +1520,9 @@ Output ONLY a JSON object with this exact top-level shape:
       "key": "short_snake_case_key",
       "text": "short string",
       "action": "log|still_active|resolve_candidate",
-      "repair_priority": "normal|must_address_now"
+      "repair_priority": "normal|must_address_now",
+      "repair_scope": "fact|distinction|full_sequence",
+      "repair_pattern": "direct_recheck|same_snippet_walkthrough|fresh_transfer"
     }
   ],
   "lesson_state_patch": {
@@ -1544,6 +1565,11 @@ Rules:
 - Use stable misconception keys whenever possible.
 - If the live misconception state already shows the same issue, reuse that exact
   key for `still_active` or `resolve_candidate` instead of inventing a new key.
+- Use `repair_scope=full_sequence` when the learner is not applying the full
+  ordered checklist and is stopping at a local sub-step.
+- When `repair_scope=full_sequence`, use
+  `repair_pattern=same_snippet_walkthrough`, mark it `must_address_now`, and
+  keep it active until the learner walks the whole sequence on the same snippet.
 - `active_gaps_current`, `support_needs_current`, and `tendencies_current` are
   current-state snapshots, not append-only logs.
 - Keep current-state lists short and prune stale items that no longer fit the
@@ -1585,7 +1611,9 @@ Output ONLY a JSON object with this exact shape:
       "key": "short_snake_case_key",
       "text": "short string",
       "action": "log|still_active|resolve_candidate",
-      "repair_priority": "normal|must_address_now"
+      "repair_priority": "normal|must_address_now",
+      "repair_scope": "fact|distinction|full_sequence",
+      "repair_pattern": "direct_recheck|same_snippet_walkthrough|fresh_transfer"
     }
   ],
   "objective_memory_patch": {
@@ -1608,6 +1636,11 @@ Rules:
 - Keep the rationale under 30 words.
 - If the live misconception state already shows the same issue, reuse that exact
   key for `still_active` or `resolve_candidate` instead of inventing a new key.
+- Use `repair_scope=full_sequence` when the learner fails to apply the whole
+  audit sequence on a multi-step check.
+- When `repair_scope=full_sequence`, prefer
+  `repair_pattern=same_snippet_walkthrough` and require end-to-end evidence
+  before resolving it.
 - `active_gaps_current`, `support_needs_current`, and `tendencies_current` are
   current-state snapshots and should drop stale items when the learner has
   shown the opposite understanding.

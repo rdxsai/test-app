@@ -794,6 +794,20 @@ class HybridCrewAISocraticSystem:
             ).strip().lower()
             if priority not in {"normal", "must_address_now"}:
                 priority = default_priority
+            repair_scope = str(
+                raw_event.get("repair_scope", "") or ""
+            ).strip().lower()
+            if repair_scope not in {"fact", "distinction", "full_sequence"}:
+                repair_scope = "fact"
+            repair_pattern = str(
+                raw_event.get("repair_pattern", "") or ""
+            ).strip().lower()
+            if repair_pattern not in {
+                "direct_recheck",
+                "same_snippet_walkthrough",
+                "fresh_transfer",
+            }:
+                repair_pattern = "direct_recheck"
             identity = (key, action, text)
             if identity in seen:
                 continue
@@ -804,6 +818,8 @@ class HybridCrewAISocraticSystem:
                     "text": text,
                     "action": action,
                     "repair_priority": priority,
+                    "repair_scope": repair_scope,
+                    "repair_pattern": repair_pattern,
                 }
             )
 
@@ -823,6 +839,8 @@ class HybridCrewAISocraticSystem:
                     "text": normalized,
                     "action": "log",
                     "repair_priority": legacy_log_priority,
+                    "repair_scope": "fact",
+                    "repair_pattern": "direct_recheck",
                 }
             )
 
@@ -841,6 +859,8 @@ class HybridCrewAISocraticSystem:
                     "text": normalized,
                     "action": "resolve_candidate",
                     "repair_priority": "normal",
+                    "repair_scope": "fact",
+                    "repair_pattern": "direct_recheck",
                 }
             )
 
@@ -861,10 +881,29 @@ class HybridCrewAISocraticSystem:
             return ""
 
         lines = ["ACTIVE MISCONCEPTION REPAIR:"]
+        sequence_repair = False
         for item in must_address[:2]:
             text = str(item.get("text", "") or item.get("key", "")).strip()
             if text:
                 lines.append(f"- Open misconception: {text}")
+            repair_scope = str(item.get("repair_scope", "") or "").strip().lower()
+            repair_pattern = str(item.get("repair_pattern", "") or "").strip().lower()
+            if repair_scope == "full_sequence" or repair_pattern == "same_snippet_walkthrough":
+                sequence_repair = True
+        if sequence_repair:
+            lines.append(
+                "- This is a procedural repair: keep the same snippet and require the learner to walk the full checklist in order."
+            )
+            lines.append(
+                "- Required order: native-first -> semantic override -> behavior -> focus -> required state/property."
+            )
+            lines.append(
+                "- Do not ask for a localized explanation or the next single check."
+            )
+            lines.append(
+                "- Ask for one end-to-end walkthrough question only, then wait for the learner's full pass."
+            )
+            return "\n".join(lines)
         lines.append(
             "- Repair the misconception explicitly before introducing a new concept."
         )
@@ -973,13 +1012,24 @@ class HybridCrewAISocraticSystem:
             and str(item.get("repair_priority", "") or "") == "must_address_now"
             for item in (((turn_analysis or {}).get("misconception_events", []) or []))
         )
+        requires_full_sequence_repair = any(
+            isinstance(item, dict)
+            and str(item.get("repair_priority", "") or "") == "must_address_now"
+            and (
+                str(item.get("repair_scope", "") or "") == "full_sequence"
+                or str(item.get("repair_pattern", "") or "") == "same_snippet_walkthrough"
+            )
+            for item in (((turn_analysis or {}).get("misconception_events", []) or []))
+        )
         pacing_signal = (turn_analysis or {}).get("pacing_signal", {}) or {}
         recommended_next_step = str(
             pacing_signal.get("recommended_next_step", "") or ""
         ).strip().lower()
 
         response_shape = "question_only"
-        if must_repair or recommended_next_step in {"re-explain", "ask_narrower"}:
+        if requires_full_sequence_repair:
+            response_shape = "full_sequence_repair"
+        elif must_repair or recommended_next_step in {"re-explain", "ask_narrower"}:
             response_shape = "repair_and_check"
         elif recommended_next_step == "give_example":
             response_shape = "example_then_check"
@@ -994,6 +1044,12 @@ class HybridCrewAISocraticSystem:
         lines.append(f"- Max new concepts: {max_new_concepts}")
         lines.append("- Max questions: 1")
         lines.append(f"- Max setup sentences before the question: {max_setup_sentences}")
+        if requires_full_sequence_repair:
+            lines.append("- Repair pattern: same snippet ordered walkthrough")
+            lines.append(
+                "- Hard requirement: require the learner to walk native-first, semantic override, behavior, focus, and required state/property in order."
+            )
+            lines.append("- Do not reduce the repair to one local sub-question.")
         if must_repair:
             lines.append("- Advancement lock: open misconception")
         elif str((turn_analysis or {}).get("stage_action", "") or "") != "advance":

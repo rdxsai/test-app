@@ -668,6 +668,16 @@ class SessionContentCache:
             priority = str(item.get("repair_priority", "") or "").strip().lower()
             if priority not in {"normal", "must_address_now"}:
                 priority = "normal"
+            repair_scope = str(item.get("repair_scope", "") or "").strip().lower()
+            if repair_scope not in {"fact", "distinction", "full_sequence"}:
+                repair_scope = "fact"
+            repair_pattern = str(item.get("repair_pattern", "") or "").strip().lower()
+            if repair_pattern not in {
+                "direct_recheck",
+                "same_snippet_walkthrough",
+                "fresh_transfer",
+            }:
+                repair_pattern = "direct_recheck"
             try:
                 times_seen = max(0, int(item.get("times_seen", 0) or 0))
             except (TypeError, ValueError):
@@ -676,6 +686,8 @@ class SessionContentCache:
                 "key": normalized_key,
                 "text": text or normalized_key.replace("_", " "),
                 "repair_priority": priority,
+                "repair_scope": repair_scope,
+                "repair_pattern": repair_pattern,
                 "times_seen": times_seen,
             }
 
@@ -714,11 +726,23 @@ class SessionContentCache:
         priority = str(event.get("repair_priority", "") or "").strip().lower()
         if priority not in {"normal", "must_address_now"}:
             priority = "normal"
+        repair_scope = str(event.get("repair_scope", "") or "").strip().lower()
+        if repair_scope not in {"fact", "distinction", "full_sequence"}:
+            repair_scope = "fact"
+        repair_pattern = str(event.get("repair_pattern", "") or "").strip().lower()
+        if repair_pattern not in {
+            "direct_recheck",
+            "same_snippet_walkthrough",
+            "fresh_transfer",
+        }:
+            repair_pattern = "direct_recheck"
         return {
             "key": normalized_key,
             "text": text,
             "action": action,
             "repair_priority": priority,
+            "repair_scope": repair_scope,
+            "repair_pattern": repair_pattern,
         }
 
     @classmethod
@@ -752,17 +776,29 @@ class SessionContentCache:
             text = event.get("text", "") or key.replace("_", " ")
             action = event["action"]
             priority = event.get("repair_priority", "normal")
+            repair_scope = event.get("repair_scope", "fact")
+            repair_pattern = event.get("repair_pattern", "direct_recheck")
 
             if action in {"log", "still_active"}:
                 item = active_map.get(key, {
                     "key": key,
                     "text": text,
                     "repair_priority": priority,
+                    "repair_scope": repair_scope,
+                    "repair_pattern": repair_pattern,
                     "times_seen": 0,
                 })
                 item["text"] = text or item.get("text", key.replace("_", " "))
                 if priority == "must_address_now":
                     item["repair_priority"] = "must_address_now"
+                if repair_scope == "full_sequence":
+                    item["repair_scope"] = "full_sequence"
+                elif not item.get("repair_scope"):
+                    item["repair_scope"] = repair_scope
+                if repair_pattern == "same_snippet_walkthrough":
+                    item["repair_pattern"] = "same_snippet_walkthrough"
+                elif not item.get("repair_pattern"):
+                    item["repair_pattern"] = repair_pattern
                 item["times_seen"] = int(item.get("times_seen", 0) or 0) + 1
                 active_map[key] = item
                 if key not in active_order:
@@ -776,6 +812,8 @@ class SessionContentCache:
                     "key": key,
                     "text": text or (item or {}).get("text", key.replace("_", " ")),
                     "repair_priority": priority,
+                    "repair_scope": repair_scope or str((item or {}).get("repair_scope", "") or "fact"),
+                    "repair_pattern": repair_pattern or str((item or {}).get("repair_pattern", "") or "direct_recheck"),
                     "times_seen": int((item or {}).get("times_seen", 0) or 0),
                 }
 
