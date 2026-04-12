@@ -61,8 +61,8 @@ EXPOSE 8080
 # Health check: verify the app is responding
 # Docker will periodically run this to check if container is healthy
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD curl -f http://localhost:8080/ || exit 1
+    CMD curl -f http://localhost:8080/health || exit 1
 
-# Default command: run in development mode with auto-reload
+# Default command: run the app entrypoint
 # Can be overridden in docker-compose.yml
 CMD ["poetry", "run", "dev"]

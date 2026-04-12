@@ -72,6 +72,16 @@ app = create_app()
 register_routers(app)
 
 
+@app.get("/health")
+async def healthcheck():
+    """Lightweight container health endpoint.
+
+    Keep this endpoint dependency-free so Docker health checks do not trigger
+    template rendering, large query loads, or external service calls.
+    """
+    return {"status": "ok"}
+
+
 # Routes
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
@@ -159,13 +169,15 @@ def dev():
     # Disable reload in Docker to avoid constant reload loops
     in_docker = os.environ.get('DOCKER_ENV', 'false') == 'true'
 
-    uvicorn.run(
-        "question_app.main:app",
-        host="0.0.0.0",
-        port=8080,
-        reload=not in_docker,
-        reload_dirs=["/app/src", "/app/templates"],
-    )
+    run_kwargs = {
+        "host": "0.0.0.0",
+        "port": 8080,
+        "reload": not in_docker,
+    }
+    if not in_docker:
+        run_kwargs["reload_dirs"] = ["/app/src", "/app/templates"]
+
+    uvicorn.run("question_app.main:app", **run_kwargs)
 
 
 if __name__ == "__main__":
