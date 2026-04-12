@@ -3,6 +3,7 @@ from unittest.mock import AsyncMock
 import pytest
 
 from question_app.services.general_chat_service import GeneralChatService
+import question_app.services.eval.repository as eval_repository_module
 
 
 class FakeAzureClient:
@@ -338,3 +339,69 @@ def test_build_rag_chunk_payload_matches_prompt_representation(service):
             "rrf_score": 0.3312,
         }
     ]
+
+
+def test_build_eval_metrics_captures_retrieval_and_grounding_signals(service):
+    metrics = service._build_eval_metrics(
+        query="What makes alt text effective for informative images?",
+        retrieved_chunks=[
+            {
+                "content": "Alt text should describe the purpose of informative images.",
+                "topic": "images",
+                "question_id": "q-1",
+            }
+        ],
+        response="Effective alt text follows WCAG 1.1.1 and describes the image purpose.",
+        wcag_context="SC 1.1.1 Non-text Content",
+    )
+
+    metric_map = {metric["metric_name"]: metric for metric in metrics}
+    assert metric_map["retrieval_context_count"]["metric_value"] == 1.0
+    assert metric_map["retrieval_query_overlap"]["metric_value"] > 0
+    assert metric_map["wcag_context_used"]["metric_value"] == 1.0
+    assert metric_map["response_wcag_citation_present"]["metric_value"] == 1.0
+    assert metric_map["response_wcag_citation_present"]["details"]["response_refs"] == ["1.1.1"]
+
+
+@pytest.mark.asyncio
+async def test_capture_rag_sample_logs_eval_metrics(monkeypatch, service):
+    logged_metrics = []
+
+    class FakeEvalRepository:
+        def __init__(self, db=None):
+            self.db = db
+
+        def capture_rag_sample(self, **kwargs):
+            return "sample-123"
+
+        def log_eval(self, **kwargs):
+            logged_metrics.append(kwargs)
+            return "eval-123"
+
+    monkeypatch.setattr(eval_repository_module, "EvalRepository", FakeEvalRepository)
+    service.db = object()
+
+    await service._capture_rag_sample(
+        query="What makes alt text effective?",
+        retrieved_chunks=[
+            {
+                "content": "Alt text should describe image purpose.",
+                "topic": "images",
+                "question_id": "q-1",
+            }
+        ],
+        response="Under WCAG 1.1.1, effective alt text describes the purpose of the image.",
+        session_id="chat-1",
+        intent="conceptual_question",
+        wcag_context="SC 1.1.1 Non-text Content",
+    )
+
+    metric_names = [entry["metric_name"] for entry in logged_metrics]
+    assert metric_names == [
+        "retrieval_context_count",
+        "retrieval_query_overlap",
+        "wcag_context_used",
+        "response_wcag_citation_present",
+    ]
+    assert all(entry["content_type"] == "rag_sample" for entry in logged_metrics)
+    assert all(entry["content_id"] == "sample-123" for entry in logged_metrics)

@@ -425,6 +425,77 @@ Respond with ONLY a JSON object in this exact format:
             )
         return payload
 
+    def _extract_success_criteria_refs(self, text: str) -> List[str]:
+        refs = re.findall(r"\b\d\.\d\.\d\b", text or "")
+        return sorted(set(refs))
+
+    def _compute_query_overlap_score(
+        self,
+        query: str,
+        retrieved_chunks: List[Dict[str, Any]],
+    ) -> float:
+        query_tokens = self._tokenize_text(query)
+        if not query_tokens or not retrieved_chunks:
+            return 0.0
+
+        chunk_tokens: set[str] = set()
+        for chunk in retrieved_chunks:
+            chunk_tokens.update(self._tokenize_text(chunk.get("content", "")))
+            chunk_tokens.update(self._tokenize_text(chunk.get("topic", "")))
+            chunk_tokens.update(self._tokenize_text(chunk.get("learning_objective", "")))
+            chunk_tokens.update(
+                self._tokenize_text(" ".join(str(tag) for tag in (chunk.get("tags") or [])))
+            )
+
+        if not chunk_tokens:
+            return 0.0
+        return len(query_tokens & chunk_tokens) / len(query_tokens)
+
+    def _build_eval_metrics(
+        self,
+        query: str,
+        retrieved_chunks: List[Dict[str, Any]],
+        response: str,
+        wcag_context: str = "",
+    ) -> List[Dict[str, Any]]:
+        query_overlap = self._compute_query_overlap_score(query, retrieved_chunks)
+        response_refs = self._extract_success_criteria_refs(response)
+        wcag_refs = self._extract_success_criteria_refs(wcag_context)
+
+        return [
+            {
+                "metric_name": "retrieval_context_count",
+                "metric_value": float(len(retrieved_chunks)),
+                "details": {
+                    "question_ids": [chunk.get("question_id", "") for chunk in retrieved_chunks],
+                    "topics": [chunk.get("topic", "") for chunk in retrieved_chunks],
+                },
+            },
+            {
+                "metric_name": "retrieval_query_overlap",
+                "metric_value": round(query_overlap, 4),
+                "details": {
+                    "query": query,
+                    "chunk_count": len(retrieved_chunks),
+                },
+            },
+            {
+                "metric_name": "wcag_context_used",
+                "metric_value": 1.0 if wcag_context.strip() else 0.0,
+                "details": {
+                    "wcag_refs": wcag_refs,
+                },
+            },
+            {
+                "metric_name": "response_wcag_citation_present",
+                "metric_value": 1.0 if response_refs else 0.0,
+                "details": {
+                    "response_refs": response_refs,
+                    "wcag_refs": wcag_refs,
+                },
+            },
+        ]
+
     async def _get_rag_context(
         self,
         query: str,
@@ -545,13 +616,15 @@ Respond with ONLY a JSON object in this exact format:
         response: str,
         session_id: str,
         intent: str,
+        wcag_context: str = "",
     ) -> None:
         if not self.db or not retrieved_chunks:
             return
         try:
             from .eval.repository import EvalRepository
 
-            EvalRepository(db=self.db).capture_rag_sample(
+            eval_repo = EvalRepository(db=self.db)
+            sample_id = eval_repo.capture_rag_sample(
                 query=query,
                 retrieved_contexts=[chunk.get("content", "") for chunk in retrieved_chunks],
                 response=response,
@@ -559,6 +632,20 @@ Respond with ONLY a JSON object in this exact format:
                 intent=intent,
                 instance="a",
             )
+            for metric in self._build_eval_metrics(
+                query=query,
+                retrieved_chunks=retrieved_chunks,
+                response=response,
+                wcag_context=wcag_context,
+            ):
+                eval_repo.log_eval(
+                    content_type="rag_sample",
+                    content_id=sample_id,
+                    metric_name=metric["metric_name"],
+                    metric_value=metric["metric_value"],
+                    details=metric["details"],
+                    evaluator="auto",
+                )
         except Exception as exc:
             logger.warning(f"Instance A RAG capture failed: {exc}")
 
@@ -574,6 +661,7 @@ Respond with ONLY a JSON object in this exact format:
         intent = await asyncio.to_thread(self._decide_intent, user_message, history)
         retrieved_chunks: List[Dict[str, Any]] = []
         response = ""
+        wcag_context = ""
 
         if intent == "off_topic":
             response = (
@@ -592,7 +680,7 @@ Respond with ONLY a JSON object in this exact format:
                 )
                 search_query = f"{user_message}\n{code_analysis}"
 
-            combined_context, retrieved_chunks, _ = await self._get_combined_context(
+            combined_context, retrieved_chunks, wcag_context = await self._get_combined_context(
                 search_query,
                 history=history,
             )
@@ -618,6 +706,7 @@ Respond with ONLY a JSON object in this exact format:
             response=response,
             session_id=session_id,
             intent=intent,
+            wcag_context=wcag_context if intent != "off_topic" else "",
         )
 
         updated = await self.sessions.get_session(session_id)
@@ -706,6 +795,7 @@ Respond with ONLY a JSON object in this exact format:
             response=response,
             session_id=session_id,
             intent=intent,
+            wcag_context=wcag_context if intent != "off_topic" else "",
         )
 
         updated = await self.sessions.get_session(session_id)
