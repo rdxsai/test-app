@@ -397,6 +397,33 @@ Respond with ONLY a JSON object in this exact format:
             )
         return "\n\n".join(rendered_chunks)
 
+    def _build_rag_chunk_payload(
+        self,
+        chunks: List[Dict[str, Any]],
+    ) -> List[Dict[str, Any]]:
+        payload: List[Dict[str, Any]] = []
+        for index, chunk in enumerate(chunks[:MAX_PROMPT_RAG_CHUNKS], start=1):
+            payload.append(
+                {
+                    "source_label": self._build_chunk_source_label(index, chunk),
+                    "summary": self._summarize_chunk_for_prompt(chunk),
+                    "topic": chunk.get("topic", ""),
+                    "question_id": chunk.get("question_id", ""),
+                    "chunk_type": chunk.get("chunk_type", ""),
+                    "distance": (
+                        round(chunk.get("distance", 0), 3)
+                        if chunk.get("distance") is not None
+                        else None
+                    ),
+                    "rrf_score": (
+                        round(chunk.get("rrf_score", 0), 4)
+                        if chunk.get("rrf_score") is not None
+                        else 0
+                    ),
+                }
+            )
+        return payload
+
     async def _get_rag_context(
         self,
         query: str,
@@ -646,24 +673,7 @@ Respond with ONLY a JSON object in this exact format:
             await ws_send(
                 {
                     "type": "rag_chunks",
-                    "chunks": [
-                        {
-                            "content": chunk.get("content", ""),
-                            "topic": chunk.get("topic", ""),
-                            "question_id": chunk.get("question_id", ""),
-                            "distance": (
-                                round(chunk.get("distance", 0), 3)
-                                if chunk.get("distance") is not None
-                                else None
-                            ),
-                            "rrf_score": (
-                                round(chunk.get("rrf_score", 0), 4)
-                                if chunk.get("rrf_score") is not None
-                                else 0
-                            ),
-                        }
-                        for chunk in retrieved_chunks
-                    ],
+                    "chunks": self._build_rag_chunk_payload(retrieved_chunks),
                 }
             )
             if wcag_context:

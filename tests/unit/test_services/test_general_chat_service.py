@@ -158,12 +158,16 @@ async def test_streaming_message_emits_instance_a_events(service):
     )
 
     event_types = [event["type"] for event in events]
+    rag_event = next(event for event in events if event["type"] == "rag_chunks")
     assert metadata["intent_executed"] == "conceptual_question"
     assert event_types[0] == "stage"
     assert "rag_chunks" in event_types
     assert "wcag_context" in event_types
     assert "stream_start" in event_types
     assert "stream_end" in event_types
+    assert rag_event["chunks"][0]["source_label"] == "Quiz Source 1 | topic=images | question_id=q-1 | type=question"
+    assert rag_event["chunks"][0]["summary"].startswith("Key point:")
+    assert "content" not in rag_event["chunks"][0]
 
 
 @pytest.mark.asyncio
@@ -284,3 +288,31 @@ def test_summarize_chunk_for_prompt_highlights_signal_and_tags(service):
     assert "Signal: correct answer example" in summary
     assert "Objective: Explain effective text alternatives" in summary
     assert "Tags: images, alt text" in summary
+
+
+def test_build_rag_chunk_payload_matches_prompt_representation(service):
+    payload = service._build_rag_chunk_payload(
+        [
+            {
+                "content": "Alt text should describe the purpose of the image.",
+                "topic": "images",
+                "question_id": "q-1",
+                "chunk_type": "answer",
+                "is_correct": True,
+                "distance": 0.0832,
+                "rrf_score": 0.33119,
+            }
+        ]
+    )
+
+    assert payload == [
+        {
+            "source_label": "Quiz Source 1 | topic=images | question_id=q-1 | type=answer",
+            "summary": "Key point: Alt text should describe the purpose of the image. | Signal: correct answer example",
+            "topic": "images",
+            "question_id": "q-1",
+            "chunk_type": "answer",
+            "distance": 0.083,
+            "rrf_score": 0.3312,
+        }
+    ]
