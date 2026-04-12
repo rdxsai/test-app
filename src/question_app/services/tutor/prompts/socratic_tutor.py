@@ -1083,6 +1083,15 @@ def _format_legacy_plan(plan: dict) -> str:
 # Instance A: General Q&A — teach-first without stage awareness
 # ---------------------------------------------------------------------------
 
+_INSTANCE_A_TEACHING_RULES = """\
+=== INSTANCE A RESPONSE STYLE ===
+
+- Start with the direct answer, then add the brief explanation that makes it usable.
+- Prefer one concrete accessibility example over multiple abstract examples.
+- If the student is confused, correct the misconception plainly before moving on.
+- Ask at most one gentle follow-up question, and only when it helps the student check understanding.
+- If WCAG context is available, cite the specific success criterion naturally in the explanation."""
+
 _INSTANCE_A_FORMAT = """\
 === FORMATTING RULES (your output is rendered as Markdown) ===
 
@@ -1141,7 +1150,7 @@ def build_instance_a_prompt(
 
 {instance_a_scope}
 
-{FEW_SHOT_EXAMPLES}
+{_INSTANCE_A_TEACHING_RULES}
 
 {_INSTANCE_A_FORMAT}
 
