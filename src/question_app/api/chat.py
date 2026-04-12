@@ -26,6 +26,7 @@ from ..services.tutor.hybrid_system import HybridCrewAISocraticSystem
 from ..services.tutor.azure_client import AzureAPIMClient
 from ..services.wcag_mcp_client import WCAGMCPClient
 from ..services.student_service import StudentService
+from ..services.general_chat_service import GeneralChatService
 from ..api.pg_vector_store import VectorStoreService
 
 
@@ -68,11 +69,19 @@ try:
     if wcag_mcp:
         logger.info("Chat API: WCAG MCP client created with LLM-driven tool calling.")
 
+    general_chat_service = GeneralChatService(
+        azure_config=azure_config,
+        vector_store_service=vector_service,
+        wcag_mcp_client=wcag_mcp,
+        db_manager=vector_service.db,
+    )
+    logger.info("Chat API: GeneralChatService initialized successfully.")
+
     student_service = StudentService() if config.STUDENT_MCP_ENABLED else None
     if student_service:
         logger.info("Chat API: StudentService initialized (direct DB access).")
 
-    tutor_system = HybridCrewAISocraticSystem(
+    guided_tutor_system = HybridCrewAISocraticSystem(
         azure_config=azure_config,
         vector_store_service=vector_service,
         wcag_mcp_client=wcag_mcp,
@@ -82,10 +91,12 @@ try:
 
 except ValueError as e:
     logger.critical(f"Failed to initialize vector store: {e}")
-    tutor_system = None
+    general_chat_service = None
+    guided_tutor_system = None
 except Exception as e:
-    logger.critical(f"Failed to initialize HybridCrewAISocraticSystem: {e}", exc_info=True)
-    tutor_system = None
+    logger.critical(f"Failed to initialize chat services: {e}", exc_info=True)
+    general_chat_service = None
+    guided_tutor_system = None
 # --- === END OF INITIALIZATION === ---
 
 
@@ -101,10 +112,8 @@ class ChatMessage(BaseModel):
     message : str
     student_id: str | None = None 
 
-# --- Constants for our new default student ---
-DEFAULT_STUDENT_ID = "default-student"
-DEFAULT_STUDENT_NAME = "Default Student"
-DEFAULT_TOPIC = "Web Accessibility"
+# --- Constants for instance A session bootstrap ---
+DEFAULT_CHAT_SESSION_ID = "default-student"
 
 @router.post("/message")
 async def handle_chat_message(chat_message : ChatMessage):
@@ -113,71 +122,43 @@ async def handle_chat_message(chat_message : ChatMessage):
     (This is the updated, corrected version)
     """
     
-    if not tutor_system:
-        logger.error("Tutor system is not initialized. Check server logs.")
-        raise HTTPException(status_code=503, detail="Tutor system is offline. Please check server logs.")
+    if not general_chat_service:
+        logger.error("General chat service is not initialized. Check server logs.")
+        raise HTTPException(status_code=503, detail="Chat service is offline. Please check server logs.")
 
     try:
-        # --- (Default student logic is correct) ---
-        student_id = chat_message.student_id or DEFAULT_STUDENT_ID
-        
-        profile = tutor_system.get_student_profile(student_id)
-        if not profile:
-            logger.warning(f"Student profile '{student_id}' not found. Creating a default profile.")
-            try:
-                tutor_system.create_student_profile(
-                    name=DEFAULT_STUDENT_NAME,
-                    topic=DEFAULT_TOPIC,
-                    student_id_override=student_id 
-                )
-                # After creating, we must load the profile again to use it
-                profile = tutor_system.get_student_profile(student_id)
-                if not profile: # Still not found? Something is wrong.
-                    raise Exception("Failed to create or load default student profile.")
-            except Exception as create_e:
-                logger.error(f"Failed to create default student profile: {create_e}", exc_info=True)
-                raise HTTPException(status_code=500, detail="Failed to create student profile.")
-        # --- (End of default student logic) ---
-
-        
-        # --- === THIS IS THE NEW FIX === ---
-        # If the message is "START_SESSION", just send the welcome message.
-        if chat_message.message == "START_SESSION":
-            logger.info(f"Handling new conversation start for student_id: {student_id}")
-            welcome_message = load_welcome_message() # Use the existing utility
-            
-            # We increment the session count
-            if profile:
-                profile.total_sessions += 1
-                tutor_system.db.save_student_profile(profile)
-                
-            return {
-                "response": welcome_message,
-                "student_id": student_id,
-                "session_metadata": {
-                    "session_number": profile.total_sessions if profile else 1,
-                    "intent_executed": "start_session",
-                    "analysis": {}, "progress": {} # Send empty metadata
-                }
-            }
-        # --- === END OF NEW FIX === ---
-
-        
-        # If the message is not "START_SESSION", proceed with the normal AI workflow
-        logger.info(f"Received chat message for student_id: {student_id}")
-        
-        result = await tutor_system.conduct_socratic_session(
-            student_id=student_id,
-            student_response=chat_message.message
+        session = await general_chat_service.ensure_session(
+            chat_message.student_id or DEFAULT_CHAT_SESSION_ID
         )
 
-        if result.get("status") == "error":
-            raise HTTPException(status_code=500 , detail = result.get("error" , "An unknown error occured in tutoring session"))
-        
+        if chat_message.message == "START_SESSION":
+            logger.info(
+                "Handling new conversation start for session_id: %s",
+                session["session_id"],
+            )
+            session = await general_chat_service.start_new_session(session["session_id"])
+            welcome_message = load_welcome_message()
+            return {
+                "response": welcome_message,
+                "student_id": session["session_id"],
+                "session_metadata": {
+                    "session_number": session["session_number"],
+                    "intent_executed": "start_session",
+                    "analysis": {},
+                    "progress": {},
+                }
+            }
+
+        logger.info(f"Received chat message for session_id: {session['session_id']}")
+        result = await general_chat_service.handle_message(
+            session_id=session["session_id"],
+            user_message=chat_message.message,
+        )
+
         return {
-            "response" : result.get("tutor_response"),
-            "student_id": student_id, 
-            "session_metadata" : result.get("session_metadata")
+            "response": result.get("response"),
+            "student_id": result.get("session_id"),
+            "session_metadata": result.get("session_metadata"),
         }
     except HTTPException as e:
         logger.error(f"HTTP Exception in handle_chat_message : {e.detail}")
@@ -217,14 +198,14 @@ async def websocket_chat(websocket: WebSocket):
     """
     await websocket.accept()
 
-    if not tutor_system:
-        await websocket.send_json({"type": "error", "message": "Tutor system is offline."})
+    if not general_chat_service:
+        await websocket.send_json({"type": "error", "message": "Chat service is offline."})
         await websocket.close(code=1011)
         return
 
     await websocket.send_json({"type": "connected"})
 
-    student_id = None
+    session_id = None
 
     async def ws_send(data: dict):
         """Helper to send JSON over WebSocket."""
@@ -243,55 +224,30 @@ async def websocket_chat(websocket: WebSocket):
 
             # --- AUTH ---
             if msg_type == "auth":
-                student_id = msg.get("student_id") or DEFAULT_STUDENT_ID
-                profile = await asyncio.to_thread(
-                    tutor_system.get_student_profile, student_id
+                session = await general_chat_service.ensure_session(
+                    msg.get("student_id") or DEFAULT_CHAT_SESSION_ID
                 )
-                if not profile:
-                    try:
-                        await asyncio.to_thread(
-                            tutor_system.create_student_profile,
-                            DEFAULT_STUDENT_NAME,
-                            DEFAULT_TOPIC,
-                            "",
-                            student_id,
-                        )
-                        profile = await asyncio.to_thread(
-                            tutor_system.get_student_profile, student_id
-                        )
-                    except Exception as e:
-                        logger.error(f"WS: Failed to create student: {e}", exc_info=True)
-                        await websocket.send_json({
-                            "type": "error",
-                            "message": "Failed to create student profile."
-                        })
-                        continue
-
-                session_number = profile.total_sessions if profile else 0
+                session_id = session["session_id"]
                 await websocket.send_json({
                     "type": "authenticated",
-                    "student_id": student_id,
-                    "session_number": session_number,
+                    "student_id": session["session_id"],
+                    "session_number": session["session_number"],
                 })
 
             # --- NEW SESSION ---
             elif msg_type == "new_session":
-                if not student_id:
-                    student_id = DEFAULT_STUDENT_ID
-
-                profile = await asyncio.to_thread(
-                    tutor_system.get_student_profile, student_id
+                session = await general_chat_service.ensure_session(
+                    session_id or DEFAULT_CHAT_SESSION_ID
                 )
-                if profile:
-                    profile.total_sessions += 1
-                    await asyncio.to_thread(tutor_system.db.save_student_profile, profile)
+                session_id = session["session_id"]
+                session = await general_chat_service.start_new_session(session_id)
 
                 welcome = load_welcome_message()
                 await websocket.send_json({
                     "type": "welcome",
                     "content": welcome,
-                    "student_id": student_id,
-                    "session_number": profile.total_sessions if profile else 1,
+                    "student_id": session["session_id"],
+                    "session_number": session["session_number"],
                 })
 
             # --- CHAT MESSAGE ---
@@ -301,12 +257,13 @@ async def websocket_chat(websocket: WebSocket):
                     await websocket.send_json({"type": "error", "message": "Empty message"})
                     continue
 
-                if not student_id:
-                    student_id = DEFAULT_STUDENT_ID
-
-                await tutor_system.conduct_socratic_session_streaming(
-                    student_id=student_id,
-                    student_response=content,
+                session = await general_chat_service.ensure_session(
+                    session_id or DEFAULT_CHAT_SESSION_ID
+                )
+                session_id = session["session_id"]
+                await general_chat_service.handle_message_streaming(
+                    session_id=session_id,
+                    user_message=content,
                     ws_send=ws_send,
                 )
 
@@ -321,7 +278,7 @@ async def websocket_chat(websocket: WebSocket):
                 })
 
     except WebSocketDisconnect:
-        logger.info(f"WS: Client disconnected (student_id={student_id})")
+        logger.info(f"WS: Client disconnected (session_id={session_id})")
     except Exception as e:
         logger.error(f"WS: Unexpected error: {e}", exc_info=True)
         try:
@@ -359,12 +316,12 @@ async def websocket_guided_chat(websocket: WebSocket):
     """
     await websocket.accept()
 
-    if not tutor_system:
+    if not guided_tutor_system:
         await websocket.send_json({"type": "error", "message": "Tutor system is offline."})
         await websocket.close(code=1011)
         return
 
-    if not tutor_system.student_mcp:
+    if not guided_tutor_system.student_mcp:
         await websocket.send_json({"type": "error", "message": "Student MCP not available."})
         await websocket.close(code=1011)
         return
@@ -400,8 +357,8 @@ async def websocket_guided_chat(websocket: WebSocket):
                 session_id = f"guided-{uuid.uuid4().hex[:12]}"
 
                 # Check if student has a profile in the Student MCP
-                profile = await tutor_system.student_mcp.get_profile(student_id)
-                session = await tutor_system.student_mcp.get_active_session(student_id) if profile else None
+                profile = await guided_tutor_system.student_mcp.get_profile(student_id)
+                session = await guided_tutor_system.student_mcp.get_active_session(student_id) if profile else None
 
                 if profile:
                     # Returning student — resume or start new objective
@@ -417,7 +374,7 @@ async def websocket_guided_chat(websocket: WebSocket):
                     })
 
                     # Create a new session for this connection
-                    await tutor_system.student_mcp.update_session_state(
+                    await guided_tutor_system.student_mcp.update_session_state(
                         session_id, student_id=student_id,
                         stage=current_stage, active_objective_id=objective,
                     )
@@ -434,7 +391,7 @@ async def websocket_guided_chat(websocket: WebSocket):
                     })
 
                     # Check if this student has partial onboarding progress
-                    history = tutor_system.get_conversation_history(student_id)
+                    history = guided_tutor_system.get_conversation_history(student_id)
                     assistant_turns = sum(1 for m in history if m.get("role") == "assistant")
 
                     if assistant_turns == 0:
@@ -445,20 +402,20 @@ async def websocket_guided_chat(websocket: WebSocket):
                             "student_id": student_id,
                             "stage": "onboarding",
                         })
-                        first_question = tutor_system._ONBOARDING_QUESTIONS[0]
+                        first_question = guided_tutor_system._ONBOARDING_QUESTIONS[0]
                         await websocket.send_json({
                             "type": "onboarding_question",
                             "step": 1,
                             "total_steps": 3,
                             **first_question,
                         })
-                        tutor_system.append_to_conversation(
-                            student_id, "assistant", tutor_system._ONBOARDING_PROMPTS[0]
+                        guided_tutor_system.append_to_conversation(
+                            student_id, "assistant", guided_tutor_system._ONBOARDING_PROMPTS[0]
                         )
                     else:
                         # Returning mid-onboarding — send the next unanswered question
                         next_step = min(assistant_turns, 2)
-                        question = tutor_system._ONBOARDING_QUESTIONS[next_step]
+                        question = guided_tutor_system._ONBOARDING_QUESTIONS[next_step]
                         await websocket.send_json({
                             "type": "welcome",
                             "content": "Welcome back! Let's continue where we left off.",
@@ -483,7 +440,7 @@ async def websocket_guided_chat(websocket: WebSocket):
                     await websocket.send_json({"type": "error", "message": "Not authenticated"})
                     continue
 
-                await tutor_system.conduct_guided_session_streaming(
+                await guided_tutor_system.conduct_guided_session_streaming(
                     student_id=student_id,
                     student_response=content,
                     session_id=session_id,
@@ -494,16 +451,16 @@ async def websocket_guided_chat(websocket: WebSocket):
             elif msg_type == "reset_session":
                 if student_id:
                     # Clear conversation memory for this student
-                    tutor_system.conversation_memory.pop(student_id, None)
-                    tutor_system._save_conversation_memory()
+                    guided_tutor_system.conversation_memory.pop(student_id, None)
+                    guided_tutor_system._save_conversation_memory()
                     # Invalidate session cache
                     if session_id:
-                        tutor_system._session_cache.invalidate(session_id)
+                        guided_tutor_system._session_cache.invalidate(session_id)
                         if (
-                            tutor_system.student_mcp
-                            and hasattr(tutor_system.student_mcp, "clear_session_runtime_cache")
+                            guided_tutor_system.student_mcp
+                            and hasattr(guided_tutor_system.student_mcp, "clear_session_runtime_cache")
                         ):
-                            await tutor_system.student_mcp.clear_session_runtime_cache(
+                            await guided_tutor_system.student_mcp.clear_session_runtime_cache(
                                 session_id
                             )
                     logger.info(f"WS Guided: Session reset for {student_id}")
@@ -522,9 +479,9 @@ async def websocket_guided_chat(websocket: WebSocket):
     except WebSocketDisconnect:
         logger.info(f"WS Guided: Client disconnected (student_id={student_id})")
         # Save session summary on disconnect
-        if student_id and session_id and tutor_system.student_mcp:
+        if student_id and session_id and guided_tutor_system.student_mcp:
             try:
-                await tutor_system.student_mcp.save_session_summary(
+                await guided_tutor_system.student_mcp.save_session_summary(
                     session_id, student_id, "short",
                     content=json.dumps({"disconnected": True}),
                 )
