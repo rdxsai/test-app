@@ -361,6 +361,28 @@ def test_build_eval_metrics_captures_retrieval_and_grounding_signals(service):
     assert metric_map["wcag_context_used"]["metric_value"] == 1.0
     assert metric_map["response_wcag_citation_present"]["metric_value"] == 1.0
     assert metric_map["response_wcag_citation_present"]["details"]["response_refs"] == ["1.1.1"]
+    assert metric_map["response_wcag_citation_grounded"]["metric_value"] == 1.0
+    assert metric_map["response_wcag_citation_grounded"]["details"]["grounded_refs"] == ["1.1.1"]
+
+
+def test_build_eval_metrics_detects_ungrounded_wcag_citation(service):
+    metrics = service._build_eval_metrics(
+        query="What is keyboard accessibility?",
+        retrieved_chunks=[
+            {
+                "content": "Keyboard access allows users to operate controls without a mouse.",
+                "topic": "keyboard",
+                "question_id": "q-2",
+            }
+        ],
+        response="This relates to WCAG 2.1.1 and 2.4.7.",
+        wcag_context="SC 2.1.1 Keyboard",
+    )
+
+    metric_map = {metric["metric_name"]: metric for metric in metrics}
+    assert metric_map["response_wcag_citation_present"]["metric_value"] == 1.0
+    assert metric_map["response_wcag_citation_grounded"]["metric_value"] == 0.5
+    assert metric_map["response_wcag_citation_grounded"]["details"]["grounded_refs"] == ["2.1.1"]
 
 
 @pytest.mark.asyncio
@@ -402,6 +424,7 @@ async def test_capture_rag_sample_logs_eval_metrics(monkeypatch, service):
         "retrieval_query_overlap",
         "wcag_context_used",
         "response_wcag_citation_present",
+        "response_wcag_citation_grounded",
     ]
     assert all(entry["content_type"] == "rag_sample" for entry in logged_metrics)
     assert all(entry["content_id"] == "sample-123" for entry in logged_metrics)

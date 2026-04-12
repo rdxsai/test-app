@@ -429,6 +429,18 @@ Respond with ONLY a JSON object in this exact format:
         refs = re.findall(r"\b\d\.\d\.\d\b", text or "")
         return sorted(set(refs))
 
+    def _compute_wcag_grounding_score(
+        self,
+        response_refs: List[str],
+        wcag_refs: List[str],
+    ) -> float:
+        if not response_refs:
+            return 0.0
+        if not wcag_refs:
+            return 0.0
+        grounded_refs = set(response_refs) & set(wcag_refs)
+        return len(grounded_refs) / len(set(response_refs))
+
     def _compute_query_overlap_score(
         self,
         query: str,
@@ -461,6 +473,8 @@ Respond with ONLY a JSON object in this exact format:
         query_overlap = self._compute_query_overlap_score(query, retrieved_chunks)
         response_refs = self._extract_success_criteria_refs(response)
         wcag_refs = self._extract_success_criteria_refs(wcag_context)
+        grounded_refs = sorted(set(response_refs) & set(wcag_refs))
+        grounding_score = self._compute_wcag_grounding_score(response_refs, wcag_refs)
 
         return [
             {
@@ -492,6 +506,15 @@ Respond with ONLY a JSON object in this exact format:
                 "details": {
                     "response_refs": response_refs,
                     "wcag_refs": wcag_refs,
+                },
+            },
+            {
+                "metric_name": "response_wcag_citation_grounded",
+                "metric_value": round(grounding_score, 4),
+                "details": {
+                    "response_refs": response_refs,
+                    "wcag_refs": wcag_refs,
+                    "grounded_refs": grounded_refs,
                 },
             },
         ]
