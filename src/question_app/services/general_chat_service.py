@@ -122,12 +122,19 @@ class GeneralChatService:
         db_manager=None,
     ):
         chat_deployment = (
-            azure_config.get("tutor_deployment_name")
+            azure_config.get("instance_a_deployment_name")
+            or azure_config.get("reasoning_deployment_name")
+            or azure_config.get("tutor_deployment_name")
             or azure_config.get("deployment_name")
         )
         reasoning_deployment = (
-            azure_config.get("reasoning_deployment_name")
+            azure_config.get("tutor_deployment_name")
+            or azure_config.get("deployment_name")
             or chat_deployment
+        )
+        reasoning_deployment = (
+            azure_config.get("reasoning_deployment_name")
+            or reasoning_deployment
         )
 
         self.chat_client = AzureAPIMClient(

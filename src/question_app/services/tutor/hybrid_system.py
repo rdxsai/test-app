@@ -20,6 +20,7 @@ from dotenv import load_dotenv
 
 from .interfaces import VectorStoreInterface
 from .azure_client import AzureAPIMClient
+from ..general_chat_service import GeneralChatService
 from ...models.tutor import KnowledgeLevel, SessionPhase, StudentProfile
 
 load_dotenv()
@@ -227,6 +228,13 @@ class HybridCrewAISocraticSystem:
         self.db = db_manager or get_database_manager()
         self.wcag_mcp = wcag_mcp_client
         self.student_mcp = student_mcp_client
+        self.instance_a_service = GeneralChatService(
+            azure_config=azure_config,
+            vector_store_service=vector_store_service,
+            wcag_mcp_client=wcag_mcp_client,
+            db_manager=self.db,
+        )
+        self._legacy_instance_a_bootstrapped_sessions: set[str] = set()
         # Session content cache: teaching material cached per objective (zero-latency reuse)
         from .session_cache import SessionContentCache
         self._session_cache = SessionContentCache()
@@ -1935,10 +1943,41 @@ class HybridCrewAISocraticSystem:
         }
 
     # ------------------------------------------------------------------
-    # Response message builder
+    # Legacy Instance A quarantine
     # ------------------------------------------------------------------
 
-    def _build_response_messages(
+    async def _ensure_instance_a_legacy_session(
+        self, student_id: str
+    ) -> Dict[str, Any]:
+        session = await self.instance_a_service.ensure_session(student_id)
+        session_id = session["session_id"]
+        if session_id not in self._legacy_instance_a_bootstrapped_sessions:
+            session = await self.instance_a_service.start_new_session(session_id)
+            self._legacy_instance_a_bootstrapped_sessions.add(session_id)
+        return session
+
+    def _load_legacy_student_profile(self, student_id: str) -> Optional[Any]:
+        load_profile = getattr(self.db, "load_student_profile", None)
+        if not callable(load_profile):
+            return None
+        profile = load_profile(student_id)
+        if profile is None:
+            raise ValueError(f"Student {student_id} not found")
+        return profile
+
+    def _serialize_legacy_student_profile(
+        self, profile: Optional[Any], student_id: str
+    ) -> Dict[str, Any]:
+        if profile is None:
+            return {"id": student_id}
+        try:
+            return asdict(profile)
+        except TypeError:
+            if isinstance(profile, dict):
+                return dict(profile)
+            return {"id": student_id}
+
+    def _build_legacy_instance_a_response_messages(
         self, student_response: str, context: str,
         history: Optional[List[Dict[str, str]]] = None,
         student_context: str = "",
@@ -1964,82 +2003,55 @@ class HybridCrewAISocraticSystem:
         messages.append({"role": "user", "content": student_response})
         return messages
 
-    def _generate_response(self, student_response: str, context: str, history: Optional[List[Dict[str, str]]] = None, student_context: str = "") -> str:
+    def _generate_legacy_instance_a_response(
+        self,
+        student_response: str,
+        context: str,
+        history: Optional[List[Dict[str, str]]] = None,
+        student_context: str = "",
+    ) -> str:
         """
         Single LLM call: context + history + student query → tutor response.
         Used by the non-streaming POST endpoint.
         """
-        messages = self._build_response_messages(student_response, context, history, student_context=student_context)
+        messages = self._build_legacy_instance_a_response_messages(student_response, context, history, student_context=student_context)
         try:
             return self.client.chat(messages, temperature=0.7, max_tokens=1000)
         except Exception as e:
             logger.error(f"Response generation failed: {e}")
             return "I apologize, but I'm having trouble right now. Could you rephrase your question?"
 
-    async def conduct_socratic_session(self, student_id : str , student_response : str) -> Dict[str, Any]:
-            profile = self.db.load_student_profile(student_id)
-            if not profile:
-                raise ValueError(f"Student {student_id} not found")
-            logger.info(f"Starting Session for {profile.name}")
-            profile.total_sessions +=1 # Moved this here, was incrementing even on "START_SESSION"
-            history = self.get_conversation_history(student_id)
-            self.append_to_conversation(student_id, "user", student_response)
+    async def conduct_socratic_session(
+        self, student_id: str, student_response: str
+    ) -> Dict[str, Any]:
+        profile = self._load_legacy_student_profile(student_id)
+        session = await self._ensure_instance_a_legacy_session(student_id)
+        logger.warning(
+            "Legacy Instance A entrypoint conduct_socratic_session() is delegating to GeneralChatService."
+        )
 
-            try:
-                intent = self.coordinator_agent.decide_intent(student_response, history=history)
-
-                final_response = ""
-                analysis = {}
-                progress = {}
-                rag_context = ""
-
-                if intent == "conceptual_question":
-                    logger.info("Executing conceptual workflow")
-                    rag_context, _, _ = await self.get_combined_context(student_response, history=history)
-                    final_response = self._generate_response(student_response, rag_context, history)
-
-                elif intent == "code_analysis_request":
-                    logger.info("Executing code analysis workflow")
-                    code_analysis_result = self.code_analyzer.analyze_code_snippet(student_response)
-                    search_query = student_response + "\n" + code_analysis_result
-                    rag_context, _, _ = await self.get_combined_context(search_query, history=history)
-                    combined = rag_context
-                    if code_analysis_result:
-                        combined = f"CODE ANALYSIS:\n{code_analysis_result}\n\n{rag_context}"
-                    final_response = self._generate_response(student_response, combined, history)
-                
-                # --- === FIX 3: HANDLE THE NEW 'off_topic' INTENT === ---
-                elif intent == "off_topic":
-                    logger.info("Handling 'off_topic' intent. Skipping RAG and AI workflow.")
-                    # We skip all AI agents and just give a default response
-                    final_response = "That's an interesting question! However, I'm a Socratic tutor focused on web accessibility. Do you have a question related to that topic I can help with?"
-                    analysis = {"response_type": "off_topic"}
-                    progress = {} # No progress change
-                # --- === END OF FIX 3 === ---
-
-                logger.info(f"Triage session completed successfully for {profile.name}")
-                
-                # Save the updated profile (session count, etc.)
-                self.db.save_student_profile(profile)
-                self.append_to_conversation(student_id, "assistant", final_response)
-
-                return {
-                    "tutor_response" : final_response,
-                    "student_profile" : asdict(profile),
-                    "session_metadata" : {
-                        "session_number" : profile.total_sessions,
-                        "intent_executed" : intent,
-                        "analysis" : safe_serialize(analysis),
-                        "progress" : safe_serialize(progress),
-                    },
-                    "status" : "success"
-                }
-            except Exception as e:
-                logger.error(f"Triage Session execution failed : {e}", exc_info=True)
-                return{
-                    "tutor_response" : "I apologize, but I'm having a small issue. Could you rephrase that?",
-                    "error" : str(e) , "fallback" : True , "status" : "error"
-                }
+        try:
+            result = await self.instance_a_service.handle_message(
+                session_id=session["session_id"],
+                user_message=student_response,
+            )
+            return {
+                "tutor_response": result.get("response", ""),
+                "student_profile": self._serialize_legacy_student_profile(
+                    profile,
+                    student_id,
+                ),
+                "session_metadata": result.get("session_metadata", {}),
+                "status": "success",
+            }
+        except Exception as e:
+            logger.error(f"Triage Session execution failed : {e}", exc_info=True)
+            return {
+                "tutor_response": "I apologize, but I'm having a small issue. Could you rephrase that?",
+                "error": str(e),
+                "fallback": True,
+                "status": "error",
+            }
     
     async def _progressive_send(self, text: str, ws_send):
         """
@@ -2098,160 +2110,21 @@ class HybridCrewAISocraticSystem:
 
     async def conduct_socratic_session_streaming(self, student_id: str, student_response: str, ws_send):
         """
-        Streaming version of conduct_socratic_session. Sends stage updates
-        and streams the final response word-by-word via ws_send callback.
-
-        ws_send: async callable that sends a JSON-serializable dict to the client.
+        Legacy compatibility wrapper for Instance A streaming calls.
+        Active Instance A behavior now lives in GeneralChatService.
         """
-        profile = self.db.load_student_profile(student_id)
-        if not profile:
-            raise ValueError(f"Student {student_id} not found")
-
-        logger.info(f"Starting streaming session for {profile.name}")
-        profile.total_sessions += 1
-        history = self.get_conversation_history(student_id)
-        self.append_to_conversation(student_id, "user", student_response)
+        self._load_legacy_student_profile(student_id)
+        session = await self._ensure_instance_a_legacy_session(student_id)
+        logger.warning(
+            "Legacy Instance A entrypoint conduct_socratic_session_streaming() is delegating to GeneralChatService."
+        )
 
         try:
-            # Stage 0: Load student context from Student MCP (parallel with intent)
-            student_context_task = asyncio.create_task(
-                self._load_student_context(student_id)
+            return await self.instance_a_service.handle_message_streaming(
+                session_id=session["session_id"],
+                user_message=student_response,
+                ws_send=ws_send,
             )
-
-            # Stage 1: Classify intent
-            await ws_send({"type": "stage", "stage": "classifying"})
-            intent = await asyncio.to_thread(
-                self.coordinator_agent.decide_intent, student_response, history
-            )
-
-            # Await student context (should be done by now — DB reads are fast)
-            student_context = await student_context_task
-            if student_context:
-                logger.info(f"Student MCP context loaded ({len(student_context)} chars)")
-
-            analysis = {}
-            progress = {}
-            rag_context = ""
-
-            retrieved_chunks_data = []
-
-            if intent == "conceptual_question":
-                # Stage 2: Search (RAG + WCAG MCP concurrently)
-                await ws_send({"type": "stage", "stage": "searching", "detail": "Searching quiz bank and WCAG guidelines..."})
-                rag_context, retrieved_chunks_data, wcag_context = await self.get_combined_context(student_response, history=history)
-
-                # Send retrieval stats
-                n_chunks = len(retrieved_chunks_data) if retrieved_chunks_data else 0
-                await ws_send({"type": "stage", "stage": "searching", "detail": f"Found {n_chunks} quiz matches{' + WCAG references' if wcag_context else ''}"})
-
-                # Send retrieved chunks to frontend for display
-                if retrieved_chunks_data:
-                    await ws_send({
-                        "type": "rag_chunks",
-                        "chunks": [
-                            {
-                                "content": c.get("content", ""),
-                                "topic": c.get("topic", ""),
-                                "question_id": c.get("question_id", ""),
-                                "distance": round(c.get("distance", 0), 3) if c.get("distance") is not None else None,
-                                "rrf_score": round(c.get("rrf_score", 0), 4) if c.get("rrf_score") else 0,
-                            }
-                            for c in retrieved_chunks_data
-                        ],
-                    })
-
-                # Send WCAG context to frontend
-                if wcag_context:
-                    await ws_send({"type": "wcag_context", "content": wcag_context})
-
-                # Stage 3: Compose — stream response token-by-token
-                await ws_send({"type": "stage", "stage": "composing", "detail": "Generating response..."})
-
-                # Build messages for streaming (with student context injected)
-                response_messages = self._build_response_messages(
-                    student_response, rag_context, history, student_context=student_context
-                )
-                final_response = await self._stream_response(response_messages, ws_send)
-
-            elif intent == "code_analysis_request":
-                await ws_send({"type": "stage", "stage": "analyzing", "detail": "Analyzing code snippet..."})
-                code_analysis_result = await asyncio.to_thread(
-                    self.code_analyzer.analyze_code_snippet, student_response
-                )
-                search_query = student_response + "\n" + code_analysis_result
-
-                await ws_send({"type": "stage", "stage": "searching", "detail": "Searching quiz bank and WCAG guidelines..."})
-                rag_context, retrieved_chunks_data, wcag_context = await self.get_combined_context(search_query, history=history)
-
-                n_chunks = len(retrieved_chunks_data) if retrieved_chunks_data else 0
-                await ws_send({"type": "stage", "stage": "searching", "detail": f"Found {n_chunks} quiz matches{' + WCAG references' if wcag_context else ''}"})
-
-                if retrieved_chunks_data:
-                    await ws_send({
-                        "type": "rag_chunks",
-                        "chunks": [
-                            {
-                                "content": c.get("content", ""),
-                                "topic": c.get("topic", ""),
-                                "question_id": c.get("question_id", ""),
-                                "distance": round(c.get("distance", 0), 3) if c.get("distance") is not None else None,
-                                "rrf_score": round(c.get("rrf_score", 0), 4) if c.get("rrf_score") else 0,
-                            }
-                            for c in retrieved_chunks_data
-                        ],
-                    })
-
-                if wcag_context:
-                    await ws_send({"type": "wcag_context", "content": wcag_context})
-
-                await ws_send({"type": "stage", "stage": "composing", "detail": "Generating response..."})
-                combined = rag_context
-                if code_analysis_result:
-                    combined = f"CODE ANALYSIS:\n{code_analysis_result}\n\n{rag_context}"
-
-                response_messages = self._build_response_messages(
-                    student_response, combined, history, student_context=student_context
-                )
-                final_response = await self._stream_response(response_messages, ws_send)
-
-            elif intent == "off_topic":
-                await ws_send({"type": "stream_start"})
-                final_response = "That's an interesting question! However, I'm a Socratic tutor focused on web accessibility. Do you have a question related to that topic I can help with?"
-                await ws_send({"type": "token", "content": final_response})
-                analysis = {"response_type": "off_topic"}
-                progress = {}
-            else:
-                await ws_send({"type": "stream_start"})
-                final_response = "Could you rephrase that? I'd like to help with your web accessibility question."
-                await ws_send({"type": "token", "content": final_response})
-
-            # Save profile and conversation
-            self.db.save_student_profile(profile)
-            self.append_to_conversation(student_id, "assistant", final_response)
-
-            # Fire-and-forget RAG triple capture for evaluation pipeline
-            if retrieved_chunks_data and intent != "off_topic":
-                try:
-                    from ..services.eval.repository import EvalRepository
-                    eval_repo = EvalRepository(db=self.db)
-                    eval_repo.capture_rag_sample(
-                        query=student_response,
-                        retrieved_contexts=[c.get("content", "") for c in retrieved_chunks_data],
-                        response=final_response,
-                        student_id=student_id, intent=intent, instance="a",
-                    )
-                except Exception as e:
-                    logger.warning(f"RAG capture failed (non-critical): {e}")
-
-            metadata = {
-                "session_number": profile.total_sessions,
-                "intent_executed": intent,
-                "analysis": safe_serialize(analysis),
-                "progress": safe_serialize(progress),
-            }
-            await ws_send({"type": "stream_end", "metadata": metadata})
-            return metadata
-
         except Exception as e:
             logger.error(f"Streaming session failed: {e}", exc_info=True)
             await ws_send({"type": "error", "message": str(e)})
@@ -2637,7 +2510,7 @@ class HybridCrewAISocraticSystem:
             cached = self._session_cache.get(session_id)
             if cached and cached.get("rag_chunks"):
                 try:
-                    from ..services.eval.repository import EvalRepository
+                    from ..eval.repository import EvalRepository
                     eval_repo = EvalRepository(db=self.db)
                     eval_repo.capture_rag_sample(
                         query=student_response,
@@ -3426,7 +3299,7 @@ Available WCAG MCP tools:
            extracted_concepts)
 
         This replaces the old get_combined_context() + _generate_teaching_plan()
-        flow for Instance B. Instance A still uses the old flow.
+        flow for Instance B. Instance A now routes through GeneralChatService.
         """
         # Step 1: Teaching plan
         await ws_send({"type": "stage", "stage": "composing",

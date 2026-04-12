@@ -51,6 +51,12 @@ class Config:
                 or self.AZURE_OPENAI_DEPLOYMENT_ID
             ),
         )
+        self.AZURE_OPENAI_INSTANCE_A_DEPLOYMENT_ID: Optional[str] = os.getenv(
+            "AZURE_OPENAI_INSTANCE_A_DEPLOYMENT_ID",
+            self.AZURE_OPENAI_REASONING_DEPLOYMENT_ID
+            or self.AZURE_OPENAI_TUTOR_DEPLOYMENT_ID
+            or self.AZURE_OPENAI_DEPLOYMENT_ID,
+        )
         self.AZURE_OPENAI_API_VERSION: str = os.getenv(
             "AZURE_OPENAI_API_VERSION", "2023-12-01-preview"
         )

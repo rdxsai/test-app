@@ -76,6 +76,7 @@ def service(monkeypatch):
             "api_key": "test-key",
             "endpoint": "https://example.test",
             "deployment_name": "fallback-model",
+            "instance_a_deployment_name": "gpt-5.4",
             "tutor_deployment_name": "gpt-5.4-mini",
             "reasoning_deployment_name": "gpt-5.4",
             "api_version": "2025-01-01-preview",
@@ -94,6 +95,11 @@ async def test_default_session_bootstrap_creates_ephemeral_session_ids(service):
     assert first["session_id"].startswith("chat-")
     assert second["session_id"].startswith("chat-")
     assert first["session_id"] != second["session_id"]
+
+
+def test_instance_a_prefers_explicit_instance_a_deployment(service):
+    assert service.chat_client.deployment == "gpt-5.4"
+    assert service.reasoning_client.deployment == "gpt-5.4"
 
 
 @pytest.mark.asyncio

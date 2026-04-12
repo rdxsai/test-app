@@ -46,6 +46,7 @@ try:
         "api_key": config.AZURE_OPENAI_SUBSCRIPTION_KEY,
         "endpoint": config.AZURE_OPENAI_ENDPOINT,
         "deployment_name": config.AZURE_OPENAI_DEPLOYMENT_ID,
+        "instance_a_deployment_name": config.AZURE_OPENAI_INSTANCE_A_DEPLOYMENT_ID,
         "tutor_deployment_name": config.AZURE_OPENAI_TUTOR_DEPLOYMENT_ID,
         "reasoning_deployment_name": config.AZURE_OPENAI_REASONING_DEPLOYMENT_ID,
         "api_version": config.AZURE_OPENAI_API_VERSION

@@ -139,6 +139,65 @@ class FakeWCAGClient:
         return results
 
 
+class FakeGeneralChatService:
+    def __init__(self, azure_config, vector_store_service, wcag_mcp_client=None, db_manager=None):
+        self.azure_config = azure_config
+        self.vector_store_service = vector_store_service
+        self.wcag_mcp_client = wcag_mcp_client
+        self.db_manager = db_manager
+        self.ensure_calls = []
+        self.start_calls = []
+        self.handle_calls = []
+        self.streaming_calls = []
+        self._session_numbers = {}
+
+    async def ensure_session(self, requested_session_id=None):
+        self.ensure_calls.append(requested_session_id)
+        session_id = requested_session_id or "chat-test"
+        return {
+            "session_id": session_id,
+            "session_number": self._session_numbers.get(session_id, 0),
+        }
+
+    async def start_new_session(self, session_id):
+        self.start_calls.append(session_id)
+        self._session_numbers[session_id] = self._session_numbers.get(session_id, 0) + 1
+        return {
+            "session_id": session_id,
+            "session_number": self._session_numbers[session_id],
+        }
+
+    async def handle_message(self, session_id, user_message):
+        self.handle_calls.append(
+            {"session_id": session_id, "user_message": user_message}
+        )
+        return {
+            "response": "Delegated Instance A response.",
+            "session_id": session_id,
+            "session_metadata": {
+                "session_number": self._session_numbers.get(session_id, 1),
+                "intent_executed": "conceptual_question",
+                "analysis": {},
+                "progress": {},
+            },
+        }
+
+    async def handle_message_streaming(self, session_id, user_message, ws_send):
+        self.streaming_calls.append(
+            {"session_id": session_id, "user_message": user_message}
+        )
+        await ws_send({"type": "stream_start"})
+        await ws_send({"type": "token", "content": "Delegated stream"})
+        metadata = {
+            "session_number": self._session_numbers.get(session_id, 1),
+            "intent_executed": "conceptual_question",
+            "analysis": {},
+            "progress": {},
+        }
+        await ws_send({"type": "stream_end", "metadata": metadata})
+        return metadata
+
+
 def _azure_config():
     return {
         "api_key": "test-key",
@@ -155,6 +214,10 @@ def hybrid_system(monkeypatch):
     monkeypatch.setattr(
         "question_app.services.tutor.hybrid_system.AzureAPIMClient",
         FakeAzureClient,
+    )
+    monkeypatch.setattr(
+        "question_app.services.tutor.hybrid_system.GeneralChatService",
+        FakeGeneralChatService,
     )
     monkeypatch.setattr(
         HybridCrewAISocraticSystem,
@@ -183,6 +246,64 @@ class TestHybridSystemModelRoles:
         assert hybrid_system.client is hybrid_system.tutor_client
         assert hybrid_system.coordinator_agent.client is hybrid_system.tutor_client
         assert hybrid_system.code_analyzer.client is hybrid_system.reasoning_client
+
+
+class TestLegacyInstanceADelegation:
+    @pytest.mark.asyncio
+    async def test_conduct_socratic_session_delegates_to_general_chat_service(
+        self, hybrid_system
+    ):
+        result = await hybrid_system.conduct_socratic_session(
+            "student-1",
+            "What is alt text?",
+        )
+
+        assert hybrid_system.instance_a_service.ensure_calls == ["student-1"]
+        assert hybrid_system.instance_a_service.start_calls == ["student-1"]
+        assert hybrid_system.instance_a_service.handle_calls == [
+            {"session_id": "student-1", "user_message": "What is alt text?"}
+        ]
+        assert result["tutor_response"] == "Delegated Instance A response."
+        assert result["session_metadata"]["intent_executed"] == "conceptual_question"
+
+    @pytest.mark.asyncio
+    async def test_conduct_socratic_session_bootstraps_legacy_session_once(
+        self, hybrid_system
+    ):
+        await hybrid_system.conduct_socratic_session("student-1", "First turn")
+        await hybrid_system.conduct_socratic_session("student-1", "Second turn")
+
+        assert hybrid_system.instance_a_service.ensure_calls == [
+            "student-1",
+            "student-1",
+        ]
+        assert hybrid_system.instance_a_service.start_calls == ["student-1"]
+
+    @pytest.mark.asyncio
+    async def test_conduct_socratic_session_streaming_delegates_to_general_chat_service(
+        self, hybrid_system
+    ):
+        events = []
+
+        async def ws_send(payload):
+            events.append(payload)
+
+        metadata = await hybrid_system.conduct_socratic_session_streaming(
+            "student-1",
+            "What is alt text?",
+            ws_send,
+        )
+
+        assert hybrid_system.instance_a_service.start_calls == ["student-1"]
+        assert hybrid_system.instance_a_service.streaming_calls == [
+            {"session_id": "student-1", "user_message": "What is alt text?"}
+        ]
+        assert [event["type"] for event in events] == [
+            "stream_start",
+            "token",
+            "stream_end",
+        ]
+        assert metadata["intent_executed"] == "conceptual_question"
 
 
 class TestGuidedTutorMessages:
