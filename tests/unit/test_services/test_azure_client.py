@@ -62,7 +62,9 @@ def test_reasoning_completion_budget_defaults_to_tighter_low_effort_limit():
         api_key="test-key",
     )
 
-    assert client._resolve_reasoning_completion_tokens(300, "low") == 1200
+    assert client._resolve_reasoning_completion_tokens(120, "low") == 400
+    assert client._resolve_reasoning_completion_tokens(300, "low") == 800
+    assert client._resolve_reasoning_completion_tokens(500, "low") == 1200
     assert client._resolve_reasoning_completion_tokens(1000, "low") == 1200
 
 
@@ -73,6 +75,8 @@ def test_reasoning_completion_budget_scales_by_effort_with_cap():
         api_key="test-key",
     )
 
+    assert client._resolve_reasoning_completion_tokens(180, "medium") == 800
     assert client._resolve_reasoning_completion_tokens(900, "medium") == 1800
+    assert client._resolve_reasoning_completion_tokens(180, "high") == 1200
     assert client._resolve_reasoning_completion_tokens(900, "high") == 2400
     assert client._resolve_reasoning_completion_tokens(3000, "high") == 2400

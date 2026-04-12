@@ -11,6 +11,8 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_REASONING_COMPLETION_TOKENS = 1200
 MAX_REASONING_COMPLETION_TOKENS = 2400
+SHORT_REASONING_COMPLETION_TOKENS = 400
+MEDIUM_REASONING_COMPLETION_TOKENS = 800
 
 
 class AzureAPIMClient:
@@ -54,9 +56,17 @@ class AzureAPIMClient:
         effort = self._normalize_reasoning_effort(reasoning_effort)
         requested = max(1, int(max_tokens or 0))
         if effort == "low":
+            if requested <= 150:
+                return min(max(requested * 2, SHORT_REASONING_COMPLETION_TOKENS), MEDIUM_REASONING_COMPLETION_TOKENS)
+            if requested <= 400:
+                return min(max(requested * 2, MEDIUM_REASONING_COMPLETION_TOKENS), DEFAULT_REASONING_COMPLETION_TOKENS)
             return min(max(requested, DEFAULT_REASONING_COMPLETION_TOKENS), MAX_REASONING_COMPLETION_TOKENS)
         if effort == "medium":
+            if requested <= 200:
+                return min(max(requested * 3, MEDIUM_REASONING_COMPLETION_TOKENS), 1600)
             return min(max(requested * 2, 1600), MAX_REASONING_COMPLETION_TOKENS)
+        if requested <= 200:
+            return min(max(requested * 4, DEFAULT_REASONING_COMPLETION_TOKENS), MAX_REASONING_COMPLETION_TOKENS)
         return min(max(requested * 3, 2000), MAX_REASONING_COMPLETION_TOKENS)
 
     def chat(
