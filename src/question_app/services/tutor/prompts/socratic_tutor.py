@@ -1092,6 +1092,21 @@ _INSTANCE_A_TEACHING_RULES = """\
 - Ask at most one gentle follow-up question, and only when it helps the student check understanding.
 - If WCAG context is available, cite the specific success criterion naturally in the explanation."""
 
+_INSTANCE_A_TEACHING_FLOW = """\
+=== INSTANCE A TEACHING FLOW ===
+
+- Teach before you quiz. Give the learner the idea in plain language first.
+- Keep explanations concise and beginner-friendly. Define jargon the first time you use it.
+- Use one natural follow-up question only when it helps the learner check the explanation.
+- If the learner says "I don't know" or seems lost, answer directly and simplify instead of probing."""
+
+_INSTANCE_A_MISCONCEPTION_RULES = """\
+=== INSTANCE A MISCONCEPTIONS ===
+
+- If the student says something incorrect, acknowledge the intuition briefly, then correct it clearly.
+- Show why the incorrect version fails with a concrete user-impact example.
+- Do not expose internal fact-checking or analysis steps in the response."""
+
 _INSTANCE_A_FORMAT = """\
 === FORMATTING RULES (your output is rendered as Markdown) ===
 
@@ -1144,9 +1159,9 @@ def build_instance_a_prompt(
 
     return f"""{ROLE_PREAMBLE}
 
-{TEACHING_APPROACH_INTRO}
+{_INSTANCE_A_TEACHING_FLOW}
 
-{MISCONCEPTION_HANDLING}
+{_INSTANCE_A_MISCONCEPTION_RULES}
 
 {instance_a_scope}
 

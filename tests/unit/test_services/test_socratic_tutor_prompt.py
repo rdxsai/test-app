@@ -5,6 +5,10 @@ def test_build_instance_a_prompt_uses_compact_instance_a_rules():
     prompt = build_instance_a_prompt()
 
     assert "=== INSTANCE A RESPONSE STYLE ===" in prompt
+    assert "=== INSTANCE A TEACHING FLOW ===" in prompt
+    assert "=== INSTANCE A MISCONCEPTIONS ===" in prompt
+    assert "=== HOW TO TEACH (INTRODUCTION PHASE) ===" not in prompt
+    assert "=== WHEN THE STUDENT SAYS SOMETHING WRONG ===" not in prompt
     assert "Example 1 — Misconception during introduction:" not in prompt
     assert "=== EXAMPLES OF GOOD TUTORING ===" not in prompt
 
