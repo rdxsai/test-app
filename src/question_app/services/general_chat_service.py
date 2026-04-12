@@ -21,6 +21,7 @@ MIN_RRF_SCORE = 0.01
 MAX_PROMPT_RAG_CHUNKS = 3
 MAX_PROMPT_CHUNK_CHARS = 280
 MAX_PROMPT_SUMMARY_CHARS = 180
+INSTANCE_A_RESPONSE_MAX_TOKENS = 600
 
 
 @dataclass
@@ -501,7 +502,10 @@ Respond with ONLY a JSON object in this exact format:
     async def _stream_response(self, messages: List[Dict[str, str]], ws_send) -> str:
         full_response: List[str] = []
         try:
-            async for token in self.chat_client.chat_stream_async(messages, max_tokens=1000):
+            async for token in self.chat_client.chat_stream_async(
+                messages,
+                max_tokens=INSTANCE_A_RESPONSE_MAX_TOKENS,
+            ):
                 full_response.append(token)
         except Exception as exc:
             logger.warning(f"Instance A streaming failed, using sync response: {exc}")
@@ -510,7 +514,7 @@ Respond with ONLY a JSON object in this exact format:
                     self.chat_client.chat,
                     messages,
                     0.7,
-                    1000,
+                    INSTANCE_A_RESPONSE_MAX_TOKENS,
                 )
                 await ws_send({"type": "stream_start"})
                 await ws_send({"type": "token", "content": sync_response})
@@ -522,7 +526,7 @@ Respond with ONLY a JSON object in this exact format:
                 self.chat_client.chat,
                 messages,
                 0.7,
-                1000,
+                INSTANCE_A_RESPONSE_MAX_TOKENS,
             )
             await ws_send({"type": "stream_start"})
             await ws_send({"type": "token", "content": result})
@@ -600,7 +604,12 @@ Respond with ONLY a JSON object in this exact format:
                 combined_context,
                 history=history,
             )
-            response = await asyncio.to_thread(self.chat_client.chat, messages, 0.7, 1000)
+            response = await asyncio.to_thread(
+                self.chat_client.chat,
+                messages,
+                0.7,
+                INSTANCE_A_RESPONSE_MAX_TOKENS,
+            )
 
         await self.sessions.append_message(session_id, "assistant", response)
         await self._capture_rag_sample(

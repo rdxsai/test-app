@@ -6,6 +6,9 @@ from question_app.services.general_chat_service import GeneralChatService
 
 
 class FakeAzureClient:
+    chat_calls = []
+    stream_calls = []
+
     def __init__(self, endpoint: str, deployment: str, api_key: str, api_version: str = ""):
         self.endpoint = endpoint
         self.deployment = deployment
@@ -20,6 +23,14 @@ class FakeAzureClient:
         reasoning_effort=None,
         response_format=None,
     ):
+        type(self).chat_calls.append(
+            {
+                "messages": messages,
+                "temperature": temperature,
+                "max_tokens": max_tokens,
+                "reasoning_effort": reasoning_effort,
+            }
+        )
         system_prompt = messages[0]["content"]
         user_message = messages[-1]["content"]
         if "Classify it as one of three intents" in system_prompt:
@@ -35,6 +46,13 @@ class FakeAzureClient:
         return "Generated accessibility answer."
 
     async def chat_stream_async(self, messages, temperature=0.7, max_tokens=1000):
+        type(self).stream_calls.append(
+            {
+                "messages": messages,
+                "temperature": temperature,
+                "max_tokens": max_tokens,
+            }
+        )
         for token in ["Generated ", "accessibility ", "answer."]:
             yield token
 
@@ -74,6 +92,8 @@ def service(monkeypatch):
         "question_app.services.general_chat_service.AzureAPIMClient",
         FakeAzureClient,
     )
+    FakeAzureClient.chat_calls = []
+    FakeAzureClient.stream_calls = []
     return GeneralChatService(
         azure_config={
             "api_key": "test-key",
@@ -124,6 +144,7 @@ async def test_handle_message_uses_session_memory_and_shared_sources(service):
     assert stored.history[1]["role"] == "assistant"
     assert service.vector_store.hybrid_search_calls
     assert service.wcag_mcp.queries == ["What is alt text?"]
+    assert FakeAzureClient.chat_calls[-1]["max_tokens"] == 600
 
 
 @pytest.mark.asyncio
@@ -168,6 +189,7 @@ async def test_streaming_message_emits_instance_a_events(service):
     assert rag_event["chunks"][0]["source_label"] == "Quiz Source 1 | topic=images | question_id=q-1 | type=question"
     assert rag_event["chunks"][0]["summary"].startswith("Key point:")
     assert "content" not in rag_event["chunks"][0]
+    assert FakeAzureClient.stream_calls[-1]["max_tokens"] == 600
 
 
 @pytest.mark.asyncio
