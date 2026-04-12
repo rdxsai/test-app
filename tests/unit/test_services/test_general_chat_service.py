@@ -1,3 +1,5 @@
+from unittest.mock import AsyncMock
+
 import pytest
 
 from question_app.services.general_chat_service import GeneralChatService
@@ -50,6 +52,7 @@ class FakeVectorStore:
                 "content": "Alt text should convey the image's meaning or function.",
                 "topic": "images",
                 "question_id": "q-1",
+                "chunk_type": "question",
                 "distance": 0.11,
                 "rrf_score": 0.3,
             }
@@ -161,3 +164,73 @@ async def test_streaming_message_emits_instance_a_events(service):
     assert "wcag_context" in event_types
     assert "stream_start" in event_types
     assert "stream_end" in event_types
+
+
+@pytest.mark.asyncio
+async def test_get_rag_context_renders_compact_labeled_chunks(service):
+    service.vector_store.hybrid_search = AsyncMock(
+        return_value=[
+            {
+                "content": "First chunk about effective alt text for informative images.",
+                "topic": "images",
+                "question_id": "q-1",
+                "chunk_type": "question",
+                "distance": 0.08,
+                "rrf_score": 0.33,
+            },
+            {
+                "content": "Second chunk explains concise wording and avoiding redundancy.",
+                "topic": "content",
+                "question_id": "q-2",
+                "chunk_type": "answer",
+                "distance": 0.09,
+                "rrf_score": 0.22,
+            },
+            {
+                "content": "Third chunk covers decorative images and null alt usage.",
+                "topic": "images",
+                "question_id": "q-3",
+                "chunk_type": "question",
+                "distance": 0.12,
+                "rrf_score": 0.18,
+            },
+            {
+                "content": "Fourth chunk should not appear because only three prompt chunks are allowed.",
+                "topic": "overflow",
+                "question_id": "q-4",
+                "chunk_type": "answer",
+                "distance": 0.13,
+                "rrf_score": 0.12,
+            },
+        ]
+    )
+
+    context, chunks = await service._get_rag_context("What is alt text?")
+
+    assert len(chunks) == 3
+    assert "Quiz Source 1 | topic=images | question_id=q-1 | type=question" in context
+    assert "Quiz Source 2 | topic=content | question_id=q-2 | type=answer" in context
+    assert "Quiz Source 3 | topic=images | question_id=q-3 | type=question" in context
+    assert "q-4" not in context
+
+
+@pytest.mark.asyncio
+async def test_get_rag_context_truncates_long_chunk_content(service):
+    long_content = "Alt text guidance " * 40
+    service.vector_store.hybrid_search = AsyncMock(
+        return_value=[
+            {
+                "content": long_content,
+                "topic": "images",
+                "question_id": "q-1",
+                "chunk_type": "question",
+                "distance": 0.08,
+                "rrf_score": 0.33,
+            }
+        ]
+    )
+
+    context, _ = await service._get_rag_context("What is alt text?")
+
+    assert len(context) < len(long_content)
+    assert context.endswith("...")

@@ -17,6 +17,8 @@ logger = get_logger(__name__)
 DEFAULT_SESSION_ID = "default-student"
 MAX_COSINE_DISTANCE = 0.3
 MIN_RRF_SCORE = 0.01
+MAX_PROMPT_RAG_CHUNKS = 3
+MAX_PROMPT_CHUNK_CHARS = 280
 
 
 @dataclass
@@ -297,6 +299,34 @@ Respond with ONLY a JSON object in this exact format:
             logger.warning(f"HyDE generation failed: {exc}")
         return query
 
+    @staticmethod
+    def _compact_chunk_content(content: str) -> str:
+        normalized = " ".join((content or "").split())
+        if len(normalized) <= MAX_PROMPT_CHUNK_CHARS:
+            return normalized
+        return normalized[: MAX_PROMPT_CHUNK_CHARS - 3].rstrip() + "..."
+
+    @staticmethod
+    def _build_chunk_source_label(index: int, chunk: Dict[str, Any]) -> str:
+        topic = (chunk.get("topic") or "").strip() or "untitled"
+        question_id = (chunk.get("question_id") or "").strip() or "unknown"
+        chunk_type = (chunk.get("chunk_type") or "").strip()
+        parts = [f"Quiz Source {index}", f"topic={topic}", f"question_id={question_id}"]
+        if chunk_type:
+            parts.append(f"type={chunk_type}")
+        return " | ".join(parts)
+
+    def _render_compact_rag_context(self, chunks: List[Dict[str, Any]]) -> str:
+        rendered_chunks: List[str] = []
+        for index, chunk in enumerate(chunks[:MAX_PROMPT_RAG_CHUNKS], start=1):
+            compact_content = self._compact_chunk_content(chunk.get("content", ""))
+            if not compact_content:
+                continue
+            rendered_chunks.append(
+                f"[{self._build_chunk_source_label(index, chunk)}]\n{compact_content}"
+            )
+        return "\n\n".join(rendered_chunks)
+
     async def _get_rag_context(
         self,
         query: str,
@@ -340,8 +370,9 @@ Respond with ONLY a JSON object in this exact format:
         if not high_quality_chunks:
             return "", []
 
-        context = "\n--\n".join(chunk.get("content", "") for chunk in high_quality_chunks)
-        return context, high_quality_chunks
+        selected_chunks = high_quality_chunks[:MAX_PROMPT_RAG_CHUNKS]
+        context = self._render_compact_rag_context(selected_chunks)
+        return context, selected_chunks
 
     async def _get_combined_context(
         self,
