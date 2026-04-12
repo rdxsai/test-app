@@ -1083,6 +1083,10 @@ def _format_legacy_plan(plan: dict) -> str:
 # Instance A: General Q&A — teach-first without stage awareness
 # ---------------------------------------------------------------------------
 
+_INSTANCE_A_ROLE = """\
+You are a web accessibility tutor focused on clear, practical teaching for beginners.
+Teach first, stay grounded in the provided context, and keep the answer directly useful."""
+
 _INSTANCE_A_TEACHING_RULES = """\
 === INSTANCE A RESPONSE STYLE ===
 
@@ -1116,6 +1120,15 @@ _INSTANCE_A_FORMAT = """\
 - Wrap HTML/code in backticks or fenced code blocks.
 - Aim for 150-300 words. Do NOT repeat the question back."""
 
+_INSTANCE_A_STUDENT_CONTEXT_RULE = (
+    "Adapt vocabulary and examples to the student context above."
+)
+
+_INSTANCE_A_KNOWLEDGE_CONTEXT_RULE = """Use the context above as your source of truth.
+- Cite specific WCAG criteria when available.
+- Use quiz evidence to anticipate misconceptions.
+- Synthesize the context instead of copying it."""
+
 
 def build_instance_a_prompt(
     knowledge_context: str = "",
@@ -1133,16 +1146,13 @@ def build_instance_a_prompt(
     if student_context:
         context_sections.append(
             f"{student_context}\n---\n"
-            "Adapt your vocabulary and examples to the student's level above."
+            f"{_INSTANCE_A_STUDENT_CONTEXT_RULE}"
         )
 
     if knowledge_context:
         context_sections.append(
             f"KNOWLEDGE BASE CONTEXT:\n{knowledge_context}\n---\n"
-            "Use the context above as your primary source of truth.\n"
-            "- If WCAG guidelines are present, cite specific criteria.\n"
-            "- If quiz data is present, use its misconceptions to inform your questions.\n"
-            "- Expand on the context with your expertise — don't just rephrase it."
+            f"{_INSTANCE_A_KNOWLEDGE_CONTEXT_RULE}"
         )
 
     context_block = "\n\n".join(context_sections)
@@ -1157,7 +1167,7 @@ def build_instance_a_prompt(
         "with — I'm focused on web accessibility. What would you like to explore?\""
     )
 
-    return f"""{ROLE_PREAMBLE}
+    return f"""{_INSTANCE_A_ROLE}
 
 {_INSTANCE_A_TEACHING_FLOW}
 
