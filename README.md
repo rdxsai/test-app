@@ -74,7 +74,7 @@ git clone https://github.com/rdxsai/Merged-App.git
 cd Merged-App
 
 # Configure environment
-cp .env.docker.template .env
+cp .env.template .env
 # Edit .env with your Azure OpenAI and Canvas credentials
 
 # Start all services

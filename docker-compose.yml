@@ -10,7 +10,7 @@ services:
     ports:
       - "8080:8080"
     volumes:
-      # Bind mounts for hot reload (code changes reflect immediately)
+      # Bind mounts for live source/config access inside the container
       - ./src:/app/src:ro # Source code (read-only)
       - ./templates:/app/templates:ro # HTML templates (read-only)
       - ./static:/app/static:ro # Static files (read-only)
