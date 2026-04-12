@@ -51,3 +51,28 @@ async def test_chat_with_tools_enables_parallel_tool_calls(monkeypatch):
 
     assert captured["json"]["parallel_tool_calls"] is True
     assert captured["json"]["tool_choice"] == "required"
+    assert captured["json"]["reasoning_effort"] == "medium"
+    assert captured["json"]["max_completion_tokens"] == 1600
+
+
+def test_reasoning_completion_budget_defaults_to_tighter_low_effort_limit():
+    client = AzureAPIMClient(
+        endpoint="https://example.test",
+        deployment="gpt-5.4",
+        api_key="test-key",
+    )
+
+    assert client._resolve_reasoning_completion_tokens(300, "low") == 1200
+    assert client._resolve_reasoning_completion_tokens(1000, "low") == 1200
+
+
+def test_reasoning_completion_budget_scales_by_effort_with_cap():
+    client = AzureAPIMClient(
+        endpoint="https://example.test",
+        deployment="gpt-5.4",
+        api_key="test-key",
+    )
+
+    assert client._resolve_reasoning_completion_tokens(900, "medium") == 1800
+    assert client._resolve_reasoning_completion_tokens(900, "high") == 2400
+    assert client._resolve_reasoning_completion_tokens(3000, "high") == 2400

@@ -9,6 +9,9 @@ import requests
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_REASONING_COMPLETION_TOKENS = 1200
+MAX_REASONING_COMPLETION_TOKENS = 2400
+
 
 class AzureAPIMClient:
     """Direct Azure OpenAI APIM client for chat completions and tool calls."""
@@ -36,6 +39,26 @@ class AzureAPIMClient:
         deployment = self.deployment.lower()
         return deployment.startswith(("gpt-5", "o1", "o3", "o4"))
 
+    @staticmethod
+    def _normalize_reasoning_effort(reasoning_effort: Optional[str]) -> str:
+        effort = (reasoning_effort or "low").strip().lower()
+        if effort not in {"low", "medium", "high"}:
+            return "low"
+        return effort
+
+    def _resolve_reasoning_completion_tokens(
+        self,
+        max_tokens: int,
+        reasoning_effort: Optional[str] = None,
+    ) -> int:
+        effort = self._normalize_reasoning_effort(reasoning_effort)
+        requested = max(1, int(max_tokens or 0))
+        if effort == "low":
+            return min(max(requested, DEFAULT_REASONING_COMPLETION_TOKENS), MAX_REASONING_COMPLETION_TOKENS)
+        if effort == "medium":
+            return min(max(requested * 2, 1600), MAX_REASONING_COMPLETION_TOKENS)
+        return min(max(requested * 3, 2000), MAX_REASONING_COMPLETION_TOKENS)
+
     def chat(
         self,
         messages: List[Dict],
@@ -54,8 +77,12 @@ class AzureAPIMClient:
 
         payload: Dict[str, Any] = {"messages": messages}
         if self._reasoning:
-            payload["max_completion_tokens"] = max(max_tokens * 5, 4000)
-            payload["reasoning_effort"] = reasoning_effort or "low"
+            normalized_effort = self._normalize_reasoning_effort(reasoning_effort)
+            payload["max_completion_tokens"] = self._resolve_reasoning_completion_tokens(
+                max_tokens=max_tokens,
+                reasoning_effort=normalized_effort,
+            )
+            payload["reasoning_effort"] = normalized_effort
         else:
             payload["max_tokens"] = max_tokens
             payload["temperature"] = temperature
@@ -100,8 +127,11 @@ class AzureAPIMClient:
 
         payload: Dict[str, Any] = {"messages": messages, "stream": True}
         if self._reasoning:
-            payload["max_completion_tokens"] = max(max_tokens * 5, 4000)
             payload["reasoning_effort"] = "low"
+            payload["max_completion_tokens"] = self._resolve_reasoning_completion_tokens(
+                max_tokens=max_tokens,
+                reasoning_effort=payload["reasoning_effort"],
+            )
             payload["stream_options"] = {"include_usage": True}
         else:
             payload["max_tokens"] = max_tokens
@@ -177,8 +207,12 @@ class AzureAPIMClient:
             "parallel_tool_calls": parallel_tool_calls,
         }
         if self._reasoning:
-            payload["max_completion_tokens"] = max(max_tokens * 5, 4000)
-            payload["reasoning_effort"] = reasoning_effort or "low"
+            normalized_effort = self._normalize_reasoning_effort(reasoning_effort)
+            payload["max_completion_tokens"] = self._resolve_reasoning_completion_tokens(
+                max_tokens=max_tokens,
+                reasoning_effort=normalized_effort,
+            )
+            payload["reasoning_effort"] = normalized_effort
         else:
             payload["max_tokens"] = max_tokens
             payload["temperature"] = temperature
