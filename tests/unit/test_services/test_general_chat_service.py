@@ -209,6 +209,7 @@ async def test_get_rag_context_renders_compact_labeled_chunks(service):
 
     assert len(chunks) == 3
     assert "Quiz Source 1 | topic=images | question_id=q-1 | type=question" in context
+    assert "Key point:" in context
     assert "Quiz Source 2 | topic=content | question_id=q-2 | type=answer" in context
     assert "Quiz Source 3 | topic=images | question_id=q-3 | type=question" in context
     assert "q-4" not in context
@@ -234,3 +235,52 @@ async def test_get_rag_context_truncates_long_chunk_content(service):
 
     assert len(context) < len(long_content)
     assert context.endswith("...")
+
+
+@pytest.mark.asyncio
+async def test_get_rag_context_reranks_by_query_relevance(service):
+    service.vector_store.hybrid_search = AsyncMock(
+        return_value=[
+            {
+                "content": "Decorative images can use empty alt attributes.",
+                "topic": "images",
+                "question_id": "q-1",
+                "chunk_type": "answer",
+                "is_correct": True,
+                "distance": 0.2,
+                "rrf_score": 0.4,
+            },
+            {
+                "content": "Keyboard focus indicators should remain visible when tabbing through controls.",
+                "topic": "focus",
+                "question_id": "q-2",
+                "chunk_type": "question",
+                "distance": 0.12,
+                "rrf_score": 0.12,
+            },
+        ]
+    )
+
+    _, chunks = await service._get_rag_context("How should keyboard focus visible work?")
+
+    assert chunks[0]["question_id"] == "q-2"
+
+
+def test_summarize_chunk_for_prompt_highlights_signal_and_tags(service):
+    summary = service._summarize_chunk_for_prompt(
+        {
+            "content": (
+                "Alt text should describe the purpose of the image rather than every visual detail. "
+                "That keeps it useful for screen reader users."
+            ),
+            "chunk_type": "answer",
+            "is_correct": True,
+            "learning_objective": "Explain effective text alternatives",
+            "tags": ["images", "alt text"],
+        }
+    )
+
+    assert summary.startswith("Key point:")
+    assert "Signal: correct answer example" in summary
+    assert "Objective: Explain effective text alternatives" in summary
+    assert "Tags: images, alt text" in summary

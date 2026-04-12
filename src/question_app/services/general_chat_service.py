@@ -1,6 +1,7 @@
 """Lightweight runtime for Instance A general accessibility Q&A."""
 
 import asyncio
+import re
 import time
 import uuid
 from dataclasses import dataclass, field
@@ -19,6 +20,7 @@ MAX_COSINE_DISTANCE = 0.3
 MIN_RRF_SCORE = 0.01
 MAX_PROMPT_RAG_CHUNKS = 3
 MAX_PROMPT_CHUNK_CHARS = 280
+MAX_PROMPT_SUMMARY_CHARS = 180
 
 
 @dataclass
@@ -307,6 +309,14 @@ Respond with ONLY a JSON object in this exact format:
         return normalized[: MAX_PROMPT_CHUNK_CHARS - 3].rstrip() + "..."
 
     @staticmethod
+    def _tokenize_text(value: str) -> set[str]:
+        return {
+            token
+            for token in re.findall(r"[a-z0-9]+", (value or "").lower())
+            if len(token) >= 3
+        }
+
+    @staticmethod
     def _build_chunk_source_label(index: int, chunk: Dict[str, Any]) -> str:
         topic = (chunk.get("topic") or "").strip() or "untitled"
         question_id = (chunk.get("question_id") or "").strip() or "unknown"
@@ -316,14 +326,74 @@ Respond with ONLY a JSON object in this exact format:
             parts.append(f"type={chunk_type}")
         return " | ".join(parts)
 
+    def _summarize_chunk_for_prompt(self, chunk: Dict[str, Any]) -> str:
+        compact_content = self._compact_chunk_content(chunk.get("content", ""))
+        if not compact_content:
+            return ""
+
+        primary_sentence = re.split(r"(?<=[.!?])\s+", compact_content, maxsplit=1)[0]
+        if len(primary_sentence) > MAX_PROMPT_SUMMARY_CHARS:
+            primary_sentence = (
+                primary_sentence[: MAX_PROMPT_SUMMARY_CHARS - 3].rstrip() + "..."
+            )
+
+        chunk_type = (chunk.get("chunk_type") or "").strip()
+        learning_objective = (chunk.get("learning_objective") or "").strip()
+        tags = chunk.get("tags") or []
+        summary_parts = [f"Key point: {primary_sentence}"]
+        if chunk_type == "answer" and chunk.get("is_correct") is True:
+            summary_parts.append("Signal: correct answer example")
+        elif chunk_type == "answer" and chunk.get("is_correct") is False:
+            summary_parts.append("Signal: distractor or misconception")
+        if learning_objective:
+            summary_parts.append(f"Objective: {learning_objective}")
+        if tags:
+            rendered_tags = ", ".join(str(tag).strip() for tag in tags[:3] if str(tag).strip())
+            if rendered_tags:
+                summary_parts.append(f"Tags: {rendered_tags}")
+        return " | ".join(summary_parts)
+
+    def _score_chunk_relevance(self, query: str, chunk: Dict[str, Any]) -> float:
+        query_tokens = self._tokenize_text(query)
+        content_tokens = self._tokenize_text(chunk.get("content", ""))
+        topic_tokens = self._tokenize_text(chunk.get("topic", ""))
+        objective_tokens = self._tokenize_text(chunk.get("learning_objective", ""))
+        tag_tokens = self._tokenize_text(" ".join(str(tag) for tag in (chunk.get("tags") or [])))
+
+        lexical_overlap = len(query_tokens & content_tokens)
+        metadata_overlap = len(query_tokens & (topic_tokens | objective_tokens | tag_tokens))
+        rrf_score = float(chunk.get("rrf_score") or 0.0)
+        distance = chunk.get("distance")
+        distance_bonus = 0.0
+        if distance is not None:
+            distance_bonus = max(0.0, MAX_COSINE_DISTANCE - float(distance))
+
+        return (lexical_overlap * 4.0) + (metadata_overlap * 2.0) + (rrf_score * 10.0) + distance_bonus
+
+    def _select_prompt_chunks(
+        self,
+        query: str,
+        chunks: List[Dict[str, Any]],
+    ) -> List[Dict[str, Any]]:
+        ranked_chunks = sorted(
+            chunks,
+            key=lambda chunk: (
+                self._score_chunk_relevance(query, chunk),
+                float(chunk.get("rrf_score") or 0.0),
+                -(float(chunk.get("distance")) if chunk.get("distance") is not None else 999.0),
+            ),
+            reverse=True,
+        )
+        return ranked_chunks[:MAX_PROMPT_RAG_CHUNKS]
+
     def _render_compact_rag_context(self, chunks: List[Dict[str, Any]]) -> str:
         rendered_chunks: List[str] = []
         for index, chunk in enumerate(chunks[:MAX_PROMPT_RAG_CHUNKS], start=1):
-            compact_content = self._compact_chunk_content(chunk.get("content", ""))
-            if not compact_content:
+            summary = self._summarize_chunk_for_prompt(chunk)
+            if not summary:
                 continue
             rendered_chunks.append(
-                f"[{self._build_chunk_source_label(index, chunk)}]\n{compact_content}"
+                f"[{self._build_chunk_source_label(index, chunk)}]\n{summary}"
             )
         return "\n\n".join(rendered_chunks)
 
@@ -370,7 +440,7 @@ Respond with ONLY a JSON object in this exact format:
         if not high_quality_chunks:
             return "", []
 
-        selected_chunks = high_quality_chunks[:MAX_PROMPT_RAG_CHUNKS]
+        selected_chunks = self._select_prompt_chunks(query, high_quality_chunks)
         context = self._render_compact_rag_context(selected_chunks)
         return context, selected_chunks
 
