@@ -27,6 +27,20 @@ def _get_repo() -> EvalRepository:
     return _repo
 
 
+def _build_rag_sample_analysis(sample: dict) -> dict:
+    metric_map = sample.get("eval_metrics_by_name", {})
+    return {
+        "sample": sample,
+        "signals": {
+            "retrieval_context_count": metric_map.get("retrieval_context_count"),
+            "retrieval_query_overlap": metric_map.get("retrieval_query_overlap"),
+            "wcag_context_used": metric_map.get("wcag_context_used"),
+            "response_wcag_citation_present": metric_map.get("response_wcag_citation_present"),
+            "response_wcag_citation_grounded": metric_map.get("response_wcag_citation_grounded"),
+        },
+    }
+
+
 # ------------------------------------------------------------------
 # Eval log endpoints
 # ------------------------------------------------------------------
@@ -92,6 +106,16 @@ async def get_rag_sample(sample_id: str):
     if not sample:
         raise HTTPException(status_code=404, detail="RAG sample not found")
     return sample
+
+
+@router.get("/rag/samples/{sample_id}/analysis")
+async def get_rag_sample_analysis(sample_id: str):
+    """Get a RAG sample plus its attached eval signals in one payload."""
+    repo = _get_repo()
+    sample = repo.get_rag_sample_with_eval(sample_id)
+    if not sample:
+        raise HTTPException(status_code=404, detail="RAG sample not found")
+    return _build_rag_sample_analysis(sample)
 
 
 # ------------------------------------------------------------------

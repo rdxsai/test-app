@@ -208,6 +208,29 @@ class EvalRepository:
                 row = cur.fetchone()
                 return dict(row) if row else None
 
+    def get_rag_sample_with_eval(self, sample_id: str) -> Optional[Dict[str, Any]]:
+        """Get a RAG sample plus its attached eval metrics."""
+        sample = self.get_rag_sample(sample_id)
+        if not sample:
+            return None
+
+        eval_logs = self.get_eval_logs(
+            content_type="rag_sample",
+            content_id=sample_id,
+            limit=100,
+        )
+        sample["eval_metrics"] = eval_logs
+        sample["eval_metrics_by_name"] = {
+            row["metric_name"]: {
+                "value": row["metric_value"],
+                "details": row.get("details", {}),
+                "evaluated_at": row.get("evaluated_at"),
+                "evaluator": row.get("evaluator"),
+            }
+            for row in eval_logs
+        }
+        return sample
+
     def mark_evaluated(self, sample_id: str) -> bool:
         """Mark a RAG sample as evaluated."""
         with self.db.get_connection() as conn:
