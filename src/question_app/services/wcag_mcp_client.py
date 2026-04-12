@@ -32,6 +32,200 @@ NO_RESULT_PREFIXES = (
     "no results",
 )
 
+IMPLEMENTATION_HINT_KEYWORDS = frozenset(
+    {
+        "how",
+        "implement",
+        "implementation",
+        "code",
+        "html",
+        "css",
+        "javascript",
+        "js",
+        "aria",
+        "example",
+        "examples",
+        "technique",
+        "techniques",
+        "pattern",
+        "patterns",
+        "fix",
+        "markup",
+    }
+)
+
+DETERMINISTIC_WCAG_ROUTES = (
+    {
+        "name": "alt_text",
+        "criteria": ("1.1.1",),
+        "keywords": (
+            "alt text",
+            "alternative text",
+            "text alternative",
+            "text alternatives",
+            "non-text content",
+        ),
+        "search_terms": "informative images alt text text alternatives img alt",
+    },
+    {
+        "name": "color_contrast",
+        "criteria": ("1.4.3",),
+        "keywords": (
+            "color contrast",
+            "contrast ratio",
+            "contrast",
+            "low contrast",
+        ),
+        "search_terms": "color contrast contrast ratio text contrast visual presentation",
+    },
+    {
+        "name": "enhanced_contrast",
+        "criteria": ("1.4.6",),
+        "keywords": (
+            "enhanced contrast",
+            "aaa contrast",
+        ),
+        "search_terms": "enhanced color contrast AAA contrast ratio",
+    },
+    {
+        "name": "keyboard",
+        "criteria": ("2.1.1",),
+        "keywords": (
+            "keyboard navigation",
+            "keyboard access",
+            "keyboard accessible",
+            "keyboard support",
+            "keyboard only",
+            "keyboard trap",
+            "tab order",
+            "tabbing",
+        ),
+        "search_terms": "keyboard navigation keyboard access tab focus interactive controls",
+    },
+    {
+        "name": "focus_visible",
+        "criteria": ("2.4.7",),
+        "keywords": (
+            "focus visible",
+            "visible focus",
+            "focus indicator",
+            "focus ring",
+        ),
+        "search_terms": "focus visible focus indicator focus ring keyboard focus",
+    },
+    {
+        "name": "page_title",
+        "criteria": ("2.4.2",),
+        "keywords": (
+            "page title",
+            "document title",
+            "<title>",
+        ),
+        "search_terms": "page title document title title element",
+    },
+    {
+        "name": "link_purpose",
+        "criteria": ("2.4.4",),
+        "keywords": (
+            "link purpose",
+            "descriptive link",
+            "descriptive links",
+            "meaningful link",
+            "link text",
+            "click here",
+        ),
+        "search_terms": "link purpose link text descriptive links click here",
+    },
+    {
+        "name": "captions_prerecorded",
+        "criteria": ("1.2.2",),
+        "keywords": (
+            "captions",
+            "subtitles",
+            "closed captions",
+            "prerecorded video",
+            "recorded video",
+        ),
+        "search_terms": "captions subtitles prerecorded video synchronized media",
+        "requires": ("prerecorded", "recorded", "video", "captions", "subtitles"),
+    },
+    {
+        "name": "captions_live",
+        "criteria": ("1.2.4",),
+        "keywords": (
+            "live captions",
+            "live subtitle",
+            "live subtitles",
+            "captions live",
+            "live video",
+            "livestream captions",
+        ),
+        "search_terms": "live captions live subtitles live synchronized media",
+    },
+    {
+        "name": "media_alternatives",
+        "criteria": ("1.2.3", "1.2.5"),
+        "keywords": (
+            "audio description",
+            "media alternative",
+            "media alternatives",
+            "described video",
+        ),
+        "search_terms": "audio description media alternative video description prerecorded media",
+    },
+    {
+        "name": "audio_video_only",
+        "criteria": ("1.2.1",),
+        "keywords": (
+            "audio-only",
+            "audio only",
+            "video-only",
+            "video only",
+        ),
+        "search_terms": "audio-only video-only prerecorded media alternatives transcript",
+    },
+    {
+        "name": "error_identification",
+        "criteria": ("3.3.1",),
+        "keywords": (
+            "error identification",
+            "form error",
+            "form errors",
+            "error message",
+            "validation error",
+            "input error",
+        ),
+        "search_terms": "error identification form validation input error messages",
+    },
+    {
+        "name": "name_role_value",
+        "criteria": ("4.1.2",),
+        "keywords": (
+            "name role value",
+            "role value",
+            "accessible name",
+            "programmatic name",
+            "role property state",
+        ),
+        "search_terms": "name role value accessible name role state property aria",
+    },
+    {
+        "name": "wcag_structure",
+        "tools": (
+            {"tool": "list_principles", "args": {}, "category": "deterministic"},
+            {"tool": "list_guidelines", "args": {}, "category": "deterministic"},
+        ),
+        "keywords": (
+            "wcag principles",
+            "wcag guidelines",
+            "how wcag is organized",
+            "wcag structure",
+            "wcag organization",
+            "principles and guidelines",
+        ),
+    },
+)
+
 
 def is_no_result_text(text: Optional[str]) -> bool:
     """Return True only when the MCP response is an actual empty-result payload."""
@@ -39,6 +233,10 @@ def is_no_result_text(text: Optional[str]) -> bool:
         return True
     normalized = text.strip().lower()
     return any(normalized.startswith(prefix) for prefix in NO_RESULT_PREFIXES)
+
+
+def _normalized_query_text(query: str) -> str:
+    return " ".join(query.lower().split())
 
 # ---------------------------------------------------------------------------
 # OpenAI function-calling tool definitions
@@ -559,6 +757,92 @@ class WCAGMCPClient:
                 self._exit_stack = None
 
     # ------------------------------------------------------------------
+    # Deterministic first-pass routing for Instance A
+    # ------------------------------------------------------------------
+
+    def _build_deterministic_tool_calls(
+        self,
+        student_query: str,
+    ) -> List[Dict[str, Any]]:
+        normalized = _normalized_query_text(student_query)
+        if not normalized:
+            return []
+
+        implementation_hint = any(
+            keyword in normalized for keyword in IMPLEMENTATION_HINT_KEYWORDS
+        )
+        planned_calls: List[Dict[str, Any]] = []
+        seen_calls = set()
+
+        for route in DETERMINISTIC_WCAG_ROUTES:
+            keywords = route.get("keywords", ())
+            requires = route.get("requires", ())
+            if not any(keyword in normalized for keyword in keywords):
+                continue
+            if requires and not any(token in normalized for token in requires):
+                continue
+
+            if route.get("tools"):
+                route_calls = list(route["tools"])
+            else:
+                route_calls = [
+                    {
+                        "tool": "get_full_criterion_context",
+                        "args": {"ref_id": ref_id},
+                        "category": "deterministic",
+                    }
+                    for ref_id in route.get("criteria", ())
+                ]
+                if implementation_hint and route.get("search_terms"):
+                    route_calls.append(
+                        {
+                            "tool": "search_techniques",
+                            "args": {"query": route["search_terms"]},
+                            "category": "deterministic",
+                        }
+                    )
+
+            for call in route_calls:
+                key = (
+                    call["tool"],
+                    json.dumps(call.get("args", {}), sort_keys=True),
+                )
+                if key in seen_calls:
+                    continue
+                seen_calls.add(key)
+                planned_calls.append(call)
+
+        return planned_calls
+
+    async def _get_wcag_context_from_deterministic_routes(
+        self,
+        student_query: str,
+    ) -> str:
+        planned_calls = self._build_deterministic_tool_calls(student_query)
+        if not planned_calls:
+            return ""
+
+        logger.info(
+            "WCAG MCP: deterministic first-pass matched %d tool call(s): %s",
+            len(planned_calls),
+            [call["tool"] for call in planned_calls],
+        )
+        results = await self.execute_planned_tool_calls(planned_calls)
+        hits = [result["result"] for result in results if result.get("status") == "HIT"]
+        if hits:
+            combined = "\n\n".join(hits)
+            logger.info(
+                "WCAG MCP: deterministic first-pass returned %d chars of context",
+                len(combined),
+            )
+            return combined
+
+        logger.info(
+            "WCAG MCP: deterministic first-pass produced no hits, falling back to LLM planning"
+        )
+        return ""
+
+    # ------------------------------------------------------------------
     # Low-level tool call
     # ------------------------------------------------------------------
 
@@ -746,6 +1030,18 @@ class WCAGMCPClient:
         3. If ALL results were empty, feed failures back to LLM → retry once
         4. Collect successful results and return
         """
+        try:
+            deterministic_context = await self._get_wcag_context_from_deterministic_routes(
+                student_query
+            )
+            if deterministic_context:
+                return deterministic_context
+        except Exception as exc:
+            logger.warning(
+                "WCAG MCP: deterministic first-pass failed, falling back to LLM planning: %s",
+                exc,
+            )
+
         if not self._azure_client:
             logger.warning("WCAG MCP: no azure_client configured, skipping")
             return ""

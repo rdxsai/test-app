@@ -52,6 +52,130 @@ def test_guided_tool_definitions_expose_richer_retrieval_tools():
     assert "list_glossary_terms" in tool_names
 
 
+def test_deterministic_router_maps_common_instance_a_topics():
+    client = WCAGMCPClient()
+
+    alt_text_calls = client._build_deterministic_tool_calls(
+        "How do I write effective alt text for informative images?"
+    )
+    keyboard_calls = client._build_deterministic_tool_calls(
+        "How should keyboard navigation work in a custom menu?"
+    )
+    structure_calls = client._build_deterministic_tool_calls(
+        "Can you explain how WCAG principles and guidelines are organized?"
+    )
+
+    assert alt_text_calls[0]["tool"] == "get_full_criterion_context"
+    assert alt_text_calls[0]["args"] == {"ref_id": "1.1.1"}
+    assert any(call["tool"] == "search_techniques" for call in alt_text_calls)
+    assert keyboard_calls[0]["args"] == {"ref_id": "2.1.1"}
+    assert [call["tool"] for call in structure_calls] == [
+        "list_principles",
+        "list_guidelines",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_get_wcag_context_prefers_deterministic_first_pass(monkeypatch):
+    class FakeAzureClient:
+        async def chat_with_tools(self, **kwargs):
+            raise AssertionError("LLM planner should not run when deterministic routing hits")
+
+    client = WCAGMCPClient(azure_client=FakeAzureClient())
+    planned_calls_seen = []
+
+    async def fake_execute(planned_calls):
+        planned_calls_seen.append(planned_calls)
+        return [
+            {
+                "tool": "get_full_criterion_context",
+                "args": {"ref_id": "1.1.1"},
+                "category": "deterministic",
+                "result": "SC 1.1.1 Non-text Content",
+                "chars": 26,
+                "status": "HIT",
+            }
+        ]
+
+    monkeypatch.setattr(client, "execute_planned_tool_calls", fake_execute)
+
+    context = await client.get_wcag_context(
+        "What makes alt text effective for informative images?"
+    )
+
+    assert "SC 1.1.1" in context
+    assert planned_calls_seen
+    assert planned_calls_seen[0][0]["tool"] == "get_full_criterion_context"
+
+
+@pytest.mark.asyncio
+async def test_get_wcag_context_falls_back_to_llm_when_deterministic_route_misses(
+    monkeypatch,
+):
+    class FakeAzureClient:
+        def __init__(self):
+            self.calls = 0
+
+        async def chat_with_tools(
+            self,
+            messages,
+            tools,
+            temperature=0.0,
+            max_tokens=300,
+            tool_choice="auto",
+            parallel_tool_calls=True,
+            reasoning_effort=None,
+        ):
+            self.calls += 1
+            return {
+                "tool_calls": [
+                    {
+                        "id": "call-1",
+                        "function": {
+                            "name": "get_full_criterion_context",
+                            "arguments": '{"ref_id":"2.4.7"}',
+                        },
+                    }
+                ]
+            }
+
+    azure_client = FakeAzureClient()
+    client = WCAGMCPClient(azure_client=azure_client)
+
+    async def fake_execute(planned_calls):
+        if planned_calls and planned_calls[0].get("category") == "deterministic":
+            return [
+                {
+                    "tool": planned_calls[0]["tool"],
+                    "args": planned_calls[0]["args"],
+                    "category": "deterministic",
+                    "result": "",
+                    "chars": 0,
+                    "status": "MISS",
+                }
+            ]
+        raise AssertionError("deterministic execution path should be monkeypatched directly")
+
+    async def fake_execute_tool_calls(tool_calls):
+        return [
+            {
+                "tool_call_id": "call-1",
+                "fn_name": "get_full_criterion_context",
+                "fn_args": {"ref_id": "2.4.7"},
+                "mcp_result": "SC 2.4.7 Focus Visible",
+                "is_empty": False,
+            }
+        ]
+
+    monkeypatch.setattr(client, "execute_planned_tool_calls", fake_execute)
+    monkeypatch.setattr(client, "_execute_tool_calls", fake_execute_tool_calls)
+
+    context = await client.get_wcag_context("How do focus indicators work?")
+
+    assert "SC 2.4.7" in context
+    assert azure_client.calls == 1
+
+
 @pytest.mark.asyncio
 async def test_execute_planned_tool_calls_does_not_false_miss_embedded_no_results_text(monkeypatch):
     client = WCAGMCPClient()
