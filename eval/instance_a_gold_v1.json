@@ -1,0 +1,412 @@
+{
+  "dataset_metadata": {
+    "dataset_name": "instance_a_gold_v1",
+    "version": "1.0.0",
+    "status": "frozen",
+    "scope": "Instance A web accessibility Q&A chatbot",
+    "created_on": "2026-04-13",
+    "item_count": 10,
+    "categories": [
+      "alt_text_and_images",
+      "keyboard_and_focus",
+      "forms_labels_errors",
+      "off_topic",
+      "code_analysis"
+    ],
+    "notes": [
+      "This is the initial gold benchmark set for Instance A.",
+      "The dataset is optimized for answer quality, WCAG grounding, intent routing, and targeted retrieval evaluation.",
+      "Two items explicitly expect quiz retrieval to help; the rest primarily test WCAG routing and answer behavior."
+    ]
+  },
+  "items": [
+    {
+      "id": "a_alt_001",
+      "query": "I have a decorative spacer image on my landing page. Should I write 'spacer' in the alt text or just leave it blank?",
+      "category": "alt_text_and_images",
+      "difficulty": "easy",
+      "intent_expected": "conceptual_question",
+      "context_dependency": null,
+      "expected_wcag_refs": [
+        "1.1.1"
+      ],
+      "forbidden_wcag_refs": [],
+      "must_include": [
+        "Use a null alt attribute (alt=\"\") for a decorative image",
+        "Decorative images should be ignored by screen readers"
+      ],
+      "nice_to_include": [
+        "Suggest CSS background images for purely decorative visuals"
+      ],
+      "must_not_do": [
+        "Omit the alt attribute entirely",
+        "Use text like 'spacer' or 'decorative' in the alt attribute",
+        "Suggest using the title attribute as a substitute for alt text"
+      ],
+      "retrieval_expectation": {
+        "wcag_required": true,
+        "quiz_should_help": false,
+        "topical_targets": [
+          "decorative images",
+          "null alt"
+        ],
+        "notes": "Standard 1.1.1 decorative image handling."
+      },
+      "reference_answer_outline": "For a decorative image, use a null alt attribute so assistive technologies ignore it. Do not omit the alt attribute, and do not put words like 'spacer' in alt text because that creates unnecessary noise.",
+      "verifier_checklist": [
+        "Does it recommend alt=\"\"?",
+        "Does it explain that the image should be ignored by screen readers?",
+        "Does it reject text like 'spacer' in the alt attribute?"
+      ]
+    },
+    {
+      "id": "a_alt_002",
+      "query": "How do I handle an infographic that contains a lot of data? Is a short alt text enough?",
+      "category": "alt_text_and_images",
+      "difficulty": "medium",
+      "intent_expected": "conceptual_question",
+      "context_dependency": null,
+      "expected_wcag_refs": [
+        "1.1.1"
+      ],
+      "forbidden_wcag_refs": [],
+      "must_include": [
+        "Provide a short text alternative to identify the graphic",
+        "Provide a full text-based equivalent of the information or data in the graphic"
+      ],
+      "nice_to_include": [
+        "Detailed description in nearby text",
+        "Link to a separate page with a description",
+        "Provide the same data in an accessible table format",
+        "Use aria-describedby for programmatic association when appropriate"
+      ],
+      "must_not_do": [
+        "Suggest that a single alt text string is sufficient for complex data",
+        "Recommend ignoring the graphic for assistive technology users"
+      ],
+      "retrieval_expectation": {
+        "wcag_required": true,
+        "quiz_should_help": false,
+        "topical_targets": [
+          "complex images",
+          "long descriptions"
+        ],
+        "notes": "Focuses on equivalent access to the information in the image."
+      },
+      "reference_answer_outline": "A short alt text is not enough for a complex infographic. The answer should identify the image briefly and also provide a full text equivalent of the information, either on the page or through a linked description.",
+      "verifier_checklist": [
+        "Does it require a full text equivalent for the data?",
+        "Does it make clear that short alt text alone is insufficient?"
+      ]
+    },
+    {
+      "id": "a_key_001",
+      "query": "The focus ring is ruining our brand aesthetic on buttons. Is it okay to use 'outline: none' in CSS?",
+      "category": "keyboard_and_focus",
+      "difficulty": "medium",
+      "intent_expected": "conceptual_question",
+      "context_dependency": null,
+      "expected_wcag_refs": [
+        "2.4.7"
+      ],
+      "forbidden_wcag_refs": [],
+      "must_include": [
+        "Focus indicators must remain visible for keyboard users",
+        "Removing the default indicator without a visible replacement is a compliance failure"
+      ],
+      "nice_to_include": [
+        "Suggest styling the focus indicator to match the brand",
+        "Mention :focus-visible for keyboard-specific presentation"
+      ],
+      "must_not_do": [
+        "Allow focus indicators to be removed for visual design alone",
+        "Suggest focus indicators only matter for low-vision users"
+      ],
+      "retrieval_expectation": {
+        "wcag_required": true,
+        "quiz_should_help": false,
+        "topical_targets": [
+          "focus visible",
+          "outline: none"
+        ],
+        "notes": "Straightforward focus-visible guidance."
+      },
+      "reference_answer_outline": "No, you should not remove the focus indicator unless you provide a clear visible alternative. Keyboard users rely on it to navigate, so the better fix is to style the focus state rather than delete it.",
+      "verifier_checklist": [
+        "Does it forbid removal without replacement?",
+        "Does it mention keyboard accessibility?"
+      ]
+    },
+    {
+      "id": "a_key_002",
+      "query": "When I open my custom modal, the tab focus stays on the link that opened it. How do I fix this?",
+      "category": "keyboard_and_focus",
+      "difficulty": "hard",
+      "intent_expected": "conceptual_question",
+      "context_dependency": null,
+      "expected_wcag_refs": [
+        "2.4.3"
+      ],
+      "forbidden_wcag_refs": [],
+      "must_include": [
+        "Move focus into the modal when it opens",
+        "Keep keyboard focus contained within the modal until it closes",
+        "Return focus to the triggering element after the modal closes"
+      ],
+      "nice_to_include": [
+        "Use aria-modal=\"true\" when appropriate",
+        "Use inert for background content when supported",
+        "Support closing the modal with Escape when appropriate"
+      ],
+      "must_not_do": [
+        "Leave focus on the background content",
+        "Address only visual changes without any focus management"
+      ],
+      "retrieval_expectation": {
+        "wcag_required": true,
+        "quiz_should_help": true,
+        "topical_targets": [
+          "focus order",
+          "focus trap",
+          "modal accessibility"
+        ],
+        "notes": "Complex interaction pattern where retrieval of implementation guidance should help."
+      },
+      "reference_answer_outline": "When the modal opens, focus should move into it and stay trapped there until the modal is dismissed. Once it closes, focus should return to the control that opened it.",
+      "verifier_checklist": [
+        "Does it mention moving focus into the modal?",
+        "Does it mention trapping focus?",
+        "Does it mention returning focus after close?"
+      ]
+    },
+    {
+      "id": "a_form_001",
+      "query": "I have an input field for 'Search'. I used a placeholder instead of a label because it looks cleaner. Is this cool?",
+      "category": "forms_labels_errors",
+      "difficulty": "easy",
+      "intent_expected": "conceptual_question",
+      "context_dependency": null,
+      "expected_wcag_refs": [
+        "3.3.2"
+      ],
+      "forbidden_wcag_refs": [],
+      "must_include": [
+        "Placeholders are not a suitable replacement for labels",
+        "Placeholders disappear when users start typing, which causes loss of context",
+        "Persistent labeling is required"
+      ],
+      "nice_to_include": [
+        "Use a visually hidden label when the design must stay minimal",
+        "Use ARIA labeling only when a proper visible label is not possible"
+      ],
+      "must_not_do": [
+        "Approve placeholders as the primary labeling mechanism",
+        "Suggest that the title attribute solves the labeling problem"
+      ],
+      "retrieval_expectation": {
+        "wcag_required": true,
+        "quiz_should_help": false,
+        "topical_targets": [
+          "labels or instructions",
+          "placeholder accessibility"
+        ],
+        "notes": "Core form labeling principle."
+      },
+      "reference_answer_outline": "A placeholder should not be the only label because it disappears once the user starts typing and users lose context. The field needs a persistent label, which can be visually hidden if necessary.",
+      "verifier_checklist": [
+        "Does it explain why placeholders fail?",
+        "Does it recommend a persistent label?"
+      ]
+    },
+    {
+      "id": "a_form_002",
+      "query": "How do I make sure screen reader users know that a field has an error after they hit submit?",
+      "category": "forms_labels_errors",
+      "difficulty": "hard",
+      "intent_expected": "conceptual_question",
+      "context_dependency": null,
+      "expected_wcag_refs": [
+        "3.3.1",
+        "3.3.3"
+      ],
+      "forbidden_wcag_refs": [],
+      "must_include": [
+        "The field with the error must be programmatically identifiable",
+        "The error message must be programmatically associated with the relevant field",
+        "The user must be made aware of the error after attempting to submit"
+      ],
+      "nice_to_include": [
+        "Use aria-invalid=\"true\"",
+        "Link error text with aria-describedby",
+        "Use an aria-live region for dynamic announcements",
+        "Move focus to an error summary or the first invalid field"
+      ],
+      "must_not_do": [
+        "Indicate errors through color alone",
+        "Rely solely on browser-native validation without checking accessibility behavior"
+      ],
+      "retrieval_expectation": {
+        "wcag_required": true,
+        "quiz_should_help": true,
+        "topical_targets": [
+          "error identification",
+          "error association",
+          "aria-invalid"
+        ],
+        "notes": "Complex form pattern where retrieval should help surface implementation patterns."
+      },
+      "reference_answer_outline": "A strong answer should explain that the invalid field and its error message must be programmatically connected and that the user needs to be notified of the error after submission. Techniques like invalid state, linked error text, and focus management are appropriate examples.",
+      "verifier_checklist": [
+        "Does it mention programmatic identification of the invalid field?",
+        "Does it mention associating the error message with the field?",
+        "Does it mention making the user aware of the error after submission?"
+      ]
+    },
+    {
+      "id": "a_off_001",
+      "query": "Can you give me a good recipe for chocolate chip cookies?",
+      "category": "off_topic",
+      "difficulty": "easy",
+      "intent_expected": "off_topic",
+      "context_dependency": null,
+      "expected_wcag_refs": [],
+      "forbidden_wcag_refs": [],
+      "must_include": [
+        "Politely state that the request is outside the scope of web accessibility",
+        "Decline to provide the recipe"
+      ],
+      "nice_to_include": [
+        "Offer to help with an accessibility-related question"
+      ],
+      "must_not_do": [
+        "Provide recipe details",
+        "Use a rude or scolding tone"
+      ],
+      "retrieval_expectation": {
+        "wcag_required": false,
+        "quiz_should_help": false,
+        "topical_targets": [],
+        "notes": "Pure refusal test."
+      },
+      "reference_answer_outline": "The answer should politely refuse because the request is outside the chatbot's scope, then redirect the user to web accessibility topics.",
+      "verifier_checklist": [
+        "Does it refuse the recipe request?",
+        "Is the tone polite and on-scope?"
+      ]
+    },
+    {
+      "id": "a_off_002",
+      "query": "What is the best price for a MacBook Pro right now in London?",
+      "category": "off_topic",
+      "difficulty": "easy",
+      "intent_expected": "off_topic",
+      "context_dependency": null,
+      "expected_wcag_refs": [],
+      "forbidden_wcag_refs": [],
+      "must_include": [
+        "Refuse to provide pricing or shopping advice",
+        "Identify the query as outside accessibility support"
+      ],
+      "nice_to_include": [
+        "Redirect the user back to accessibility-related help"
+      ],
+      "must_not_do": [
+        "Provide specific prices",
+        "Guess or speculate on costs"
+      ],
+      "retrieval_expectation": {
+        "wcag_required": false,
+        "quiz_should_help": false,
+        "topical_targets": [],
+        "notes": "Tests guardrails against general-purpose shopping behavior."
+      },
+      "reference_answer_outline": "The answer should state that shopping and pricing are outside scope and redirect the user toward accessibility questions instead.",
+      "verifier_checklist": [
+        "Does it avoid giving any pricing information?",
+        "Does it redirect to accessibility support?"
+      ]
+    },
+    {
+      "id": "a_code_001",
+      "query": "Can you check this button for me? <div onclick='submitForm()'>Click Here</div>",
+      "category": "code_analysis",
+      "difficulty": "medium",
+      "intent_expected": "code_analysis_request",
+      "context_dependency": null,
+      "expected_wcag_refs": [
+        "2.1.1",
+        "4.1.2"
+      ],
+      "forbidden_wcag_refs": [],
+      "must_include": [
+        "A div does not have the correct semantics for a button",
+        "The element is not keyboard operable as written",
+        "Using a native button is the best fix"
+      ],
+      "nice_to_include": [
+        "Mention role=\"button\" and tabindex=\"0\" only as a fallback when a div must be used",
+        "Mention keyboard handlers for Enter and Space when discussing custom widgets"
+      ],
+      "must_not_do": [
+        "Say the code is accessible as written",
+        "Focus only on the button text without addressing semantics and keyboard behavior"
+      ],
+      "retrieval_expectation": {
+        "wcag_required": true,
+        "quiz_should_help": false,
+        "topical_targets": [
+          "keyboard access",
+          "button role",
+          "native elements"
+        ],
+        "notes": "Classic fake-button analysis case."
+      },
+      "reference_answer_outline": "The code should be flagged because the div is not a real button and is not keyboard accessible as written. A strong answer recommends replacing it with a native button and may mention how custom widgets would need additional semantics and keyboard behavior.",
+      "verifier_checklist": [
+        "Does it identify the semantic problem?",
+        "Does it identify the keyboard problem?",
+        "Does it recommend a native button?"
+      ]
+    },
+    {
+      "id": "a_code_002",
+      "query": "I have this form field. Is it correct? <input type='text' id='email'> <span class='label'>Email Address</span>",
+      "category": "code_analysis",
+      "difficulty": "medium",
+      "intent_expected": "code_analysis_request",
+      "context_dependency": null,
+      "expected_wcag_refs": [
+        "1.3.1",
+        "3.3.2"
+      ],
+      "forbidden_wcag_refs": [],
+      "must_include": [
+        "The label text is not programmatically associated with the input",
+        "Screen readers will not reliably announce the label when the input receives focus",
+        "Recommend using a label element with a matching for attribute"
+      ],
+      "nice_to_include": [
+        "Mention aria-labelledby if the span must remain",
+        "Mention aria-label only as a fallback when a visible label is not possible"
+      ],
+      "must_not_do": [
+        "Claim that the input id alone solves accessibility",
+        "Say the code is fine because the text is visually nearby"
+      ],
+      "retrieval_expectation": {
+        "wcag_required": true,
+        "quiz_should_help": false,
+        "topical_targets": [
+          "label association",
+          "input labels"
+        ],
+        "notes": "Programmatic label association test."
+      },
+      "reference_answer_outline": "A strong answer should explain that the visible text is not programmatically linked to the input and therefore is not a reliable accessible label. The fix is to use a proper label element associated with the input.",
+      "verifier_checklist": [
+        "Does it identify the missing association?",
+        "Does it suggest a proper label with a for attribute?"
+      ]
+    }
+  ]
+}
