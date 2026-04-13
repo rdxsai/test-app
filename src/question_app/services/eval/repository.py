@@ -63,6 +63,7 @@ class EvalRepository:
         content_type: Optional[str] = None,
         content_id: Optional[str] = None,
         metric_name: Optional[str] = None,
+        batch_id: Optional[str] = None,
         limit: int = 50,
         offset: int = 0,
     ) -> List[Dict[str, Any]]:
@@ -79,6 +80,9 @@ class EvalRepository:
         if metric_name:
             conditions.append("metric_name = %s")
             params.append(metric_name)
+        if batch_id:
+            conditions.append("batch_id = %s")
+            params.append(batch_id)
 
         where = f"WHERE {' AND '.join(conditions)}" if conditions else ""
         params.extend([limit, offset])
@@ -97,7 +101,10 @@ class EvalRepository:
                 return [dict(row) for row in cur.fetchall()]
 
     def get_eval_summary(
-        self, content_type: str, metric_name: Optional[str] = None,
+        self,
+        content_type: str,
+        metric_name: Optional[str] = None,
+        batch_id: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Aggregated summary: avg, min, max, count per metric for a content type."""
         conditions = ["content_type = %s"]
@@ -105,6 +112,9 @@ class EvalRepository:
         if metric_name:
             conditions.append("metric_name = %s")
             params.append(metric_name)
+        if batch_id:
+            conditions.append("batch_id = %s")
+            params.append(batch_id)
 
         where = " AND ".join(conditions)
 
@@ -128,6 +138,7 @@ class EvalRepository:
 
         return {
             "content_type": content_type,
+            "batch_id": batch_id,
             "metrics": {
                 row["metric_name"]: {
                     "avg": float(row["avg_value"]) if row["avg_value"] else 0,
@@ -148,6 +159,7 @@ class EvalRepository:
         query: str,
         retrieved_contexts: List[str],
         response: str,
+        ground_truth: Optional[str] = None,
         student_id: Optional[str] = None,
         session_id: Optional[str] = None,
         intent: Optional[str] = None,
@@ -161,11 +173,11 @@ class EvalRepository:
                     """
                     INSERT INTO rag_eval_samples
                         (id, query, retrieved_contexts, response,
-                         student_id, session_id, intent, instance)
-                    VALUES (%s, %s, %s::jsonb, %s, %s, %s, %s, %s)
+                         ground_truth, student_id, session_id, intent, instance)
+                    VALUES (%s, %s, %s::jsonb, %s, %s, %s, %s, %s, %s)
                     """,
                     (sample_id, query, json.dumps(retrieved_contexts),
-                     response, student_id, session_id, intent, instance),
+                     response, ground_truth, student_id, session_id, intent, instance),
                 )
             conn.commit()
         logger.info(f"RAG sample captured: {sample_id} ({len(retrieved_contexts)} contexts)")
@@ -230,6 +242,65 @@ class EvalRepository:
             for row in eval_logs
         }
         return sample
+
+    def get_batch_rag_samples_with_eval(
+        self,
+        batch_id: str,
+        instance: Optional[str] = None,
+        limit: int = 200,
+    ) -> List[Dict[str, Any]]:
+        """Get all RAG samples associated with a benchmark/eval batch."""
+        conditions = [
+            "e.batch_id = %s",
+            "e.content_type = 'rag_sample'",
+        ]
+        params: List[Any] = [batch_id]
+        if instance:
+            conditions.append("s.instance = %s")
+            params.append(instance)
+        params.append(limit)
+
+        where = " AND ".join(conditions)
+
+        with self.db.get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    f"""
+                    SELECT DISTINCT s.*
+                    FROM rag_eval_samples s
+                    JOIN eval_log e ON e.content_id = s.id
+                    WHERE {where}
+                    ORDER BY s.captured_at DESC
+                    LIMIT %s
+                    """,
+                    params,
+                )
+                samples = [dict(row) for row in cur.fetchall()]
+
+        eval_logs = self.get_eval_logs(
+            content_type="rag_sample",
+            batch_id=batch_id,
+            limit=max(limit * 50, 200),
+        )
+        logs_by_content_id: Dict[str, List[Dict[str, Any]]] = {}
+        for row in eval_logs:
+            logs_by_content_id.setdefault(row["content_id"], []).append(row)
+
+        for sample in samples:
+            sample_logs = logs_by_content_id.get(sample["id"], [])
+            sample["eval_metrics"] = sample_logs
+            sample["eval_metrics_by_name"] = {
+                row["metric_name"]: {
+                    "value": row["metric_value"],
+                    "details": row.get("details", {}),
+                    "evaluated_at": row.get("evaluated_at"),
+                    "evaluator": row.get("evaluator"),
+                    "batch_id": row.get("batch_id"),
+                }
+                for row in sample_logs
+            }
+
+        return samples
 
     def mark_evaluated(self, sample_id: str) -> bool:
         """Mark a RAG sample as evaluated."""
