@@ -163,6 +163,14 @@ class GeneralChatService:
         self.db = db_manager
         self.sessions = InMemoryChatSessionStore()
 
+    async def close(self) -> None:
+        """Release async resources owned by the service."""
+        if self.wcag_mcp and hasattr(self.wcag_mcp, "close"):
+            try:
+                await self.wcag_mcp.close()
+            except Exception as exc:
+                logger.warning(f"Instance A service cleanup failed: {exc}")
+
     async def ensure_session(
         self,
         requested_session_id: Optional[str] = None,
@@ -672,19 +680,18 @@ Respond with ONLY a JSON object in this exact format:
         except Exception as exc:
             logger.warning(f"Instance A RAG capture failed: {exc}")
 
-    async def handle_message(
+    async def _run_nonstreaming_turn(
         self,
-        session_id: str,
         user_message: str,
+        history: Optional[List[Dict[str, str]]] = None,
     ) -> Dict[str, Any]:
-        session = await self.sessions.get_session(session_id)
-        history = list(session.history)
-        await self.sessions.append_message(session_id, "user", user_message)
-
+        history = list(history or [])
         intent = await asyncio.to_thread(self._decide_intent, user_message, history)
         retrieved_chunks: List[Dict[str, Any]] = []
         response = ""
         wcag_context = ""
+        combined_context = ""
+        code_analysis = ""
 
         if intent == "off_topic":
             response = (
@@ -693,8 +700,6 @@ Respond with ONLY a JSON object in this exact format:
             )
         else:
             search_query = user_message
-            combined_context = ""
-            code_analysis = ""
 
             if intent == "code_analysis_request":
                 code_analysis = await asyncio.to_thread(
@@ -721,6 +726,37 @@ Respond with ONLY a JSON object in this exact format:
                 0.7,
                 INSTANCE_A_RESPONSE_MAX_TOKENS,
             )
+
+        return {
+            "intent": intent,
+            "response": response,
+            "retrieved_chunks": retrieved_chunks,
+            "rag_chunk_payload": self._build_rag_chunk_payload(retrieved_chunks),
+            "wcag_context": wcag_context,
+            "combined_context": combined_context,
+            "code_analysis": code_analysis,
+        }
+
+    async def run_benchmark_case(
+        self,
+        user_message: str,
+    ) -> Dict[str, Any]:
+        """Run a single Instance A benchmark case without session mutation."""
+        return await self._run_nonstreaming_turn(user_message=user_message, history=[])
+
+    async def handle_message(
+        self,
+        session_id: str,
+        user_message: str,
+    ) -> Dict[str, Any]:
+        session = await self.sessions.get_session(session_id)
+        history = list(session.history)
+        await self.sessions.append_message(session_id, "user", user_message)
+        turn = await self._run_nonstreaming_turn(user_message=user_message, history=history)
+        intent = turn["intent"]
+        retrieved_chunks = turn["retrieved_chunks"]
+        response = turn["response"]
+        wcag_context = turn["wcag_context"]
 
         await self.sessions.append_message(session_id, "assistant", response)
         await self._capture_rag_sample(
