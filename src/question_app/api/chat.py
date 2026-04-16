@@ -28,6 +28,7 @@ from ..services.wcag_mcp_client import WCAGMCPClient
 from ..services.student_service import StudentService
 from ..services.general_chat_service import GeneralChatService
 from ..api.pg_vector_store import VectorStoreService
+from ..services.tutor.prompts import get_instance_b_prompt_registry
 
 
 logger = get_logger(__name__)
@@ -297,6 +298,19 @@ async def websocket_chat(websocket: WebSocket):
 async def guided_chat_page(request: Request):
     """Instance B — Guided learning chat page."""
     return templates.TemplateResponse("chat_guided.html", {"request": request})
+
+
+@router.get("/tutor-prompts", response_class=HTMLResponse)
+async def tutor_prompts_page(request: Request):
+    """Read-only browser for Instance B prompt surfaces."""
+    prompt_entries = get_instance_b_prompt_registry()
+    return templates.TemplateResponse(
+        "tutor_prompts.html",
+        {
+            "request": request,
+            "prompt_entries": prompt_entries,
+        },
+    )
 
 
 @router.websocket("/guided/ws")

@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tutor Prompts - Socratic Tutor</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-LN+7fdVzj6u52u30Kp6M/trliBMCMKTyK833zpbD+pXdCLuTusPj697FH4R/5mcr"
+      crossorigin="anonymous"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        background: #f8f9fa;
+      }
+
+      .page-shell {
+        max-width: 1200px;
+      }
+
+      .hero-card,
+      .prompt-card {
+        border: 1px solid #dee2e6;
+        border-radius: 16px;
+        background: #fff;
+        box-shadow: 0 0.35rem 1rem rgba(15, 23, 42, 0.05);
+      }
+
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 0.75rem;
+      }
+
+      .stat-card {
+        background: linear-gradient(180deg, #ffffff 0%, #f7f9fc 100%);
+        border: 1px solid #dee2e6;
+        border-radius: 14px;
+        padding: 0.9rem 1rem;
+      }
+
+      .stat-value {
+        font-size: 1.4rem;
+        font-weight: 700;
+        line-height: 1.1;
+      }
+
+      .toolbar {
+        display: flex;
+        gap: 0.75rem;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+
+      .filter-group {
+        display: flex;
+        gap: 0.45rem;
+        flex-wrap: wrap;
+      }
+
+      .filter-chip.active {
+        background: #0d6efd;
+        color: #fff;
+        border-color: #0d6efd;
+      }
+
+      .prompt-card {
+        margin-bottom: 0.9rem;
+        overflow: hidden;
+      }
+
+      .prompt-card.hidden {
+        display: none;
+      }
+
+      .prompt-header {
+        padding: 1rem 1.1rem;
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 1rem;
+        cursor: pointer;
+      }
+
+      .prompt-title {
+        font-size: 1.02rem;
+        font-weight: 700;
+        margin-bottom: 0.35rem;
+      }
+
+      .prompt-subtitle {
+        color: #495057;
+        margin-bottom: 0;
+      }
+
+      .prompt-meta {
+        display: flex;
+        gap: 0.4rem;
+        flex-wrap: wrap;
+        margin-bottom: 0.55rem;
+      }
+
+      .prompt-meta .badge {
+        font-weight: 600;
+      }
+
+      .prompt-body {
+        border-top: 1px solid #e9ecef;
+        padding: 1rem 1.1rem 1.1rem;
+        background: #fbfcfe;
+      }
+
+      .prompt-section + .prompt-section {
+        margin-top: 1rem;
+      }
+
+      .prompt-section h6 {
+        font-size: 0.9rem;
+        font-weight: 700;
+        margin-bottom: 0.45rem;
+      }
+
+      .prompt-pre {
+        background: #111827;
+        color: #e5e7eb;
+        border-radius: 12px;
+        padding: 1rem;
+        font-size: 0.84rem;
+        line-height: 1.55;
+        max-height: 26rem;
+        overflow: auto;
+        white-space: pre-wrap;
+        word-break: break-word;
+        margin: 0;
+      }
+
+      .runtime-list,
+      .usage-list {
+        margin: 0;
+        padding-left: 1.1rem;
+      }
+
+      .empty-state {
+        display: none;
+      }
+
+      .empty-state.visible {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    {% include "_top_nav.html" %}
+
+    <main class="container py-4 py-lg-5 page-shell">
+      <section class="hero-card p-4 p-lg-5 mb-4">
+        <div class="d-flex flex-column flex-lg-row justify-content-between gap-3">
+          <div>
+            <div class="text-uppercase text-primary fw-semibold small mb-2">
+              Instance B Prompt Library
+            </div>
+            <h1 class="h3 mb-3">
+              Tutor Prompts
+            </h1>
+            <p class="text-secondary mb-2">
+              This page shows the guided-learning prompts used by Instance B.
+              It includes both static prompts and dynamic prompt builders that
+              append runtime lesson context before the model call.
+            </p>
+            <p class="text-secondary mb-0">
+              Each entry includes a natural-language purpose so you can see what
+              the prompt is designed to do in the tutoring pipeline.
+            </p>
+          </div>
+          <div class="d-flex align-items-start">
+            <a href="/chat" class="btn btn-outline-secondary">
+              <i class="fas fa-arrow-left me-1"></i> Back To Chat
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <section class="stats-grid mb-4">
+        <div class="stat-card">
+          <div class="text-secondary small mb-1">Total Prompt Surfaces</div>
+          <div class="stat-value">{{ prompt_entries|length }}</div>
+        </div>
+        <div class="stat-card">
+          <div class="text-secondary small mb-1">Static Prompts</div>
+          <div class="stat-value">{{ prompt_entries|selectattr("kind", "equalto", "static")|list|length }}</div>
+        </div>
+        <div class="stat-card">
+          <div class="text-secondary small mb-1">Dynamic Builders</div>
+          <div class="stat-value">{{ prompt_entries|selectattr("kind", "equalto", "dynamic")|list|length }}</div>
+        </div>
+        <div class="stat-card">
+          <div class="text-secondary small mb-1">Pipeline Groups</div>
+          <div class="stat-value">4</div>
+        </div>
+      </section>
+
+      <section class="hero-card p-3 p-lg-4 mb-4">
+        <div class="toolbar">
+          <div class="flex-grow-1">
+            <label for="promptSearch" class="form-label fw-semibold mb-2">Search Prompts</label>
+            <input
+              id="promptSearch"
+              type="search"
+              class="form-control"
+              placeholder="Search by name, purpose, source symbol, or prompt text..."
+            />
+          </div>
+          <div>
+            <div class="form-label fw-semibold mb-2">Filter By Stage</div>
+            <div class="filter-group">
+              <button type="button" class="btn btn-outline-primary btn-sm filter-chip active" data-filter="all">All</button>
+              <button type="button" class="btn btn-outline-primary btn-sm filter-chip" data-filter="planning">Planning</button>
+              <button type="button" class="btn btn-outline-primary btn-sm filter-chip" data-filter="retrieval">Retrieval</button>
+              <button type="button" class="btn btn-outline-primary btn-sm filter-chip" data-filter="teaching">Teaching</button>
+              <button type="button" class="btn btn-outline-primary btn-sm filter-chip" data-filter="analysis">Analysis</button>
+              <button type="button" class="btn btn-outline-primary btn-sm filter-chip" data-filter="assessment">Assessment</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="promptList">
+        {% for entry in prompt_entries %}
+        <article
+          class="prompt-card"
+          data-category="{{ entry.category }}"
+          data-search="{{ (entry.name ~ ' ' ~ entry.purpose ~ ' ' ~ entry.source_symbol ~ ' ' ~ entry.base_prompt_symbol ~ ' ' ~ entry.prompt_text ~ ' ' ~ entry.notes)|lower|e }}"
+        >
+          <div class="prompt-header" data-bs-toggle="collapse" data-bs-target="#prompt-{{ entry.id }}" aria-expanded="{% if loop.first %}true{% else %}false{% endif %}">
+            <div class="flex-grow-1">
+              <div class="prompt-meta">
+                <span class="badge text-bg-primary text-uppercase">{{ entry.category }}</span>
+                <span class="badge text-bg-light border text-uppercase">{{ entry.kind }}</span>
+                <span class="badge text-bg-light border">{{ entry.source_symbol }}</span>
+              </div>
+              <div class="prompt-title">{{ entry.name }}</div>
+              <p class="prompt-subtitle">{{ entry.purpose }}</p>
+            </div>
+            <button class="btn btn-sm btn-outline-secondary" type="button" tabindex="-1">
+              <i class="fas fa-chevron-down"></i>
+            </button>
+          </div>
+
+          <div id="prompt-{{ entry.id }}" class="collapse {% if loop.first %}show{% endif %}">
+            <div class="prompt-body">
+              <section class="prompt-section">
+                <pre class="prompt-pre">{{ entry.prompt_text }}</pre>
+              </section>
+            </div>
+          </div>
+        </article>
+        {% endfor %}
+      </section>
+
+      <section id="emptyState" class="hero-card p-4 text-center empty-state">
+        <h2 class="h5 mb-2">No prompts match the current filters.</h2>
+        <p class="text-secondary mb-0">Try a broader search or switch the stage filter back to <strong>All</strong>.</p>
+      </section>
+    </main>
+
+    <script
+      src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"
+      integrity="sha384-ndDqU0Gzau9qJ1lfW4pNLlhNTkCfHzAVBReH9diLvGRem5+R9g2FzA8ZGN954O5Q"
+      crossorigin="anonymous"
+    ></script>
+    <script>
+      const searchInput = document.getElementById("promptSearch");
+      const cards = Array.from(document.querySelectorAll(".prompt-card"));
+      const filterButtons = Array.from(document.querySelectorAll(".filter-chip"));
+      const emptyState = document.getElementById("emptyState");
+      let activeFilter = "all";
+
+      function applyFilters() {
+        const query = (searchInput.value || "").trim().toLowerCase();
+        let visibleCount = 0;
+
+        cards.forEach((card) => {
+          const category = card.dataset.category;
+          const searchable = card.dataset.search || "";
+          const matchesFilter = activeFilter === "all" || category === activeFilter;
+          const matchesQuery = !query || searchable.includes(query);
+          const isVisible = matchesFilter && matchesQuery;
+
+          card.classList.toggle("hidden", !isVisible);
+          if (isVisible) visibleCount += 1;
+        });
+
+        emptyState.classList.toggle("visible", visibleCount === 0);
+      }
+
+      searchInput.addEventListener("input", applyFilters);
+
+      filterButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+          activeFilter = button.dataset.filter;
+          filterButtons.forEach((btn) => btn.classList.remove("active"));
+          button.classList.add("active");
+          applyFilters();
+        });
+      });
+
+      applyFilters();
+    </script>
+  </body>
+</html>
