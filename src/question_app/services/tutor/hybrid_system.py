@@ -3453,12 +3453,12 @@ class HybridCrewAISocraticSystem:
         #  guidelines, success criteria, and conformance levels"
 
         # Level 1: some awareness — semantic controls vs generic elements
-        "awareness": "I.B.1",
+        "awareness": "I.B.4",
         "working_knowledge": "I.D.10",
-        # "Distinguish between semantic HTML controls (e.g., <button>, <a>)
-        #  and generic elements (e.g., <div>) in terms of built-in accessibility."
-        # "Apply ARIA live regions to communicate dynamic content updates
-        #  without moving keyboard focus"
+        # I.B.4: "Distinguish between semantic HTML controls and non-semantic
+        #         elements in terms of built-in accessibility."
+        # I.D.10: "Apply ARIA live regions to communicate dynamic content
+        #          updates without moving keyboard focus."
 
         # Level 2: professional — analysis-level challenges
         "professional": "I.H.2",
