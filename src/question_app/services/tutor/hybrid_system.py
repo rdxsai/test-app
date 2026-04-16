@@ -2155,6 +2155,12 @@ class HybridCrewAISocraticSystem:
                 user_message=student_response,
                 ws_send=ws_send,
             )
+        except ClientConnectionClosedError:
+            logger.info(
+                "Instance A client disconnected during streaming (session_id=%s)",
+                session["session_id"],
+            )
+            return {}
         except Exception as e:
             logger.error(f"Streaming session failed: {e}", exc_info=True)
             await ws_send({"type": "error", "message": str(e)})
@@ -2617,6 +2623,14 @@ class HybridCrewAISocraticSystem:
             await ws_send({"type": "stream_end", "metadata": metadata})
             return metadata
 
+        except ClientConnectionClosedError:
+            logger.info(
+                "Guided client disconnected during session processing "
+                "(student_id=%s session_id=%s)",
+                student_id,
+                session_id,
+            )
+            return {}
         except Exception as e:
             logger.error(f"Guided session failed: {e}", exc_info=True)
             await ws_send({"type": "error", "message": str(e)})

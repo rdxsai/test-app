@@ -22,7 +22,10 @@ from ..utils import (
     save_chat_system_prompt,
     save_welcome_message,
 )
-from ..services.tutor.hybrid_system import HybridCrewAISocraticSystem
+from ..services.tutor.hybrid_system import (
+    ClientConnectionClosedError,
+    HybridCrewAISocraticSystem,
+)
 from ..services.tutor.azure_client import AzureAPIMClient
 from ..services.wcag_mcp_client import WCAGMCPClient
 from ..services.student_service import StudentService
@@ -349,7 +352,12 @@ async def websocket_guided_chat(websocket: WebSocket):
     session_id = None
 
     async def ws_send(data: dict):
-        await websocket.send_json(data)
+        try:
+            await websocket.send_json(data)
+        except (WebSocketDisconnect, RuntimeError) as exc:
+            raise ClientConnectionClosedError(
+                "Guided websocket closed before the server finished sending data."
+            ) from exc
 
     try:
         while True:
@@ -498,12 +506,21 @@ async def websocket_guided_chat(websocket: WebSocket):
         # Save session summary on disconnect
         if student_id and session_id and guided_tutor_system.student_mcp:
             try:
+                profile = await guided_tutor_system.student_mcp.get_profile(student_id)
+                if not profile:
+                    return
                 await guided_tutor_system.student_mcp.save_session_summary(
                     session_id, student_id, "short",
                     content=json.dumps({"disconnected": True}),
                 )
             except Exception:
                 pass
+    except ClientConnectionClosedError:
+        logger.info(
+            "WS Guided: Client disconnected while server was sending "
+            "(student_id=%s)",
+            student_id,
+        )
     except Exception as e:
         logger.error(f"WS Guided: Unexpected error: {e}", exc_info=True)
         try:
