@@ -188,6 +188,9 @@ class CodeAnalyzerAgent(SocraticAgent):
 #If the min cosine similarity is set to 0, the RAG pipeline will just use the vector DB
 #If the min cosine similarity is set to 1, the RAG pipeline will default to using LLM's general knowledge.
 MIN_COSINE_SIMILARITY = 0.7
+TEACHING_PLAN_MAX_COMPLETION_TOKENS = 5000
+TEACHING_PLAN_REASONING_EFFORT = "low"
+
 class HybridCrewAISocraticSystem:
     def __init__(
         self, azure_config: Dict[str, str], vector_store_service : VectorStoreInterface,
@@ -197,10 +200,14 @@ class HybridCrewAISocraticSystem:
             azure_config.get("tutor_deployment_name")
             or azure_config.get("deployment_name")
         )
-        reasoning_deployment = (
-            azure_config.get("reasoning_deployment_name")
-            or tutor_deployment
-        )
+        reasoning_deployment = azure_config.get("reasoning_deployment_name")
+        if (
+            not reasoning_deployment
+            and tutor_deployment
+            and tutor_deployment.endswith("-mini")
+        ):
+            reasoning_deployment = tutor_deployment[:-5]
+        reasoning_deployment = reasoning_deployment or tutor_deployment
 
         self.tutor_client = AzureAPIMClient(
             endpoint=azure_config["endpoint"],
@@ -222,6 +229,10 @@ class HybridCrewAISocraticSystem:
                 tutor_deployment,
                 reasoning_deployment,
             )
+        logger.info(
+            "Teaching plan generation will use reasoning deployment=%s",
+            reasoning_deployment,
+        )
 
         self.client = self.tutor_client
         self.vector_store = vector_store_service
