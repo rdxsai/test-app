@@ -83,7 +83,23 @@
     /* Chat + progress grid */
     .content-grid { flex: 1; display: flex; overflow: hidden; }
     .chat-column { flex: 1; display: flex; flex-direction: column; min-width: 0; }
-    .progress-column { width: 280px; min-width: 280px; border-left: 1px solid #dee2e6; display: flex; flex-direction: column; }
+    .progress-column { width: 280px; min-width: 220px; max-width: 70vw; border-left: 1px solid #dee2e6; display: flex; flex-direction: column; flex-shrink: 0; }
+    .progress-resizer {
+      width: 6px; cursor: col-resize; background: transparent;
+      border-left: 1px solid #dee2e6; flex-shrink: 0;
+      transition: background 0.12s;
+      position: relative;
+    }
+    .progress-resizer:hover, .progress-resizer.dragging { background: #0d6efd33; }
+    .progress-resizer::after {
+      content: ""; position: absolute; left: 50%; top: 50%;
+      transform: translate(-50%, -50%);
+      width: 2px; height: 36px; border-radius: 1px;
+      background: #ced4da; opacity: 0.7;
+    }
+    .progress-resizer:hover::after { background: #0d6efd; opacity: 1; }
+    body.resizing-progress { cursor: col-resize; user-select: none; }
+    body.resizing-progress iframe, body.resizing-progress .chat-messages { pointer-events: none; }
 
     .chat-messages { flex: 1; overflow-y: auto; padding: 1rem; }
     .chat-input-area { border-top: 1px solid #dee2e6; padding: 0.75rem; background-color: #f8f9fa; }
@@ -311,8 +327,11 @@
           </div>
         </div>
 
+        <!-- Resizer between chat and progress -->
+        <div class="progress-resizer" id="progressResizer" title="Drag to resize"></div>
+
         <!-- Progress column -->
-        <div class="progress-column">
+        <div class="progress-column" id="progressColumn">
           <div class="progress-header">
             <h6><i class="fas fa-chart-line"></i> Learning Progress</h6>
           </div>
@@ -335,6 +354,16 @@
               </div>
             </div>
 
+            <div id="toolActivitySection" style="display:none;">
+              <div class="tp-header" id="toolActToggleBtn">
+                <h6><i class="fas fa-terminal text-primary"></i> Tool Activity</h6>
+                <i class="fas fa-chevron-down" id="toolActChevron" style="font-size:0.7rem;color:#6c757d;"></i>
+              </div>
+              <div id="toolActivityBody">
+                <div id="toolActivityContent"></div>
+              </div>
+            </div>
+
             <div id="teachingContentSection" style="display:none;">
               <div class="tp-header" id="tcToggleBtn">
                 <h6><i class="fas fa-file-lines text-primary"></i> Teaching Content</h6>
@@ -352,16 +381,6 @@
               </div>
               <div id="turnAnalysisBody">
                 <div id="turnAnalysisContent"></div>
-              </div>
-            </div>
-
-            <div id="toolActivitySection" style="display:none;">
-              <div class="tp-header" id="toolActToggleBtn">
-                <h6><i class="fas fa-terminal text-primary"></i> Tool Activity</h6>
-                <i class="fas fa-chevron-down" id="toolActChevron" style="font-size:0.7rem;color:#6c757d;"></i>
-              </div>
-              <div id="toolActivityBody">
-                <div id="toolActivityContent"></div>
               </div>
             </div>
           </div>
@@ -1236,6 +1255,67 @@
       // ================================================================
       // INIT
       // ================================================================
+
+      // ================================================================
+      // PROGRESS COLUMN RESIZE
+      // ================================================================
+      (function setupProgressResizer() {
+        const resizer = document.getElementById("progressResizer");
+        const column = document.getElementById("progressColumn");
+        if (!resizer || !column) return;
+
+        const STORAGE_KEY = "guided_progress_width";
+        const MIN_W = 220;
+        const getMaxW = () => Math.max(MIN_W, Math.round(window.innerWidth * 0.7));
+
+        const saved = parseInt(localStorage.getItem(STORAGE_KEY), 10);
+        if (Number.isFinite(saved)) {
+          column.style.width = `${Math.min(Math.max(saved, MIN_W), getMaxW())}px`;
+        }
+
+        let dragging = false;
+        let startX = 0;
+        let startWidth = 0;
+
+        resizer.addEventListener("mousedown", (e) => {
+          dragging = true;
+          startX = e.clientX;
+          startWidth = column.getBoundingClientRect().width;
+          resizer.classList.add("dragging");
+          document.body.classList.add("resizing-progress");
+          e.preventDefault();
+        });
+
+        window.addEventListener("mousemove", (e) => {
+          if (!dragging) return;
+          const delta = startX - e.clientX;
+          let newWidth = startWidth + delta;
+          newWidth = Math.max(MIN_W, Math.min(newWidth, getMaxW()));
+          column.style.width = `${newWidth}px`;
+        });
+
+        window.addEventListener("mouseup", () => {
+          if (!dragging) return;
+          dragging = false;
+          resizer.classList.remove("dragging");
+          document.body.classList.remove("resizing-progress");
+          const finalW = Math.round(column.getBoundingClientRect().width);
+          localStorage.setItem(STORAGE_KEY, String(finalW));
+        });
+
+        // Double-click to reset to default
+        resizer.addEventListener("dblclick", () => {
+          column.style.width = "280px";
+          localStorage.setItem(STORAGE_KEY, "280");
+        });
+
+        // Re-clamp on viewport shrink
+        window.addEventListener("resize", () => {
+          const max = getMaxW();
+          const cur = column.getBoundingClientRect().width;
+          if (cur > max) column.style.width = `${max}px`;
+        });
+      })();
 
       // Save chat on page unload
       window.addEventListener("beforeunload", () => saveChatHistory());
