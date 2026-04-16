@@ -747,6 +747,111 @@ class TestResponseGuards:
         assert guarded["pacing_signal"]["override_pace"] == "steady"
         assert guarded["pacing_signal"]["recommended_next_step"] == "advance"
 
+    def test_enforce_turn_response_controls_does_not_treat_resolve_candidate_as_open_lock(
+        self, hybrid_system
+    ):
+        guarded = hybrid_system._enforce_turn_response_controls(
+            current_stage="introduction",
+            analysis={
+                "stage_action": "advance",
+                "target_stage": "exploration",
+                "stage_reason": "Learner explained the tradeoff causally.",
+                "teaching_move": "consolidate",
+                "misconception_events": [
+                    {
+                        "key": "semantic_controls_as_more_control_for_developers",
+                        "text": "Student now states that semantic controls provide built-in meaning and behavior.",
+                        "action": "resolve_candidate",
+                        "repair_priority": "must_address_now",
+                    }
+                ],
+                "pacing_signal": {
+                    "concept_closure": "almost_ready",
+                    "reasoning_mode": "application",
+                    "override_pace": "steady",
+                    "override_reason": "",
+                    "recommended_next_step": "advance",
+                },
+            },
+            lesson_state={
+                "concepts": [
+                    {"id": "c1", "status": "covered"},
+                    {"id": "c2", "status": "covered"},
+                ]
+            },
+            pacing_state={"current_pace": "steady"},
+            misconception_state={"active_misconceptions": []},
+        )
+
+        assert guarded["stage_action"] == "advance"
+        assert guarded["target_stage"] == "exploration"
+
+    def test_enforce_turn_response_controls_relaxes_intro_exit_on_causal_reasoning(
+        self, hybrid_system
+    ):
+        guarded = hybrid_system._enforce_turn_response_controls(
+            current_stage="introduction",
+            analysis={
+                "stage_action": "advance",
+                "target_stage": "exploration",
+                "stage_reason": "Learner explained the tradeoff in their own words.",
+                "teaching_move": "consolidate",
+                "misconception_events": [],
+                "pacing_signal": {
+                    "concept_closure": "almost_ready",
+                    "reasoning_mode": "application",
+                    "override_pace": "steady",
+                    "override_reason": "",
+                    "recommended_next_step": "advance",
+                },
+            },
+            lesson_state={
+                "concepts": [
+                    {"id": "c1", "status": "covered"},
+                    {"id": "c2", "status": "covered"},
+                ]
+            },
+            pacing_state={"current_pace": "steady"},
+            misconception_state={"active_misconceptions": []},
+        )
+
+        assert guarded["stage_action"] == "advance"
+        assert guarded["target_stage"] == "exploration"
+
+    def test_enforce_turn_response_controls_normalizes_stage_jumps(
+        self, hybrid_system
+    ):
+        guarded = hybrid_system._enforce_turn_response_controls(
+            current_stage="exploration",
+            analysis={
+                "stage_action": "advance",
+                "target_stage": "mini_assessment",
+                "stage_reason": "Learner looks ready for assessment.",
+                "teaching_move": "consolidate",
+                "misconception_events": [],
+                "pacing_signal": {
+                    "concept_closure": "ready",
+                    "reasoning_mode": "transfer",
+                    "override_pace": "steady",
+                    "override_reason": "",
+                    "recommended_next_step": "advance",
+                },
+            },
+            lesson_state={
+                "concepts": [
+                    {"id": "c1", "status": "covered"},
+                    {"id": "c2", "status": "covered"},
+                    {"id": "c3", "status": "covered"},
+                ]
+            },
+            pacing_state={"current_pace": "steady"},
+            misconception_state={"active_misconceptions": []},
+        )
+
+        assert guarded["stage_action"] == "advance"
+        assert guarded["target_stage"] == "readiness_check"
+        assert "Stage order normalized" in guarded["stage_reason"]
+
     def test_enforce_turn_response_controls_escalates_repeated_sequence_repair_to_fresh_example(
         self, hybrid_system
     ):

@@ -913,22 +913,33 @@ class HybridCrewAISocraticSystem:
             item
             for item in (((turn_analysis or {}).get("misconception_events", []) or []))
             if isinstance(item, dict)
-            and str(item.get("repair_priority", "") or "") == "must_address_now"
+            and HybridCrewAISocraticSystem._is_open_must_repair_event(item)
         ]
         if not must_address:
             return ""
 
         lines = ["ACTIVE MISCONCEPTION REPAIR:"]
-        sequence_repair = False
+        procedural_sequence_repair = False
+        conceptual_sequence_repair = False
         for item in must_address[:2]:
             text = str(item.get("text", "") or item.get("key", "")).strip()
             if text:
                 lines.append(f"- Open misconception: {text}")
-            repair_scope = str(item.get("repair_scope", "") or "").strip().lower()
-            repair_pattern = str(item.get("repair_pattern", "") or "").strip().lower()
-            if repair_scope == "full_sequence" or repair_pattern == "same_snippet_walkthrough":
-                sequence_repair = True
-        if sequence_repair:
+            if HybridCrewAISocraticSystem._is_procedural_full_sequence_repair(item):
+                procedural_sequence_repair = True
+            else:
+                repair_scope = str(
+                    item.get("repair_scope", "") or ""
+                ).strip().lower()
+                repair_pattern = str(
+                    item.get("repair_pattern", "") or ""
+                ).strip().lower()
+                if (
+                    repair_scope == "full_sequence"
+                    or repair_pattern == "same_snippet_walkthrough"
+                ):
+                    conceptual_sequence_repair = True
+        if procedural_sequence_repair:
             lines.append(
                 "- This is a procedural repair: keep the same snippet and require the learner to walk the full checklist in order."
             )
@@ -940,6 +951,17 @@ class HybridCrewAISocraticSystem:
             )
             lines.append(
                 "- Ask for one end-to-end walkthrough question only, then wait for the learner's full pass."
+            )
+            return "\n".join(lines)
+        if conceptual_sequence_repair:
+            lines.append(
+                "- This is an exact-sequence completion repair: keep the same example and require one complete ordered pass."
+            )
+            lines.append(
+                "- Require the missing named step(s) and the final label explicitly."
+            )
+            lines.append(
+                "- Ask for one exact restatement only; do not broaden into a new concept."
             )
             return "\n".join(lines)
         lines.append(
@@ -1144,9 +1166,27 @@ class HybridCrewAISocraticSystem:
         current_pace = str(
             (pacing_state or {}).get("current_pace", "") or ""
         ).strip().lower()
+        teaching_move = str(
+            guarded.get("teaching_move", "") or ""
+        ).strip().lower()
+        answer_current_question_first = bool(
+            guarded.get("answer_current_question_first")
+        )
         concept_closure = str(
             pacing_signal.get("concept_closure", "") or ""
         ).strip().lower()
+        reasoning_mode = str(
+            pacing_signal.get("reasoning_mode", "") or ""
+        ).strip().lower()
+        guarded["stage_action"], guarded["target_stage"], guarded["stage_reason"] = (
+            cls._normalize_stage_transition(
+                current_stage=current_stage,
+                stage_action=guarded.get("stage_action", ""),
+                target_stage=guarded.get("target_stage", current_stage),
+                stage_reason=guarded.get("stage_reason", ""),
+            )
+        )
+        stage_action_value = str(guarded.get("stage_action", "") or "").strip().lower()
         target_stage = str(guarded.get("target_stage", "") or "").strip()
 
         current_turn_misconceptions = [
@@ -1155,7 +1195,7 @@ class HybridCrewAISocraticSystem:
             if isinstance(item, dict)
         ]
         must_repair_now = any(
-            str(item.get("repair_priority", "") or "") == "must_address_now"
+            cls._is_open_must_repair_event(item)
             for item in current_turn_misconceptions
         )
         repeated_active_sequence = cls._has_repeated_full_sequence_signal(
@@ -1172,13 +1212,18 @@ class HybridCrewAISocraticSystem:
         if must_repair_now:
             reasons.append("Open must-repair misconception still needs explicit correction.")
         if (
-            str(guarded.get("stage_action", "") or "") == "advance"
+            stage_action_value == "advance"
             and concept_closure != "ready"
+            and not cls._allows_intro_exit_with_partial_closure(
+                current_stage=current_stage,
+                target_stage=target_stage,
+                pacing_signal=pacing_signal,
+            )
         ):
             reasons.append("Concept closure is not ready yet.")
         coverage_ratio = cls._lesson_coverage_ratio(lesson_state)
         if (
-            str(guarded.get("stage_action", "") or "") == "advance"
+            stage_action_value == "advance"
             and target_stage in {"readiness_check", "mini_assessment", "final_assessment"}
             and coverage_ratio < 0.6
         ):
@@ -1266,12 +1311,19 @@ class HybridCrewAISocraticSystem:
 
         must_repair = any(
             isinstance(item, dict)
-            and str(item.get("repair_priority", "") or "") == "must_address_now"
+            and HybridCrewAISocraticSystem._is_open_must_repair_event(item)
             for item in (((turn_analysis or {}).get("misconception_events", []) or []))
         )
-        requires_full_sequence_repair = any(
+        requires_procedural_full_sequence_repair = any(
             isinstance(item, dict)
-            and str(item.get("repair_priority", "") or "") == "must_address_now"
+            and HybridCrewAISocraticSystem._is_open_must_repair_event(item)
+            and HybridCrewAISocraticSystem._is_procedural_full_sequence_repair(item)
+            for item in (((turn_analysis or {}).get("misconception_events", []) or []))
+        )
+        requires_conceptual_sequence_completion = any(
+            isinstance(item, dict)
+            and HybridCrewAISocraticSystem._is_open_must_repair_event(item)
+            and not HybridCrewAISocraticSystem._is_procedural_full_sequence_repair(item)
             and (
                 str(item.get("repair_scope", "") or "") == "full_sequence"
                 or str(item.get("repair_pattern", "") or "") == "same_snippet_walkthrough"
@@ -1288,7 +1340,7 @@ class HybridCrewAISocraticSystem:
         )
 
         response_shape = "question_only"
-        if requires_full_sequence_repair:
+        if requires_procedural_full_sequence_repair:
             response_shape = "full_sequence_repair"
         elif must_repair or recommended_next_step in {"re-explain", "ask_narrower"}:
             response_shape = "repair_and_check"
