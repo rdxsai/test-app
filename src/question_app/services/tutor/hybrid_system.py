@@ -3142,6 +3142,148 @@ class HybridCrewAISocraticSystem:
             return {}
 
     # ------------------------------------------------------------------
+    # First teaching turn (no synthetic student message)
+    # ------------------------------------------------------------------
+
+    async def _start_first_teaching_turn(
+        self,
+        student_id: str,
+        session_id: str,
+        objective_id: str,
+        objective_text: str,
+        ws_send,
+    ) -> Dict[str, Any]:
+        """Stream the very first teaching turn for an objective without a
+        synthetic student message.
+
+        Runs the teaching content pipeline if needed, builds tutor messages
+        with first_turn=True (no real student turn), streams the lesson
+        opener, appends ONLY the assistant message to history, and bumps
+        the turn counter once. Skips the analyzer entirely — there is no
+        student response to interpret yet.
+        """
+        if not self.student_mcp:
+            await ws_send({"type": "error", "message": "Student MCP not available"})
+            return {}
+
+        await self._restore_session_cache(session_id, objective_id)
+
+        if self._session_cache.needs_retrieval(session_id, objective_id):
+            try:
+                teaching_plan, teaching_content, retrieval_bundle, extracted_concepts = (
+                    await self._run_teaching_content_pipeline(
+                        objective_text,
+                        session_id,
+                        objective_id,
+                        ws_send,
+                    )
+                )
+                self._session_cache.store(
+                    session_id, objective_id, objective_text,
+                    [], "", teaching_content,
+                    retrieval_bundle=retrieval_bundle,
+                )
+                self._session_cache.store_teaching_plan(
+                    session_id, teaching_plan,
+                    extracted_concepts=extracted_concepts,
+                )
+                await self._persist_session_cache(session_id)
+            except TeachingPlanGenerationError as e:
+                logger.error(
+                    "First-turn teaching plan generation failed for objective=%s: %s",
+                    objective_id, e, exc_info=True,
+                )
+                await ws_send(
+                    {
+                        "type": "error",
+                        "message": (
+                            "Teaching plan generation failed. Guided tutoring "
+                            "stopped before the first lesson turn."
+                        ),
+                    }
+                )
+                return {}
+            except Exception as e:
+                logger.error(
+                    "First-turn teaching content pipeline failed: %s", e, exc_info=True,
+                )
+                await ws_send(
+                    {
+                        "type": "error",
+                        "message": "Teaching content pipeline failed before first turn.",
+                    }
+                )
+                return {}
+        else:
+            teaching_content = self._session_cache.get_teaching_content(session_id)
+
+        teaching_plan = self._session_cache.get_teaching_plan(session_id)
+        if not teaching_plan:
+            logger.error(
+                "First-turn missing teaching plan for session=%s objective=%s",
+                session_id, objective_id,
+            )
+            await ws_send(
+                {
+                    "type": "error",
+                    "message": "No validated teaching plan available for the first turn.",
+                }
+            )
+            return {}
+
+        lesson_state = self._session_cache.get_lesson_state(session_id)
+        pacing_state = self._session_cache.get_pacing_state(session_id)
+        bundle = await self._load_student_bundle(student_id, objective_id)
+        misconception_state = self._session_cache.seed_misconception_state(
+            session_id, bundle.get("misconceptions", []),
+        )
+        student_context = self._format_student_context(
+            bundle.get("profile"),
+            bundle.get("mastery", []),
+            bundle.get("session"),
+            bundle.get("misconceptions", []),
+            bundle.get("learner_memory"),
+            bundle.get("objective_memory"),
+        )
+
+        await ws_send(
+            {
+                "type": "stage",
+                "stage": "composing",
+                "detail": "Opening the lesson...",
+            }
+        )
+        tutor_messages = self._build_guided_tutor_messages(
+            student_response=None,
+            history=None,
+            teaching_content=teaching_content or "",
+            student_context=student_context,
+            current_stage="introduction",
+            active_objective=objective_text,
+            teaching_plan=teaching_plan,
+            lesson_state=lesson_state,
+            pacing_state=pacing_state,
+            misconception_state=misconception_state,
+            first_turn=True,
+        )
+        final_text = await self._stream_response(tutor_messages, ws_send)
+        self.append_to_conversation(student_id, "assistant", final_text)
+
+        try:
+            await self.student_mcp.increment_turn_count(session_id)
+        except Exception as e:
+            logger.warning("First-turn increment_turn_count failed: %s", e)
+
+        metadata = {
+            "session_id": session_id,
+            "stage": "introduction",
+            "stage_advanced": False,
+            "first_turn": True,
+        }
+        await ws_send({"type": "stream_end", "metadata": metadata})
+        return metadata
+
+    # ------------------------------------------------------------------
     # Onboarding handler (Instance B — first 2-3 turns)
     # ------------------------------------------------------------------
 
@@ -3267,11 +3409,15 @@ class HybridCrewAISocraticSystem:
         await ws_send({"type": "stream_end", "metadata": {"stage": "introduction"}})
         self.append_to_conversation(student_id, "assistant", intro_msg)
 
-        # Automatically start the first teaching turn — the tutor drives Instance B.
-        await self.conduct_guided_session_streaming(
+        # Start the first teaching turn directly. No synthetic student
+        # message is fabricated — the tutor opens the lesson on its own,
+        # the analyzer is skipped (nothing to interpret yet), and only the
+        # tutor's reply is appended to conversation history.
+        await self._start_first_teaching_turn(
             student_id=student_id,
-            student_response=f"I'm ready to learn about {objective_text}. Please introduce this topic.",
             session_id=session_id,
+            objective_id=objective_id,
+            objective_text=objective_text,
             ws_send=ws_send,
         )
         return {"stage": "introduction", "objective": objective_text}
