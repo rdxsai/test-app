@@ -446,9 +446,35 @@ WCAG_TOOL_DEFINITIONS = [
     },
 ]
 
+def _with_required_rationale(tool_def: Dict[str, Any]) -> Dict[str, Any]:
+    """Return a deep copy of tool_def with a required `rationale` parameter.
+
+    The retrieval loop strips `rationale` before forwarding args to the MCP
+    server, so the underlying tool surface is unchanged. The string is captured
+    and surfaced in the UI as the model's per-call justification (a workaround
+    for hidden reasoning tokens on GPT-5 reasoning models).
+    """
+    new_def = json.loads(json.dumps(tool_def))
+    params = new_def.setdefault("function", {}).setdefault("parameters", {})
+    params.setdefault("type", "object")
+    properties = params.setdefault("properties", {})
+    required = params.setdefault("required", [])
+    properties["rationale"] = {
+        "type": "string",
+        "description": (
+            "ONE short sentence stating why this tool is being called right now, "
+            "in the context of the current learning objective and teaching plan. "
+            "Shown to the developer in the UI; never forwarded to the MCP server."
+        ),
+    }
+    if "rationale" not in required:
+        required.append("rationale")
+    return new_def
+
+
 # Instance B guided retrieval needs the richer tool surface already exposed by
 # the MCP server so it can gather deeper teaching evidence when needed.
-GUIDED_WCAG_TOOL_DEFINITIONS = WCAG_TOOL_DEFINITIONS + [
+_GUIDED_EXTRA_TOOL_DEFINITIONS = [
     {
         "type": "function",
         "function": {
@@ -595,6 +621,16 @@ GUIDED_WCAG_TOOL_DEFINITIONS = WCAG_TOOL_DEFINITIONS + [
         },
     },
 ]
+
+
+# Public guided-retrieval tool surface: every tool gets a required `rationale`
+# parameter so the model has to state, in one sentence, why each call advances
+# the current goal. The retrieval loop strips it before MCP invocation.
+GUIDED_WCAG_TOOL_DEFINITIONS = [
+    _with_required_rationale(tool)
+    for tool in (WCAG_TOOL_DEFINITIONS + _GUIDED_EXTRA_TOOL_DEFINITIONS)
+]
+
 
 # Map OpenAI function names → (MCP tool name, param remapping function)
 _TOOL_NAME_TO_MCP = {
