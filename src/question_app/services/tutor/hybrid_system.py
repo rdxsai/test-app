@@ -32,6 +32,25 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+class ClientConnectionClosedError(RuntimeError):
+    """Raised when the client websocket disconnects mid-response."""
+
+
+class TeachingPlanGenerationError(RuntimeError):
+    """Raised when the guided tutor cannot obtain a valid teaching plan."""
+
+
+GUIDED_STAGE_SEQUENCE = [
+    "onboarding",
+    "introduction",
+    "exploration",
+    "readiness_check",
+    "mini_assessment",
+    "final_assessment",
+    "transition",
+]
+
+
 def safe_serialize(obj):
     # (This function is unchanged)
     if hasattr(obj, "__class__") and "MagicMock" in str(obj.__class__):
@@ -367,7 +386,7 @@ class HybridCrewAISocraticSystem:
                 logger.error(f"Failed to load memory: {e}")
 
     def get_conversation_history(self, student_id: str) -> List[Dict[str, str]]:
-        return self.conversation_memory.get(student_id, [])
+        return copy.deepcopy(self.conversation_memory.get(student_id, []))
 
     def append_to_conversation(self, student_id: str, role: str, content: str):
         self.conversation_memory.setdefault(student_id, [])
@@ -2200,6 +2219,23 @@ class HybridCrewAISocraticSystem:
                         session_id, teaching_plan,
                         extracted_concepts=extracted_concepts,
                     )
+                except TeachingPlanGenerationError as e:
+                    logger.error(
+                        "Teaching plan generation failed for objective=%s: %s",
+                        objective_id,
+                        e,
+                        exc_info=True,
+                    )
+                    await ws_send(
+                        {
+                            "type": "error",
+                            "message": (
+                                "Teaching plan generation failed. Guided tutoring "
+                                "stopped before continuing without a validated plan."
+                            ),
+                        }
+                    )
+                    return {}
                 except Exception as e:
                     logger.error(f"Teaching content pipeline failed: {e}", exc_info=True)
                     # Fallback: try old retrieval path
@@ -2219,13 +2255,45 @@ class HybridCrewAISocraticSystem:
                             objective_text, teaching_content
                         )
                         self._session_cache.store_teaching_plan(session_id, teaching_plan)
-                    except Exception as plan_err:
-                        logger.warning(f"Fallback teaching plan failed: {plan_err}")
+                    except TeachingPlanGenerationError as plan_err:
+                        logger.error(
+                            "Fallback teaching plan generation failed for objective=%s: %s",
+                            objective_id,
+                            plan_err,
+                            exc_info=True,
+                        )
+                        await ws_send(
+                            {
+                                "type": "error",
+                                "message": (
+                                    "Teaching plan generation failed after retrieval "
+                                    "fallback. Guided tutoring stopped before continuing "
+                                    "without a validated plan."
+                                ),
+                            }
+                        )
+                        return {}
                 await self._persist_session_cache(session_id)
             else:
                 teaching_content = self._session_cache.get_teaching_content(session_id)
 
             teaching_plan = self._session_cache.get_teaching_plan(session_id)
+            if not teaching_plan:
+                logger.error(
+                    "Guided session missing teaching plan after retrieval for session=%s objective=%s",
+                    session_id,
+                    objective_id,
+                )
+                await ws_send(
+                    {
+                        "type": "error",
+                        "message": (
+                            "No validated teaching plan is available for this objective. "
+                            "Guided tutoring cannot continue."
+                        ),
+                    }
+                )
+                return {}
             lesson_state = self._session_cache.get_lesson_state(session_id)
             pacing_state = self._session_cache.get_pacing_state(session_id)
             bundle = await self._load_student_bundle(student_id, objective_id)
@@ -2877,6 +2945,35 @@ class HybridCrewAISocraticSystem:
     # Assessment context (fetch quiz questions for an objective)
     # ------------------------------------------------------------------
 
+    @staticmethod
+    def _is_valid_structured_teaching_plan(plan_text: str) -> bool:
+        """Return True when the plan contains the required numbered sections."""
+        section_pattern = re.compile(
+            r'(?:^|\n)(?:##?\s*)?\d{1,2}\.\s*([a-z][\w_]*)\s*\n',
+            re.IGNORECASE,
+        )
+        section_names = {
+            match.group(1).strip().lower()
+            for match in section_pattern.finditer(plan_text or "")
+        }
+        required = {
+            "objective_text",
+            "plain_language_goal",
+            "mastery_definition",
+            "concept_decomposition",
+            "dependency_order",
+        }
+        return required.issubset(section_names)
+
+    @staticmethod
+    def _is_valid_legacy_teaching_plan(plan: Dict[str, Any]) -> bool:
+        """Return True when the legacy JSON plan contains usable concept order data."""
+        concepts = plan.get("concepts", []) if isinstance(plan, dict) else []
+        recommended_order = (
+            plan.get("recommended_order", []) if isinstance(plan, dict) else []
+        )
+        return bool(isinstance(concepts, list) and concepts and recommended_order)
+
     async def _generate_teaching_plan(
         self, objective_text: str, teaching_content: str = "",
     ):
@@ -2908,43 +3005,54 @@ class HybridCrewAISocraticSystem:
             {"role": "system", "content": CONCEPT_DECOMPOSITION_PROMPT},
             {"role": "user", "content": user_content},
         ]
+        logger.info(
+            "Generating teaching plan with deployment=%s effort=%s requested_tokens=%d",
+            getattr(self.reasoning_client, "deployment", "unknown"),
+            TEACHING_PLAN_REASONING_EFFORT,
+            TEACHING_PLAN_MAX_COMPLETION_TOKENS,
+        )
         response = await asyncio.to_thread(
             self.reasoning_client.chat,
             messages,
             0.3,
-            2500,  # increased from 800 for 17-section plan
+            TEACHING_PLAN_MAX_COMPLETION_TOKENS,
+            TEACHING_PLAN_REASONING_EFFORT,
         )
 
         # Try JSON first (legacy format compatibility)
         try:
             plan = json.loads(response)
-            logger.info(
-                f"Teaching plan generated (legacy JSON): "
-                f"{len(plan.get('concepts', []))} concepts, "
-                f"order: {plan.get('recommended_order', [])}"
+            if self._is_valid_legacy_teaching_plan(plan):
+                logger.info(
+                    f"Teaching plan generated (legacy JSON): "
+                    f"{len(plan.get('concepts', []))} concepts, "
+                    f"order: {plan.get('recommended_order', [])}"
+                )
+                return plan
+            raise TeachingPlanGenerationError(
+                "Planner returned legacy JSON without concepts or teaching order."
             )
-            return plan
         except (json.JSONDecodeError, TypeError):
             pass
 
         # New format: structured text with numbered sections
-        if response and len(response) > 100:
+        if response and len(response) > 100 and self._is_valid_structured_teaching_plan(response):
             logger.info(
                 f"Teaching plan generated (structured text): "
                 f"{len(response)} chars"
             )
             return response
 
-        # Fallback
-        logger.warning("Teaching plan generation returned empty/short response, using fallback")
-        return {
-            "objective": objective_text,
-            "concepts": [
-                {"id": "c1", "name": "Core concept", "description": objective_text,
-                 "prerequisites": [], "key_points": [], "status": "not_covered"}
-            ],
-            "recommended_order": ["c1"],
-        }
+        response_preview = (response or "").strip().replace("\n", " ")
+        if len(response_preview) > 180:
+            response_preview = response_preview[:180] + "..."
+        detail = "empty response"
+        if response_preview:
+            detail = f"invalid response preview={response_preview!r}"
+        raise TeachingPlanGenerationError(
+            "Teaching plan generation failed on gpt-5.4: "
+            f"{detail}. Guided tutoring will not continue without a valid plan."
+        )
 
     async def _extract_concept_order(self, teaching_plan: str) -> Optional[List[Dict[str, str]]]:
         """Use a lightweight LLM call to extract the ordered concept list

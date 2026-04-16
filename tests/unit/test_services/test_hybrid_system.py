@@ -1,6 +1,11 @@
 import pytest
 
-from question_app.services.tutor.hybrid_system import HybridCrewAISocraticSystem
+from question_app.services.tutor.hybrid_system import (
+    HybridCrewAISocraticSystem,
+    TEACHING_PLAN_MAX_COMPLETION_TOKENS,
+    TEACHING_PLAN_REASONING_EFFORT,
+    TeachingPlanGenerationError,
+)
 from question_app.services.tutor.interfaces import VectorStoreInterface
 
 
@@ -10,11 +15,19 @@ class FakeVectorStore(VectorStoreInterface):
 
 
 class FakeAzureClient:
-    def __init__(self, endpoint: str, deployment: str, api_key: str, api_version: str = ""):
+    def __init__(
+        self,
+        endpoint: str,
+        deployment: str,
+        api_key: str,
+        api_version: str = "",
+        content_filter_policy: str = "",
+    ):
         self.endpoint = endpoint
         self.deployment = deployment
         self.api_key = api_key
         self.api_version = api_version
+        self.content_filter_policy = content_filter_policy
 
     def chat(self, messages, temperature=0.7, max_tokens=1000, reasoning_effort=None, response_format=None):
         return ""
@@ -1279,3 +1292,51 @@ class TestGuidedRetrieval:
         # extracted_concepts may be None when the fake client doesn't
         # support response_format — that's the expected fallback.
         assert extracted_concepts is None or isinstance(extracted_concepts, list)
+
+    @pytest.mark.asyncio
+    async def test_generate_teaching_plan_uses_reasoning_client_budget(
+        self, hybrid_system, monkeypatch
+    ):
+        captured = {}
+
+        def fake_chat(
+            messages,
+            temperature=0.7,
+            max_tokens=1000,
+            reasoning_effort=None,
+            response_format=None,
+        ):
+            captured["messages"] = messages
+            captured["temperature"] = temperature
+            captured["max_tokens"] = max_tokens
+            captured["reasoning_effort"] = reasoning_effort
+            captured["response_format"] = response_format
+            return (
+                "1. objective_text\nExplain WCAG structure\n\n"
+                "2. plain_language_goal\nExplain WCAG simply.\n\n"
+                "3. mastery_definition\nDescribe the hierarchy.\n\n"
+                "7. concept_decomposition\n- Principles\n- Guidelines\n- Success criteria\n\n"
+                "8. dependency_order\n1. Principles\n2. Guidelines\n3. Success criteria\n"
+            )
+
+        monkeypatch.setattr(hybrid_system.reasoning_client, "chat", fake_chat)
+
+        plan = await hybrid_system._generate_teaching_plan(
+            "Explain the structure of WCAG"
+        )
+
+        assert "plain_language_goal" in plan
+        assert hybrid_system.reasoning_client.deployment == "gpt-5.4"
+        assert captured["max_tokens"] == TEACHING_PLAN_MAX_COMPLETION_TOKENS
+        assert captured["reasoning_effort"] == TEACHING_PLAN_REASONING_EFFORT
+
+    @pytest.mark.asyncio
+    async def test_generate_teaching_plan_raises_on_empty_response(
+        self, hybrid_system, monkeypatch
+    ):
+        monkeypatch.setattr(hybrid_system.reasoning_client, "chat", lambda *args, **kwargs: "")
+
+        with pytest.raises(TeachingPlanGenerationError):
+            await hybrid_system._generate_teaching_plan(
+                "Explain the structure of WCAG"
+            )
