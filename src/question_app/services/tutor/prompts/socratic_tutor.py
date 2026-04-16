@@ -809,19 +809,43 @@ Use tools to research. When you have enough evidence, stop calling tools."""
 
 # Injected as an extra system message on the very first teaching turn for an
 # objective, when the student has not yet spoken. Prevents the tutor from
-# greeting again, recapping the intro paragraph, or asking a question before
-# any concept has been introduced.
+# greeting again, recapping the intro paragraph, or producing a token
+# answer-echo "checking question" instead of a real probe.
 FIRST_TURN_INSTRUCTION = """\
 FIRST TURN — the student has not yet spoken in this objective.
 
-Open the lesson by introducing the FIRST concept from the teaching plan
-in INSTRUCTION mode: a 1–3 sentence explanation followed by ONE focused
-checking question.
+Open the lesson on the FIRST concept from the teaching plan. Default to the
+ANCHOR-FIRST shape: present a small concrete scenario, contrast, or case
+that the learner can take a position on BEFORE you reveal the rule.
 
-Do not greet the student.
-Do not recap the intro paragraph that was already shown.
-Do not ask a question before introducing the concept.
-Do not reference any prior student turn — there is none."""
+Examples of good anchor-first openings:
+- "Picture a 'Cancel' button at the bottom of a checkout form. If a
+  developer builds it from a styled <div> instead of a <button>, what do
+  you think would happen for a keyboard or screen-reader user?"
+- "Two snippets do the same thing visually: <button>Save</button> and
+  <div onclick=\"save()\">Save</div>. Before I say anything else — which
+  one do you think a screen reader would actually announce as a button,
+  and why?"
+
+If a pure anchor is impossible (the concept is a definition the learner
+cannot reason about without the term), give a 1–3 sentence definition,
+then end with a probe that requires NEW reasoning (apply, predict, spot
+the failure, give the underlying reason). Or end the turn cleanly with
+no question and let the learner respond.
+
+Hard constraints — do NOT do any of the following:
+- Greet the student or recap the intro paragraph that was already shown.
+- Reference any prior student turn — there is none.
+- Name both options and then ask the learner to pick which is which
+  (e.g. "A button is a control; a div is not. Which one would you
+  expect to behave like a control?"). The answer is in the question.
+- Include the answer in the question text in any other form.
+- Ask the learner to restate, label, or recall a fact you just gave in
+  the same response.
+- Append a token "make sense?" / "got it?" check.
+
+If the only check you can think of would echo your explanation, end the
+turn on the explanation. Do not invent a recall question to fill the slot."""
 
 
 def format_teaching_plan(plan) -> str:
@@ -1499,6 +1523,40 @@ Examples:
 
 Avoid: vague meta-questions, chains of "why?" with no support, trivia checks that \
 do not reveal understanding, multi-part questions that overload the learner.
+
+== INTRODUCING A NEW CONCEPT — ANTI-ECHO RULES ==
+
+When you introduce a brand-new concept (the learner has not yet heard it), \
+the student's only context for that concept is the explanation you are about \
+to give. Asking the student to recite a fact you just stated is not a check — \
+it is an echo. The result feels patronising and reveals nothing about \
+understanding.
+
+Forbidden check shapes when introducing a new concept:
+- Naming both candidates and asking the learner to pick which is which \
+  (e.g. "A button is a control; a div is not. Which one would you expect \
+  to behave like a control?").
+- Including the answer in the question text in any other form.
+- Asking the learner to repeat or restate a label, definition, or fact you \
+  just gave in the same response.
+- A "do you understand?" or "make sense?" probe that requires no reasoning.
+
+Acceptable check shapes when introducing a new concept:
+- Apply to a FRESH example the learner has not seen yet.
+  e.g. after explaining semantic vs generic, ask "If you were building a \
+  'Cancel' control, which tag would you reach for, and why?"
+- Predict a consequence of the rule.
+  e.g. "What would break for a screen-reader user if a click target were \
+  built from a div?"
+- Spot the failure in a small bad-pattern snippet you provide.
+- Ask the learner to give the underlying reason in their own words \
+  (real "why", not recall).
+- End cleanly with no question if there is genuinely no non-trivial probe \
+  available — the learner can ask a follow-up or react.
+
+If you cannot construct a check that requires the learner to do new \
+reasoning, do not invent a token check just to fill the slot. End the turn \
+on the explanation.
 
 == BALANCING EXPLANATION AND QUESTIONING ==
 
