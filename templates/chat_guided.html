@@ -157,7 +157,43 @@
     .onboarding-submit { margin-top: 0.6rem; width: 100%; }
 
     /* Teaching sidebar panels */
-    #teachingPlanSection, #teachingContentSection, #turnAnalysisSection { border-top: 1px solid #dee2e6; padding-top: 0.5rem; margin-top: 0.5rem; }
+    #teachingPlanSection, #teachingContentSection, #turnAnalysisSection, #toolActivitySection { border-top: 1px solid #dee2e6; padding-top: 0.5rem; margin-top: 0.5rem; }
+    .ta-list { display: flex; flex-direction: column; gap: 0.4rem; }
+    .ta-phase-label { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: #6c757d; margin: 0.5rem 0 0.2rem; }
+    .ta-phase-label:first-child { margin-top: 0; }
+    .ta-card {
+      border: 1px solid #e9ecef; border-radius: 6px; padding: 0.45rem 0.55rem;
+      background: #fff; font-size: 0.72rem; line-height: 1.4;
+    }
+    .ta-card.ta-pending { border-left: 3px solid #0d6efd; background: #f0f6ff; }
+    .ta-card.ta-hit { border-left: 3px solid #198754; }
+    .ta-card.ta-miss { border-left: 3px solid #fd7e14; }
+    .ta-card.ta-blocked, .ta-card.ta-error { border-left: 3px solid #dc3545; }
+    .ta-card-header { display: flex; align-items: baseline; gap: 0.4rem; flex-wrap: wrap; }
+    .ta-tool-name { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-weight: 700; color: #212529; }
+    .ta-meta { font-size: 0.62rem; color: #6c757d; }
+    .ta-row { margin-top: 0.25rem; }
+    .ta-row-label { font-weight: 600; color: #495057; margin-right: 0.25rem; }
+    .ta-row-text { color: #495057; }
+    .ta-result {
+      margin-top: 0.3rem; font-size: 0.66rem; color: #495057;
+      padding: 0.15rem 0.35rem; background: #f1f3f5; border-radius: 3px; display: inline-block;
+    }
+    .ta-result.ta-result-error { background: #f8d7da; color: #842029; }
+    .ta-result.ta-result-blocked { background: #f8d7da; color: #842029; }
+    .ta-result.ta-result-miss { background: #fff3cd; color: #664d03; }
+    .ta-params summary {
+      cursor: pointer; font-size: 0.65rem; color: #0d6efd; margin-top: 0.25rem;
+      list-style: none; user-select: none;
+    }
+    .ta-params summary::-webkit-details-marker { display: none; }
+    .ta-params summary::before { content: "▸ params"; }
+    .ta-params[open] summary::before { content: "▾ params"; }
+    .ta-params pre {
+      margin: 0.25rem 0 0; padding: 0.35rem 0.45rem; background: #1e1e1e;
+      color: #d4d4d4; border-radius: 3px; font-size: 0.65rem;
+      max-height: 160px; overflow: auto; white-space: pre-wrap; word-break: break-word;
+    }
     .tp-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem; cursor: pointer; user-select: none; }
     .tp-header h6 { margin: 0; font-size: 0.8rem; }
     .tp-generating { font-size: 0.73rem; color: #6c757d; font-style: italic; padding: 0.4rem 0.5rem; background: #f8f9fa; border-radius: 4px; }
@@ -318,6 +354,16 @@
                 <div id="turnAnalysisContent"></div>
               </div>
             </div>
+
+            <div id="toolActivitySection" style="display:none;">
+              <div class="tp-header" id="toolActToggleBtn">
+                <h6><i class="fas fa-terminal text-primary"></i> Tool Activity</h6>
+                <i class="fas fa-chevron-down" id="toolActChevron" style="font-size:0.7rem;color:#6c757d;"></i>
+              </div>
+              <div id="toolActivityBody">
+                <div id="toolActivityContent"></div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -354,6 +400,7 @@
       let teachingContentData = null;
       let turnAnalysisData = [];
       let turnAnalysisGenerating = false;
+      let toolActivityData = [];
 
       // ================================================================
       // MULTI-STUDENT STATE (localStorage)
@@ -397,6 +444,7 @@
         localStorage.setItem(`teaching_plan_${studentId}`, JSON.stringify(teachingPlanData));
         localStorage.setItem(`teaching_content_${studentId}`, JSON.stringify(teachingContentData));
         localStorage.setItem(`turn_analysis_${studentId}`, JSON.stringify(turnAnalysisData));
+        localStorage.setItem(`tool_activity_${studentId}`, JSON.stringify(toolActivityData));
       }
 
       function clearTeachingSidebar() {
@@ -404,9 +452,11 @@
         teachingContentData = null;
         turnAnalysisData = [];
         turnAnalysisGenerating = false;
+        toolActivityData = [];
         resetTeachingPlanSection();
         resetTeachingContentSection();
         resetTurnAnalysisSection();
+        resetToolActivitySection();
       }
 
       function loadTeachingSidebarState(studentId) {
@@ -414,12 +464,18 @@
         const storedPlan = loadStoredJSON(`teaching_plan_${studentId}`);
         const storedContent = loadStoredJSON(`teaching_content_${studentId}`);
         const storedTurnAnalysis = loadStoredJSON(`turn_analysis_${studentId}`);
+        const storedToolActivity = loadStoredJSON(`tool_activity_${studentId}`);
         if (storedPlan !== null) showTeachingPlan(storedPlan, false);
         else resetTeachingPlanSection();
         if (storedContent !== null) showTeachingContent(storedContent, false);
         else resetTeachingContentSection();
         if (storedTurnAnalysis !== null) loadTurnAnalysisHistory(storedTurnAnalysis);
         else resetTurnAnalysisSection();
+        if (Array.isArray(storedToolActivity) && storedToolActivity.length) {
+          loadToolActivity(storedToolActivity);
+        } else {
+          resetToolActivitySection();
+        }
       }
 
       function loadChatHistory(id) {
@@ -475,6 +531,7 @@
         localStorage.removeItem(`teaching_plan_${id}`);
         localStorage.removeItem(`teaching_content_${id}`);
         localStorage.removeItem(`turn_analysis_${id}`);
+        localStorage.removeItem(`tool_activity_${id}`);
         // Reset student meta
         const s = getStudent(id);
         if (s) { s.stage = "onboarding"; s.objective = ""; saveStudents(); }
@@ -502,6 +559,7 @@
         localStorage.removeItem(`teaching_plan_${id}`);
         localStorage.removeItem(`teaching_content_${id}`);
         localStorage.removeItem(`turn_analysis_${id}`);
+        localStorage.removeItem(`tool_activity_${id}`);
         students = students.filter(s => s.id !== id);
         saveStudents();
         if (id === activeStudentId) {
@@ -676,6 +734,9 @@
           case "turn_analysis":
             showTurnAnalysis(msg.display_analysis || msg.analysis, msg.analysis);
             break;
+          case "tool_activity":
+            recordToolActivity(msg);
+            break;
           case "session_reset":
             clearTeachingSidebar();
             break;
@@ -731,6 +792,7 @@
       let tpCollapsed = false;
       let tcCollapsed = false;
       let taCollapsed = false;
+      let toolActCollapsed = false;
 
       document.getElementById("tpToggleBtn").addEventListener("click", function () {
         tpCollapsed = !tpCollapsed;
@@ -751,6 +813,13 @@
         document.getElementById("turnAnalysisBody").style.display = taCollapsed ? "none" : "block";
         const ch = document.getElementById("taChevron");
         ch.className = taCollapsed ? "fas fa-chevron-right" : "fas fa-chevron-down";
+      });
+
+      document.getElementById("toolActToggleBtn").addEventListener("click", function () {
+        toolActCollapsed = !toolActCollapsed;
+        document.getElementById("toolActivityBody").style.display = toolActCollapsed ? "none" : "block";
+        const ch = document.getElementById("toolActChevron");
+        ch.className = toolActCollapsed ? "fas fa-chevron-right" : "fas fa-chevron-down";
       });
 
       function renderTeachingPanelValue(value) {
@@ -883,6 +952,131 @@
         }
         expandTeachingPanel("turnAnalysisSection", "turnAnalysisBody", "taChevron");
         document.getElementById("turnAnalysisContent").innerHTML = renderTurnAnalysisHistory(turnAnalysisData, false);
+      }
+
+      // ================================================================
+      // TOOL ACTIVITY
+      // ================================================================
+
+      const TOOL_ACTIVITY_PHASE_LABELS = {
+        retrieval: "Teaching content retrieval",
+      };
+
+      function resetToolActivitySection() {
+        toolActCollapsed = false;
+        document.getElementById("toolActivitySection").style.display = "none";
+        document.getElementById("toolActivityBody").style.display = "block";
+        document.getElementById("toolActChevron").className = "fas fa-chevron-down";
+        document.getElementById("toolActivityContent").innerHTML = "";
+      }
+
+      function statusToCardClass(entry) {
+        if (entry.status !== "completed") return "ta-pending";
+        const rs = (entry.result_status || "").toUpperCase();
+        if (rs === "HIT") return "ta-hit";
+        if (rs === "MISS") return "ta-miss";
+        if (rs === "BLOCKED") return "ta-blocked";
+        if (rs === "ERROR") return "ta-error";
+        return "ta-hit";
+      }
+
+      function statusToResultClass(entry) {
+        const rs = (entry.result_status || "").toUpperCase();
+        if (rs === "ERROR") return "ta-result-error";
+        if (rs === "BLOCKED") return "ta-result-blocked";
+        if (rs === "MISS") return "ta-result-miss";
+        return "";
+      }
+
+      function renderToolActivityCard(entry) {
+        const cardClass = statusToCardClass(entry);
+        const resultClass = statusToResultClass(entry);
+        const phaseLabel = TOOL_ACTIVITY_PHASE_LABELS[entry.phase] || entry.phase || "tool";
+        const round = entry.round ? `round ${entry.round}` : "";
+        const seq = entry.sequence ? `#${entry.sequence}` : "";
+        const meta = [phaseLabel, round, seq].filter(Boolean).join(" · ");
+        const params = entry.params && Object.keys(entry.params).length
+          ? `<details class="ta-params"><summary></summary><pre>${escapeHtml(JSON.stringify(entry.params, null, 2))}</pre></details>`
+          : "";
+        const description = entry.description
+          ? `<div class="ta-row"><span class="ta-row-label">what:</span><span class="ta-row-text">${escapeHtml(entry.description)}</span></div>`
+          : "";
+        const rationale = entry.rationale
+          ? `<div class="ta-row"><span class="ta-row-label">why:</span><span class="ta-row-text">${escapeHtml(entry.rationale)}</span></div>`
+          : `<div class="ta-row"><span class="ta-row-label">why:</span><span class="ta-row-text" style="color:#adb5bd;">(no rationale provided)</span></div>`;
+        const result = entry.status === "completed" && entry.result_summary
+          ? `<div class="ta-result ${resultClass}">→ ${escapeHtml(entry.result_summary)}</div>`
+          : (entry.status !== "completed"
+              ? `<div class="ta-result"><i class="fas fa-spinner fa-spin"></i> calling…</div>`
+              : "");
+        return `
+          <div class="ta-card ${cardClass}">
+            <div class="ta-card-header">
+              <span class="ta-tool-name">${escapeHtml(entry.name || "(unknown)")}</span>
+              <span class="ta-meta">${escapeHtml(meta)}</span>
+            </div>
+            ${description}
+            ${rationale}
+            ${params}
+            ${result}
+          </div>
+        `;
+      }
+
+      function renderToolActivityList() {
+        const groups = {};
+        toolActivityData.forEach(entry => {
+          const phase = entry.phase || "other";
+          (groups[phase] = groups[phase] || []).push(entry);
+        });
+        const phaseOrder = Object.keys(groups);
+        const html = phaseOrder.map(phase => {
+          const label = TOOL_ACTIVITY_PHASE_LABELS[phase] || phase;
+          const cards = groups[phase].map(renderToolActivityCard).join("");
+          return `<div class="ta-phase-label">${escapeHtml(label)}</div><div class="ta-list">${cards}</div>`;
+        }).join("");
+        document.getElementById("toolActivityContent").innerHTML = html;
+      }
+
+      function showToolActivitySection() {
+        document.getElementById("toolActivitySection").style.display = "block";
+        document.getElementById("toolActivityBody").style.display = toolActCollapsed ? "none" : "block";
+      }
+
+      function activityKey(entry) {
+        return `${entry.phase || ""}::${entry.name || ""}::${entry.round || ""}::${entry.sequence || ""}::${JSON.stringify(entry.params || {})}`;
+      }
+
+      function recordToolActivity(msg) {
+        const incoming = {
+          phase: msg.phase || "retrieval",
+          round: msg.round || null,
+          sequence: msg.sequence || null,
+          name: msg.name || "",
+          params: msg.params || {},
+          description: msg.description || "",
+          rationale: msg.rationale || "",
+          status: msg.status || "calling",
+          result_status: msg.result_status || "",
+          result_summary: msg.result_summary || "",
+        };
+        const key = activityKey(incoming);
+        const existingIdx = toolActivityData.findIndex(e => activityKey(e) === key);
+        if (existingIdx >= 0) {
+          toolActivityData[existingIdx] = { ...toolActivityData[existingIdx], ...incoming };
+        } else {
+          toolActivityData.push(incoming);
+        }
+        showToolActivitySection();
+        renderToolActivityList();
+        saveTeachingSidebarState(activeStudentId);
+      }
+
+      function loadToolActivity(history) {
+        toolActivityData = Array.isArray(history) ? history : [];
+        if (!toolActivityData.length) { resetToolActivitySection(); return; }
+        showToolActivitySection();
+        renderToolActivityList();
       }
 
       function showTurnAnalysis(displayAnalysis, rawAnalysis = null, persist = true) {
