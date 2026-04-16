@@ -50,7 +50,8 @@ try:
         "instance_a_deployment_name": config.AZURE_OPENAI_INSTANCE_A_DEPLOYMENT_ID,
         "tutor_deployment_name": config.AZURE_OPENAI_TUTOR_DEPLOYMENT_ID,
         "reasoning_deployment_name": config.AZURE_OPENAI_REASONING_DEPLOYMENT_ID,
-        "api_version": config.AZURE_OPENAI_API_VERSION
+        "api_version": config.AZURE_OPENAI_API_VERSION,
+        "content_filter_policy": config.AZURE_OPENAI_CONTENT_FILTER_POLICY,
     }
 
     # Create Azure client for WCAG MCP function calling
@@ -62,6 +63,7 @@ try:
         ),
         api_key=azure_config["api_key"],
         api_version=azure_config.get("api_version", "2024-02-15-preview"),
+        content_filter_policy=azure_config.get("content_filter_policy"),
     )
 
     wcag_mcp = WCAGMCPClient(
