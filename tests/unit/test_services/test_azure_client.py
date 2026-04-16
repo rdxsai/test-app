@@ -55,6 +55,44 @@ async def test_chat_with_tools_enables_parallel_tool_calls(monkeypatch):
     assert captured["json"]["max_completion_tokens"] == 1600
 
 
+@pytest.mark.asyncio
+async def test_chat_with_tools_includes_content_filter_policy_header(monkeypatch):
+    captured = {}
+
+    class FakeAsyncClient:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+        async def post(self, url, headers=None, params=None, json=None):
+            captured["headers"] = headers
+            return FakeResponse()
+
+    monkeypatch.setattr(
+        "question_app.services.tutor.azure_client.httpx.AsyncClient",
+        FakeAsyncClient,
+    )
+
+    client = AzureAPIMClient(
+        endpoint="https://example.test",
+        deployment="gpt-5.4",
+        api_key="test-key",
+        content_filter_policy="async-filter",
+    )
+
+    await client.chat_with_tools(
+        messages=[{"role": "user", "content": "hello"}],
+        tools=[],
+    )
+
+    assert captured["headers"]["x-policy-id"] == "async-filter"
+
+
 def test_reasoning_completion_budget_defaults_to_tighter_low_effort_limit():
     client = AzureAPIMClient(
         endpoint="https://example.test",
