@@ -1967,6 +1967,95 @@ class TestFirstTeachingTurn:
         assert lesson_state.get("active_concept") == "c1"
 
 
+class TestTurnAnalysisRenderEdgeCases:
+    """Cover the angle-bracket-eats-text and concept_updates-truncation bugs."""
+
+    def test_string_values_escape_html_tags(self, hybrid_system):
+        rendered = hybrid_system._render_turn_analysis_for_display(
+            {
+                "mastery_signal": {
+                    "should_update": True,
+                    "level": "in_progress",
+                    "confidence": 0.8,
+                    "evidence_summary": (
+                        "Correctly identified <button> as a control and <div> "
+                        "as a generic container."
+                    ),
+                },
+                "objective_memory_patch": {
+                    "summary": "Classified <button> vs <div> correctly.",
+                },
+                "learner_memory_patch": {
+                    "successful_strategies_add": [
+                        "Use simple tag contrasts like <button> vs <div>"
+                    ],
+                },
+            }
+        )
+
+        # Raw angle brackets must be escaped so marked.parse doesn't render
+        # them as empty HTML elements (which silently drops the visible text).
+        assert "<button>" not in rendered
+        assert "<div>" not in rendered
+        assert "&lt;button&gt;" in rendered
+        assert "&lt;div&gt;" in rendered
+        # The surrounding prose must still be intact.
+        assert "Correctly identified" in rendered
+        assert "as a control and" in rendered
+        assert "as a generic container" in rendered
+        assert "Use simple tag contrasts like" in rendered
+
+    def test_concept_updates_list_of_dicts_renders_as_sublist_no_truncation(
+        self, hybrid_system
+    ):
+        long_label = (
+            "Started learning what semantic means in this context "
+            "(built-in meaning vs styling, not just visual appearance)"
+        )
+        rendered = hybrid_system._render_turn_analysis_for_display(
+            {
+                "lesson_state_patch": {
+                    "concept_updates": [
+                        {
+                            "concept_id": "interactive_purpose_vs_generic_structure",
+                            "status": "covered",
+                            "label": "Distinguishes control from generic container",
+                        },
+                        {
+                            "concept_id": "semantic_controls_and_builtin_meaning",
+                            "status": "in_progress",
+                            "label": long_label,
+                        },
+                    ],
+                },
+            }
+        )
+
+        # No truncation marker: every label must survive in full.
+        assert "…" not in rendered
+        assert long_label in rendered
+        # Both concepts present and rendered as a sublist (not a JSON dump).
+        assert "interactive_purpose_vs_generic_structure" in rendered
+        assert "semantic_controls_and_builtin_meaning" in rendered
+        assert "concept_id=`interactive_purpose_vs_generic_structure`" in rendered
+        assert "status=`covered`" in rendered
+        assert "status=`in_progress`" in rendered
+        # The output is a real markdown sublist, not a single inline JSON blob.
+        assert "[{" not in rendered
+
+    def test_list_of_scalars_still_comma_joins(self, hybrid_system):
+        rendered = hybrid_system._render_turn_analysis_for_display(
+            {
+                "objective_memory_patch": {
+                    "demonstrated_skills_add": ["names <button>", "explains semantic"],
+                    "active_gaps_current": ["keyboard support"],
+                },
+            }
+        )
+        assert "names &lt;button&gt;, explains semantic" in rendered
+        assert "keyboard support" in rendered
+
+
 class TestTeachingContentDisplay:
     """The side panel needs the FULL teaching pack; the tutor LLM gets a
     truncated copy so the prompt fits its context budget."""

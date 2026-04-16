@@ -1543,8 +1543,23 @@ class HybridCrewAISocraticSystem:
         )
 
     @staticmethod
-    def _ta_format_value(value: Any, max_chars: int = 240) -> str:
-        """Render a single analysis value as a compact display string."""
+    def _ta_escape_for_md(text: str) -> str:
+        """Neutralise stray HTML tags inside analyzer prose so the side panel
+        markdown renderer doesn't treat ``<button>`` / ``<div>`` as real
+        elements and silently swallow them. Only escapes ``<`` and ``>`` —
+        leaves ``&`` alone so existing entities (e.g. ``&amp;``) survive a
+        single-pass innerHTML decode."""
+        return text.replace("<", "&lt;").replace(">", "&gt;")
+
+    @classmethod
+    def _ta_format_value(cls, value: Any, max_chars: int = 800) -> str:
+        """Render a single analysis value as a compact display string.
+
+        Strings are escaped for markdown (angle brackets only) so HTML
+        examples like ``<button>`` survive the side panel render. Lists of
+        dicts are rendered as bullet sublists rather than truncated JSON
+        blobs so structured fields like ``concept_updates`` stay readable.
+        """
         if value is None:
             return "_—_"
         if isinstance(value, bool):
@@ -1557,21 +1572,46 @@ class HybridCrewAISocraticSystem:
                 return "_—_"
             if len(text) > max_chars:
                 text = text[: max_chars - 1] + "…"
-            return text
+            return cls._ta_escape_for_md(text)
         if isinstance(value, list):
             if not value:
                 return "_none_"
             simple = [v for v in value if isinstance(v, (str, int, float, bool))]
             if len(simple) == len(value):
-                joined = ", ".join(str(v) for v in simple)
-                return joined if len(joined) <= max_chars else joined[: max_chars - 1] + "…"
+                joined = ", ".join(cls._ta_escape_for_md(str(v)) for v in simple)
+                if len(joined) > max_chars:
+                    joined = joined[: max_chars - 1] + "…"
+                return joined
+            if all(isinstance(v, dict) for v in value):
+                # Render a list of dicts as a markdown sublist; keeps every
+                # field intact instead of clipping a JSON dump mid-string.
+                rows = []
+                for item in value:
+                    pairs = []
+                    for k, v in item.items():
+                        if v is None or v == "":
+                            continue
+                        if isinstance(v, (str, int, float, bool)):
+                            v_text = cls._ta_escape_for_md(str(v))
+                        else:
+                            try:
+                                v_text = cls._ta_escape_for_md(
+                                    json.dumps(v, ensure_ascii=True)
+                                )
+                            except Exception:
+                                v_text = cls._ta_escape_for_md(str(v))
+                        if len(v_text) > 220:
+                            v_text = v_text[:219] + "…"
+                        pairs.append(f"{k}=`{v_text}`")
+                    rows.append("  - " + " · ".join(pairs))
+                return "\n" + "\n".join(rows)
             try:
                 text = json.dumps(value, ensure_ascii=True)
             except Exception:
                 text = str(value)
             if len(text) > max_chars:
                 text = text[: max_chars - 1] + "…"
-            return f"`{text}`"
+            return f"`{cls._ta_escape_for_md(text)}`"
         if isinstance(value, dict):
             if not value:
                 return "_empty_"
@@ -1581,8 +1621,8 @@ class HybridCrewAISocraticSystem:
                 text = str(value)
             if len(text) > max_chars:
                 text = text[: max_chars - 1] + "…"
-            return f"`{text}`"
-        return f"`{value}`"
+            return f"`{cls._ta_escape_for_md(text)}`"
+        return f"`{cls._ta_escape_for_md(str(value))}`"
 
     @classmethod
     def _ta_kv_lines(
