@@ -63,6 +63,7 @@
       display: flex; justify-content: space-between; align-items: center;
     }
     .main-header h1 { font-size: 1.2rem; margin: 0; }
+    .header-actions { display: flex; align-items: center; gap: 0.5rem; }
 
     /* Stage bar */
     .stage-bar {
@@ -154,6 +155,16 @@
     .onboarding-other.visible { display: flex; gap: 0.4rem; }
     .onboarding-other input { flex: 1; }
     .onboarding-submit { margin-top: 0.6rem; width: 100%; }
+
+    /* Teaching sidebar panels */
+    #teachingPlanSection, #teachingContentSection, #turnAnalysisSection { border-top: 1px solid #dee2e6; padding-top: 0.5rem; margin-top: 0.5rem; }
+    .tp-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem; cursor: pointer; user-select: none; }
+    .tp-header h6 { margin: 0; font-size: 0.8rem; }
+    .tp-generating { font-size: 0.73rem; color: #6c757d; font-style: italic; padding: 0.4rem 0.5rem; background: #f8f9fa; border-radius: 4px; }
+    .tp-text { font-size: 0.71rem; white-space: pre-wrap; font-family: inherit; line-height: 1.5; background: #f8f9fa; border-radius: 4px; padding: 0.5rem; max-height: 360px; overflow-y: auto; }
+    .turn-analysis-history { display: flex; flex-direction: column; gap: 0.5rem; }
+    .turn-analysis-entry { border: 1px solid #e9ecef; border-radius: 6px; padding: 0.45rem; background: #fff; }
+    .turn-analysis-entry-title { font-size: 0.72rem; font-weight: 600; color: #495057; margin-bottom: 0.35rem; text-transform: uppercase; letter-spacing: 0.02em; }
   </style>
 </head>
 
@@ -179,7 +190,12 @@
       <!-- Header -->
       <div class="main-header">
         <h1><i class="fas fa-graduation-cap text-primary"></i> Guided Learning</h1>
-        <span id="wsStatus" class="ws-status disconnected">Connecting...</span>
+        <div class="header-actions">
+          <a href="/chat/tutor-prompts" class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-scroll"></i> Tutor Prompts
+          </a>
+          <span id="wsStatus" class="ws-status disconnected">Connecting...</span>
+        </div>
       </div>
 
       <!-- Stage bar -->
@@ -239,6 +255,36 @@
               <h6 class="mb-1" style="font-size:0.8rem;"><i class="fas fa-exclamation-triangle text-warning"></i> Misconceptions</h6>
               <div id="misconceptionsContainer"></div>
             </div>
+
+            <div id="teachingPlanSection" style="display:none;">
+              <div class="tp-header" id="tpToggleBtn">
+                <h6><i class="fas fa-book-open text-primary"></i> Teaching Plan</h6>
+                <i class="fas fa-chevron-down" id="tpChevron" style="font-size:0.7rem;color:#6c757d;"></i>
+              </div>
+              <div id="teachingPlanBody">
+                <div id="teachingPlanContent"></div>
+              </div>
+            </div>
+
+            <div id="teachingContentSection" style="display:none;">
+              <div class="tp-header" id="tcToggleBtn">
+                <h6><i class="fas fa-file-lines text-primary"></i> Teaching Content</h6>
+                <i class="fas fa-chevron-down" id="tcChevron" style="font-size:0.7rem;color:#6c757d;"></i>
+              </div>
+              <div id="teachingContentBody">
+                <div id="teachingContentContent"></div>
+              </div>
+            </div>
+
+            <div id="turnAnalysisSection" style="display:none;">
+              <div class="tp-header" id="taToggleBtn">
+                <h6><i class="fas fa-magnifying-glass text-primary"></i> Turn Analysis</h6>
+                <i class="fas fa-chevron-down" id="taChevron" style="font-size:0.7rem;color:#6c757d;"></i>
+              </div>
+              <div id="turnAnalysisBody">
+                <div id="turnAnalysisContent"></div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -271,6 +317,10 @@
       let streamingTextEl = null;
       let currentStage = "connecting";
       let masteryData = {};
+      let teachingPlanData = null;
+      let teachingContentData = null;
+      let turnAnalysisData = [];
+      let turnAnalysisGenerating = false;
 
       // ================================================================
       // MULTI-STUDENT STATE (localStorage)
@@ -300,6 +350,43 @@
         chatMessages.querySelectorAll(".message-bubble, .onboarding-card, .text-center").forEach(el => els.push(el.outerHTML));
         localStorage.setItem(`chat_${activeStudentId}`, JSON.stringify(els));
         localStorage.setItem(`mastery_${activeStudentId}`, JSON.stringify(masteryData));
+        saveTeachingSidebarState(activeStudentId);
+      }
+
+      function loadStoredJSON(key) {
+        const raw = localStorage.getItem(key);
+        if (raw === null) return null;
+        try { return JSON.parse(raw); } catch (error) { return null; }
+      }
+
+      function saveTeachingSidebarState(studentId) {
+        if (!studentId) return;
+        localStorage.setItem(`teaching_plan_${studentId}`, JSON.stringify(teachingPlanData));
+        localStorage.setItem(`teaching_content_${studentId}`, JSON.stringify(teachingContentData));
+        localStorage.setItem(`turn_analysis_${studentId}`, JSON.stringify(turnAnalysisData));
+      }
+
+      function clearTeachingSidebar() {
+        teachingPlanData = null;
+        teachingContentData = null;
+        turnAnalysisData = [];
+        turnAnalysisGenerating = false;
+        resetTeachingPlanSection();
+        resetTeachingContentSection();
+        resetTurnAnalysisSection();
+      }
+
+      function loadTeachingSidebarState(studentId) {
+        if (!studentId) { clearTeachingSidebar(); return; }
+        const storedPlan = loadStoredJSON(`teaching_plan_${studentId}`);
+        const storedContent = loadStoredJSON(`teaching_content_${studentId}`);
+        const storedTurnAnalysis = loadStoredJSON(`turn_analysis_${studentId}`);
+        if (storedPlan !== null) showTeachingPlan(storedPlan, false);
+        else resetTeachingPlanSection();
+        if (storedContent !== null) showTeachingContent(storedContent, false);
+        else resetTeachingContentSection();
+        if (storedTurnAnalysis !== null) loadTurnAnalysisHistory(storedTurnAnalysis);
+        else resetTurnAnalysisSection();
       }
 
       function loadChatHistory(id) {
@@ -313,6 +400,7 @@
         });
         masteryData = JSON.parse(localStorage.getItem(`mastery_${id}`) || "{}");
         renderMasteryList();
+        loadTeachingSidebarState(id);
         scrollToBottomIfNeeded();
       }
 
@@ -327,6 +415,7 @@
         chatMessages.innerHTML = "";
         chatMessages.appendChild(typingIndicator);
         renderMasteryList();
+        clearTeachingSidebar();
         renderStudentList();
         disconnectWS();
         connectWebSocket();
@@ -350,6 +439,9 @@
         // Clear frontend state
         localStorage.removeItem(`chat_${id}`);
         localStorage.removeItem(`mastery_${id}`);
+        localStorage.removeItem(`teaching_plan_${id}`);
+        localStorage.removeItem(`teaching_content_${id}`);
+        localStorage.removeItem(`turn_analysis_${id}`);
         // Reset student meta
         const s = getStudent(id);
         if (s) { s.stage = "onboarding"; s.objective = ""; saveStudents(); }
@@ -359,6 +451,7 @@
           chatMessages.innerHTML = "";
           chatMessages.appendChild(typingIndicator);
           renderMasteryList();
+          clearTeachingSidebar();
           // Send reset to backend to clear conversation memory
           if (ws && ws.readyState === WebSocket.OPEN) {
             ws.send(JSON.stringify({ type: "reset_session" }));
@@ -373,6 +466,9 @@
         if (!confirm("Delete this student entirely?")) return;
         localStorage.removeItem(`chat_${id}`);
         localStorage.removeItem(`mastery_${id}`);
+        localStorage.removeItem(`teaching_plan_${id}`);
+        localStorage.removeItem(`teaching_content_${id}`);
+        localStorage.removeItem(`turn_analysis_${id}`);
         students = students.filter(s => s.id !== id);
         saveStudents();
         if (id === activeStudentId) {
@@ -529,6 +625,27 @@
           case "mastery_denied":
             addSystemNotice(`Mastery update deferred: ${msg.reason}`);
             break;
+          case "teaching_plan_generating":
+            showTeachingPlanGenerating();
+            break;
+          case "teaching_plan":
+            showTeachingPlan(msg.display_plan || msg.plan);
+            break;
+          case "teaching_content_generating":
+            showTeachingContentGenerating();
+            break;
+          case "teaching_content":
+            showTeachingContent(msg.content);
+            break;
+          case "turn_analysis_generating":
+            showTurnAnalysisGenerating();
+            break;
+          case "turn_analysis":
+            showTurnAnalysis(msg.display_analysis || msg.analysis, msg.analysis);
+            break;
+          case "session_reset":
+            clearTeachingSidebar();
+            break;
           case "error": setProcessingState(false); addMessage("system", "Error: " + msg.message); break;
           case "pong": break;
           default: console.log("WS: unknown", msg.type, msg);
@@ -572,6 +689,175 @@
         const el = document.createElement("div"); el.className = "text-center my-2";
         el.innerHTML = `<small class="text-muted"><i class="fas fa-info-circle"></i> ${text}</small>`;
         chatMessages.insertBefore(el, typingIndicator); scrollToBottomIfNeeded();
+      }
+
+      // ================================================================
+      // TEACHING PLAN
+      // ================================================================
+
+      let tpCollapsed = false;
+      let tcCollapsed = false;
+      let taCollapsed = false;
+
+      document.getElementById("tpToggleBtn").addEventListener("click", function () {
+        tpCollapsed = !tpCollapsed;
+        document.getElementById("teachingPlanBody").style.display = tpCollapsed ? "none" : "block";
+        const ch = document.getElementById("tpChevron");
+        ch.className = tpCollapsed ? "fas fa-chevron-right" : "fas fa-chevron-down";
+      });
+
+      document.getElementById("tcToggleBtn").addEventListener("click", function () {
+        tcCollapsed = !tcCollapsed;
+        document.getElementById("teachingContentBody").style.display = tcCollapsed ? "none" : "block";
+        const ch = document.getElementById("tcChevron");
+        ch.className = tcCollapsed ? "fas fa-chevron-right" : "fas fa-chevron-down";
+      });
+
+      document.getElementById("taToggleBtn").addEventListener("click", function () {
+        taCollapsed = !taCollapsed;
+        document.getElementById("turnAnalysisBody").style.display = taCollapsed ? "none" : "block";
+        const ch = document.getElementById("taChevron");
+        ch.className = taCollapsed ? "fas fa-chevron-right" : "fas fa-chevron-down";
+      });
+
+      function renderTeachingPanelValue(value) {
+        const text = typeof value === "string" ? value : JSON.stringify(value, null, 2);
+        const node = document.createTextNode(text || "");
+        const wrapper = document.createElement("div");
+        wrapper.appendChild(node);
+        return `<div class="tp-text">${wrapper.innerHTML}</div>`;
+      }
+
+      function expandTeachingPanel(sectionId, bodyId, chevronId) {
+        document.getElementById(sectionId).style.display = "block";
+        document.getElementById(bodyId).style.display = "block";
+        document.getElementById(chevronId).className = "fas fa-chevron-down";
+      }
+
+      function resetTeachingPlanSection() {
+        tpCollapsed = false;
+        document.getElementById("teachingPlanSection").style.display = "none";
+        document.getElementById("teachingPlanBody").style.display = "block";
+        document.getElementById("tpChevron").className = "fas fa-chevron-down";
+        document.getElementById("teachingPlanContent").innerHTML = "";
+      }
+
+      function resetTeachingContentSection() {
+        tcCollapsed = false;
+        document.getElementById("teachingContentSection").style.display = "none";
+        document.getElementById("teachingContentBody").style.display = "block";
+        document.getElementById("tcChevron").className = "fas fa-chevron-down";
+        document.getElementById("teachingContentContent").innerHTML = "";
+      }
+
+      function resetTurnAnalysisSection() {
+        taCollapsed = false;
+        document.getElementById("turnAnalysisSection").style.display = "none";
+        document.getElementById("turnAnalysisBody").style.display = "block";
+        document.getElementById("taChevron").className = "fas fa-chevron-down";
+        document.getElementById("turnAnalysisContent").innerHTML = "";
+      }
+
+      function renderTurnAnalysisHistory(entries, generating = false) {
+        const history = Array.isArray(entries) ? entries : [];
+        const parts = [];
+        if (generating) {
+          parts.push('<div class="tp-generating"><i class="fas fa-spinner fa-spin me-1"></i> Turn analysis is being generated for the latest student response.</div>');
+        }
+        if (!history.length) {
+          return parts.join("");
+        }
+
+        const renderedEntries = history.map((entry, index) => {
+          const label = entry?.label || `Turn ${index + 1}`;
+          const body = renderTeachingPanelValue(
+            Object.prototype.hasOwnProperty.call(entry || {}, "display")
+              ? entry.display
+              : entry?.analysis
+          );
+          return `<div class="turn-analysis-entry"><div class="turn-analysis-entry-title">${label}</div>${body}</div>`;
+        });
+        parts.push(`<div class="turn-analysis-history">${renderedEntries.join("")}</div>`);
+        return parts.join("");
+      }
+
+      function normalizeTurnAnalysisHistory(value) {
+        if (Array.isArray(value)) {
+          return value.map((entry, index) => ({
+            label: entry?.label || `Turn ${index + 1}`,
+            display: Object.prototype.hasOwnProperty.call(entry || {}, "display")
+              ? entry.display
+              : (
+                  typeof entry?.analysis === "string"
+                    ? entry.analysis
+                    : (Object.prototype.hasOwnProperty.call(entry || {}, "analysis") ? null : (typeof entry === "string" ? entry : null))
+                ),
+            analysis: Object.prototype.hasOwnProperty.call(entry || {}, "analysis") ? entry.analysis : entry,
+          }));
+        }
+        if (value === null || value === undefined) return [];
+        return [{
+          label: "Turn 1",
+          display: typeof value === "string" ? value : null,
+          analysis: value,
+        }];
+      }
+
+      function showTeachingPlanGenerating() {
+        expandTeachingPanel("teachingPlanSection", "teachingPlanBody", "tpChevron");
+        document.getElementById("teachingPlanContent").innerHTML =
+          '<div class="tp-generating"><i class="fas fa-spinner fa-spin me-1"></i> Teaching plan is being generated, you will see it once it is done. Thank you for waiting.</div>';
+      }
+
+      function showTeachingPlan(plan, persist = true) {
+        teachingPlanData = plan;
+        expandTeachingPanel("teachingPlanSection", "teachingPlanBody", "tpChevron");
+        document.getElementById("teachingPlanContent").innerHTML = renderTeachingPanelValue(plan);
+        if (persist) saveTeachingSidebarState(activeStudentId);
+      }
+
+      function showTeachingContentGenerating() {
+        expandTeachingPanel("teachingContentSection", "teachingContentBody", "tcChevron");
+        document.getElementById("teachingContentContent").innerHTML =
+          '<div class="tp-generating"><i class="fas fa-spinner fa-spin me-1"></i> Teaching content is being assembled from the evidence pack.</div>';
+      }
+
+      function showTeachingContent(content, persist = true) {
+        teachingContentData = content;
+        expandTeachingPanel("teachingContentSection", "teachingContentBody", "tcChevron");
+        document.getElementById("teachingContentContent").innerHTML = renderTeachingPanelValue(content);
+        if (persist) saveTeachingSidebarState(activeStudentId);
+      }
+
+      function showTurnAnalysisGenerating() {
+        turnAnalysisGenerating = true;
+        expandTeachingPanel("turnAnalysisSection", "turnAnalysisBody", "taChevron");
+        document.getElementById("turnAnalysisContent").innerHTML = renderTurnAnalysisHistory(turnAnalysisData, true);
+      }
+
+      function loadTurnAnalysisHistory(history) {
+        turnAnalysisGenerating = false;
+        turnAnalysisData = normalizeTurnAnalysisHistory(history);
+        if (!turnAnalysisData.length) {
+          resetTurnAnalysisSection();
+          return;
+        }
+        expandTeachingPanel("turnAnalysisSection", "turnAnalysisBody", "taChevron");
+        document.getElementById("turnAnalysisContent").innerHTML = renderTurnAnalysisHistory(turnAnalysisData, false);
+      }
+
+      function showTurnAnalysis(displayAnalysis, rawAnalysis = null, persist = true) {
+        turnAnalysisGenerating = false;
+        const history = normalizeTurnAnalysisHistory(turnAnalysisData);
+        const nextTurnNumber = history.length + 1;
+        turnAnalysisData = [...history, {
+          label: `Turn ${nextTurnNumber}`,
+          display: displayAnalysis,
+          analysis: rawAnalysis !== null ? rawAnalysis : displayAnalysis,
+        }];
+        expandTeachingPanel("turnAnalysisSection", "turnAnalysisBody", "taChevron");
+        document.getElementById("turnAnalysisContent").innerHTML = renderTurnAnalysisHistory(turnAnalysisData, false);
+        if (persist) saveTeachingSidebarState(activeStudentId);
       }
 
       // ================================================================
@@ -651,11 +937,24 @@
 
       function autoResizeTextarea(ta) { ta.style.height = "auto"; ta.style.height = `${Math.min(ta.scrollHeight, 160)}px`; }
 
+      function escapeHtml(text) {
+        if (typeof text !== "string") return "";
+        return text
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+      }
+
       marked.setOptions({
         highlight: function(code, lang) { if (lang && hljs.getLanguage(lang)) return hljs.highlight(code, { language: lang }).value; return hljs.highlightAuto(code).value; },
         breaks: true, gfm: true,
       });
-      function formatMessage(content) { if (typeof content !== "string") return ""; return marked.parse(content); }
+      function formatMessage(content) {
+        if (typeof content !== "string") return "";
+        return marked.parse(escapeHtml(content));
+      }
 
       // ================================================================
       // ONBOARDING FORM
