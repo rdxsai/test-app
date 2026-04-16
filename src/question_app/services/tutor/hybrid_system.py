@@ -1842,7 +1842,7 @@ class HybridCrewAISocraticSystem:
 
     def _build_guided_tutor_messages(
         self,
-        student_response: str,
+        student_response: Optional[str],
         history: Optional[List[Dict[str, str]]],
         teaching_content: str,
         student_context: str,
@@ -1854,12 +1854,22 @@ class HybridCrewAISocraticSystem:
         pacing_state: Optional[Dict[str, Any]] = None,
         misconception_state: Optional[Dict[str, Any]] = None,
         extra_system_messages: Optional[List[str]] = None,
+        first_turn: bool = False,
     ) -> List[Dict[str, str]]:
-        """Build tutor-pass messages for guided learning."""
+        """Build tutor-pass messages for guided learning.
+
+        When ``first_turn=True`` the student has not yet spoken in this
+        objective. The trailing real user message is omitted, the
+        FIRST_TURN_INSTRUCTION block is appended, and a single ephemeral
+        ``user: "Begin the lesson."`` nudge closes the message list (chat
+        completion expects one). The ephemeral nudge is NEVER persisted to
+        conversation history — only this exact LLM call sees it.
+        """
         from .prompts import (
             build_instance_b_prompt,
             format_lesson_state,
             format_misconception_state,
+            FIRST_TURN_INSTRUCTION,
         )
 
         system_prompt = build_instance_b_prompt(
@@ -1896,9 +1906,15 @@ class HybridCrewAISocraticSystem:
         for extra in extra_system_messages or []:
             if extra:
                 messages.append({"role": "system", "content": extra})
+        if first_turn:
+            messages.append({"role": "system", "content": FIRST_TURN_INSTRUCTION})
+            # Chat completion expects a trailing user turn; this nudge is
+            # NEVER appended to persistent history.
+            messages.append({"role": "user", "content": "Begin the lesson."})
+            return messages
         if history:
             messages.extend(history[-6:])
-        messages.append({"role": "user", "content": student_response})
+        messages.append({"role": "user", "content": student_response or ""})
         return messages
 
     async def _run_turn_analyzer(
