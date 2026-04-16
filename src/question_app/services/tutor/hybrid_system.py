@@ -3880,7 +3880,7 @@ Available WCAG MCP tools:
         annotated = []
         for planned_call, result in zip(planned_calls, results):
             enriched = dict(result)
-            for field in ("tool_call_id", "round", "sequence", "source"):
+            for field in ("tool_call_id", "round", "sequence", "source", "rationale"):
                 value = planned_call.get(field)
                 if value not in (None, ""):
                     enriched[field] = value
@@ -3920,6 +3920,15 @@ Available WCAG MCP tools:
                 )
                 continue
 
+            # Strip the developer-facing `rationale` arg before the call
+            # ever reaches normalisation or the MCP server. The string is
+            # captured here so the retrieval loop can surface it to the UI.
+            rationale = ""
+            if isinstance(fn_args, dict) and "rationale" in fn_args:
+                raw_rationale = fn_args.pop("rationale")
+                if isinstance(raw_rationale, str):
+                    rationale = raw_rationale.strip()
+
             normalized_args = normalize_tool_args(fn_name, fn_args)
             dedupe_key = (fn_name, json.dumps(normalized_args, sort_keys=True))
             if dedupe_key in seen_calls:
@@ -3936,6 +3945,7 @@ Available WCAG MCP tools:
                     "tool_call_id": tool_call.get("id", ""),
                     "tool": fn_name,
                     "args": fn_args,
+                    "rationale": rationale,
                     "category": "agentic",
                     "round": round_number,
                     "sequence": len(planned_calls) + 1,
