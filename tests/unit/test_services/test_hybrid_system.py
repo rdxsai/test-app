@@ -1,3 +1,5 @@
+import json
+
 import pytest
 
 from question_app.services.tutor.hybrid_system import (
@@ -1823,3 +1825,144 @@ class TestToolActivityRationale:
         completed = tool_events[1]
         assert completed["result_status"] == "HIT"
         assert "chars" in completed["result_summary"]
+
+
+class TestFirstTeachingTurn:
+    """Cover the no-synthetic-message kickoff path (Option B)."""
+
+    def test_build_guided_tutor_messages_first_turn_omits_history_and_user_turn(
+        self, hybrid_system
+    ):
+        from question_app.services.tutor.prompts import FIRST_TURN_INSTRUCTION
+
+        messages = hybrid_system._build_guided_tutor_messages(
+            student_response=None,
+            history=[
+                {"role": "user", "content": "stale earlier turn"},
+                {"role": "assistant", "content": "stale earlier reply"},
+            ],
+            teaching_content="evidence",
+            student_context="ctx",
+            current_stage="introduction",
+            active_objective="obj",
+            teaching_plan={"recommended_order": ["c1"], "concepts": [{"id": "c1", "name": "C1"}]},
+            first_turn=True,
+        )
+
+        # No real history echoed back into a first-turn payload.
+        assert "stale earlier turn" not in json.dumps(messages)
+        # The first-turn instruction is present as a system block.
+        assert any(
+            m["role"] == "system" and FIRST_TURN_INSTRUCTION in m["content"]
+            for m in messages
+        )
+        # Ends with exactly one ephemeral user nudge.
+        assert messages[-1] == {"role": "user", "content": "Begin the lesson."}
+        assert sum(1 for m in messages if m["role"] == "user") == 1
+
+    def test_build_guided_tutor_messages_normal_turn_unchanged(self, hybrid_system):
+        from question_app.services.tutor.prompts import FIRST_TURN_INSTRUCTION
+
+        messages = hybrid_system._build_guided_tutor_messages(
+            student_response="A real student message.",
+            history=[{"role": "assistant", "content": "previous tutor turn"}],
+            teaching_content="evidence",
+            student_context="ctx",
+            current_stage="introduction",
+            active_objective="obj",
+            teaching_plan={"recommended_order": ["c1"], "concepts": [{"id": "c1", "name": "C1"}]},
+        )
+        # No first-turn instruction, real student message at the end.
+        assert all(FIRST_TURN_INSTRUCTION not in m["content"] for m in messages)
+        assert messages[-1] == {"role": "user", "content": "A real student message."}
+        assert any(
+            m["role"] == "assistant" and m["content"] == "previous tutor turn"
+            for m in messages
+        )
+
+    @pytest.mark.asyncio
+    async def test_start_first_teaching_turn_skips_analyzer_and_appends_only_assistant(
+        self, hybrid_system, monkeypatch
+    ):
+        # Fail loudly if the analyzer is ever called on the kickoff turn.
+        async def explode_analyzer(**kwargs):
+            raise AssertionError("analyzer must NOT run on first teaching turn")
+
+        monkeypatch.setattr(hybrid_system, "_run_turn_analyzer", explode_analyzer)
+
+        # Stub teaching content pipeline so we don't call the real LLM stack.
+        teaching_plan = {
+            "recommended_order": ["c1"],
+            "concepts": [
+                {"id": "c1", "name": "Principles vs guidelines", "status": "not_covered"}
+            ],
+        }
+        teaching_content = "evidence pack body"
+
+        async def fake_pipeline(objective_text, session_id, objective_id, ws_send):
+            return teaching_plan, teaching_content, {}, []
+
+        monkeypatch.setattr(
+            hybrid_system, "_run_teaching_content_pipeline", fake_pipeline
+        )
+
+        async def fake_load_bundle(student_id, objective_id=""):
+            return {}
+
+        monkeypatch.setattr(hybrid_system, "_load_student_bundle", fake_load_bundle)
+
+        stream_calls = []
+
+        async def fake_stream(messages, ws_send):
+            stream_calls.append(messages)
+            return "Lesson opener: principles ground guidelines. Quick check — name one principle."
+
+        monkeypatch.setattr(hybrid_system, "_stream_response", fake_stream)
+
+        # FakeStudentService does not implement increment_turn_count; add a stub.
+        increments = []
+
+        async def fake_increment(session_id):
+            increments.append(session_id)
+            return None
+
+        hybrid_system.student_mcp.increment_turn_count = fake_increment
+
+        events = []
+
+        async def ws_send(payload):
+            events.append(payload)
+
+        result = await hybrid_system._start_first_teaching_turn(
+            student_id="student-1",
+            session_id="sess-1",
+            objective_id="obj-1",
+            objective_text="Explain WCAG structure",
+            ws_send=ws_send,
+        )
+
+        # Streamed exactly one tutor response.
+        assert len(stream_calls) == 1
+        # Conversation memory got ONE assistant entry and zero user entries.
+        history = hybrid_system.get_conversation_history("student-1")
+        assert [m["role"] for m in history] == ["assistant"]
+        assert "Lesson opener" in history[0]["content"]
+        # Turn count incremented exactly once.
+        assert increments == ["sess-1"]
+        # No analyzer-related WS events were ever emitted.
+        event_types = [e.get("type") for e in events]
+        assert "turn_analysis_generating" not in event_types
+        assert "turn_analysis" not in event_types
+        # The closing event marks this as a first turn.
+        assert any(
+            e.get("type") == "stream_end"
+            and e.get("metadata", {}).get("first_turn") is True
+            for e in events
+        )
+        # Returned metadata is honest about being a first turn at introduction.
+        assert result["stage"] == "introduction"
+        assert result["first_turn"] is True
+        # The cache now holds a lesson_state with active_concept set from the plan.
+        lesson_state = hybrid_system._session_cache.get_lesson_state("sess-1")
+        assert lesson_state.get("active_concept") == "c1"
+
