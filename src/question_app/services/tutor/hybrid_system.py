@@ -2240,6 +2240,7 @@ class HybridCrewAISocraticSystem:
                     logger.error(f"Teaching content pipeline failed: {e}", exc_info=True)
                     # Fallback: try old retrieval path
                     logger.info("Falling back to RAG + WCAG MCP retrieval")
+                    await ws_send({"type": "teaching_content_generating"})
                     rag_context, rag_chunks, wcag_context = await self.get_combined_context(
                         objective_text or student_response, history=history
                     )
@@ -2249,6 +2250,12 @@ class HybridCrewAISocraticSystem:
                     self._session_cache.store(
                         session_id, objective_id, objective_text,
                         rag_chunks, wcag_context, teaching_content,
+                    )
+                    await ws_send(
+                        {
+                            "type": "teaching_content",
+                            "content": teaching_content,
+                        }
                     )
                     try:
                         teaching_plan = await self._generate_teaching_plan(
@@ -3463,10 +3470,20 @@ Available WCAG MCP tools:
         This replaces the old get_combined_context() + _generate_teaching_plan()
         flow for Instance B. Instance A now routes through GeneralChatService.
         """
+        from .prompts import format_teaching_plan_for_display
+
         # Step 1: Teaching plan
         await ws_send({"type": "stage", "stage": "composing",
                        "detail": "Creating teaching plan..."})
+        await ws_send({"type": "teaching_plan_generating"})
         teaching_plan = await self._generate_teaching_plan(objective_text)
+        await ws_send(
+            {
+                "type": "teaching_plan",
+                "plan": teaching_plan,
+                "display_plan": format_teaching_plan_for_display(teaching_plan),
+            }
+        )
         logger.info(f"Pipeline step 1: teaching plan ({len(str(teaching_plan))} chars)")
 
         # Step 2: Agentic retrieval + concept extraction (parallel)

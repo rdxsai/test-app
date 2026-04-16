@@ -1289,6 +1289,17 @@ class TestGuidedRetrieval:
         assert teaching_plan.startswith("1. plain_language_goal")
         assert evidence_pack == "EVIDENCE PACK"
         assert retrieval_bundle["version"] == 1
+        assert [event["type"] for event in ws_events] == [
+            "stage",
+            "teaching_plan_generating",
+            "teaching_plan",
+            "stage",
+            "teaching_content_generating",
+            "stage",
+            "teaching_content",
+            "stage",
+        ]
+        assert ws_events[6]["content"] == evidence_pack
         # extracted_concepts may be None when the fake client doesn't
         # support response_format — that's the expected fallback.
         assert extracted_concepts is None or isinstance(extracted_concepts, list)
