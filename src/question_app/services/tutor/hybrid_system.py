@@ -992,6 +992,39 @@ class HybridCrewAISocraticSystem:
         return False
 
     @staticmethod
+    def _is_procedural_full_sequence_repair(
+        item: Optional[Dict[str, Any]],
+    ) -> bool:
+        if not item or not isinstance(item, dict):
+            return False
+        repair_scope = str(item.get("repair_scope", "") or "").strip().lower()
+        repair_pattern = str(item.get("repair_pattern", "") or "").strip().lower()
+        if (
+            repair_scope != "full_sequence"
+            and repair_pattern != "same_snippet_walkthrough"
+        ):
+            return False
+        combined = " ".join(
+            str(item.get(field, "") or "").lower()
+            for field in ("key", "text")
+        )
+        procedural_markers = (
+            "aria",
+            "native-first",
+            "native first",
+            "semantic override",
+            "behavior",
+            "focus",
+            "required state",
+            "state/property",
+            "audit",
+            "debug",
+            "walkthrough",
+            "checklist",
+        )
+        return any(marker in combined for marker in procedural_markers)
+
+    @staticmethod
     def _supports_repair_exit(pacing_signal: Optional[Dict[str, Any]]) -> bool:
         pacing_signal = pacing_signal or {}
         concept_closure = str(
@@ -1004,6 +1037,80 @@ class HybridCrewAISocraticSystem:
             concept_closure in {"almost_ready", "ready"}
             and reasoning_mode in {"application", "transfer"}
         )
+
+    @staticmethod
+    def _is_open_must_repair_event(item: Optional[Dict[str, Any]]) -> bool:
+        if not isinstance(item, dict):
+            return False
+        if str(item.get("repair_priority", "") or "") != "must_address_now":
+            return False
+        action = str(item.get("action", "") or "").strip().lower()
+        return action != "resolve_candidate"
+
+    @staticmethod
+    def _allows_intro_exit_with_partial_closure(
+        current_stage: str,
+        target_stage: str,
+        pacing_signal: Optional[Dict[str, Any]],
+    ) -> bool:
+        if (
+            str(current_stage or "").strip().lower() != "introduction"
+            or str(target_stage or "").strip().lower() != "exploration"
+        ):
+            return False
+        pacing_signal = pacing_signal or {}
+        concept_closure = str(
+            pacing_signal.get("concept_closure", "") or ""
+        ).strip().lower()
+        reasoning_mode = str(
+            pacing_signal.get("reasoning_mode", "") or ""
+        ).strip().lower()
+        return (
+            concept_closure in {"almost_ready", "ready"}
+            and reasoning_mode in {"application", "transfer"}
+        )
+
+    @classmethod
+    def _normalize_stage_transition(
+        cls,
+        current_stage: str,
+        stage_action: str,
+        target_stage: str,
+        stage_reason: str = "",
+    ) -> tuple[str, str, str]:
+        current = str(current_stage or "").strip().lower()
+        action = str(stage_action or "").strip().lower()
+        target = str(target_stage or "").strip().lower()
+        reason = str(stage_reason or "").strip()
+        if (
+            action not in {"advance", "regress"}
+            or current not in GUIDED_STAGE_SEQUENCE
+            or target not in GUIDED_STAGE_SEQUENCE
+            or current == target
+        ):
+            return stage_action, target_stage, stage_reason
+
+        current_index = GUIDED_STAGE_SEQUENCE.index(current)
+        target_index = GUIDED_STAGE_SEQUENCE.index(target)
+        normalized_target = target
+        note = ""
+        if action == "advance" and target_index > current_index + 1:
+            normalized_target = GUIDED_STAGE_SEQUENCE[current_index + 1]
+            note = (
+                f"Stage order normalized: move from {current} to "
+                f"{normalized_target} before {target}."
+            )
+        elif action == "regress" and target_index < current_index - 1:
+            normalized_target = GUIDED_STAGE_SEQUENCE[current_index - 1]
+            note = (
+                f"Stage order normalized: regress from {current} to "
+                f"{normalized_target} before {target}."
+            )
+
+        if note:
+            reason = f"{reason} {note}".strip() if reason else note
+            return action, normalized_target, reason
+        return stage_action, target_stage, stage_reason
 
     @classmethod
     def _suggest_next_stage_after_repair(
