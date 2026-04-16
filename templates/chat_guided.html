@@ -18,10 +18,27 @@
 
     /* Student sidebar */
     .student-sidebar {
-      width: 240px; min-width: 240px;
-      background: #fff; border-right: 1px solid #dee2e6;
+      width: 240px; min-width: 180px; max-width: 50vw;
+      background: #fff;
       display: flex; flex-direction: column;
+      flex-shrink: 0;
     }
+    .student-resizer {
+      width: 6px; cursor: col-resize; background: transparent;
+      border-right: 1px solid #dee2e6; flex-shrink: 0;
+      transition: background 0.12s;
+      position: relative;
+    }
+    .student-resizer:hover, .student-resizer.dragging { background: #0d6efd33; }
+    .student-resizer::after {
+      content: ""; position: absolute; left: 50%; top: 50%;
+      transform: translate(-50%, -50%);
+      width: 2px; height: 36px; border-radius: 1px;
+      background: #ced4da; opacity: 0.7;
+    }
+    .student-resizer:hover::after { background: #0d6efd; opacity: 1; }
+    body.resizing-students { cursor: col-resize; user-select: none; }
+    body.resizing-students .chat-messages, body.resizing-students .student-list { pointer-events: none; }
     .sidebar-header {
       padding: 0.75rem 1rem; border-bottom: 1px solid #dee2e6;
       background: #f8f9fa;
@@ -256,7 +273,7 @@
 <body>
   <div class="app-layout">
     <!-- ============ STUDENT SIDEBAR ============ -->
-    <div class="student-sidebar">
+    <div class="student-sidebar" id="studentSidebar">
       <div class="sidebar-header">
         <h6><i class="fas fa-users"></i> Students</h6>
         <button id="newStudentBtn" class="btn btn-primary btn-sm w-100">
@@ -269,6 +286,9 @@
         <a href="/" class="btn btn-outline-secondary btn-sm flex-fill"><i class="fas fa-home"></i> Home</a>
       </div>
     </div>
+
+    <!-- Resizer between student sidebar and main content -->
+    <div class="student-resizer" id="studentResizer" title="Drag to resize"></div>
 
     <!-- ============ MAIN CONTENT ============ -->
     <div class="main-content">
@@ -1257,21 +1277,21 @@
       // ================================================================
 
       // ================================================================
-      // PROGRESS COLUMN RESIZE
+      // COLUMN RESIZE (shared helper)
       // ================================================================
-      (function setupProgressResizer() {
-        const resizer = document.getElementById("progressResizer");
-        const column = document.getElementById("progressColumn");
+      function makeColumnResizer({
+        resizerId, columnId, storageKey, bodyClass, defaultWidth,
+        minWidth, maxRatio, growDirection,
+      }) {
+        const resizer = document.getElementById(resizerId);
+        const column = document.getElementById(columnId);
         if (!resizer || !column) return;
 
-        const STORAGE_KEY = "guided_progress_width";
-        const MIN_W = 220;
-        const getMaxW = () => Math.max(MIN_W, Math.round(window.innerWidth * 0.7));
+        const getMaxW = () => Math.max(minWidth, Math.round(window.innerWidth * maxRatio));
+        const clamp = (w) => Math.min(Math.max(w, minWidth), getMaxW());
 
-        const saved = parseInt(localStorage.getItem(STORAGE_KEY), 10);
-        if (Number.isFinite(saved)) {
-          column.style.width = `${Math.min(Math.max(saved, MIN_W), getMaxW())}px`;
-        }
+        const saved = parseInt(localStorage.getItem(storageKey), 10);
+        if (Number.isFinite(saved)) column.style.width = `${clamp(saved)}px`;
 
         let dragging = false;
         let startX = 0;
@@ -1282,40 +1302,47 @@
           startX = e.clientX;
           startWidth = column.getBoundingClientRect().width;
           resizer.classList.add("dragging");
-          document.body.classList.add("resizing-progress");
+          document.body.classList.add(bodyClass);
           e.preventDefault();
         });
 
         window.addEventListener("mousemove", (e) => {
           if (!dragging) return;
-          const delta = startX - e.clientX;
-          let newWidth = startWidth + delta;
-          newWidth = Math.max(MIN_W, Math.min(newWidth, getMaxW()));
-          column.style.width = `${newWidth}px`;
+          // growDirection "right" → dragging right makes column wider
+          // growDirection "left"  → dragging left makes column wider
+          const delta = growDirection === "right" ? (e.clientX - startX) : (startX - e.clientX);
+          column.style.width = `${clamp(startWidth + delta)}px`;
         });
 
         window.addEventListener("mouseup", () => {
           if (!dragging) return;
           dragging = false;
           resizer.classList.remove("dragging");
-          document.body.classList.remove("resizing-progress");
-          const finalW = Math.round(column.getBoundingClientRect().width);
-          localStorage.setItem(STORAGE_KEY, String(finalW));
+          document.body.classList.remove(bodyClass);
+          localStorage.setItem(storageKey, String(Math.round(column.getBoundingClientRect().width)));
         });
 
-        // Double-click to reset to default
         resizer.addEventListener("dblclick", () => {
-          column.style.width = "280px";
-          localStorage.setItem(STORAGE_KEY, "280");
+          column.style.width = `${defaultWidth}px`;
+          localStorage.setItem(storageKey, String(defaultWidth));
         });
 
-        // Re-clamp on viewport shrink
         window.addEventListener("resize", () => {
           const max = getMaxW();
-          const cur = column.getBoundingClientRect().width;
-          if (cur > max) column.style.width = `${max}px`;
+          if (column.getBoundingClientRect().width > max) column.style.width = `${max}px`;
         });
-      })();
+      }
+
+      makeColumnResizer({
+        resizerId: "progressResizer", columnId: "progressColumn",
+        storageKey: "guided_progress_width", bodyClass: "resizing-progress",
+        defaultWidth: 280, minWidth: 220, maxRatio: 0.7, growDirection: "left",
+      });
+      makeColumnResizer({
+        resizerId: "studentResizer", columnId: "studentSidebar",
+        storageKey: "guided_students_width", bodyClass: "resizing-students",
+        defaultWidth: 240, minWidth: 180, maxRatio: 0.5, growDirection: "right",
+      });
 
       // Save chat on page unload
       window.addEventListener("beforeunload", () => saveChatHistory());
