@@ -765,7 +765,9 @@
             showTeachingContentGenerating();
             break;
           case "teaching_content":
-            showTeachingContent(msg.content);
+            // Backend may send a separate full-text version for the side
+            // panel; the `content` field is the truncated tutor pack.
+            showTeachingContent(msg.display_content || msg.content);
             break;
           case "turn_analysis_generating":
             showTurnAnalysisGenerating();

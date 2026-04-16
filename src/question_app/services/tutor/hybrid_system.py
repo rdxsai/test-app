@@ -4262,15 +4262,20 @@ Available WCAG MCP tools:
             teaching_plan=teaching_plan,
         )
         teaching_content = self._render_retrieval_bundle(retrieval_bundle)
+        display_teaching_content = self._render_retrieval_bundle(
+            retrieval_bundle, for_display=True,
+        )
         logger.info(
-            "Pipeline step 3: teaching pack (%s chars, %s raw hits)",
+            "Pipeline step 3: teaching pack (%s chars tutor / %s chars display, %s raw hits)",
             len(teaching_content),
+            len(display_teaching_content),
             len(retrieval_bundle.get("raw_hits", [])),
         )
         await ws_send(
             {
                 "type": "teaching_content",
                 "content": teaching_content,
+                "display_content": display_teaching_content,
             }
         )
 
@@ -4747,8 +4752,18 @@ Available WCAG MCP tools:
 
         return bundle
 
-    def _render_retrieval_bundle(self, bundle: Dict[str, Any]) -> str:
-        """Render a compact tutor-facing teaching pack from a retrieval bundle."""
+    def _render_retrieval_bundle(
+        self, bundle: Dict[str, Any], for_display: bool = False,
+    ) -> str:
+        """Render a teaching pack from a retrieval bundle.
+
+        Two callers, two needs:
+          - Tutor LLM (default, ``for_display=False``): compact, every item
+            and section truncated to fit prompt context budgets.
+          - UI side panel (``for_display=True``): complete text — no per-item
+            char caps and no per-section item caps — so the developer sees
+            everything that was retrieved, not the LLM-budgeted slice.
+        """
         if not bundle:
             return ""
 
@@ -4768,10 +4783,16 @@ Available WCAG MCP tools:
         for heading, items, max_items, max_chars in section_specs:
             if not items:
                 continue
+            limit = None if for_display else max_items
             lines = [f"## {heading}"]
-            for item in items[:max_items]:
+            for item in items if limit is None else items[:limit]:
                 title = str(item.get("title", "")).strip()
-                content = self._truncate_text(str(item.get("content", "")).strip(), max_chars)
+                raw_content = str(item.get("content", "")).strip()
+                content = (
+                    raw_content
+                    if for_display
+                    else self._truncate_text(raw_content, max_chars)
+                )
                 if title:
                     lines.append(f"### {title}")
                 lines.append(content)

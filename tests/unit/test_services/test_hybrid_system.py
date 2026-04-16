@@ -1536,9 +1536,9 @@ class TestGuidedRetrieval:
                 "raw_hits": [],
             }
 
-        def fake_render_bundle(bundle):
+        def fake_render_bundle(bundle, for_display=False):
             assert bundle["version"] == 1
-            return "EVIDENCE PACK"
+            return "EVIDENCE PACK (DISPLAY)" if for_display else "EVIDENCE PACK"
 
         def fail_if_called(*args, **kwargs):
             raise AssertionError("legacy retrieval planner path should not run")
@@ -1965,4 +1965,51 @@ class TestFirstTeachingTurn:
         # The cache now holds a lesson_state with active_concept set from the plan.
         lesson_state = hybrid_system._session_cache.get_lesson_state("sess-1")
         assert lesson_state.get("active_concept") == "c1"
+
+
+class TestTeachingContentDisplay:
+    """The side panel needs the FULL teaching pack; the tutor LLM gets a
+    truncated copy so the prompt fits its context budget."""
+
+    def _bundle_with_long_items(self):
+        long_text = "x" * 5000
+        return {
+            "sections": {
+                "core_rules": [
+                    {"title": "Core A", "content": long_text},
+                    {"title": "Core B", "content": long_text},
+                    {"title": "Core C", "content": long_text},  # past max_items=2
+                ],
+                "definitions": [
+                    {"title": "Def A", "content": long_text},
+                ],
+            }
+        }
+
+    def test_render_retrieval_bundle_default_truncates_for_tutor(self, hybrid_system):
+        bundle = self._bundle_with_long_items()
+        tutor_text = hybrid_system._render_retrieval_bundle(bundle)
+
+        # Item caps applied — "Core C" must NOT appear (max_items=2 for CORE FACTS)
+        assert "Core C" not in tutor_text
+        # Per-item char truncation applied — content gets the … suffix
+        assert "..." in tutor_text or "…" in tutor_text
+        # Tutor text length is well below the raw content length
+        assert len(tutor_text) < 5000 * 3
+
+    def test_render_retrieval_bundle_for_display_keeps_everything(self, hybrid_system):
+        bundle = self._bundle_with_long_items()
+        display_text = hybrid_system._render_retrieval_bundle(
+            bundle, for_display=True
+        )
+
+        # All three items present (no max_items cap)
+        assert "Core A" in display_text and "Core B" in display_text and "Core C" in display_text
+        # No char truncation — the literal long_text appears intact
+        assert ("x" * 5000) in display_text
+        # No truncation marker on the items
+        assert "..." not in display_text and "…" not in display_text
+        # Display text is materially larger than the tutor text
+        tutor_text = hybrid_system._render_retrieval_bundle(bundle)
+        assert len(display_text) > len(tutor_text) * 2
 
