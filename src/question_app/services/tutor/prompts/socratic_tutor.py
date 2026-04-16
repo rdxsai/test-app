@@ -10,6 +10,8 @@ Two variants:
   - Instance B: Guided learning — stage-aware with adaptive teaching approach
 """
 
+from typing import Any, Dict, List
+
 # ---------------------------------------------------------------------------
 # Shared components used by both Instance A and Instance B
 # ---------------------------------------------------------------------------
@@ -822,6 +824,20 @@ def format_teaching_plan(plan) -> str:
     return ""
 
 
+def format_teaching_plan_for_display(plan) -> str:
+    """Format a teaching plan for the learner-facing UI."""
+    if not plan:
+        return ""
+
+    if isinstance(plan, str):
+        return _format_text_plan_for_display(plan)
+
+    if isinstance(plan, dict) and "concepts" in plan:
+        return _format_legacy_plan_for_display(plan)
+
+    return str(plan)
+
+
 def build_guided_retrieval_agent_prompt(
     objective_text: str = "",
     teaching_plan=None,
@@ -1059,6 +1075,77 @@ def _format_text_plan(plan_text: str) -> str:
     return "\n".join(lines)
 
 
+def _parse_structured_plan_sections(plan_text: str) -> dict:
+    """Parse numbered teaching-plan sections into a name -> body map."""
+    import re
+
+    section_pattern = re.compile(
+        r'(?:^|\n)(?:##?\s*)?(\d{1,2})\.\s*([a-z][\w_]*)\s*\n(.*?)(?=\n(?:##?\s*)?\d{1,2}\.\s*[a-z][\w_]*\s*\n|\Z)',
+        re.DOTALL
+    )
+    sections = {}
+    for match in section_pattern.finditer(plan_text or ""):
+        section_name = match.group(2).strip().lower()
+        section_body = match.group(3).strip()
+        sections[section_name] = section_body
+    return sections
+
+
+def _format_text_plan_for_display(plan_text: str) -> str:
+    """Render structured text plans into readable learner-facing prose."""
+    sections = _parse_structured_plan_sections(plan_text)
+    if not sections:
+        return plan_text[:2000]
+
+    lines = []
+
+    goal = sections.get("plain_language_goal")
+    if goal:
+        lines.append(goal)
+        lines.append("")
+
+    mastery = sections.get("mastery_definition")
+    if mastery:
+        lines.append("We’ll know this lesson is landing when you can:")
+        lines.append(mastery)
+        lines.append("")
+
+    concepts = sections.get("concept_decomposition")
+    if concepts:
+        lines.append("Here’s what we’ll work through:")
+        lines.append(concepts)
+        lines.append("")
+
+    order = sections.get("dependency_order")
+    if order:
+        lines.append("We’ll take it in this order:")
+        lines.append(order)
+        lines.append("")
+
+    strategy = sections.get("explanation_vs_question_strategy")
+    if strategy:
+        lines.append("How I’ll guide you:")
+        lines.append(strategy)
+        lines.append("")
+
+    misconceptions = sections.get("likely_misconceptions")
+    if misconceptions:
+        lines.append("Common points of confusion to watch for:")
+        lines.append(misconceptions)
+        lines.append("")
+
+    boundaries = sections.get("boundaries_and_non_goals")
+    if boundaries:
+        lines.append("What we are not trying to cover right now:")
+        lines.append(boundaries)
+        lines.append("")
+
+    if not lines:
+        return plan_text[:2000]
+
+    return "\n".join(lines).strip()
+
+
 def _format_legacy_plan(plan: dict) -> str:
     """Format legacy JSON teaching plan (backward compatibility)."""
     lines = [f"Objective: {plan.get('objective', '')}",
@@ -1077,6 +1164,62 @@ def _format_legacy_plan(plan: dict) -> str:
     lines.append("Focus on the first not_covered concept in the teaching order.")
     lines.append("When a concept is covered, move to the next one.")
     return "\n".join(lines)
+
+
+def _format_legacy_plan_for_display(plan: dict) -> str:
+    """Render legacy JSON plans into readable learner-facing prose."""
+    objective = str(plan.get("objective", "") or "").strip()
+    concepts = plan.get("concepts", []) or []
+    order = plan.get("recommended_order", []) or []
+
+    concept_by_id = {
+        str(concept.get("id", "") or ""): concept
+        for concept in concepts
+        if isinstance(concept, dict)
+    }
+
+    ordered_names = []
+    for concept_id in order:
+        concept = concept_by_id.get(str(concept_id))
+        if concept and concept.get("name"):
+            ordered_names.append(str(concept["name"]))
+
+    if not ordered_names:
+        ordered_names = [
+            str(concept.get("name", "") or "").strip()
+            for concept in concepts
+            if isinstance(concept, dict) and str(concept.get("name", "") or "").strip()
+        ]
+
+    lines = []
+    if objective:
+        lines.append(f"This lesson is about {objective}")
+        lines.append("")
+
+    if ordered_names:
+        lines.append("We’ll work through these ideas in order:")
+        lines.extend(f"- {name}" for name in ordered_names)
+        lines.append("")
+
+    key_points = []
+    for concept in concepts:
+        if not isinstance(concept, dict):
+            continue
+        name = str(concept.get("name", "") or "").strip()
+        description = str(concept.get("description", "") or "").strip()
+        concept_points = concept.get("key_points", []) or []
+        if description and description != objective:
+            key_points.append(f"- {name}: {description}" if name else f"- {description}")
+        elif concept_points:
+            joined = ", ".join(str(point) for point in concept_points[:3] if str(point).strip())
+            if joined:
+                key_points.append(f"- {name}: {joined}" if name else f"- {joined}")
+
+    if key_points:
+        lines.append("Key ideas we’ll focus on:")
+        lines.extend(key_points)
+
+    return "\n".join(lines).strip()
 
 
 # ---------------------------------------------------------------------------
