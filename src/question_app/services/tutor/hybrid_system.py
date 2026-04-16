@@ -3955,6 +3955,39 @@ Available WCAG MCP tools:
 
         return planned_calls
 
+    @staticmethod
+    def _build_tool_description_lookup(tool_definitions: List[Dict[str, Any]]) -> Dict[str, str]:
+        """Map tool name → its `function.description` from an OpenAI tool spec list.
+
+        Used to enrich `tool_activity` WS events so the frontend doesn't need to
+        carry a duplicate copy of every tool's purpose.
+        """
+        lookup: Dict[str, str] = {}
+        for tool in tool_definitions or []:
+            fn = tool.get("function") or {}
+            name = fn.get("name")
+            description = fn.get("description") or ""
+            if name:
+                lookup[name] = " ".join(str(description).split())
+        return lookup
+
+    @staticmethod
+    def _summarise_tool_result(result: Dict[str, Any]) -> str:
+        """Build a short human label for a completed tool call result."""
+        status = result.get("status") or "?"
+        chars = result.get("chars")
+        if status == "BLOCKED":
+            return "blocked"
+        if status == "ERROR":
+            raw = result.get("result") or ""
+            return f"error: {raw[:80]}"
+        if isinstance(chars, int):
+            label = f"{chars} chars"
+            if status == "MISS":
+                return f"miss ({label})"
+            return label
+        return str(status).lower()
+
     async def _run_agentic_retrieval(
         self, objective_text: str, teaching_plan: Any, ws_send,
     ) -> List[Dict[str, Any]]:
@@ -3968,6 +4001,10 @@ Available WCAG MCP tools:
         if not self.wcag_mcp:
             logger.warning("Guided retrieval skipped: WCAG MCP client unavailable")
             return []
+
+        tool_description_lookup = self._build_tool_description_lookup(
+            GUIDED_WCAG_TOOL_DEFINITIONS
+        )
 
         base_prompt = build_guided_retrieval_agent_prompt(
             objective_text=objective_text,
@@ -4047,10 +4084,44 @@ Available WCAG MCP tools:
                 )
                 continue
 
+            for planned_call in planned_calls:
+                tool_name = planned_call.get("tool", "")
+                await ws_send(
+                    {
+                        "type": "tool_activity",
+                        "phase": "retrieval",
+                        "round": planned_call.get("round", round_number),
+                        "sequence": planned_call.get("sequence"),
+                        "name": tool_name,
+                        "params": planned_call.get("args") or {},
+                        "description": tool_description_lookup.get(tool_name, ""),
+                        "rationale": planned_call.get("rationale", ""),
+                        "status": "calling",
+                    }
+                )
+
             round_results = await self.wcag_mcp.execute_planned_tool_calls(planned_calls)
             round_results = self._annotate_retrieval_results(planned_calls, round_results)
             all_results.extend(round_results)
             total_tool_calls += len(planned_calls)
+
+            for planned_call, result in zip(planned_calls, round_results):
+                tool_name = planned_call.get("tool", "")
+                await ws_send(
+                    {
+                        "type": "tool_activity",
+                        "phase": "retrieval",
+                        "round": planned_call.get("round", round_number),
+                        "sequence": planned_call.get("sequence"),
+                        "name": tool_name,
+                        "params": planned_call.get("args") or {},
+                        "description": tool_description_lookup.get(tool_name, ""),
+                        "rationale": planned_call.get("rationale", ""),
+                        "status": "completed",
+                        "result_status": result.get("status", ""),
+                        "result_summary": self._summarise_tool_result(result),
+                    }
+                )
 
             for result in round_results:
                 messages.append(
