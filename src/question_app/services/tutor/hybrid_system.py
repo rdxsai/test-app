@@ -2740,9 +2740,11 @@ class HybridCrewAISocraticSystem:
         # "Explain the structure of WCAG 2.2, including the POUR principles,
         #  guidelines, success criteria, and conformance levels"
 
-        # Level 1: some awareness / working knowledge — applied concepts
-        "awareness": "I.D.10",
+        # Level 1: some awareness — semantic controls vs generic elements
+        "awareness": "I.B.1",
         "working_knowledge": "I.D.10",
+        # "Distinguish between semantic HTML controls (e.g., <button>, <a>)
+        #  and generic elements (e.g., <div>) in terms of built-in accessibility."
         # "Apply ARIA live regions to communicate dynamic content updates
         #  without moving keyboard focus"
 
@@ -2750,6 +2752,17 @@ class HybridCrewAISocraticSystem:
         "professional": "I.H.2",
         # "Analyze how design elements such as headings, landmarks, and color
         #  contrast affect accessibility for diverse user groups"
+    }
+
+    _STARTING_OBJECTIVE_TEXTS = {
+        "none": (
+            "Explain the structure of WCAG 2.2 by identifying the four principles "
+            "(POUR), guidelines, and success criteria levels (A, AA, AAA)."
+        ),
+        "awareness": (
+            "Distinguish between semantic HTML controls (e.g., `<button>`, `<a>`) "
+            "and generic elements (e.g., `<div>`) in terms of built-in accessibility."
+        ),
     }
 
     # Level-specific introductions — shown before the first teaching turn
@@ -2761,10 +2774,10 @@ class HybridCrewAISocraticSystem:
             "give you a framework for everything else you'll learn."
         ),
         "awareness": (
-            "You already have some familiarity with accessibility concepts, so let's "
-            "build on that with something practical — **ARIA live regions**. These are "
-            "how dynamic content updates get announced to screen reader users, and "
-            "they're one of the trickier parts of accessibility to get right."
+            "You already have some familiarity with accessibility concepts, so we'll "
+            "start with a practical HTML foundation — **semantic controls vs generic "
+            "elements**. This is where accessibility often succeeds or fails before "
+            "ARIA even enters the picture."
         ),
         "working_knowledge": (
             "With your hands-on experience, you're ready for a deeper dive. We'll "
@@ -2789,8 +2802,26 @@ class HybridCrewAISocraticSystem:
         is not found or already mastered.
         """
         target_id = self._STARTING_OBJECTIVES.get(a11y_exposure, self._STARTING_OBJECTIVES["none"])
+        target_text = self._STARTING_OBJECTIVE_TEXTS.get(a11y_exposure, "")
 
-        # Verify the objective exists and get its text
+        # Prefer a direct text match when configured. The runtime DB stores UUID
+        # primary keys, so curriculum codes like I.A.2 do not resolve directly.
+        if target_text:
+            try:
+                obj = await asyncio.to_thread(self._fetch_objective_by_text, target_text)
+                if obj:
+                    logger.info(
+                        f"[ONBOARDING] Level-based objective selected by text: "
+                        f"exposure={a11y_exposure} → {obj['id']} ({obj['text'][:60]})"
+                    )
+                    return obj["id"], obj["text"]
+            except Exception as e:
+                logger.warning(
+                    f"Failed to fetch starting objective by text for exposure={a11y_exposure}: {e}"
+                )
+
+        # Backward-compatible fallback for environments where IDs happen to be
+        # stored as curriculum codes.
         try:
             obj = await asyncio.to_thread(self._fetch_objective_by_id, target_id)
             if obj:
@@ -2815,6 +2846,18 @@ class HybridCrewAISocraticSystem:
                 cur.execute(
                     "SELECT id, text, blooms_level, priority FROM learning_objective WHERE id = %s",
                     (objective_id,),
+                )
+                row = cur.fetchone()
+                return dict(row) if row else None
+
+    def _fetch_objective_by_text(self, objective_text: str) -> Optional[Dict]:
+        """Fetch a learning objective by exact text from the main DB."""
+        with self.db.get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "SELECT id, text, blooms_level, priority "
+                    "FROM learning_objective WHERE text = %s",
+                    (objective_text,),
                 )
                 row = cur.fetchone()
                 return dict(row) if row else None
