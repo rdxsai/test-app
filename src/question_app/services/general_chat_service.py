@@ -147,6 +147,7 @@ class GeneralChatService:
             deployment=chat_deployment,
             api_key=azure_config["api_key"],
             api_version=azure_config.get("api_version", "2024-02-15-preview"),
+            content_filter_policy=azure_config.get("content_filter_policy"),
         )
         if reasoning_deployment == chat_deployment:
             self.reasoning_client = self.chat_client
@@ -156,6 +157,7 @@ class GeneralChatService:
                 deployment=reasoning_deployment,
                 api_key=azure_config["api_key"],
                 api_version=azure_config.get("api_version", "2024-02-15-preview"),
+                content_filter_policy=azure_config.get("content_filter_policy"),
             )
 
         self.vector_store = vector_store_service
