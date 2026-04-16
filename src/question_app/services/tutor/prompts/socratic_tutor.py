@@ -807,6 +807,23 @@ Do not output lesson content or prose plans.
 Use tools to research. When you have enough evidence, stop calling tools."""
 
 
+# Injected as an extra system message on the very first teaching turn for an
+# objective, when the student has not yet spoken. Prevents the tutor from
+# greeting again, recapping the intro paragraph, or asking a question before
+# any concept has been introduced.
+FIRST_TURN_INSTRUCTION = """\
+FIRST TURN — the student has not yet spoken in this objective.
+
+Open the lesson by introducing the FIRST concept from the teaching plan
+in INSTRUCTION mode: a 1–3 sentence explanation followed by ONE focused
+checking question.
+
+Do not greet the student.
+Do not recap the intro paragraph that was already shown.
+Do not ask a question before introducing the concept.
+Do not reference any prior student turn — there is none."""
+
+
 def format_teaching_plan(plan) -> str:
     """Format a teaching plan into a concise text block for the system prompt.
 
