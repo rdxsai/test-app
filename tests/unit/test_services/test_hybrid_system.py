@@ -1093,6 +1093,42 @@ class TestResponseGuards:
 
 
 class TestGuidedTurnOrdering:
+    def test_render_turn_analysis_for_display_explains_fields(self, hybrid_system):
+        rendered = hybrid_system._render_turn_analysis_for_display(
+            {
+                "turn_route": "objective_answer",
+                "answer_current_question_first": True,
+                "student_question_to_answer": "What goes under principles?",
+                "teaching_move": "clarify",
+                "stage_action": "stay",
+                "target_stage": "introduction",
+                "stage_reason": "Student still needs a clean distinction.",
+                "pacing_signal": {
+                    "grasp_level": "fragile",
+                    "reasoning_mode": "paraphrase",
+                    "support_needed": "heavy",
+                    "confusion_level": "high",
+                    "response_pattern": "hedging",
+                    "concept_closure": "not_ready",
+                    "override_pace": "slow",
+                    "override_reason": "Student explicitly needs a slower pace.",
+                    "recommended_next_step": "re-explain",
+                },
+                "mastery_signal": {
+                    "should_update": False,
+                    "level": "not_attempted",
+                    "confidence": 0.0,
+                    "evidence_summary": "",
+                },
+            }
+        )
+
+        assert "TURN ANALYSIS EXPLANATION" in rendered
+        assert "turn_route" in rendered
+        assert "Current value: `objective_answer`." in rendered
+        assert "pacing_signal.recommended_next_step" in rendered
+        assert "Current value: `re-explain`." in rendered
+
     @pytest.mark.asyncio
     async def test_guided_turn_runs_analyzer_before_tutor_and_write(
         self, hybrid_system, monkeypatch

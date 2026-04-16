@@ -1503,6 +1503,412 @@ class HybridCrewAISocraticSystem:
         return "\n".join(lines)
 
     @staticmethod
+    def _format_analysis_value_for_display(value: Any, max_chars: int = 220) -> str:
+        if value is None:
+            return "`null`"
+        if isinstance(value, bool):
+            return f"`{'true' if value else 'false'}`"
+        if isinstance(value, (int, float)):
+            return f"`{value}`"
+        if isinstance(value, str):
+            text = value.strip()
+            if not text:
+                return "`\"\"`"
+            if len(text) > max_chars:
+                text = f"{text[:max_chars - 3]}..."
+            return f"`{text}`"
+        try:
+            text = json.dumps(value, ensure_ascii=True)
+        except Exception:
+            text = str(value)
+        if len(text) > max_chars:
+            text = f"{text[:max_chars - 3]}..."
+        return f"`{text}`"
+
+    @classmethod
+    def _render_turn_analysis_field(
+        cls,
+        key: str,
+        value: Any,
+        meaning: str,
+        role: str,
+        computation: str,
+    ) -> str:
+        return (
+            f"{key}\n"
+            f"{meaning} {role} It is computed {computation}. "
+            f"Current value: {cls._format_analysis_value_for_display(value)}."
+        )
+
+    @classmethod
+    def _render_turn_analysis_for_display(
+        cls, turn_analysis: Optional[Dict[str, Any]]
+    ) -> str:
+        if not turn_analysis:
+            return ""
+
+        lines = [
+            "TURN ANALYSIS EXPLANATION",
+            (
+                "This is the analyzer's interpreted state for the latest student turn. "
+                "Each item below explains what the field means, what it affects, how it is computed, "
+                "and the value being used on this turn."
+            ),
+            "",
+        ]
+
+        simple_field_specs = [
+            (
+                "turn_route",
+                "This field classifies what kind of turn the student just produced.",
+                "It controls which response path the tutor should follow next.",
+                "from the latest student message, recent transcript context, and the active objective",
+            ),
+            (
+                "answer_current_question_first",
+                "This flag says whether the tutor must answer the student's live question before doing anything else.",
+                "It affects response ordering and prevents the tutor from skipping over an active question.",
+                "by checking whether the student asked a real unresolved question in this turn",
+            ),
+            (
+                "student_question_to_answer",
+                "This field captures the specific student question that should be answered first when one exists.",
+                "It gives the tutor a concrete bridge-back target instead of relying on vague memory.",
+                "by extracting the most actionable question-like request from the student's latest message",
+            ),
+            (
+                "teaching_move",
+                "This field chooses the instructional move for the next tutor response, such as continue, clarify, repair, consolidate, or redirect.",
+                "It shapes the tone and structure of the next tutor turn.",
+                "from the learner's understanding signal, misconception state, and the current lesson need",
+            ),
+            (
+                "stage_action",
+                "This field says whether the lesson stage should stay where it is, advance, or regress.",
+                "It controls stage transitions before the next tutor response is composed.",
+                "from the student's demonstrated understanding, coverage, and misconception guardrails",
+            ),
+            (
+                "target_stage",
+                "This field names the stage the analyzer wants the lesson to be in after this turn.",
+                "It determines the pedagogical mode the tutor will use next when a transition is allowed.",
+                "by combining the analyzer recommendation with deterministic stage-order and coverage rules",
+            ),
+            (
+                "stage_reason",
+                "This field records the explanation for the current stage decision.",
+                "It makes the stage transition logic inspectable instead of leaving it implicit.",
+                "from the analyzer's rationale plus any deterministic guardrails that override or normalize the move",
+            ),
+            (
+                "follow_up_question_policy",
+                "This field gives an extra rule for whether the tutor should ask a follow-up question after answering.",
+                "It prevents low-value answer-echo checks when a direct clarification already resolved the turn.",
+                "by response-control rules after the analyzer output is checked against pacing and misconception state",
+            ),
+        ]
+
+        for key, meaning, role, computation in simple_field_specs:
+            if key in turn_analysis:
+                lines.append(
+                    cls._render_turn_analysis_field(
+                        key, turn_analysis.get(key), meaning, role, computation
+                    )
+                )
+                lines.append("")
+
+        compound_specs = {
+            "mastery_signal": (
+                "This block summarizes whether the learner's mastery record should change on this turn.",
+                "It affects persistence of mastery state and confidence tracking.",
+                "from the analyzer's evidence judgment, bounded mastery policy, and later runtime enforcement",
+                [
+                    (
+                        "should_update",
+                        "This flag says whether a mastery write should happen now.",
+                        "It decides whether the runtime attempts to persist a mastery judgment for this turn.",
+                        "from whether the analyzer believes the evidence is strong enough for a bounded mastery update",
+                    ),
+                    (
+                        "level",
+                        "This field names the mastery level the analyzer currently believes fits the learner.",
+                        "It provides the candidate mastery state for persistence or later inspection.",
+                        "from the learner's demonstrated understanding and the allowed mastery levels for the current stage",
+                    ),
+                    (
+                        "confidence",
+                        "This field gives the analyzer's numeric confidence in the mastery judgment.",
+                        "It communicates how strongly the system trusts the level decision.",
+                        "from the analyzer's internal assessment of evidence strength on this turn",
+                    ),
+                    (
+                        "evidence_summary",
+                        "This field is the compact justification for the mastery judgment.",
+                        "It explains what evidence the analyzer thinks supports the mastery call.",
+                        "by summarizing the strongest demonstrated evidence from the student's latest response",
+                    ),
+                ],
+            ),
+            "misconception_events": (
+                "This block logs misconception updates raised by the analyzer on this turn.",
+                "It controls whether misconceptions are logged, kept active, or marked as resolved candidates.",
+                "from the student's latest reasoning compared against the expected concept model",
+                [
+                    (
+                        "key",
+                        "This field is the stable identifier for the misconception pattern.",
+                        "It lets the runtime track the same misconception across multiple turns.",
+                        "from the analyzer's attempt to match the current issue to an existing or reusable misconception label",
+                    ),
+                    (
+                        "text",
+                        "This field is the human-readable description of the misconception event.",
+                        "It makes the tracked issue understandable in logs and memory.",
+                        "by summarizing the incorrect or repaired idea in plain language",
+                    ),
+                    (
+                        "action",
+                        "This field says whether the misconception should be logged, kept active, or treated as a resolve candidate.",
+                        "It controls the durable misconception state update applied after analysis.",
+                        "from whether the learner is still expressing the issue or appears to have repaired it",
+                    ),
+                    (
+                        "repair_priority",
+                        "This field indicates how urgently the misconception must be handled.",
+                        "It can lock stage advancement when the issue is marked as must-address-now.",
+                        "from the severity of the misunderstanding and whether moving on would be unsafe",
+                    ),
+                    (
+                        "repair_scope",
+                        "This field defines whether the repair is about a fact, a distinction, or a full ordered sequence.",
+                        "It determines how broad the required repair needs to be.",
+                        "from the shape of the learner's error and whether missing one piece breaks the whole concept path",
+                    ),
+                    (
+                        "repair_pattern",
+                        "This field says what kind of repair check should happen next, such as a direct recheck, same-snippet walkthrough, or fresh transfer case.",
+                        "It shapes the next tutor move after the misconception is identified.",
+                        "from the mismatch pattern the analyzer believes will best test whether the repair really landed",
+                    ),
+                ],
+            ),
+            "lesson_state_patch": (
+                "This block is the analyzer's proposed update to the structured lesson state.",
+                "It keeps the session anchored to the active concept, next check, and concept coverage map.",
+                "from the current concept focus plus what the learner demonstrated in this turn",
+                [
+                    (
+                        "active_concept",
+                        "This field names the concept the lesson should now be centered on.",
+                        "It keeps the tutor from drifting across concepts without a visible reason.",
+                        "from the teaching plan order and the concept the student's response most directly engaged",
+                    ),
+                    (
+                        "pending_check",
+                        "This field states the next understanding check the system still wants before moving on.",
+                        "It gives the tutor a concrete next checkpoint for the current concept.",
+                        "from the remaining uncertainty after analyzing the learner's answer",
+                    ),
+                    (
+                        "bridge_back_target",
+                        "This field records what the tutor should bridge back to after answering a side question or clarification.",
+                        "It preserves lesson continuity across digressions or repairs.",
+                        "from the current lesson focus that should remain primary after the immediate response is handled",
+                    ),
+                    (
+                        "concept_updates",
+                        "This field contains status patches for concepts in the plan, such as not covered, in progress, or covered.",
+                        "It updates the visible and internal coverage map used for pacing and stage decisions.",
+                        "from the analyzer's judgment about how much of each concept the learner has actually demonstrated",
+                    ),
+                ],
+            ),
+            "pacing_signal": (
+                "This block is the analyzer's pacing read on the learner for this turn.",
+                "It controls how much scaffold, difficulty, and forward movement the tutor should use next.",
+                "from the learner's response quality, stability, confusion, and reasoning depth",
+                [
+                    (
+                        "grasp_level",
+                        "This field gives a coarse read of how solid the learner's understanding currently is.",
+                        "It influences how cautious or ambitious the next tutor move should be.",
+                        "from the overall strength and stability of the learner's answer on this turn",
+                    ),
+                    (
+                        "reasoning_mode",
+                        "This field identifies the kind of reasoning the learner showed, such as guessing, recall, paraphrase, application, or transfer.",
+                        "It helps the system distinguish shallow repetition from real conceptual use.",
+                        "from the structure of the student's response rather than just whether the answer sounds correct",
+                    ),
+                    (
+                        "support_needed",
+                        "This field estimates how much scaffold the learner still needs right now.",
+                        "It affects whether the tutor should explain more, narrow the check, or move faster.",
+                        "from the learner's clarity, precision, and independence in the latest response",
+                    ),
+                    (
+                        "confusion_level",
+                        "This field estimates how confused or stable the learner seems on the current concept.",
+                        "It helps determine whether to repair, clarify, or keep pushing forward.",
+                        "from signs of contradiction, hesitation, misclassification, or direct confusion in the response",
+                    ),
+                    (
+                        "response_pattern",
+                        "This field captures the style of the learner's response, such as guessing, hedging, direct answering, or self-correction.",
+                        "It gives the tutor another signal about how reliable the visible understanding really is.",
+                        "from the wording pattern and confidence cues in the student's latest turn",
+                    ),
+                    (
+                        "concept_closure",
+                        "This field says whether the current concept looks not ready, almost ready, or ready to close.",
+                        "It directly affects whether the lesson can move on from the current concept or stage.",
+                        "from the completeness and stability of the learner's demonstrated understanding on the active concept",
+                    ),
+                    (
+                        "override_pace",
+                        "This field is the runtime pace the system wants to enforce next, such as slow, steady, or fast.",
+                        "It calibrates how aggressively the tutor should advance or scaffold.",
+                        "from analyzer pacing judgment plus deterministic runtime guardrails",
+                    ),
+                    (
+                        "override_reason",
+                        "This field records why the current pace is being overridden or held.",
+                        "It makes pacing changes inspectable instead of opaque.",
+                        "from the strongest pacing-relevant condition detected on this turn",
+                    ),
+                    (
+                        "recommended_next_step",
+                        "This field is the analyzer's recommended instructional next step, such as re-explain, give an example, ask narrower, stay at the same level, or advance.",
+                        "It is one of the strongest direct steering signals for the next tutor response.",
+                        "from the combination of understanding quality, confusion level, and what evidence is still missing",
+                    ),
+                ],
+            ),
+            "objective_memory_patch": (
+                "This block proposes updates to the durable memory for this learner on the current objective.",
+                "It keeps a concise running record of demonstrated skills, active gaps, and the next focus.",
+                "from the stable instructional takeaways of this turn rather than a transcript dump",
+                [
+                    (
+                        "summary",
+                        "This field is the compact durable summary of the learner's current state on this objective.",
+                        "It gives later turns a concise memory of where the learner stands.",
+                        "by compressing the turn into the most instructionally important state update",
+                    ),
+                    (
+                        "demonstrated_skills_add",
+                        "This field lists skills that should be added to the learner's demonstrated skills for this objective.",
+                        "It accumulates evidence of what the learner can now reliably do.",
+                        "from behaviors or explanations the learner successfully demonstrated on this turn",
+                    ),
+                    (
+                        "active_gaps_current",
+                        "This field lists the gaps the system believes are still currently active for this objective.",
+                        "It prevents the tutor from treating repaired or irrelevant gaps as still open.",
+                        "from the unresolved weaknesses that remain after analyzing the learner's latest response",
+                    ),
+                    (
+                        "next_focus",
+                        "This field states the next concept or distinction the tutor should prioritize for this objective.",
+                        "It gives the next turn a concrete instructional target.",
+                        "from the most important remaining gap after the current turn is interpreted",
+                    ),
+                ],
+            ),
+            "learner_memory_patch": (
+                "This block proposes updates to the learner-level memory that can carry across objectives.",
+                "It captures stable tendencies, strengths, support needs, and strategies that matter beyond one lesson.",
+                "from repeated or instructionally meaningful behavior shown in the latest turn",
+                [
+                    (
+                        "summary",
+                        "This field is the compact durable summary of the learner's broader behavior or need.",
+                        "It helps future objectives start with a more tailored teaching posture.",
+                        "by compressing the most reusable learner-level takeaway from the turn",
+                    ),
+                    (
+                        "strengths_add",
+                        "This field lists strengths that should be added to the learner profile.",
+                        "It preserves positive capabilities the tutor can rely on later.",
+                        "from stable evidence of what the learner did well in this turn",
+                    ),
+                    (
+                        "support_needs_current",
+                        "This field lists the support needs that appear to be currently active for the learner.",
+                        "It keeps the tutor aligned with the learner's real instructional needs right now.",
+                        "from the kind of scaffold the learner still needed during the turn",
+                    ),
+                    (
+                        "tendencies_current",
+                        "This field lists current response tendencies the system wants to remember, such as hedging or asking clarifying questions.",
+                        "It helps the tutor adapt to the learner's recurring interaction pattern.",
+                        "from visible response style patterns in the learner's latest turn",
+                    ),
+                    (
+                        "successful_strategies_add",
+                        "This field lists teaching strategies that worked well for this learner and should be remembered.",
+                        "It helps future turns and future objectives reuse effective scaffolds.",
+                        "from the teaching move that appeared to help the learner make progress on this turn",
+                    ),
+                ],
+            ),
+        }
+
+        for field, (meaning, role, computation, nested_specs) in compound_specs.items():
+            if field not in turn_analysis:
+                continue
+            field_value = turn_analysis.get(field)
+            lines.append(
+                cls._render_turn_analysis_field(
+                    field,
+                    field_value,
+                    meaning,
+                    role,
+                    computation,
+                )
+            )
+            nested_value = field_value
+            if isinstance(nested_value, dict):
+                for nested_key, n_meaning, n_role, n_computation in nested_specs:
+                    if nested_key in nested_value:
+                        lines.append(
+                            cls._render_turn_analysis_field(
+                                f"{field}.{nested_key}",
+                                nested_value.get(nested_key),
+                                n_meaning,
+                                n_role,
+                                n_computation,
+                            )
+                        )
+            elif isinstance(nested_value, list):
+                for index, item in enumerate(nested_value, 1):
+                    item_name = f"{field}[{index}]"
+                    lines.append(
+                        cls._render_turn_analysis_field(
+                            item_name,
+                            item,
+                            "This entry is one item inside the list-valued analysis block.",
+                            "It carries one concrete event or patch inside the larger field.",
+                            "from the analyzer's structured decision for this turn",
+                        )
+                    )
+                    if isinstance(item, dict):
+                        for nested_key, n_meaning, n_role, n_computation in nested_specs:
+                            if nested_key in item:
+                                lines.append(
+                                    cls._render_turn_analysis_field(
+                                        f"{item_name}.{nested_key}",
+                                        item.get(nested_key),
+                                        n_meaning,
+                                        n_role,
+                                        n_computation,
+                                    )
+                                )
+            lines.append("")
+
+        return "\n".join(lines).strip()
+
+    @staticmethod
     def _format_adaptive_pacing_for_tutor(
         pacing_state: Optional[Dict[str, Any]]
     ) -> str:
