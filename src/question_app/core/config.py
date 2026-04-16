@@ -63,6 +63,9 @@ class Config:
         self.AZURE_OPENAI_SUBSCRIPTION_KEY: Optional[str] = os.getenv(
             "AZURE_OPENAI_SUBSCRIPTION_KEY"
         )
+        self.AZURE_OPENAI_CONTENT_FILTER_POLICY: Optional[str] = os.getenv(
+            "AZURE_OPENAI_CONTENT_FILTER_POLICY"
+        )
 
         # Ollama Configuration
         self.OLLAMA_HOST: str = os.getenv("OLLAMA_HOST", "http://localhost:11434")
