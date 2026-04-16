@@ -1123,11 +1123,31 @@ class TestGuidedTurnOrdering:
             }
         )
 
-        assert "TURN ANALYSIS EXPLANATION" in rendered
-        assert "turn_route" in rendered
-        assert "Current value: `objective_answer`." in rendered
-        assert "pacing_signal.recommended_next_step" in rendered
-        assert "Current value: `re-explain`." in rendered
+        # New compact markdown format — every input value must still appear.
+        # Simple fields are bold-labelled and values render inline.
+        assert "**Turn route:** objective_answer" in rendered
+        assert "**Answer student question first:** **yes**" in rendered
+        assert "What goes under principles?" in rendered  # student_question_to_answer
+        assert "**Teaching move:** clarify" in rendered
+        assert "**Stage:**" in rendered and "introduction" in rendered
+        assert "Student still needs a clean distinction." in rendered  # stage_reason
+
+        # Nested pacing block — all values present
+        assert "**Pacing signal**" in rendered
+        for value in ("fragile", "paraphrase", "heavy", "high", "hedging", "not_ready", "re-explain"):
+            assert value in rendered, f"pacing value missing: {value}"
+        assert "`slow`" in rendered  # override_pace
+        assert "Student explicitly needs a slower pace." in rendered
+
+        # Mastery block present with its values
+        assert "**Mastery signal**" in rendered
+        assert "not_attempted" in rendered
+        assert "`0.0`" in rendered or "`0`" in rendered  # confidence
+
+        # Boilerplate meta-prose must NOT appear any more
+        assert "TURN ANALYSIS EXPLANATION" not in rendered
+        assert "Current value:" not in rendered
+        assert "It is computed" not in rendered
 
     @pytest.mark.asyncio
     async def test_guided_turn_runs_analyzer_before_tutor_and_write(
@@ -1294,8 +1314,12 @@ class TestGuidedTurnOrdering:
         ]
         assert ws_events[2]["analysis"]["turn_route"] == "objective_answer"
         assert ws_events[2]["analysis"]["pacing_signal"]["override_pace"] == "slow"
-        assert "TURN ANALYSIS EXPLANATION" in ws_events[2]["display_analysis"]
-        assert "turn_route" in ws_events[2]["display_analysis"]
+        display = ws_events[2]["display_analysis"]
+        # New compact markdown format: bold labels with inline values, no boilerplate.
+        assert "**Turn route:** objective_answer" in display
+        assert "**Pacing signal**" in display
+        assert "re-explain" in display
+        assert "TURN ANALYSIS EXPLANATION" not in display
 
 
 class TestGuidedRetrieval:
