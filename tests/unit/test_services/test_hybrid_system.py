@@ -1603,3 +1603,199 @@ class TestGuidedRetrieval:
             await hybrid_system._generate_teaching_plan(
                 "Explain the structure of WCAG"
             )
+
+
+class TestToolActivityRationale:
+    """Cover the rationale capture / tool_activity emission path."""
+
+    def test_extract_planned_calls_strips_rationale_and_stashes_it(self, hybrid_system):
+        tool_calls = [
+            {
+                "id": "call-1",
+                "type": "function",
+                "function": {
+                    "name": "get_criterion",
+                    "arguments": (
+                        '{"ref_id": "1.1.1", '
+                        '"rationale": "Need normative anchor for alt-text concept."}'
+                    ),
+                },
+            }
+        ]
+
+        planned = hybrid_system._extract_agentic_planned_calls(
+            tool_calls=tool_calls,
+            round_number=1,
+            seen_calls=set(),
+            max_new_calls=4,
+        )
+
+        assert len(planned) == 1
+        # Rationale was lifted onto the planned_call dict...
+        assert planned[0]["rationale"] == "Need normative anchor for alt-text concept."
+        # ...and stripped from the args that flow to the MCP server.
+        assert "rationale" not in planned[0]["args"]
+        assert planned[0]["args"] == {"ref_id": "1.1.1"}
+
+    def test_extract_planned_calls_defaults_rationale_to_empty_string(self, hybrid_system):
+        """Schema noncompliance must not block the call — surface as empty."""
+        tool_calls = [
+            {
+                "id": "call-1",
+                "type": "function",
+                "function": {
+                    "name": "list_principles",
+                    "arguments": "{}",
+                },
+            }
+        ]
+
+        planned = hybrid_system._extract_agentic_planned_calls(
+            tool_calls=tool_calls,
+            round_number=1,
+            seen_calls=set(),
+            max_new_calls=4,
+        )
+
+        assert planned[0]["rationale"] == ""
+
+    def test_extract_planned_calls_ignores_non_string_rationale(self, hybrid_system):
+        """If the model emits something other than a string, fall back to empty
+        rather than crashing on a downstream .strip() / JSON serialize."""
+        tool_calls = [
+            {
+                "id": "call-1",
+                "type": "function",
+                "function": {
+                    "name": "list_principles",
+                    "arguments": '{"rationale": 42}',
+                },
+            }
+        ]
+
+        planned = hybrid_system._extract_agentic_planned_calls(
+            tool_calls=tool_calls,
+            round_number=1,
+            seen_calls=set(),
+            max_new_calls=4,
+        )
+
+        assert planned[0]["rationale"] == ""
+        assert "rationale" not in planned[0]["args"]
+
+    def test_annotate_retrieval_results_propagates_rationale(self, hybrid_system):
+        planned = [
+            {
+                "tool_call_id": "call-1",
+                "tool": "get_criterion",
+                "args": {"ref_id": "1.1.1"},
+                "rationale": "Need normative anchor.",
+                "round": 1,
+                "sequence": 1,
+                "source": "guided_retrieval",
+            }
+        ]
+        results = [
+            {
+                "tool": "get_criterion",
+                "args": {"ref_id": "1.1.1"},
+                "category": "agentic",
+                "result": "...",
+                "chars": 3,
+                "status": "HIT",
+            }
+        ]
+
+        annotated = hybrid_system._annotate_retrieval_results(planned, results)
+        assert annotated[0]["rationale"] == "Need normative anchor."
+        assert annotated[0]["round"] == 1
+        assert annotated[0]["sequence"] == 1
+
+    def test_build_tool_description_lookup_maps_name_to_description(
+        self, hybrid_system
+    ):
+        defs = [
+            {
+                "type": "function",
+                "function": {
+                    "name": "search_wcag",
+                    "description": "Searches WCAG  content.\n  Use for queries.",
+                },
+            },
+            {"type": "function", "function": {"name": "no_desc"}},
+            {"type": "function", "function": {}},  # malformed but tolerated
+        ]
+        lookup = hybrid_system._build_tool_description_lookup(defs)
+        # Whitespace normalised
+        assert lookup["search_wcag"] == "Searches WCAG content. Use for queries."
+        assert lookup["no_desc"] == ""
+        # No name → not surfaced
+        assert len(lookup) == 2
+
+    def test_summarise_tool_result_branches(self, hybrid_system):
+        s = hybrid_system._summarise_tool_result
+        assert s({"status": "HIT", "chars": 892}) == "892 chars"
+        assert s({"status": "MISS", "chars": 0}) == "miss (0 chars)"
+        assert s({"status": "BLOCKED", "chars": 0}) == "blocked"
+        assert s({"status": "ERROR", "result": "boom"}).startswith("error: boom")
+        assert s({"status": "HIT"}) == "hit"
+
+    @pytest.mark.asyncio
+    async def test_run_agentic_retrieval_emits_tool_activity_events(
+        self, hybrid_system, monkeypatch
+    ):
+        """End-to-end: each tool call produces one calling event and one
+        completed event with description (from def) and rationale (from model)."""
+        hybrid_system.wcag_mcp = FakeWCAGClient()
+
+        async def fake_chat_with_tools(**kwargs):
+            return {
+                "role": "assistant",
+                "content": "",
+                "tool_calls": [
+                    {
+                        "id": "call-1",
+                        "type": "function",
+                        "function": {
+                            "name": "list_principles",
+                            "arguments": (
+                                '{"rationale": "Anchor on top-level WCAG structure."}'
+                            ),
+                        },
+                    },
+                ],
+            }
+
+        monkeypatch.setattr(
+            hybrid_system.reasoning_client, "chat_with_tools", fake_chat_with_tools
+        )
+
+        events = []
+
+        async def ws_send(payload):
+            events.append(payload)
+
+        await hybrid_system._run_agentic_retrieval(
+            objective_text="Explain the structure of WCAG",
+            teaching_plan=(
+                "1. plain_language_goal\nExplain hierarchy.\n\n"
+                "8. dependency_order\n1. Principles\n"
+            ),
+            ws_send=ws_send,
+        )
+
+        tool_events = [e for e in events if e.get("type") == "tool_activity"]
+        # One calling + one completed for the single tool call
+        assert [e["status"] for e in tool_events] == ["calling", "completed"]
+        for evt in tool_events:
+            assert evt["phase"] == "retrieval"
+            assert evt["name"] == "list_principles"
+            assert evt["rationale"] == "Anchor on top-level WCAG structure."
+            # Description sourced from the tool definition (non-empty)
+            assert evt["description"]
+            # Params do not leak the rationale
+            assert "rationale" not in evt["params"]
+
+        completed = tool_events[1]
+        assert completed["result_status"] == "HIT"
+        assert "chars" in completed["result_summary"]

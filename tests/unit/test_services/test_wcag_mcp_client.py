@@ -37,7 +37,9 @@ sys.modules.setdefault("mcp.client.stdio", fake_mcp_stdio)
 
 wcag_mcp_client = importlib.import_module("question_app.services.wcag_mcp_client")
 GUIDED_WCAG_TOOL_DEFINITIONS = wcag_mcp_client.GUIDED_WCAG_TOOL_DEFINITIONS
+WCAG_TOOL_DEFINITIONS = wcag_mcp_client.WCAG_TOOL_DEFINITIONS
 WCAGMCPClient = wcag_mcp_client.WCAGMCPClient
+_with_required_rationale = wcag_mcp_client._with_required_rationale
 
 
 def test_guided_tool_definitions_expose_richer_retrieval_tools():
@@ -50,6 +52,67 @@ def test_guided_tool_definitions_expose_richer_retrieval_tools():
     assert "get_technique" in tool_names
     assert "search_glossary" in tool_names
     assert "list_glossary_terms" in tool_names
+
+
+def test_every_guided_tool_requires_a_rationale_parameter():
+    """Each guided tool must expose a required `rationale` string parameter so
+    the model is forced to surface a per-call justification to the UI."""
+    for tool in GUIDED_WCAG_TOOL_DEFINITIONS:
+        params = tool["function"]["parameters"]
+        properties = params.get("properties", {})
+        required = params.get("required", [])
+        name = tool["function"]["name"]
+        assert "rationale" in properties, f"{name} missing rationale property"
+        assert properties["rationale"]["type"] == "string", f"{name} rationale must be string"
+        assert "rationale" in required, f"{name} rationale must be required"
+
+
+def test_instance_a_tool_definitions_do_not_carry_rationale():
+    """Instance A's tool surface must remain untouched by the guided rationale
+    workaround — adding it would force every Instance A call to fill rationale
+    too, with no UI to surface it."""
+    for tool in WCAG_TOOL_DEFINITIONS:
+        properties = tool["function"]["parameters"].get("properties", {})
+        assert "rationale" not in properties, (
+            f"{tool['function']['name']} unexpectedly carries rationale"
+        )
+
+
+def test_with_required_rationale_does_not_mutate_input():
+    """The wrapper must deep-copy so callers can reuse the source defs."""
+    original = {
+        "type": "function",
+        "function": {
+            "name": "demo",
+            "description": "demo tool",
+            "parameters": {
+                "type": "object",
+                "properties": {"q": {"type": "string"}},
+                "required": ["q"],
+            },
+        },
+    }
+    wrapped = _with_required_rationale(original)
+
+    assert "rationale" in wrapped["function"]["parameters"]["properties"]
+    assert "rationale" in wrapped["function"]["parameters"]["required"]
+    # Source untouched
+    assert "rationale" not in original["function"]["parameters"]["properties"]
+    assert original["function"]["parameters"]["required"] == ["q"]
+
+
+def test_with_required_rationale_handles_empty_parameters():
+    """Tools that take no args (e.g. list_principles) must still gain a
+    properties dict with `rationale` so the schema is well-formed."""
+    bare = {
+        "type": "function",
+        "function": {"name": "ping", "description": "no args"},
+    }
+    wrapped = _with_required_rationale(bare)
+    params = wrapped["function"]["parameters"]
+    assert params["type"] == "object"
+    assert params["properties"]["rationale"]["type"] == "string"
+    assert params["required"] == ["rationale"]
 
 
 def test_deterministic_router_maps_common_instance_a_topics():
