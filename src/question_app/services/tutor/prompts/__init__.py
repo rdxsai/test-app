@@ -17,6 +17,7 @@ from .socratic_tutor import (
     build_turn_analyzer_prompt,
     build_instance_a_prompt,
     build_instance_b_prompt,
+    get_instance_b_prompt_registry,
     ASSESSMENT_REFLECTOR_PROMPT,
     GUIDED_RETRIEVAL_AGENT_PROMPT,
     GUIDED_REFLECTOR_PROMPT,
@@ -30,6 +31,7 @@ from .socratic_tutor import (
     format_misconception_state,
     format_pacing_state,
     format_teaching_plan,
+    format_teaching_plan_for_display,
 )
 
 __all__ = [
@@ -39,6 +41,7 @@ __all__ = [
     "build_turn_analyzer_prompt",
     "build_instance_a_prompt",
     "build_instance_b_prompt",
+    "get_instance_b_prompt_registry",
     "ASSESSMENT_REFLECTOR_PROMPT",
     "GUIDED_RETRIEVAL_AGENT_PROMPT",
     "GUIDED_REFLECTOR_PROMPT",
@@ -52,4 +55,5 @@ __all__ = [
     "format_misconception_state",
     "format_pacing_state",
     "format_teaching_plan",
+    "format_teaching_plan_for_display",
 ]

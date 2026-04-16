@@ -2024,3 +2024,209 @@ def build_assessment_reflector_prompt(
     return f"""{ASSESSMENT_REFLECTOR_PROMPT}
 
 {chr(10).join(context_sections)}"""
+
+
+def _prompt_registry_entry(
+    *,
+    prompt_id: str,
+    name: str,
+    category: str,
+    kind: str,
+    purpose: str,
+    source_symbol: str,
+    prompt_text: str,
+    used_in: List[str],
+    runtime_sections: List[str] | None = None,
+    base_prompt_symbol: str | None = None,
+    notes: str = "",
+) -> Dict[str, Any]:
+    """Create a normalized prompt-registry entry for the UI."""
+    return {
+        "id": prompt_id,
+        "name": name,
+        "category": category,
+        "kind": kind,
+        "purpose": purpose,
+        "source_file": "src/question_app/services/tutor/prompts/socratic_tutor.py",
+        "source_symbol": source_symbol,
+        "base_prompt_symbol": base_prompt_symbol or source_symbol,
+        "prompt_text": prompt_text.strip(),
+        "used_in": used_in,
+        "runtime_sections": runtime_sections or [],
+        "notes": notes.strip(),
+    }
+
+
+def get_instance_b_prompt_registry() -> List[Dict[str, Any]]:
+    """Return the centralized Instance B prompt registry for the UI.
+
+    The registry intentionally exposes the final prompt surfaces used by the
+    guided-learning pipeline. Dynamic builders include the base prompt text plus
+    the runtime sections appended before the model call.
+    """
+    return [
+        _prompt_registry_entry(
+            prompt_id="teaching-plan-generation",
+            name="Teaching Plan Generation",
+            category="planning",
+            kind="static",
+            purpose=(
+                "Designed to turn a single learning objective into a structured "
+                "teaching plan that defines concept order, misconceptions, "
+                "assessment logic, and instructional boundaries."
+            ),
+            source_symbol="CONCEPT_DECOMPOSITION_PROMPT",
+            prompt_text=CONCEPT_DECOMPOSITION_PROMPT,
+            used_in=[
+                "HybridCrewAISocraticSystem._generate_teaching_plan()",
+            ],
+        ),
+        _prompt_registry_entry(
+            prompt_id="retrieval-planner",
+            name="Retrieval Planner",
+            category="planning",
+            kind="static",
+            purpose=(
+                "Designed to decide what verified WCAG material should be "
+                "retrieved so the tutor has enough evidence to teach the "
+                "current objective accurately without over-retrieving."
+            ),
+            source_symbol="RETRIEVAL_PLANNER_PROMPT",
+            prompt_text=RETRIEVAL_PLANNER_PROMPT,
+            used_in=[
+                "HybridCrewAISocraticSystem._generate_retrieval_plan()",
+            ],
+        ),
+        _prompt_registry_entry(
+            prompt_id="tool-call-extraction",
+            name="Tool Call Extraction",
+            category="planning",
+            kind="static",
+            purpose=(
+                "Designed to convert the retrieval plan into executable WCAG "
+                "tool calls so the retrieval layer can run a concrete set of "
+                "must-have, fallback, and optional lookups."
+            ),
+            source_symbol="TOOL_CALL_EXTRACTION_PROMPT",
+            prompt_text=TOOL_CALL_EXTRACTION_PROMPT,
+            used_in=[
+                "HybridCrewAISocraticSystem._extract_tool_calls()",
+            ],
+        ),
+        _prompt_registry_entry(
+            prompt_id="guided-retrieval-agent",
+            name="Teaching Content Evidence Retrieval",
+            category="retrieval",
+            kind="dynamic",
+            purpose=(
+                "Designed to gather the smallest sufficient set of verified "
+                "WCAG evidence needed to support the lesson content for the "
+                "current objective."
+            ),
+            source_symbol="build_guided_retrieval_agent_prompt",
+            base_prompt_symbol="GUIDED_RETRIEVAL_AGENT_PROMPT",
+            prompt_text=GUIDED_RETRIEVAL_AGENT_PROMPT,
+            used_in=[
+                "HybridCrewAISocraticSystem._run_agentic_retrieval()",
+            ],
+            runtime_sections=[
+                "Learning objective",
+                "Teaching plan",
+            ],
+            notes=(
+                "This builder assembles the final retrieval-agent system "
+                "prompt by appending runtime lesson context to the base prompt."
+            ),
+        ),
+        _prompt_registry_entry(
+            prompt_id="main-tutor-prompt",
+            name="Main Tutor Prompt",
+            category="teaching",
+            kind="dynamic",
+            purpose=(
+                "Designed to generate the tutor's live guided-learning response "
+                "using the teaching plan, the student's current state, and the "
+                "validated evidence pack."
+            ),
+            source_symbol="build_instance_b_prompt",
+            base_prompt_symbol="TUTOR_SYSTEM_PROMPT",
+            prompt_text=TUTOR_SYSTEM_PROMPT,
+            used_in=[
+                "HybridCrewAISocraticSystem._build_guided_tutor_messages()",
+            ],
+            runtime_sections=[
+                "Student profile, mastery state, and known misconceptions",
+                "Current stage",
+                "Active objective",
+                "Teaching plan",
+                "Lesson state",
+                "Live misconception state",
+                "Validated evidence pack",
+            ],
+            notes=(
+                "The base tutor prompt is reused every turn, then augmented "
+                "with the current lesson context before the model call."
+            ),
+        ),
+        _prompt_registry_entry(
+            prompt_id="turn-analyzer",
+            name="Turn Analyzer",
+            category="analysis",
+            kind="dynamic",
+            purpose=(
+                "Designed to analyze each student turn, decide how the next "
+                "response should be routed, update lesson bookkeeping, and "
+                "recommend pacing and mastery signals."
+            ),
+            source_symbol="build_turn_analyzer_prompt",
+            base_prompt_symbol="TURN_ANALYZER_PROMPT",
+            prompt_text=TURN_ANALYZER_PROMPT,
+            used_in=[
+                "HybridCrewAISocraticSystem._run_turn_analyzer()",
+            ],
+            runtime_sections=[
+                "Current stage",
+                "Active objective",
+                "Student memory and state",
+                "Teaching plan",
+                "Lesson state",
+                "Current pacing state",
+                "Current live misconception state",
+                "Validated evidence pack",
+            ],
+            notes=(
+                "This builder produces the structured analysis prompt used "
+                "between student input and the tutor's next reply."
+            ),
+        ),
+        _prompt_registry_entry(
+            prompt_id="assessment-reflector",
+            name="Assessment Reflector",
+            category="assessment",
+            kind="dynamic",
+            purpose=(
+                "Designed to judge a student's assessment answer, score its "
+                "correctness against the lesson evidence, and emit the memory "
+                "and misconception updates needed after the assessment turn."
+            ),
+            source_symbol="build_assessment_reflector_prompt",
+            base_prompt_symbol="ASSESSMENT_REFLECTOR_PROMPT",
+            prompt_text=ASSESSMENT_REFLECTOR_PROMPT,
+            used_in=[
+                "HybridCrewAISocraticSystem._run_assessment_reflector()",
+            ],
+            runtime_sections=[
+                "Current stage",
+                "Active objective",
+                "Student memory and state",
+                "Teaching plan",
+                "Lesson state",
+                "Current live misconception state",
+                "Assessment evidence pack",
+            ],
+            notes=(
+                "This prompt is specific to mini-assessment and final-assessment "
+                "turns rather than normal tutoring turns."
+            ),
+        ),
+    ]
