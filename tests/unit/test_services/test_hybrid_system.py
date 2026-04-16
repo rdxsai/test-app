@@ -958,6 +958,41 @@ class TestResponseGuards:
         assert "resolved with application-level evidence" in guarded["pacing_signal"]["override_reason"]
         assert "Repeated full-sequence repair now looks stable" in guarded["stage_reason"]
 
+    def test_enforce_turn_response_controls_promotes_fresh_example_after_causal_clarification(
+        self, hybrid_system
+    ):
+        guarded = hybrid_system._enforce_turn_response_controls(
+            current_stage="exploration",
+            analysis={
+                "stage_action": "stay",
+                "target_stage": "exploration",
+                "stage_reason": "Learner gets the mechanism but asked for clarification.",
+                "teaching_move": "clarify",
+                "answer_current_question_first": True,
+                "misconception_events": [],
+                "pacing_signal": {
+                    "concept_closure": "almost_ready",
+                    "reasoning_mode": "application",
+                    "override_pace": "slow",
+                    "override_reason": "",
+                    "recommended_next_step": "ask_same_level",
+                },
+            },
+            lesson_state={
+                "concepts": [
+                    {"id": "c1", "status": "covered"},
+                    {"id": "c2", "status": "covered"},
+                ]
+            },
+            pacing_state={"current_pace": "steady"},
+            misconception_state={"active_misconceptions": []},
+        )
+
+        assert guarded["pacing_signal"]["recommended_next_step"] == "give_example"
+        assert guarded["pacing_signal"]["override_pace"] == "steady"
+        assert "fresh case" in guarded["pacing_signal"]["override_reason"]
+        assert guarded["follow_up_question_policy"] == "optional_if_explanation_suffices"
+
     def test_response_constraints_prefer_fresh_example_after_repeated_sequence_repair(
         self, hybrid_system
     ):
@@ -986,6 +1021,46 @@ class TestResponseGuards:
 
         assert "Response shape: example_then_check" in constraints
         assert "Prefer one fresh transfer example over another paraphrase recheck." in constraints
+
+    def test_response_constraints_allow_clarify_without_token_recheck(
+        self, hybrid_system
+    ):
+        constraints = hybrid_system._format_response_constraints_for_tutor(
+            pacing_state={"current_pace": "steady"},
+            turn_analysis={
+                "teaching_move": "clarify",
+                "answer_current_question_first": True,
+                "stage_action": "stay",
+                "pacing_signal": {
+                    "recommended_next_step": "ask_same_level",
+                },
+                "misconception_events": [],
+            },
+            misconception_state={"active_misconceptions": []},
+        )
+
+        assert "Response shape: answer_then_optional_check" in constraints
+        assert "Do not ask an answer-echo question" in constraints
+        assert "you may end without a follow-up question" in constraints
+
+    def test_response_constraints_require_fresh_case_after_repair(
+        self, hybrid_system
+    ):
+        constraints = hybrid_system._format_response_constraints_for_tutor(
+            pacing_state={"current_pace": "steady"},
+            turn_analysis={
+                "teaching_move": "repair",
+                "stage_action": "stay",
+                "pacing_signal": {
+                    "recommended_next_step": "give_example",
+                },
+                "misconception_events": [],
+            },
+            misconception_state={"active_misconceptions": []},
+        )
+
+        assert "Do not ask an answer-echo question" in constraints
+        assert "use one fresh case, comparison, or consequence check" in constraints
 
     def test_coerce_misconception_events_preserves_sequence_repair_metadata(
         self, hybrid_system

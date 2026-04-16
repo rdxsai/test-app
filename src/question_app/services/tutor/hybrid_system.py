@@ -1253,6 +1253,27 @@ class HybridCrewAISocraticSystem:
 
         if (
             not must_repair_now
+            and teaching_move in {"repair", "clarify"}
+            and not repeated_active_sequence
+            and reasoning_mode in {"application", "transfer"}
+            and str(pacing_signal.get("recommended_next_step", "") or "").strip().lower()
+            in {"ask_narrower", "ask_same_level"}
+        ):
+            pacing_signal["recommended_next_step"] = "give_example"
+            pacing_signal["override_pace"] = "steady"
+            pacing_signal["override_reason"] = (
+                "Learner already shows causal footing; use a fresh case instead of another same-level restatement check."
+            )
+
+        if (
+            not must_repair_now
+            and teaching_move == "clarify"
+            and answer_current_question_first
+        ):
+            guarded["follow_up_question_policy"] = "optional_if_explanation_suffices"
+
+        if (
+            not must_repair_now
             and repeated_active_sequence
             and supports_repair_exit
             and str(pacing_signal.get("recommended_next_step", "") or "").strip().lower()
@@ -1334,6 +1355,12 @@ class HybridCrewAISocraticSystem:
         recommended_next_step = str(
             pacing_signal.get("recommended_next_step", "") or ""
         ).strip().lower()
+        teaching_move = str(
+            (turn_analysis or {}).get("teaching_move", "") or ""
+        ).strip().lower()
+        answer_current_question_first = bool(
+            (turn_analysis or {}).get("answer_current_question_first")
+        )
         repeated_active_sequence = HybridCrewAISocraticSystem._has_repeated_full_sequence_signal(
             misconception_state,
             "active_misconceptions",
@@ -1342,6 +1369,10 @@ class HybridCrewAISocraticSystem:
         response_shape = "question_only"
         if requires_procedural_full_sequence_repair:
             response_shape = "full_sequence_repair"
+        elif requires_conceptual_sequence_completion:
+            response_shape = "repair_and_check"
+        elif teaching_move == "clarify" and answer_current_question_first and not must_repair:
+            response_shape = "answer_then_optional_check"
         elif must_repair or recommended_next_step in {"re-explain", "ask_narrower"}:
             response_shape = "repair_and_check"
         elif recommended_next_step == "give_example":
@@ -1364,12 +1395,33 @@ class HybridCrewAISocraticSystem:
         lines.append(f"- Max new concepts: {max_new_concepts}")
         lines.append("- Max questions: 1")
         lines.append(f"- Max setup sentences before the question: {max_setup_sentences}")
-        if requires_full_sequence_repair:
+        if teaching_move in {"repair", "clarify"}:
+            lines.append(
+                "- Do not ask an answer-echo question whose answer you just stated explicitly."
+            )
+        if response_shape == "answer_then_optional_check":
+            lines.append(
+                "- Answer the student's current question directly. If the explanation fully resolves it, you may end without a follow-up question."
+            )
+            lines.append(
+                "- If you do ask a follow-up, make it a fresh application/comparison check, not a recap of your explanation."
+            )
+        if requires_procedural_full_sequence_repair:
             lines.append("- Repair pattern: same snippet ordered walkthrough")
             lines.append(
                 "- Hard requirement: require the learner to walk native-first, semantic override, behavior, focus, and required state/property in order."
             )
             lines.append("- Do not reduce the repair to one local sub-question.")
+        elif requires_conceptual_sequence_completion:
+            lines.append("- Repair pattern: exact ordered completion on the same example.")
+            lines.append(
+                "- Hard requirement: require one complete ordered restatement with the missing named step(s) and final label."
+            )
+            lines.append("- Do not expand into a new concept before the exact completion check.")
+        elif teaching_move == "repair":
+            lines.append(
+                "- After correcting the misconception, use one fresh case, comparison, or consequence check, not a restatement of your correction."
+            )
         elif (
             not must_repair
             and repeated_active_sequence
