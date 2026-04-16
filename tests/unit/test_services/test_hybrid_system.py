@@ -1235,6 +1235,31 @@ class TestGuidedTurnOrdering:
 
         async def fake_apply_updates(**kwargs):
             call_order.append("write")
+            hybrid_system._session_cache.apply_pacing_signal(
+                "sess-1",
+                {
+                    "override_pace": "slow",
+                    "override_reason": "Student explicitly needs a slower pace.",
+                    "recommended_next_step": "re-explain",
+                    "grasp_level": "fragile",
+                    "reasoning_mode": "paraphrase",
+                    "support_needed": "heavy",
+                    "confusion_level": "high",
+                    "response_pattern": "hedging",
+                    "concept_closure": "not_ready",
+                },
+            )
+            hybrid_system._session_cache.apply_misconception_events(
+                "sess-1",
+                [
+                    {
+                        "key": "principle_vs_guideline_confusion",
+                        "text": "Confuses principles with guidelines.",
+                        "action": "log",
+                        "repair_priority": "must_address_now",
+                    }
+                ],
+            )
             return {"stage": "introduction", "stage_advanced": False}
 
         monkeypatch.setattr(hybrid_system, "_load_student_bundle", fake_load_student_bundle)
@@ -1257,9 +1282,20 @@ class TestGuidedTurnOrdering:
             ws_send=ws_send,
         )
 
-        assert call_order.index("analyzer") < call_order.index("tutor")
-        assert call_order.index("tutor") < call_order.index("write")
+        assert call_order.index("analyzer") < call_order.index("write")
+        assert call_order.index("write") < call_order.index("tutor")
         assert result["stage"] == "introduction"
+        assert [event["type"] for event in ws_events] == [
+            "stage",
+            "turn_analysis_generating",
+            "turn_analysis",
+            "stage",
+            "stream_end",
+        ]
+        assert ws_events[2]["analysis"]["turn_route"] == "objective_answer"
+        assert ws_events[2]["analysis"]["pacing_signal"]["override_pace"] == "slow"
+        assert "TURN ANALYSIS EXPLANATION" in ws_events[2]["display_analysis"]
+        assert "turn_route" in ws_events[2]["display_analysis"]
 
 
 class TestGuidedRetrieval:

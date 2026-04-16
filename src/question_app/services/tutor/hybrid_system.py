@@ -3107,6 +3107,7 @@ class HybridCrewAISocraticSystem:
                         "detail": "Analyzing your response...",
                     }
                 )
+                await ws_send({"type": "turn_analysis_generating"})
                 turn_analysis = await self._run_turn_analyzer(
                     history=history,
                     student_response=student_response,
@@ -3146,37 +3147,16 @@ class HybridCrewAISocraticSystem:
                     session_id,
                     turn_analysis.get("pacing_signal"),
                 )
-
                 await ws_send(
                     {
-                        "type": "stage",
-                        "stage": "composing",
-                        "detail": f"Generating response ({current_stage})...",
+                        "type": "turn_analysis",
+                        "analysis": safe_serialize(turn_analysis),
+                        "display_analysis": self._render_turn_analysis_for_display(
+                            turn_analysis
+                        ),
                     }
                 )
-                tutor_messages = self._build_guided_tutor_messages(
-                    student_response=student_response,
-                    history=history,
-                    teaching_content=teaching_content,
-                    student_context=student_context,
-                    current_stage=current_stage,
-                    active_objective=objective_text,
-                    teaching_plan=teaching_plan,
-                    lesson_state=lesson_state,
-                    turn_analysis=turn_analysis,
-                    pacing_state=preview_pacing_state,
-                    misconception_state=preview_misconception_state,
-                )
-                final_text = await self._stream_response(tutor_messages, ws_send)
-                self.append_to_conversation(student_id, "assistant", final_text)
 
-                await ws_send(
-                    {
-                        "type": "stage",
-                        "stage": "analyzing",
-                        "detail": "Updating learning state...",
-                    }
-                )
                 analysis_result = await self._apply_turn_analysis_updates(
                     student_id=student_id,
                     session_id=session_id,
@@ -3189,6 +3169,46 @@ class HybridCrewAISocraticSystem:
                 )
                 final_stage = analysis_result.get("stage", current_stage)
                 stage_advanced = analysis_result.get("stage_advanced", False)
+
+                refreshed_bundle = await self._load_student_bundle(
+                    student_id, objective_id
+                )
+                refreshed_context = self._format_student_context(
+                    refreshed_bundle.get("profile"),
+                    refreshed_bundle.get("mastery", []),
+                    refreshed_bundle.get("session"),
+                    refreshed_bundle.get("misconceptions", []),
+                    refreshed_bundle.get("learner_memory"),
+                    refreshed_bundle.get("objective_memory"),
+                )
+                lesson_state = self._session_cache.get_lesson_state(session_id)
+                pacing_state = self._session_cache.get_pacing_state(session_id)
+                misconception_state = self._session_cache.get_misconception_state(
+                    session_id
+                )
+
+                await ws_send(
+                    {
+                        "type": "stage",
+                        "stage": "composing",
+                        "detail": f"Generating response ({final_stage})...",
+                    }
+                )
+                tutor_messages = self._build_guided_tutor_messages(
+                    student_response=student_response,
+                    history=history,
+                    teaching_content=teaching_content,
+                    student_context=refreshed_context,
+                    current_stage=final_stage,
+                    active_objective=objective_text,
+                    teaching_plan=teaching_plan,
+                    lesson_state=lesson_state,
+                    turn_analysis=turn_analysis,
+                    pacing_state=pacing_state,
+                    misconception_state=misconception_state,
+                )
+                final_text = await self._stream_response(tutor_messages, ws_send)
+                self.append_to_conversation(student_id, "assistant", final_text)
 
             # Fire-and-forget RAG triple capture
             cached = self._session_cache.get(session_id)
@@ -4095,6 +4115,7 @@ Available WCAG MCP tools:
         # Step 2: Agentic retrieval + concept extraction (parallel)
         await ws_send({"type": "stage", "stage": "searching",
                        "detail": "Researching WCAG content..."})
+        await ws_send({"type": "teaching_content_generating"})
         retrieval_coro = self._run_agentic_retrieval(
             objective_text=objective_text,
             teaching_plan=teaching_plan,
@@ -4125,6 +4146,12 @@ Available WCAG MCP tools:
             "Pipeline step 3: teaching pack (%s chars, %s raw hits)",
             len(teaching_content),
             len(retrieval_bundle.get("raw_hits", [])),
+        )
+        await ws_send(
+            {
+                "type": "teaching_content",
+                "content": teaching_content,
+            }
         )
 
         await ws_send({"type": "stage", "stage": "searching",
