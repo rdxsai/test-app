@@ -793,6 +793,16 @@ Critical glossary constraint:
   conformance level, level A, level AA, level AAA, normative, informative,
   sufficient techniques, advisory techniques.
 
+Rationale requirement:
+- Every tool call MUST include a `rationale` field containing ONE short sentence
+  that states why this specific call advances the current goal right now,
+  given the objective and what evidence has already been gathered.
+- The rationale is shown to the developer in the UI; it does not affect the
+  underlying tool result. Be concrete (e.g. "Need techniques list for SC 1.1.1
+  to ground the alt-text concept") rather than generic ("looking up info").
+- If you would not be able to write a real one-sentence rationale, do not make
+  the call.
+
 Do not output lesson content or prose plans.
 Use tools to research. When you have enough evidence, stop calling tools."""
 
