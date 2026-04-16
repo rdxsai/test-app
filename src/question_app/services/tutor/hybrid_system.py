@@ -2096,46 +2096,19 @@ class HybridCrewAISocraticSystem:
 
     async def _stream_response(self, messages: List[Dict], ws_send) -> str:
         """
-        Stream LLM response via WebSocket with smooth drip-feed.
+        Send tutor responses over the websocket with local drip-feed.
 
-        Azure APIM buffers the full SSE response before forwarding, so tokens
-        always arrive in a burst regardless of model.  We collect them, then
-        drip-feed to the client for a smooth typing effect.
-
-        Falls back to sync chat() + _progressive_send on failure.
+        Azure APIM buffers SSE responses before forwarding, so the app does not
+        gain true token streaming from Azure. Using the non-streaming chat API
+        removes the unstable long-lived SSE transport while preserving the same
+        user-facing progressive render in the browser.
         """
-        full_response: List[str] = []
-
-        try:
-            async for token in self.client.chat_stream_async(messages, max_tokens=1000):
-                full_response.append(token)
-        except Exception as e:
-            logger.error(f"Streaming failed: {e}, falling back to sync response")
-            if not full_response:
-                sync_response = await asyncio.to_thread(
-                    self.client.chat, messages, 0.7, 1000
-                )
-                await ws_send({"type": "stream_start"})
-                await self._progressive_send(sync_response, ws_send)
-                return sync_response
-
-        result = "".join(full_response)
-        if not result:
-            logger.warning("Stream returned empty response, falling back to sync call")
-            sync_response = await asyncio.to_thread(
-                self.client.chat, messages, 0.7, 1000
-            )
-            await ws_send({"type": "stream_start"})
-            await self._progressive_send(sync_response, ws_send)
-            return sync_response
-
-        # Drip-feed tokens for smooth visual streaming
+        result = await asyncio.to_thread(
+            self.client.chat, messages, 0.7, 1000
+        )
         await ws_send({"type": "stream_start"})
-        for token in full_response:
-            await ws_send({"type": "token", "content": token})
-            await asyncio.sleep(0.008)
-
-        logger.info(f"Streamed {len(full_response)} tokens ({len(result)} chars)")
+        await self._progressive_send(result, ws_send)
+        logger.info(f"Sent non-streamed tutor response ({len(result)} chars)")
         return result
 
     async def conduct_socratic_session_streaming(self, student_id: str, student_response: str, ws_send):
