@@ -1583,41 +1583,17 @@ class TestGuidedRetrieval:
 
     @pytest.mark.asyncio
     async def test_teaching_content_pipeline_uses_agentic_retrieval(self, hybrid_system, monkeypatch):
-        async def fake_generate_teaching_plan(objective_text, teaching_content=""):
-            return "1. plain_language_goal\nExplain the hierarchy.\n"
+        async def fake_run(**kwargs):
+            return TeachingContentArtifact(
+                objective_text=kwargs["objective_text"],
+                teaching_plan="1. plain_language_goal\nExplain the hierarchy.\n",
+                teaching_content="EVIDENCE PACK",
+                display_content="EVIDENCE PACK (DISPLAY)",
+                retrieval_bundle={"version": 1, "sections": {"core_rules": []}, "raw_hits": []},
+                extracted_concepts=None,
+            )
 
-        async def fake_agentic_retrieval(objective_text, teaching_plan, ws_send):
-            return [
-                {
-                    "tool": "list_principles",
-                    "args": {},
-                    "category": "agentic",
-                    "result": "WCAG has four principles.",
-                    "chars": 25,
-                    "status": "HIT",
-                }
-            ]
-
-        async def fake_build_bundle(results, objective_text="", teaching_plan=None):
-            return {
-                "version": 1,
-                "sections": {"core_rules": []},
-                "raw_hits": [],
-            }
-
-        def fake_render_bundle(bundle, for_display=False):
-            assert bundle["version"] == 1
-            return "EVIDENCE PACK (DISPLAY)" if for_display else "EVIDENCE PACK"
-
-        def fail_if_called(*args, **kwargs):
-            raise AssertionError("legacy retrieval planner path should not run")
-
-        monkeypatch.setattr(hybrid_system, "_generate_teaching_plan", fake_generate_teaching_plan)
-        monkeypatch.setattr(hybrid_system, "_run_agentic_retrieval", fake_agentic_retrieval)
-        monkeypatch.setattr(hybrid_system, "_build_retrieval_bundle", fake_build_bundle)
-        monkeypatch.setattr(hybrid_system, "_render_retrieval_bundle", fake_render_bundle)
-        monkeypatch.setattr(hybrid_system, "_generate_retrieval_plan", fail_if_called)
-        monkeypatch.setattr(hybrid_system, "_extract_tool_calls", fail_if_called)
+        monkeypatch.setattr(hybrid_system._teaching_content_pipeline, "run", fake_run)
 
         ws_events = []
 
