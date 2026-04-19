@@ -2,6 +2,14 @@ import json
 
 import pytest
 
+from question_app.services.tutor.artifacts import (
+    GuidedSessionStateArtifact,
+    GuidedTurnResult,
+    RetrievalRunArtifact,
+    TeachingContentArtifact,
+    TeachingPlanArtifact,
+    TurnAnalysisArtifact,
+)
 from question_app.services.tutor.hybrid_system import (
     HybridCrewAISocraticSystem,
     TEACHING_PLAN_MAX_COMPLETION_TOKENS,
@@ -252,6 +260,67 @@ def hybrid_system(monkeypatch):
             {"current_stage": "introduction", "active_objective_id": "obj-1"}
         ),
     )
+
+
+class TestGuidedTutorArtifacts:
+    def test_teaching_plan_artifact_keeps_display_and_concepts(self):
+        artifact = TeachingPlanArtifact(
+            objective_text="Explain WCAG structure",
+            plan="1. plain_language_goal\nExplain WCAG structure.\n",
+            display_plan="Display plan",
+            extracted_concepts=[{"id": "principles", "label": "Principles"}],
+        )
+
+        assert artifact.objective_text == "Explain WCAG structure"
+        assert artifact.display_plan == "Display plan"
+        assert artifact.extracted_concepts[0]["id"] == "principles"
+
+    def test_teaching_content_artifact_groups_plan_content_and_bundle(self):
+        artifact = TeachingContentArtifact(
+            objective_text="Explain live regions",
+            teaching_plan="plan",
+            teaching_content="tutor pack",
+            display_content="display pack",
+            retrieval_bundle={"version": 1},
+            extracted_concepts=[{"id": "status_messages", "label": "Status messages"}],
+        )
+
+        assert artifact.teaching_content == "tutor pack"
+        assert artifact.display_content == "display pack"
+        assert artifact.retrieval_bundle["version"] == 1
+
+    def test_turn_artifacts_capture_analysis_and_runtime_state(self):
+        turn_artifact = TurnAnalysisArtifact(
+            analysis={"stage_action": "stay"},
+            display_analysis="Readable explanation",
+        )
+        state_artifact = GuidedSessionStateArtifact(
+            session_id="sess-1",
+            objective_id="obj-1",
+            objective_text="Explain WCAG structure",
+            teaching_plan="plan",
+            teaching_content="content",
+            retrieval_bundle={"version": 1},
+            lesson_state={"active_concept": "principles"},
+            bundle={"profile": {"name": "Test"}},
+        )
+        result_artifact = GuidedTurnResult(
+            metadata={"stage": "introduction"},
+            final_text="Tutor reply",
+            final_stage="introduction",
+            stage_advanced=False,
+        )
+        retrieval_artifact = RetrievalRunArtifact(
+            objective_text="Explain WCAG structure",
+            teaching_plan="plan",
+            results=[{"tool": "list_principles"}],
+            coverage={"hit_count": 1},
+        )
+
+        assert turn_artifact.analysis["stage_action"] == "stay"
+        assert state_artifact.lesson_state["active_concept"] == "principles"
+        assert result_artifact.metadata["stage"] == "introduction"
+        assert retrieval_artifact.coverage["hit_count"] == 1
 
 
 class TestHybridSystemModelRoles:
@@ -2101,4 +2170,3 @@ class TestTeachingContentDisplay:
         # Display text is materially larger than the tutor text
         tutor_text = hybrid_system._render_retrieval_bundle(bundle)
         assert len(display_text) > len(tutor_text) * 2
-
