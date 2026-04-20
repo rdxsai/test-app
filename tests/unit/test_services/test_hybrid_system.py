@@ -1933,7 +1933,7 @@ class TestFirstTeachingTurn:
         async def explode_analyzer(**kwargs):
             raise AssertionError("analyzer must NOT run on first teaching turn")
 
-        monkeypatch.setattr(hybrid_system, "_run_turn_analyzer", explode_analyzer)
+        hybrid_system._guided_turn_orchestrator.turn_analyzer = explode_analyzer
 
         # Stub teaching content pipeline so we don't call the real LLM stack.
         teaching_plan = {
@@ -1947,14 +1947,12 @@ class TestFirstTeachingTurn:
         async def fake_pipeline(objective_text, session_id, objective_id, ws_send):
             return teaching_plan, teaching_content, {}, []
 
-        monkeypatch.setattr(
-            hybrid_system, "_run_teaching_content_pipeline", fake_pipeline
-        )
+        hybrid_system._guided_turn_orchestrator.content_pipeline = fake_pipeline
 
         async def fake_load_bundle(student_id, objective_id=""):
             return {}
 
-        monkeypatch.setattr(hybrid_system, "_load_student_bundle", fake_load_bundle)
+        hybrid_system._session_state_repository.load_student_bundle = fake_load_bundle
 
         stream_calls = []
 
@@ -1962,7 +1960,7 @@ class TestFirstTeachingTurn:
             stream_calls.append(messages)
             return "Lesson opener: principles ground guidelines. Quick check — name one principle."
 
-        monkeypatch.setattr(hybrid_system, "_stream_response", fake_stream)
+        hybrid_system._guided_turn_orchestrator.stream_response = fake_stream
 
         # FakeStudentService does not implement increment_turn_count; add a stub.
         increments = []

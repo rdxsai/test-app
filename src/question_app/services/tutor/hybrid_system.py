@@ -29,6 +29,8 @@ from .workers.content import (
     TeachingPlanWorker,
 )
 from .workers.turns import StructuredTurnAnalyzer, TutorMessageBuilder
+from .repositories import GuidedSessionStateRepository
+from .orchestrators import GuidedTurnOrchestrator
 from ..general_chat_service import GeneralChatService
 from ...models.tutor import KnowledgeLevel, SessionPhase, StudentProfile
 
@@ -339,6 +341,34 @@ class HybridCrewAISocraticSystem:
             misconception_state_formatter=format_misconception_state,
             transcript_formatter=self._format_reflection_transcript,
             json_parser=self._parse_json_response,
+        )
+        self._session_state_repository = GuidedSessionStateRepository(
+            session_cache=self._session_cache,
+            restore_cache=self._restore_session_cache,
+            persist_cache=self._persist_session_cache,
+            load_student_bundle=self._load_student_bundle,
+            format_student_context=self._format_student_context,
+        )
+        self._guided_turn_orchestrator = GuidedTurnOrchestrator(
+            student_mcp=self.student_mcp,
+            state_repository=self._session_state_repository,
+            content_pipeline=self._run_teaching_content_pipeline,
+            teaching_plan_error_cls=TeachingPlanGenerationError,
+            get_combined_context=self.get_combined_context,
+            generate_teaching_plan=self._generate_teaching_plan,
+            get_assessment_context=self._get_assessment_context,
+            assessment_reflector=self._run_assessment_reflector,
+            turn_analyzer=self._run_turn_analyzer,
+            coerce_misconception_events=self._coerce_misconception_events,
+            apply_misconception_events=self._apply_misconception_events,
+            apply_memory_patches=self._apply_memory_patches,
+            apply_turn_analysis_updates=self._apply_turn_analysis_updates,
+            build_tutor_messages=self._build_guided_tutor_messages,
+            stream_response=self._stream_response,
+            append_to_conversation=self.append_to_conversation,
+            advance_to_next_objective=self._advance_to_next_objective,
+            render_turn_analysis=self._render_turn_analysis_for_display,
+            safe_serialize=safe_serialize,
         )
         self.memory_file = "conversation_memory.json"
         self.conversation_memory : Dict[str, List[Dict[str , str]]] = {}
@@ -2628,8 +2658,6 @@ class HybridCrewAISocraticSystem:
 
         try:
             session_state = await self.student_mcp.get_active_session(student_id)
-
-            # Handle onboarding (no profile yet or stage is onboarding)
             current_stage = (session_state or {}).get("current_stage", "onboarding")
             if not session_state or current_stage == "onboarding":
                 return await self._handle_onboarding(
@@ -2638,8 +2666,6 @@ class HybridCrewAISocraticSystem:
 
             objective_id = session_state.get("active_objective_id", "")
             objective_text = ""
-
-            # Resolve objective text
             if objective_id:
                 try:
                     obj = await asyncio.to_thread(self._fetch_objective_by_id, objective_id)
@@ -2648,422 +2674,19 @@ class HybridCrewAISocraticSystem:
                 except Exception as e:
                     logger.warning(f"Failed to fetch objective text for {objective_id}: {e}")
 
-            await self._restore_session_cache(session_id, objective_id)
-
-            # Step 2: Check session content cache — run pipeline if needed
-            if self._session_cache.needs_retrieval(session_id, objective_id):
-                try:
-                    teaching_plan, teaching_content, retrieval_bundle, extracted_concepts = (
-                        await self._run_teaching_content_pipeline(
-                            objective_text or student_response,
-                            session_id, objective_id, ws_send,
-                        )
-                    )
-                    # Cache results
-                    self._session_cache.store(
-                        session_id, objective_id, objective_text,
-                        [], "", teaching_content,  # no RAG chunks or wcag_context in new pipeline
-                        retrieval_bundle=retrieval_bundle,
-                    )
-                    self._session_cache.store_teaching_plan(
-                        session_id, teaching_plan,
-                        extracted_concepts=extracted_concepts,
-                    )
-                except TeachingPlanGenerationError as e:
-                    logger.error(
-                        "Teaching plan generation failed for objective=%s: %s",
-                        objective_id,
-                        e,
-                        exc_info=True,
-                    )
-                    await ws_send(
-                        {
-                            "type": "error",
-                            "message": (
-                                "Teaching plan generation failed. Guided tutoring "
-                                "stopped before continuing without a validated plan."
-                            ),
-                        }
-                    )
-                    return {}
-                except Exception as e:
-                    logger.error(f"Teaching content pipeline failed: {e}", exc_info=True)
-                    # Fallback: try old retrieval path
-                    logger.info("Falling back to RAG + WCAG MCP retrieval")
-                    await ws_send({"type": "teaching_content_generating"})
-                    rag_context, rag_chunks, wcag_context = await self.get_combined_context(
-                        objective_text or student_response, history=history
-                    )
-                    teaching_content = rag_context
-                    if wcag_context:
-                        teaching_content = f"{rag_context}\n\n{wcag_context}" if rag_context else wcag_context
-                    self._session_cache.store(
-                        session_id, objective_id, objective_text,
-                        rag_chunks, wcag_context, teaching_content,
-                    )
-                    await ws_send(
-                        {
-                            "type": "teaching_content",
-                            "content": teaching_content,
-                        }
-                    )
-                    try:
-                        teaching_plan = await self._generate_teaching_plan(
-                            objective_text, teaching_content
-                        )
-                        self._session_cache.store_teaching_plan(session_id, teaching_plan)
-                    except TeachingPlanGenerationError as plan_err:
-                        logger.error(
-                            "Fallback teaching plan generation failed for objective=%s: %s",
-                            objective_id,
-                            plan_err,
-                            exc_info=True,
-                        )
-                        await ws_send(
-                            {
-                                "type": "error",
-                                "message": (
-                                    "Teaching plan generation failed after retrieval "
-                                    "fallback. Guided tutoring stopped before continuing "
-                                    "without a validated plan."
-                                ),
-                            }
-                        )
-                        return {}
-                await self._persist_session_cache(session_id)
-            else:
-                teaching_content = self._session_cache.get_teaching_content(session_id)
-
-            teaching_plan = self._session_cache.get_teaching_plan(session_id)
-            if not teaching_plan:
-                logger.error(
-                    "Guided session missing teaching plan after retrieval for session=%s objective=%s",
-                    session_id,
-                    objective_id,
-                )
-                await ws_send(
-                    {
-                        "type": "error",
-                        "message": (
-                            "No validated teaching plan is available for this objective. "
-                            "Guided tutoring cannot continue."
-                        ),
-                    }
-                )
-                return {}
-            lesson_state = self._session_cache.get_lesson_state(session_id)
-            pacing_state = self._session_cache.get_pacing_state(session_id)
-            bundle = await self._load_student_bundle(student_id, objective_id)
-            misconception_state = self._session_cache.seed_misconception_state(
-                session_id,
-                bundle.get("misconceptions", []),
-            )
-            student_context = self._format_student_context(
-                bundle.get("profile"),
-                bundle.get("mastery", []),
-                bundle.get("session"),
-                bundle.get("misconceptions", []),
-                bundle.get("learner_memory"),
-                bundle.get("objective_memory"),
+            await self._session_state_repository.restore(session_id, objective_id)
+            turn_result = await self._guided_turn_orchestrator.run_guided_turn(
+                student_id=student_id,
+                student_response=student_response,
+                session_id=session_id,
+                session_state=session_state,
+                objective_id=objective_id,
+                objective_text=objective_text,
+                history=history,
+                ws_send=ws_send,
             )
 
-            final_text = ""
-            final_stage = current_stage
-            stage_advanced = False
-            assessment_metadata: Dict[str, Any] = {}
-
-            if current_stage in ("mini_assessment", "final_assessment"):
-                assessment_ctx = await self._get_assessment_context(objective_id)
-                assessment_content = teaching_content
-                if assessment_ctx:
-                    assessment_content = (
-                        f"{teaching_content}\n\n{assessment_ctx}"
-                        if teaching_content
-                        else assessment_ctx
-                    )
-
-                await ws_send(
-                    {
-                        "type": "stage",
-                        "stage": "analyzing",
-                        "detail": "Evaluating your assessment answer...",
-                    }
-                )
-                assessment_reflection = await self._run_assessment_reflector(
-                    history=history,
-                    student_response=student_response,
-                    teaching_content=assessment_content,
-                    student_context=student_context,
-                    current_stage=current_stage,
-                    active_objective=objective_text,
-                    teaching_plan=teaching_plan,
-                    lesson_state=lesson_state,
-                    misconception_state=misconception_state,
-                )
-                assessment_misconception_events = self._coerce_misconception_events(
-                    assessment_reflection,
-                    default_priority=(
-                        "must_address_now"
-                        if not bool(assessment_reflection.get("is_correct", False))
-                        else "normal"
-                    ),
-                )
-                misconception_state = await self._apply_misconception_events(
-                    student_id=student_id,
-                    session_id=session_id,
-                    objective_id=objective_id,
-                    events=assessment_misconception_events,
-                )
-                await self._persist_session_cache(session_id)
-                await self._apply_memory_patches(
-                    student_id,
-                    objective_id,
-                    assessment_reflection.get("objective_memory_patch"),
-                    assessment_reflection.get("learner_memory_patch"),
-                    bundle=bundle,
-                )
-
-                assessment_result = await self.student_mcp.record_assessment_answer(
-                    session_id,
-                    bool(assessment_reflection.get("is_correct", False)),
-                )
-                assessment_metadata = assessment_result or {}
-
-                if isinstance(assessment_result, dict) and assessment_result.get(
-                    "recorded"
-                ):
-                    await ws_send(
-                        {
-                            "type": "assessment_score",
-                            **assessment_result.get("progress", {}),
-                            "passed": assessment_result.get("passed"),
-                        }
-                    )
-
-                updated_session = await self.student_mcp.get_active_session(student_id)
-                response_stage = (updated_session or {}).get(
-                    "current_stage", current_stage
-                )
-                final_stage = response_stage
-
-                if response_stage != current_stage:
-                    await ws_send(
-                        {
-                            "type": "stage_update",
-                            "stage": response_stage,
-                            "objective": objective_text or objective_id,
-                            "summary": assessment_reflection.get("rationale", ""),
-                        }
-                    )
-                    stage_advanced = True
-
-                if (
-                    isinstance(assessment_result, dict)
-                    and assessment_result.get("mastery_level")
-                ):
-                    await ws_send(
-                        {
-                            "type": "mastery_update",
-                            "objective_id": objective_id,
-                            "objective_text": objective_text or objective_id,
-                            "new_level": assessment_result.get("mastery_level", ""),
-                        }
-                    )
-
-                refreshed_bundle = await self._load_student_bundle(
-                    student_id, objective_id
-                )
-                refreshed_context = self._format_student_context(
-                    refreshed_bundle.get("profile"),
-                    refreshed_bundle.get("mastery", []),
-                    refreshed_bundle.get("session"),
-                    refreshed_bundle.get("misconceptions", []),
-                    refreshed_bundle.get("learner_memory"),
-                    refreshed_bundle.get("objective_memory"),
-                )
-
-                extra_messages = [
-                    (
-                        "ASSESSMENT RESULT:\n"
-                        f"- judged_correct: {bool(assessment_reflection.get('is_correct', False))}\n"
-                        f"- confidence: {assessment_reflection.get('confidence', 0.0)}\n"
-                        f"- rationale: {assessment_reflection.get('rationale', '')}\n"
-                        f"- progress: {json.dumps((assessment_result or {}).get('progress', {}))}\n"
-                        f"- current_stage_after_scoring: {response_stage}"
-                    )
-                ]
-                if isinstance(assessment_result, dict) and assessment_result.get(
-                    "completed"
-                ):
-                    next_stage = assessment_result.get("next_stage", response_stage)
-                    if next_stage == "final_assessment":
-                        extra_messages.append(
-                            "The mini assessment is complete and the student passed. "
-                            "Briefly reinforce the answer, then ask exactly one deeper "
-                            "final-assessment question."
-                        )
-                    elif next_stage == "transition":
-                        extra_messages.append(
-                            "The assessment is complete and the objective is finished. "
-                            "Celebrate, summarize the learning, and bridge naturally. "
-                            "Do not ask another assessment question."
-                        )
-                    elif next_stage == "introduction":
-                        extra_messages.append(
-                            "The assessment showed important gaps. Explain the key issue "
-                            "warmly and return to teaching this objective. Do not ask "
-                            "another assessment question in this response."
-                        )
-                else:
-                    extra_messages.append(
-                        "The assessment is still in progress. Briefly explain why the "
-                        "answer was correct or incorrect, then ask exactly one next "
-                        "assessment question."
-                    )
-
-                await ws_send(
-                    {
-                        "type": "stage",
-                        "stage": "composing",
-                        "detail": f"Generating response ({response_stage})...",
-                    }
-                )
-                tutor_messages = self._build_guided_tutor_messages(
-                    student_response=student_response,
-                    history=history,
-                    teaching_content=assessment_content,
-                    student_context=refreshed_context,
-                    current_stage=response_stage,
-                    active_objective=objective_text,
-                    teaching_plan=teaching_plan,
-                    lesson_state=lesson_state,
-                    pacing_state=pacing_state,
-                    misconception_state=misconception_state,
-                    extra_system_messages=extra_messages,
-                )
-                final_text = await self._stream_response(tutor_messages, ws_send)
-                self.append_to_conversation(student_id, "assistant", final_text)
-
-                if response_stage == "transition":
-                    transition_result = await self._advance_to_next_objective(
-                        student_id, session_id, ws_send
-                    )
-                    if transition_result.get("advanced"):
-                        final_stage = transition_result.get("stage", response_stage)
-
-            else:
-                await ws_send(
-                    {
-                        "type": "stage",
-                        "stage": "analyzing",
-                        "detail": "Analyzing your response...",
-                    }
-                )
-                await ws_send({"type": "turn_analysis_generating"})
-                turn_analysis = await self._run_turn_analyzer(
-                    history=history,
-                    student_response=student_response,
-                    teaching_content=teaching_content,
-                    student_context=student_context,
-                    current_stage=current_stage,
-                    active_objective=objective_text,
-                    teaching_plan=teaching_plan,
-                    lesson_state=lesson_state,
-                    pacing_state=pacing_state,
-                    misconception_state=misconception_state,
-                )
-                preview_misconception_state = self._session_cache.preview_misconception_state(
-                    session_id,
-                    self._coerce_misconception_events(
-                        turn_analysis,
-                        default_priority=(
-                            "must_address_now"
-                            if str(turn_analysis.get("teaching_move", "") or "").strip().lower()
-                            == "repair"
-                            else "normal"
-                        ),
-                    ),
-                )
-                preview_pacing_state = self._session_cache.preview_pacing_state(
-                    session_id,
-                    turn_analysis.get("pacing_signal"),
-                )
-                turn_analysis = self._enforce_turn_response_controls(
-                    current_stage=current_stage,
-                    analysis=turn_analysis,
-                    lesson_state=lesson_state,
-                    pacing_state=preview_pacing_state,
-                    misconception_state=preview_misconception_state,
-                )
-                preview_pacing_state = self._session_cache.preview_pacing_state(
-                    session_id,
-                    turn_analysis.get("pacing_signal"),
-                )
-                await ws_send(
-                    {
-                        "type": "turn_analysis",
-                        "analysis": safe_serialize(turn_analysis),
-                        "display_analysis": self._render_turn_analysis_for_display(
-                            turn_analysis
-                        ),
-                    }
-                )
-
-                analysis_result = await self._apply_turn_analysis_updates(
-                    student_id=student_id,
-                    session_id=session_id,
-                    objective_id=objective_id,
-                    objective_text=objective_text,
-                    current_stage=current_stage,
-                    analysis=turn_analysis,
-                    bundle=bundle,
-                    ws_send=ws_send,
-                )
-                final_stage = analysis_result.get("stage", current_stage)
-                stage_advanced = analysis_result.get("stage_advanced", False)
-
-                refreshed_bundle = await self._load_student_bundle(
-                    student_id, objective_id
-                )
-                refreshed_context = self._format_student_context(
-                    refreshed_bundle.get("profile"),
-                    refreshed_bundle.get("mastery", []),
-                    refreshed_bundle.get("session"),
-                    refreshed_bundle.get("misconceptions", []),
-                    refreshed_bundle.get("learner_memory"),
-                    refreshed_bundle.get("objective_memory"),
-                )
-                lesson_state = self._session_cache.get_lesson_state(session_id)
-                pacing_state = self._session_cache.get_pacing_state(session_id)
-                misconception_state = self._session_cache.get_misconception_state(
-                    session_id
-                )
-
-                await ws_send(
-                    {
-                        "type": "stage",
-                        "stage": "composing",
-                        "detail": f"Generating response ({final_stage})...",
-                    }
-                )
-                tutor_messages = self._build_guided_tutor_messages(
-                    student_response=student_response,
-                    history=history,
-                    teaching_content=teaching_content,
-                    student_context=refreshed_context,
-                    current_stage=final_stage,
-                    active_objective=objective_text,
-                    teaching_plan=teaching_plan,
-                    lesson_state=lesson_state,
-                    turn_analysis=turn_analysis,
-                    pacing_state=pacing_state,
-                    misconception_state=misconception_state,
-                )
-                final_text = await self._stream_response(tutor_messages, ws_send)
-                self.append_to_conversation(student_id, "assistant", final_text)
-
-            # Fire-and-forget RAG triple capture
-            cached = self._session_cache.get(session_id)
+            cached = turn_result.metadata.pop("cached_entry", None)
             if cached and cached.get("rag_chunks"):
                 try:
                     from ..eval.repository import EvalRepository
@@ -3071,22 +2694,35 @@ class HybridCrewAISocraticSystem:
                     eval_repo.capture_rag_sample(
                         query=student_response,
                         retrieved_contexts=[c.get("content", "") for c in cached["rag_chunks"]],
-                        response=final_text,
-                        student_id=student_id, session_id=session_id,
-                        intent="guided", instance="b",
+                        response=turn_result.final_text,
+                        student_id=student_id,
+                        session_id=session_id,
+                        intent="guided",
+                        instance="b",
                     )
                 except Exception as e:
                     logger.warning(f"RAG capture failed (non-critical): {e}")
 
-            metadata = {
-                "session_id": session_id,
-                "stage": final_stage,
-                "stage_advanced": stage_advanced,
-                "assessment": safe_serialize(assessment_metadata),
-            }
-            await ws_send({"type": "stream_end", "metadata": metadata})
-            return metadata
+            await ws_send({"type": "stream_end", "metadata": turn_result.metadata})
+            return turn_result.metadata
 
+        except TeachingPlanGenerationError as e:
+            logger.error(
+                "Teaching plan generation failed during guided session for session=%s: %s",
+                session_id,
+                e,
+                exc_info=True,
+            )
+            await ws_send(
+                {
+                    "type": "error",
+                    "message": (
+                        "Teaching plan generation failed. Guided tutoring "
+                        "stopped before continuing without a validated plan."
+                    ),
+                }
+            )
+            return {}
         except ClientConnectionClosedError:
             logger.info(
                 "Guided client disconnected during session processing "
@@ -3112,135 +2748,46 @@ class HybridCrewAISocraticSystem:
         objective_text: str,
         ws_send,
     ) -> Dict[str, Any]:
-        """Stream the very first teaching turn for an objective without a
-        synthetic student message.
-
-        Runs the teaching content pipeline if needed, builds tutor messages
-        with first_turn=True (no real student turn), streams the lesson
-        opener, appends ONLY the assistant message to history, and bumps
-        the turn counter once. Skips the analyzer entirely — there is no
-        student response to interpret yet.
-        """
         if not self.student_mcp:
             await ws_send({"type": "error", "message": "Student MCP not available"})
             return {}
 
-        await self._restore_session_cache(session_id, objective_id)
-
-        if self._session_cache.needs_retrieval(session_id, objective_id):
-            try:
-                teaching_plan, teaching_content, retrieval_bundle, extracted_concepts = (
-                    await self._run_teaching_content_pipeline(
-                        objective_text,
-                        session_id,
-                        objective_id,
-                        ws_send,
-                    )
-                )
-                self._session_cache.store(
-                    session_id, objective_id, objective_text,
-                    [], "", teaching_content,
-                    retrieval_bundle=retrieval_bundle,
-                )
-                self._session_cache.store_teaching_plan(
-                    session_id, teaching_plan,
-                    extracted_concepts=extracted_concepts,
-                )
-                await self._persist_session_cache(session_id)
-            except TeachingPlanGenerationError as e:
-                logger.error(
-                    "First-turn teaching plan generation failed for objective=%s: %s",
-                    objective_id, e, exc_info=True,
-                )
-                await ws_send(
-                    {
-                        "type": "error",
-                        "message": (
-                            "Teaching plan generation failed. Guided tutoring "
-                            "stopped before the first lesson turn."
-                        ),
-                    }
-                )
-                return {}
-            except Exception as e:
-                logger.error(
-                    "First-turn teaching content pipeline failed: %s", e, exc_info=True,
-                )
-                await ws_send(
-                    {
-                        "type": "error",
-                        "message": "Teaching content pipeline failed before first turn.",
-                    }
-                )
-                return {}
-        else:
-            teaching_content = self._session_cache.get_teaching_content(session_id)
-
-        teaching_plan = self._session_cache.get_teaching_plan(session_id)
-        if not teaching_plan:
+        try:
+            turn_result = await self._guided_turn_orchestrator.start_first_teaching_turn(
+                student_id=student_id,
+                session_id=session_id,
+                objective_id=objective_id,
+                objective_text=objective_text,
+                ws_send=ws_send,
+            )
+            await ws_send({"type": "stream_end", "metadata": turn_result.metadata})
+            return turn_result.metadata
+        except TeachingPlanGenerationError as e:
             logger.error(
-                "First-turn missing teaching plan for session=%s objective=%s",
-                session_id, objective_id,
+                "First-turn teaching plan generation failed for objective=%s: %s",
+                objective_id, e, exc_info=True,
             )
             await ws_send(
                 {
                     "type": "error",
-                    "message": "No validated teaching plan available for the first turn.",
+                    "message": (
+                        "Teaching plan generation failed. Guided tutoring "
+                        "stopped before the first lesson turn."
+                    ),
                 }
             )
             return {}
-
-        lesson_state = self._session_cache.get_lesson_state(session_id)
-        pacing_state = self._session_cache.get_pacing_state(session_id)
-        bundle = await self._load_student_bundle(student_id, objective_id)
-        misconception_state = self._session_cache.seed_misconception_state(
-            session_id, bundle.get("misconceptions", []),
-        )
-        student_context = self._format_student_context(
-            bundle.get("profile"),
-            bundle.get("mastery", []),
-            bundle.get("session"),
-            bundle.get("misconceptions", []),
-            bundle.get("learner_memory"),
-            bundle.get("objective_memory"),
-        )
-
-        await ws_send(
-            {
-                "type": "stage",
-                "stage": "composing",
-                "detail": "Opening the lesson...",
-            }
-        )
-        tutor_messages = self._build_guided_tutor_messages(
-            student_response=None,
-            history=None,
-            teaching_content=teaching_content or "",
-            student_context=student_context,
-            current_stage="introduction",
-            active_objective=objective_text,
-            teaching_plan=teaching_plan,
-            lesson_state=lesson_state,
-            pacing_state=pacing_state,
-            misconception_state=misconception_state,
-            first_turn=True,
-        )
-        final_text = await self._stream_response(tutor_messages, ws_send)
-        self.append_to_conversation(student_id, "assistant", final_text)
-
-        try:
-            await self.student_mcp.increment_turn_count(session_id)
         except Exception as e:
-            logger.warning("First-turn increment_turn_count failed: %s", e)
-
-        metadata = {
-            "session_id": session_id,
-            "stage": "introduction",
-            "stage_advanced": False,
-            "first_turn": True,
-        }
-        await ws_send({"type": "stream_end", "metadata": metadata})
-        return metadata
+            logger.error(
+                "First-turn teaching content pipeline failed: %s", e, exc_info=True,
+            )
+            await ws_send(
+                {
+                    "type": "error",
+                    "message": "Teaching content pipeline failed before first turn.",
+                }
+            )
+            return {}
 
     # ------------------------------------------------------------------
     # Onboarding handler (Instance B — first 2-3 turns)
