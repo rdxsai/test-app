@@ -28,6 +28,7 @@ from .workers.content import (
     TeachingContentRenderer,
     TeachingPlanWorker,
 )
+from .workers.turns import StructuredTurnAnalyzer, TutorMessageBuilder
 from ..general_chat_service import GeneralChatService
 from ...models.tutor import KnowledgeLevel, SessionPhase, StudentProfile
 
@@ -279,7 +280,14 @@ class HybridCrewAISocraticSystem:
         from .session_cache import SessionContentCache
         self._session_cache = SessionContentCache()
         from .prompts import (
+            FIRST_TURN_INSTRUCTION,
+            build_assessment_reflector_prompt,
+            build_instance_b_prompt,
+            build_turn_analyzer_prompt,
             build_guided_retrieval_agent_prompt,
+            format_lesson_state,
+            format_misconception_state,
+            format_pacing_state,
             format_teaching_plan_for_display,
         )
 
@@ -312,6 +320,26 @@ class HybridCrewAISocraticSystem:
             renderer=self._teaching_content_renderer,
         )
         self._guided_retrieval_prompt_builder = build_guided_retrieval_agent_prompt
+        self._tutor_message_builder = TutorMessageBuilder(
+            prompt_builder=build_instance_b_prompt,
+            lesson_state_formatter=format_lesson_state,
+            misconception_state_formatter=format_misconception_state,
+            turn_analysis_formatter=self._format_turn_analysis_for_tutor,
+            pacing_formatter=self._format_adaptive_pacing_for_tutor,
+            response_constraints_formatter=self._format_response_constraints_for_tutor,
+            active_misconception_formatter=self._format_active_misconception_guidance,
+            first_turn_instruction=FIRST_TURN_INSTRUCTION,
+        )
+        self._structured_turn_analyzer = StructuredTurnAnalyzer(
+            reasoning_client=self.reasoning_client,
+            turn_prompt_builder=build_turn_analyzer_prompt,
+            assessment_prompt_builder=build_assessment_reflector_prompt,
+            lesson_state_formatter=format_lesson_state,
+            pacing_state_formatter=format_pacing_state,
+            misconception_state_formatter=format_misconception_state,
+            transcript_formatter=self._format_reflection_transcript,
+            json_parser=self._parse_json_response,
+        )
         self.memory_file = "conversation_memory.json"
         self.conversation_memory : Dict[str, List[Dict[str , str]]] = {}
         self._load_conversation_memory()
@@ -1938,66 +1966,21 @@ class HybridCrewAISocraticSystem:
         extra_system_messages: Optional[List[str]] = None,
         first_turn: bool = False,
     ) -> List[Dict[str, str]]:
-        """Build tutor-pass messages for guided learning.
-
-        When ``first_turn=True`` the student has not yet spoken in this
-        objective. The trailing real user message is omitted, the
-        FIRST_TURN_INSTRUCTION block is appended, and a single ephemeral
-        ``user: "Begin the lesson."`` nudge closes the message list (chat
-        completion expects one). The ephemeral nudge is NEVER persisted to
-        conversation history — only this exact LLM call sees it.
-        """
-        from .prompts import (
-            build_instance_b_prompt,
-            format_lesson_state,
-            format_misconception_state,
-            FIRST_TURN_INSTRUCTION,
-        )
-
-        system_prompt = build_instance_b_prompt(
-            knowledge_context=teaching_content,
+        return self._tutor_message_builder.build(
+            student_response=student_response,
+            history=history,
+            teaching_content=teaching_content,
             student_context=student_context,
             current_stage=current_stage,
             active_objective=active_objective,
             teaching_plan=teaching_plan,
-            lesson_state_context=format_lesson_state(lesson_state),
-            misconception_state_context=format_misconception_state(
-                misconception_state
-            ),
-        )
-        messages = [{"role": "system", "content": system_prompt}]
-        turn_analysis_block = self._format_turn_analysis_for_tutor(turn_analysis)
-        if turn_analysis_block:
-            messages.append({"role": "system", "content": turn_analysis_block})
-        pacing_block = self._format_adaptive_pacing_for_tutor(pacing_state)
-        if pacing_block:
-            messages.append({"role": "system", "content": pacing_block})
-        response_constraints_block = self._format_response_constraints_for_tutor(
-            pacing_state=pacing_state,
+            lesson_state=lesson_state,
             turn_analysis=turn_analysis,
+            pacing_state=pacing_state,
             misconception_state=misconception_state,
+            extra_system_messages=extra_system_messages,
+            first_turn=first_turn,
         )
-        if response_constraints_block:
-            messages.append({"role": "system", "content": response_constraints_block})
-        misconception_block = self._format_active_misconception_guidance(
-            turn_analysis,
-            misconception_state
-        )
-        if misconception_block:
-            messages.append({"role": "system", "content": misconception_block})
-        for extra in extra_system_messages or []:
-            if extra:
-                messages.append({"role": "system", "content": extra})
-        if first_turn:
-            messages.append({"role": "system", "content": FIRST_TURN_INSTRUCTION})
-            # Chat completion expects a trailing user turn; this nudge is
-            # NEVER appended to persistent history.
-            messages.append({"role": "user", "content": "Begin the lesson."})
-            return messages
-        if history:
-            messages.extend(history[-6:])
-        messages.append({"role": "user", "content": student_response or ""})
-        return messages
 
     async def _run_turn_analyzer(
         self,
@@ -2012,84 +1995,17 @@ class HybridCrewAISocraticSystem:
         pacing_state: Optional[Dict[str, Any]] = None,
         misconception_state: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
-        """Run the structured turn-analysis pass before the tutor responds."""
-        from .prompts import (
-            build_turn_analyzer_prompt,
-            format_lesson_state,
-            format_misconception_state,
-            format_pacing_state,
-        )
-
-        prompt = build_turn_analyzer_prompt(
-            knowledge_context=teaching_content,
+        return await self._structured_turn_analyzer.analyze_turn(
+            history=history,
+            student_response=student_response,
+            teaching_content=teaching_content,
             student_context=student_context,
             current_stage=current_stage,
             active_objective=active_objective,
             teaching_plan=teaching_plan,
-            lesson_state_context=format_lesson_state(lesson_state),
-            pacing_state_context=format_pacing_state(pacing_state),
-            misconception_state_context=format_misconception_state(
-                misconception_state
-            ),
-        )
-        transcript = self._format_reflection_transcript(history, student_response)
-        response = await asyncio.to_thread(
-            self.reasoning_client.chat,
-            [
-                {"role": "system", "content": prompt},
-                {"role": "user", "content": transcript},
-            ],
-            0.0,
-            1200,
-        )
-        return self._parse_json_response(
-            response,
-            fallback={
-                "turn_route": "objective_answer",
-                "answer_current_question_first": True,
-                "student_question_to_answer": student_response[:160],
-                "teaching_move": "continue",
-                "stage_action": "stay",
-                "target_stage": current_stage,
-                "stage_reason": "",
-                "mastery_signal": {
-                    "should_update": False,
-                    "level": "not_attempted",
-                    "confidence": 0.0,
-                    "evidence_summary": "",
-                },
-                "misconception_events": [],
-                "lesson_state_patch": {
-                    "active_concept": "",
-                    "pending_check": "",
-                    "bridge_back_target": "",
-                    "concept_updates": [],
-                },
-                "pacing_signal": {
-                    "grasp_level": "emerging",
-                    "reasoning_mode": "paraphrase",
-                    "support_needed": "moderate",
-                    "confusion_level": "medium",
-                    "response_pattern": "direct",
-                    "concept_closure": "not_ready",
-                    "override_pace": "none",
-                    "override_reason": "",
-                    "recommended_next_step": "ask_same_level",
-                },
-                "objective_memory_patch": {
-                    "summary": "",
-                    "demonstrated_skills_add": [],
-                    "active_gaps_current": [],
-                    "next_focus": "",
-                },
-                "learner_memory_patch": {
-                    "summary": "",
-                    "strengths_add": [],
-                    "support_needs_current": [],
-                    "tendencies_current": [],
-                    "successful_strategies_add": [],
-                },
-            },
+            lesson_state=lesson_state,
+            pacing_state=pacing_state,
+            misconception_state=misconception_state,
         )
 
     async def _run_assessment_reflector(
@@ -2104,55 +2020,16 @@ class HybridCrewAISocraticSystem:
         lesson_state: Optional[Dict[str, Any]] = None,
         misconception_state: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
-        """Run the structured reflection pass for an assessment answer."""
-        from .prompts import (
-            build_assessment_reflector_prompt,
-            format_lesson_state,
-            format_misconception_state,
-        )
-
-        prompt = build_assessment_reflector_prompt(
-            knowledge_context=teaching_content,
+        return await self._structured_turn_analyzer.reflect_on_assessment(
+            history=history,
+            student_response=student_response,
+            teaching_content=teaching_content,
             student_context=student_context,
             current_stage=current_stage,
             active_objective=active_objective,
             teaching_plan=teaching_plan,
-            lesson_state_context=format_lesson_state(lesson_state),
-            misconception_state_context=format_misconception_state(
-                misconception_state
-            ),
-        )
-        transcript = self._format_reflection_transcript(history, student_response)
-        response = await asyncio.to_thread(
-            self.reasoning_client.chat,
-            [
-                {"role": "system", "content": prompt},
-                {"role": "user", "content": transcript},
-            ],
-            0.0,
-            900,
-        )
-        return self._parse_json_response(
-            response,
-            fallback={
-                "is_correct": False,
-                "confidence": 0.0,
-                "rationale": "",
-                "misconception_events": [],
-                "objective_memory_patch": {
-                    "summary": "",
-                    "demonstrated_skills_add": [],
-                    "active_gaps_current": [],
-                    "next_focus": "",
-                },
-                "learner_memory_patch": {
-                    "summary": "",
-                    "strengths_add": [],
-                    "support_needs_current": [],
-                    "tendencies_current": [],
-                    "successful_strategies_add": [],
-                },
-            },
+            lesson_state=lesson_state,
+            misconception_state=misconception_state,
         )
 
     async def _apply_memory_patches(
