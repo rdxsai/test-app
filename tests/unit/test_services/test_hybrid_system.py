@@ -331,6 +331,14 @@ class TestHybridSystemModelRoles:
         assert hybrid_system.coordinator_agent.client is hybrid_system.tutor_client
         assert hybrid_system.code_analyzer.client is hybrid_system.reasoning_client
 
+    def test_init_exposes_worker_architecture_behind_facade(self, hybrid_system):
+        assert hybrid_system._teaching_plan_worker is not None
+        assert hybrid_system._teaching_content_pipeline is not None
+        assert hybrid_system._tutor_message_builder is not None
+        assert hybrid_system._structured_turn_analyzer is not None
+        assert hybrid_system._session_state_repository is not None
+        assert hybrid_system._guided_turn_orchestrator is not None
+
 
 class TestLegacyInstanceADelegation:
     @pytest.mark.asyncio

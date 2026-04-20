@@ -222,6 +222,8 @@ TEACHING_PLAN_MAX_COMPLETION_TOKENS = 5000
 TEACHING_PLAN_REASONING_EFFORT = "low"
 
 class HybridCrewAISocraticSystem:
+    """Compatibility facade over the guided tutor worker/orchestrator stack."""
+
     def __init__(
         self, azure_config: Dict[str, str], vector_store_service : VectorStoreInterface,
         db_manager=None, wcag_mcp_client=None, student_mcp_client=None
