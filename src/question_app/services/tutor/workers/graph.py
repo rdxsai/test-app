@@ -6,9 +6,11 @@ from typing import Any, Dict, List, Optional
 
 from ..artifacts import (
     NodeEvidenceArtifact,
+    NodeContentArtifact,
     TeachingGraphArtifact,
 )
 from ..prompts import (
+    NODE_CONTENT_SYNTHESIS_PROMPT,
     NODE_EVIDENCE_RETRIEVAL_PROMPT,
     TEACHING_GRAPH_PLANNER_PROMPT,
 )
@@ -283,5 +285,91 @@ class NodeEvidenceRetrieverWorker:
                     "node_ids": [node.id for node in graph.nodes],
                 },
                 "node_evidence": node_records,
+            }
+        )
+
+
+class NodeContentSynthesizerWorker:
+    def __init__(
+        self,
+        *,
+        reasoning_client,
+        max_completion_tokens: int,
+        reasoning_effort: str,
+        synthesis_error_cls: type[Exception],
+    ) -> None:
+        self.reasoning_client = reasoning_client
+        self.max_completion_tokens = max_completion_tokens
+        self.reasoning_effort = reasoning_effort
+        self.synthesis_error_cls = synthesis_error_cls
+
+    @staticmethod
+    def _strip_code_fences(text: str) -> str:
+        return TeachingGraphPlannerWorker._strip_code_fences(text)
+
+    async def build_node_content(
+        self,
+        *,
+        objective_text: str,
+        graph: TeachingGraphArtifact,
+        node_evidence: NodeEvidenceArtifact,
+    ) -> NodeContentArtifact:
+        evidence_by_node = {item.node_id: item for item in node_evidence.node_evidence}
+        node_payloads: List[Dict[str, Any]] = []
+
+        for node in graph.nodes:
+            evidence = evidence_by_node.get(node.id)
+            if evidence is None:
+                raise self.synthesis_error_cls(
+                    f"Teaching graph node synthesis failed for {node.id}: missing node grounding."
+                )
+
+            response = await asyncio.to_thread(
+                self.reasoning_client.chat,
+                [
+                    {"role": "system", "content": NODE_CONTENT_SYNTHESIS_PROMPT},
+                    {
+                        "role": "user",
+                        "content": "\n\n".join(
+                            [
+                                f"OBJECTIVE:\n{objective_text}",
+                                f"NODE:\n{json.dumps(node.to_dict(), indent=2)}",
+                                f"NODE EVIDENCE:\n{json.dumps(evidence.to_dict(), indent=2)}",
+                            ]
+                        ),
+                    },
+                ],
+                0.1,
+                self.max_completion_tokens,
+                self.reasoning_effort,
+                {"type": "json_object"},
+            )
+
+            try:
+                payload = json.loads(self._strip_code_fences(response))
+                payload.setdefault("id", node.id)
+                payload.setdefault("label", node.label)
+                payload.setdefault("kind", node.kind)
+                record = NodeContentArtifact.from_dict(
+                    {
+                        "objective_text": objective_text,
+                        "nodes": [payload],
+                    }
+                ).nodes[0]
+                if record.id != node.id:
+                    raise ValueError("synthesized node id mismatch")
+                node_payloads.append(record.to_dict())
+            except Exception as exc:
+                preview = self._strip_code_fences(response).replace("\n", " ").strip()
+                if len(preview) > 200:
+                    preview = preview[:200] + "..."
+                raise self.synthesis_error_cls(
+                    f"Teaching graph node synthesis failed for {node.id}: {preview or 'empty response'}"
+                ) from exc
+
+        return NodeContentArtifact.from_dict(
+            {
+                "objective_text": objective_text,
+                "nodes": node_payloads,
             }
         )

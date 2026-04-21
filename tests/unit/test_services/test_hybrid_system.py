@@ -5,6 +5,7 @@ import pytest
 from question_app.services.tutor.artifacts import (
     GuidedSessionStateArtifact,
     GuidedTurnResult,
+    NodeEvidenceArtifact,
     RetrievalRunArtifact,
     TeachingContentArtifact,
     TeachingGraphArtifact,
@@ -16,6 +17,7 @@ from question_app.services.tutor.hybrid_system import (
     TEACHING_GRAPH_MAX_COMPLETION_TOKENS,
     TEACHING_GRAPH_NODE_RETRIEVAL_MAX_COMPLETION_TOKENS,
     TEACHING_GRAPH_NODE_RETRIEVAL_MAX_TOOL_CALLS,
+    TEACHING_GRAPH_NODE_SYNTHESIS_MAX_COMPLETION_TOKENS,
     TEACHING_GRAPH_REASONING_EFFORT,
     TEACHING_PLAN_MAX_COMPLETION_TOKENS,
     TEACHING_PLAN_REASONING_EFFORT,
@@ -340,6 +342,7 @@ class TestHybridSystemModelRoles:
     def test_init_exposes_worker_architecture_behind_facade(self, hybrid_system):
         assert hybrid_system._teaching_graph_planner_worker is not None
         assert hybrid_system._graph_node_evidence_worker is not None
+        assert hybrid_system._graph_node_content_worker is not None
         assert hybrid_system._teaching_plan_worker is not None
         assert hybrid_system._teaching_content_pipeline is not None
         assert hybrid_system._tutor_message_builder is not None
@@ -1899,6 +1902,272 @@ class TestGuidedRetrieval:
             await hybrid_system._build_graph_node_evidence(
                 objective_text="Explain the structure of WCAG",
                 graph=graph,
+            )
+
+    @pytest.mark.asyncio
+    async def test_build_graph_node_content_synthesizes_grounded_nodes(
+        self, hybrid_system, monkeypatch
+    ):
+        captured = []
+
+        def fake_chat(
+            messages,
+            temperature=0.7,
+            max_tokens=1000,
+            reasoning_effort=None,
+            response_format=None,
+        ):
+            captured.append(
+                {
+                    "messages": messages,
+                    "max_tokens": max_tokens,
+                    "response_format": response_format,
+                }
+            )
+            node_id = "n2" if '"id": "n2"' in messages[1]["content"] else "n1"
+            label = "Integrated structure" if node_id == "n2" else "Principles"
+            kind = "integration" if node_id == "n2" else "core_concept"
+            basis = f"{node_id}-item-1"
+            return json.dumps(
+                {
+                    "id": node_id,
+                    "label": label,
+                    "kind": kind,
+                    "core_claim": f"{label} can be taught as a grounded concept.",
+                    "supporting_claims": [
+                        f"{label} is supported by the retrieved evidence.",
+                        f"{label} can be explained in the lesson flow.",
+                    ],
+                    "canonical_example": {
+                        "text": f"{label} appears in a safe example.",
+                        "grounding_basis": [basis],
+                    },
+                    "canonical_contrast": {
+                        "text": f"A nearby concept is not the same as {label}.",
+                        "grounding_basis": [basis],
+                    },
+                    "supporting_claim_grounding": [
+                        {"claim_index": 0, "basis_item_ids": [basis]},
+                        {"claim_index": 1, "basis_item_ids": [basis]},
+                    ],
+                }
+            )
+
+        monkeypatch.setattr(hybrid_system.reasoning_client, "chat", fake_chat)
+
+        graph = TeachingGraphArtifact.from_dict(
+            {
+                "objective_text": "Explain the structure of WCAG",
+                "graph_type": "hierarchy",
+                "entry_nodes": ["n1"],
+                "integration_node": "n2",
+                "primary_route": ["n1", "n2"],
+                "nodes": [
+                    {"id": "n1", "label": "Principles", "kind": "core_concept"},
+                    {"id": "n2", "label": "Integrated structure", "kind": "integration"},
+                ],
+                "edges": [
+                    {
+                        "from": "n1",
+                        "to": "n2",
+                        "type": "synthesizes_into",
+                        "bridge_claim": "Principles roll into the full hierarchy.",
+                    }
+                ],
+            }
+        )
+        node_evidence = NodeEvidenceArtifact.from_dict(
+            {
+                "objective_text": "Explain the structure of WCAG",
+                "graph_summary": {
+                    "graph_type": "hierarchy",
+                    "node_ids": ["n1", "n2"],
+                },
+                "node_evidence": [
+                    {
+                        "node_id": "n1",
+                        "grounding_strength": "adequate",
+                        "coverage_summary": {
+                            "has_explanatory_support": True,
+                            "has_normative_anchor": True,
+                        },
+                        "source_tools_used": [{"tool": "list_principles", "args": {}}],
+                        "retrieved_items": [
+                            {
+                                "item_id": "n1-item-1",
+                                "tool": "list_principles",
+                                "args": {},
+                                "kind": "structural_support",
+                                "title": "list_principles",
+                                "content": "WCAG has four principles.",
+                                "grounding_note": "Grounds the top-level structure.",
+                            }
+                        ],
+                    },
+                    {
+                        "node_id": "n2",
+                        "grounding_strength": "adequate",
+                        "coverage_summary": {
+                            "has_explanatory_support": True,
+                            "has_normative_anchor": True,
+                        },
+                        "source_tools_used": [{"tool": "list_principles", "args": {}}],
+                        "retrieved_items": [
+                            {
+                                "item_id": "n2-item-1",
+                                "tool": "list_principles",
+                                "args": {},
+                                "kind": "structural_support",
+                                "title": "list_principles",
+                                "content": "WCAG structure can be explained as layers.",
+                                "grounding_note": "Grounds the integrated view.",
+                            }
+                        ],
+                    },
+                ],
+            }
+        )
+
+        node_content = await hybrid_system._build_graph_node_content(
+            objective_text="Explain the structure of WCAG",
+            graph=graph,
+            node_evidence=node_evidence,
+        )
+
+        assert len(node_content.nodes) == 2
+        assert node_content.nodes[0].core_claim
+        assert captured[0]["max_tokens"] == TEACHING_GRAPH_NODE_SYNTHESIS_MAX_COMPLETION_TOKENS
+        assert captured[0]["response_format"] == {"type": "json_object"}
+
+    @pytest.mark.asyncio
+    async def test_build_graph_node_content_raises_on_invalid_supporting_claim_grounding(
+        self, hybrid_system, monkeypatch
+    ):
+        monkeypatch.setattr(
+            hybrid_system.reasoning_client,
+            "chat",
+            lambda messages, *args, **kwargs: json.dumps(
+                {
+                    "id": "n2" if '"id": "n2"' in messages[1]["content"] else "n1",
+                    "label": "Integrated structure"
+                    if '"id": "n2"' in messages[1]["content"]
+                    else "Principles",
+                    "kind": "integration"
+                    if '"id": "n2"' in messages[1]["content"]
+                    else "core_concept",
+                    "core_claim": "WCAG starts with high-level principles.",
+                    "supporting_claims": [
+                        "Principles are the broadest organizational layer.",
+                        "They frame the rest of the structure.",
+                    ],
+                    "canonical_example": {
+                        "text": "Perceivable is one principle.",
+                        "grounding_basis": [
+                            "n2-item-1"
+                            if '"id": "n2"' in messages[1]["content"]
+                            else "n1-item-1"
+                        ],
+                    },
+                    "canonical_contrast": {
+                        "text": "Level AA is not a principle.",
+                        "grounding_basis": [
+                            "n2-item-1"
+                            if '"id": "n2"' in messages[1]["content"]
+                            else "n1-item-1"
+                        ],
+                    },
+                    "supporting_claim_grounding": [
+                        {
+                            "claim_index": 0,
+                            "basis_item_ids": [
+                                "n2-item-1"
+                                if '"id": "n2"' in messages[1]["content"]
+                                else "n1-item-1"
+                            ],
+                        }
+                    ],
+                }
+            ),
+        )
+
+        graph = TeachingGraphArtifact.from_dict(
+            {
+                "objective_text": "Explain the structure of WCAG",
+                "graph_type": "hierarchy",
+                "entry_nodes": ["n1"],
+                "integration_node": "n2",
+                "primary_route": ["n1", "n2"],
+                "nodes": [
+                    {"id": "n1", "label": "Principles", "kind": "core_concept"},
+                    {"id": "n2", "label": "Integrated structure", "kind": "integration"},
+                ],
+                "edges": [
+                    {
+                        "from": "n1",
+                        "to": "n2",
+                        "type": "synthesizes_into",
+                        "bridge_claim": "Principles roll into the full hierarchy.",
+                    }
+                ],
+            }
+        )
+        node_evidence = NodeEvidenceArtifact.from_dict(
+            {
+                "objective_text": "Explain the structure of WCAG",
+                "graph_summary": {
+                    "graph_type": "hierarchy",
+                    "node_ids": ["n1", "n2"],
+                },
+                "node_evidence": [
+                    {
+                        "node_id": "n1",
+                        "grounding_strength": "adequate",
+                        "coverage_summary": {
+                            "has_explanatory_support": True,
+                            "has_normative_anchor": True,
+                        },
+                        "source_tools_used": [{"tool": "list_principles", "args": {}}],
+                        "retrieved_items": [
+                            {
+                                "item_id": "n1-item-1",
+                                "tool": "list_principles",
+                                "args": {},
+                                "kind": "structural_support",
+                                "title": "list_principles",
+                                "content": "WCAG has four principles.",
+                                "grounding_note": "Grounds the top-level structure.",
+                            }
+                        ],
+                    },
+                    {
+                        "node_id": "n2",
+                        "grounding_strength": "adequate",
+                        "coverage_summary": {
+                            "has_explanatory_support": True,
+                            "has_normative_anchor": True,
+                        },
+                        "source_tools_used": [{"tool": "list_principles", "args": {}}],
+                        "retrieved_items": [
+                            {
+                                "item_id": "n2-item-1",
+                                "tool": "list_principles",
+                                "args": {},
+                                "kind": "structural_support",
+                                "title": "list_principles",
+                                "content": "WCAG structure can be explained as layers.",
+                                "grounding_note": "Grounds the integrated view.",
+                            }
+                        ],
+                    },
+                ],
+            }
+        )
+
+        with pytest.raises(TeachingGraphGenerationError):
+            await hybrid_system._build_graph_node_content(
+                objective_text="Explain the structure of WCAG",
+                graph=graph,
+                node_evidence=node_evidence,
             )
 
 
