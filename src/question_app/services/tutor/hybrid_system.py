@@ -29,13 +29,15 @@ from .workers.content import (
     TeachingPlanWorker,
 )
 from .workers.graph import (
+    EdgeIntegrationSynthesizerWorker,
+    GroundingValidatorWorker,
     NodeContentSynthesizerWorker,
     NodeEvidenceRetrieverWorker,
     TeachingGraphPlannerWorker,
 )
 from .workers.turns import StructuredTurnAnalyzer, TutorMessageBuilder
 from .repositories import GuidedSessionStateRepository
-from .orchestrators import GuidedTurnOrchestrator
+from .orchestrators import GuidedTurnOrchestrator, TeachingGraphBuildOrchestrator
 from ..general_chat_service import GeneralChatService
 from ...models.tutor import KnowledgeLevel, SessionPhase, StudentProfile
 
@@ -236,6 +238,10 @@ TEACHING_GRAPH_NODE_RETRIEVAL_REASONING_EFFORT = "low"
 TEACHING_GRAPH_NODE_RETRIEVAL_MAX_TOOL_CALLS = 4
 TEACHING_GRAPH_NODE_SYNTHESIS_MAX_COMPLETION_TOKENS = 1800
 TEACHING_GRAPH_NODE_SYNTHESIS_REASONING_EFFORT = "low"
+TEACHING_GRAPH_EDGE_SYNTHESIS_MAX_COMPLETION_TOKENS = 2200
+TEACHING_GRAPH_EDGE_SYNTHESIS_REASONING_EFFORT = "low"
+TEACHING_GRAPH_VALIDATION_MAX_COMPLETION_TOKENS = 2200
+TEACHING_GRAPH_VALIDATION_REASONING_EFFORT = "low"
 
 class HybridCrewAISocraticSystem:
     """Compatibility facade over the guided tutor worker/orchestrator stack."""
@@ -337,6 +343,25 @@ class HybridCrewAISocraticSystem:
             max_completion_tokens=TEACHING_GRAPH_NODE_SYNTHESIS_MAX_COMPLETION_TOKENS,
             reasoning_effort=TEACHING_GRAPH_NODE_SYNTHESIS_REASONING_EFFORT,
             synthesis_error_cls=TeachingGraphGenerationError,
+        )
+        self._graph_edge_integration_worker = EdgeIntegrationSynthesizerWorker(
+            reasoning_client=self.reasoning_client,
+            max_completion_tokens=TEACHING_GRAPH_EDGE_SYNTHESIS_MAX_COMPLETION_TOKENS,
+            reasoning_effort=TEACHING_GRAPH_EDGE_SYNTHESIS_REASONING_EFFORT,
+            synthesis_error_cls=TeachingGraphGenerationError,
+        )
+        self._graph_validator_worker = GroundingValidatorWorker(
+            reasoning_client=self.reasoning_client,
+            max_completion_tokens=TEACHING_GRAPH_VALIDATION_MAX_COMPLETION_TOKENS,
+            reasoning_effort=TEACHING_GRAPH_VALIDATION_REASONING_EFFORT,
+            validation_error_cls=TeachingGraphGenerationError,
+        )
+        self._teaching_graph_build_orchestrator = TeachingGraphBuildOrchestrator(
+            planner=self._teaching_graph_planner_worker,
+            node_evidence_retriever=self._graph_node_evidence_worker,
+            node_content_synthesizer=self._graph_node_content_worker,
+            edge_integration_synthesizer=self._graph_edge_integration_worker,
+            validator=self._graph_validator_worker,
         )
         self._concept_extraction_worker = ConceptExtractionWorker(
             tutor_client=self.tutor_client,
@@ -3213,6 +3238,49 @@ class HybridCrewAISocraticSystem:
             objective_text=objective_text,
             graph=graph,
             node_evidence=node_evidence,
+        )
+
+    async def _build_graph_edge_integration(
+        self,
+        *,
+        objective_text: str,
+        graph,
+        node_content,
+    ):
+        return await self._graph_edge_integration_worker.build_edge_integration_content(
+            objective_text=objective_text,
+            graph=graph,
+            node_content=node_content,
+        )
+
+    async def _validate_teaching_graph_content(
+        self,
+        *,
+        objective_text: str,
+        graph,
+        node_evidence,
+        node_content,
+        edge_integration,
+    ):
+        return await self._graph_validator_worker.validate(
+            objective_text=objective_text,
+            graph=graph,
+            node_evidence=node_evidence,
+            node_content=node_content,
+            edge_integration=edge_integration,
+        )
+
+    async def _build_teaching_graph_content(
+        self,
+        objective_text: str,
+        *,
+        learner_level: Optional[str] = None,
+        prerequisite_assumptions: Optional[str] = None,
+    ):
+        return await self._teaching_graph_build_orchestrator.run(
+            objective_text=objective_text,
+            learner_level=learner_level,
+            prerequisite_assumptions=prerequisite_assumptions,
         )
 
     async def _extract_concept_order(self, teaching_plan: str) -> Optional[List[Dict[str, str]]]:

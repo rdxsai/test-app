@@ -5,11 +5,15 @@ import json
 from typing import Any, Dict, List, Optional
 
 from ..artifacts import (
+    EdgeIntegrationArtifact,
+    GroundingValidationArtifact,
     NodeEvidenceArtifact,
     NodeContentArtifact,
     TeachingGraphArtifact,
 )
 from ..prompts import (
+    EDGE_INTEGRATION_SYNTHESIS_PROMPT,
+    GROUNDING_VALIDATOR_PROMPT,
     NODE_CONTENT_SYNTHESIS_PROMPT,
     NODE_EVIDENCE_RETRIEVAL_PROMPT,
     TEACHING_GRAPH_PLANNER_PROMPT,
@@ -373,3 +377,124 @@ class NodeContentSynthesizerWorker:
                 "nodes": node_payloads,
             }
         )
+
+
+class EdgeIntegrationSynthesizerWorker:
+    def __init__(
+        self,
+        *,
+        reasoning_client,
+        max_completion_tokens: int,
+        reasoning_effort: str,
+        synthesis_error_cls: type[Exception],
+    ) -> None:
+        self.reasoning_client = reasoning_client
+        self.max_completion_tokens = max_completion_tokens
+        self.reasoning_effort = reasoning_effort
+        self.synthesis_error_cls = synthesis_error_cls
+
+    @staticmethod
+    def _strip_code_fences(text: str) -> str:
+        return TeachingGraphPlannerWorker._strip_code_fences(text)
+
+    async def build_edge_integration_content(
+        self,
+        *,
+        objective_text: str,
+        graph: TeachingGraphArtifact,
+        node_content: NodeContentArtifact,
+    ) -> EdgeIntegrationArtifact:
+        response = await asyncio.to_thread(
+            self.reasoning_client.chat,
+            [
+                {"role": "system", "content": EDGE_INTEGRATION_SYNTHESIS_PROMPT},
+                {
+                    "role": "user",
+                    "content": "\n\n".join(
+                        [
+                            f"OBJECTIVE:\n{objective_text}",
+                            f"GRAPH:\n{json.dumps(graph.to_dict(), indent=2)}",
+                            f"NODE CONTENT:\n{json.dumps(node_content.to_dict(), indent=2)}",
+                        ]
+                    ),
+                },
+            ],
+            0.1,
+            self.max_completion_tokens,
+            self.reasoning_effort,
+            {"type": "json_object"},
+        )
+        try:
+            payload = json.loads(self._strip_code_fences(response))
+            payload["objective_text"] = objective_text
+            return EdgeIntegrationArtifact.from_dict(payload)
+        except Exception as exc:
+            preview = self._strip_code_fences(response).replace("\n", " ").strip()
+            if len(preview) > 240:
+                preview = preview[:240] + "..."
+            raise self.synthesis_error_cls(
+                "Teaching graph edge/integration synthesis failed: "
+                f"{preview or 'empty response'}"
+            ) from exc
+
+
+class GroundingValidatorWorker:
+    def __init__(
+        self,
+        *,
+        reasoning_client,
+        max_completion_tokens: int,
+        reasoning_effort: str,
+        validation_error_cls: type[Exception],
+    ) -> None:
+        self.reasoning_client = reasoning_client
+        self.max_completion_tokens = max_completion_tokens
+        self.reasoning_effort = reasoning_effort
+        self.validation_error_cls = validation_error_cls
+
+    @staticmethod
+    def _strip_code_fences(text: str) -> str:
+        return TeachingGraphPlannerWorker._strip_code_fences(text)
+
+    async def validate(
+        self,
+        *,
+        objective_text: str,
+        graph: TeachingGraphArtifact,
+        node_evidence: NodeEvidenceArtifact,
+        node_content: NodeContentArtifact,
+        edge_integration: EdgeIntegrationArtifact,
+    ) -> GroundingValidationArtifact:
+        response = await asyncio.to_thread(
+            self.reasoning_client.chat,
+            [
+                {"role": "system", "content": GROUNDING_VALIDATOR_PROMPT},
+                {
+                    "role": "user",
+                    "content": "\n\n".join(
+                        [
+                            f"OBJECTIVE:\n{objective_text}",
+                            f"GRAPH:\n{json.dumps(graph.to_dict(), indent=2)}",
+                            f"NODE EVIDENCE:\n{json.dumps(node_evidence.to_dict(), indent=2)}",
+                            f"NODE CONTENT:\n{json.dumps(node_content.to_dict(), indent=2)}",
+                            f"EDGE INTEGRATION:\n{json.dumps(edge_integration.to_dict(), indent=2)}",
+                        ]
+                    ),
+                },
+            ],
+            0.0,
+            self.max_completion_tokens,
+            self.reasoning_effort,
+            {"type": "json_object"},
+        )
+        try:
+            payload = json.loads(self._strip_code_fences(response))
+            payload["objective_text"] = objective_text
+            return GroundingValidationArtifact.from_dict(payload)
+        except Exception as exc:
+            preview = self._strip_code_fences(response).replace("\n", " ").strip()
+            if len(preview) > 240:
+                preview = preview[:240] + "..."
+            raise self.validation_error_cls(
+                f"Teaching graph validation failed: {preview or 'empty response'}"
+            ) from exc

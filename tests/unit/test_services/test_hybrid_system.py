@@ -343,6 +343,9 @@ class TestHybridSystemModelRoles:
         assert hybrid_system._teaching_graph_planner_worker is not None
         assert hybrid_system._graph_node_evidence_worker is not None
         assert hybrid_system._graph_node_content_worker is not None
+        assert hybrid_system._graph_edge_integration_worker is not None
+        assert hybrid_system._graph_validator_worker is not None
+        assert hybrid_system._teaching_graph_build_orchestrator is not None
         assert hybrid_system._teaching_plan_worker is not None
         assert hybrid_system._teaching_content_pipeline is not None
         assert hybrid_system._tutor_message_builder is not None
@@ -2169,6 +2172,180 @@ class TestGuidedRetrieval:
                 graph=graph,
                 node_evidence=node_evidence,
             )
+
+    @pytest.mark.asyncio
+    async def test_build_teaching_graph_content_runs_full_graph_pipeline(
+        self, hybrid_system, monkeypatch
+    ):
+        def fake_chat(
+            messages,
+            temperature=0.7,
+            max_tokens=1000,
+            reasoning_effort=None,
+            response_format=None,
+        ):
+            system_prompt = messages[0]["content"]
+            user_payload = messages[1]["content"]
+
+            if "compact teaching graph" in system_prompt:
+                return json.dumps(
+                    {
+                        "objective_text": "Explain the structure of WCAG",
+                        "graph_type": "hierarchy",
+                        "entry_nodes": ["n1"],
+                        "integration_node": "n2",
+                        "primary_route": ["n1", "n2"],
+                        "nodes": [
+                            {"id": "n1", "label": "Principles", "kind": "core_concept"},
+                            {"id": "n2", "label": "Integrated structure", "kind": "integration"},
+                        ],
+                        "edges": [
+                            {
+                                "from": "n1",
+                                "to": "n2",
+                                "type": "synthesizes_into",
+                                "bridge_claim": "Principles roll into the full hierarchy.",
+                            }
+                        ],
+                    }
+                )
+            if "retrieval planner for teaching-graph nodes" in system_prompt:
+                return json.dumps(
+                    {
+                        "node_id": "n2" if '"id": "n2"' in user_payload else "n1",
+                        "evidence_needs": [
+                            {
+                                "kind": "structural_support",
+                                "reason": "Need WCAG structure support.",
+                            }
+                        ],
+                        "planned_calls": [
+                            {
+                                "tool": "list_principles",
+                                "args": {},
+                                "kind": "structural_support",
+                                "grounding_note": "Grounds the structure node.",
+                            }
+                        ],
+                    }
+                )
+            if "synthesizing one grounded teaching node" in system_prompt:
+                node_id = "n2" if '"id": "n2"' in user_payload else "n1"
+                label = "Integrated structure" if node_id == "n2" else "Principles"
+                kind = "integration" if node_id == "n2" else "core_concept"
+                basis = f"{node_id}-item-1"
+                return json.dumps(
+                    {
+                        "id": node_id,
+                        "label": label,
+                        "kind": kind,
+                        "core_claim": f"{label} can be taught from grounded WCAG structure evidence.",
+                        "supporting_claims": [
+                            f"{label} is supported by the retrieved structure evidence.",
+                            f"{label} fits into the lesson route.",
+                        ],
+                        "canonical_example": {
+                            "text": f"{label} appears in a safe example.",
+                            "grounding_basis": [basis],
+                        },
+                        "canonical_contrast": {
+                            "text": f"A nearby concept is not the same as {label}.",
+                            "grounding_basis": [basis],
+                        },
+                        "supporting_claim_grounding": [
+                            {"claim_index": 0, "basis_item_ids": [basis]},
+                            {"claim_index": 1, "basis_item_ids": [basis]},
+                        ],
+                    }
+                )
+            if "transition and integration content" in system_prompt:
+                return json.dumps(
+                    {
+                        "edges": [
+                            {
+                                "from": "n1",
+                                "to": "n2",
+                                "type": "synthesizes_into",
+                                "transition_rationale": "The learner integrates principles into the whole structure.",
+                                "bridge_text": "Once the learner knows the top layer, they can assemble the full hierarchy.",
+                                "source_requirement": "The learner can identify the principles as the top layer.",
+                                "target_shift": "The learner now treats the structure as one connected model.",
+                                "bridge_example": {
+                                    "text": "Map principles into the larger WCAG hierarchy.",
+                                    "grounding_basis": ["n1", "n2"],
+                                },
+                                "transition_misconception": {
+                                    "text": "Thinking the top layer is the whole structure.",
+                                    "grounding_basis": ["n1", "n2"],
+                                },
+                            }
+                        ],
+                        "integration": {
+                            "node_id": "n2",
+                            "integration_claim": "WCAG structure is best understood as connected layers.",
+                            "integration_scenario": {
+                                "text": "Explain how principles and lower layers fit together in one model.",
+                                "grounding_basis": ["n1", "n2"],
+                            },
+                            "what_must_be_combined": ["n1", "n2"],
+                        },
+                    }
+                )
+            if "strict grounding validator" in system_prompt:
+                return json.dumps(
+                    {
+                        "objective_text": "Explain the structure of WCAG",
+                        "overall_status": "pass",
+                        "node_checks": [
+                            {
+                                "node_id": "n1",
+                                "status": "pass",
+                                "unsupported_claims": [],
+                                "risky_examples": [],
+                                "notes": [],
+                            },
+                            {
+                                "node_id": "n2",
+                                "status": "pass",
+                                "unsupported_claims": [],
+                                "risky_examples": [],
+                                "notes": [],
+                            },
+                        ],
+                        "edge_checks": [
+                            {
+                                "from": "n1",
+                                "to": "n2",
+                                "status": "pass",
+                                "issues": [],
+                                "notes": [],
+                            }
+                        ],
+                        "integration_check": {
+                            "status": "pass",
+                            "issues": [],
+                            "notes": [],
+                        },
+                        "repair_targets": {
+                            "node_ids": [],
+                            "edge_ids": [],
+                            "integration": False,
+                        },
+                    }
+                )
+            raise AssertionError(f"Unexpected system prompt: {system_prompt[:80]}")
+
+        monkeypatch.setattr(hybrid_system.reasoning_client, "chat", fake_chat)
+
+        artifact = await hybrid_system._build_teaching_graph_content(
+            "Explain the structure of WCAG"
+        )
+
+        assert artifact.graph.graph_type == "hierarchy"
+        assert len(artifact.node_evidence.node_evidence) == 2
+        assert len(artifact.node_content.nodes) == 2
+        assert len(artifact.edge_integration.edges) == 1
+        assert artifact.validation.overall_status == "pass"
 
 
 class TestToolActivityRationale:

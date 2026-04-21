@@ -4,9 +4,68 @@ import json
 import logging
 from typing import Any, Awaitable, Callable, Dict, List, Optional
 
-from .artifacts import GuidedTurnResult
+from .artifacts import GuidedTurnResult, TeachingGraphContentArtifact
 
 logger = logging.getLogger(__name__)
+
+
+class TeachingGraphBuildOrchestrator:
+    def __init__(
+        self,
+        *,
+        planner,
+        node_evidence_retriever,
+        node_content_synthesizer,
+        edge_integration_synthesizer,
+        validator,
+    ) -> None:
+        self.planner = planner
+        self.node_evidence_retriever = node_evidence_retriever
+        self.node_content_synthesizer = node_content_synthesizer
+        self.edge_integration_synthesizer = edge_integration_synthesizer
+        self.validator = validator
+
+    async def run(
+        self,
+        *,
+        objective_text: str,
+        learner_level: Optional[str] = None,
+        prerequisite_assumptions: Optional[str] = None,
+    ) -> TeachingGraphContentArtifact:
+        graph = await self.planner.generate(
+            objective_text,
+            learner_level=learner_level,
+            prerequisite_assumptions=prerequisite_assumptions,
+        )
+        node_evidence = await self.node_evidence_retriever.build_node_evidence(
+            objective_text=objective_text,
+            graph=graph,
+        )
+        node_content = await self.node_content_synthesizer.build_node_content(
+            objective_text=objective_text,
+            graph=graph,
+            node_evidence=node_evidence,
+        )
+        edge_integration = await self.edge_integration_synthesizer.build_edge_integration_content(
+            objective_text=objective_text,
+            graph=graph,
+            node_content=node_content,
+        )
+        validation = await self.validator.validate(
+            objective_text=objective_text,
+            graph=graph,
+            node_evidence=node_evidence,
+            node_content=node_content,
+            edge_integration=edge_integration,
+        )
+        return TeachingGraphContentArtifact(
+            objective_text=objective_text,
+            graph=graph,
+            node_evidence=node_evidence,
+            node_content=node_content,
+            edge_integration=edge_integration,
+            validation=validation,
+        )
 
 
 class GuidedTurnOrchestrator:
@@ -473,4 +532,3 @@ class GuidedTurnOrchestrator:
             final_stage="introduction",
             stage_advanced=False,
         )
-
