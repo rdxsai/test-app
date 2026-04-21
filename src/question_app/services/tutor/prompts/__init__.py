@@ -34,6 +34,13 @@ from .socratic_tutor import (
     format_teaching_plan,
     format_teaching_plan_for_display,
 )
+from .graph import (
+    EDGE_INTEGRATION_SYNTHESIS_PROMPT,
+    GROUNDING_VALIDATOR_PROMPT,
+    NODE_CONTENT_SYNTHESIS_PROMPT,
+    NODE_EVIDENCE_RETRIEVAL_PROMPT,
+    TEACHING_GRAPH_PLANNER_PROMPT,
+)
 
 __all__ = [
     "build_assessment_reflector_prompt",
@@ -58,4 +65,9 @@ __all__ = [
     "format_pacing_state",
     "format_teaching_plan",
     "format_teaching_plan_for_display",
+    "EDGE_INTEGRATION_SYNTHESIS_PROMPT",
+    "GROUNDING_VALIDATOR_PROMPT",
+    "NODE_CONTENT_SYNTHESIS_PROMPT",
+    "NODE_EVIDENCE_RETRIEVAL_PROMPT",
+    "TEACHING_GRAPH_PLANNER_PROMPT",
 ]
