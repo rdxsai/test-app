@@ -4,6 +4,8 @@ from question_app.services.tutor.azure_client import AzureAPIMClient
 
 
 class FakeResponse:
+    status_code = 200
+
     def raise_for_status(self):
         return None
 
@@ -118,3 +120,73 @@ def test_reasoning_completion_budget_scales_by_effort_with_cap():
     assert client._resolve_reasoning_completion_tokens(180, "high") == 1200
     assert client._resolve_reasoning_completion_tokens(900, "high") == 2400
     assert client._resolve_reasoning_completion_tokens(3000, "high") == 2400
+
+
+@pytest.mark.asyncio
+async def test_responses_create_uses_responses_payload_shape(monkeypatch):
+    captured = {}
+
+    class FakeResponsesPayload:
+        status_code = 200
+
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return {"id": "resp_123", "output": []}
+
+    class FakeAsyncClient:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+        async def post(self, url, headers=None, params=None, json=None):
+            captured["url"] = url
+            captured["headers"] = headers
+            captured["params"] = params
+            captured["json"] = json
+            return FakeResponsesPayload()
+
+    monkeypatch.setattr(
+        "question_app.services.tutor.azure_client.httpx.AsyncClient",
+        FakeAsyncClient,
+    )
+
+    client = AzureAPIMClient(
+        endpoint="https://example.test",
+        deployment="gpt-5.4",
+        api_key="test-key",
+        api_version="2025-01-01-preview",
+        content_filter_policy="resp-filter",
+    )
+
+    payload = await client.responses_create(
+        instructions="Retrieve first.",
+        input=[{"role": "user", "content": [{"type": "input_text", "text": "hello"}]}],
+        tools=[{"type": "function", "name": "search_wcag", "description": "", "parameters": {"type": "object", "properties": {}, "required": []}, "strict": True}],
+        tool_choice="required",
+        parallel_tool_calls=False,
+        reasoning_effort="medium",
+        max_output_tokens=500,
+        previous_response_id="resp_prev",
+        max_tool_calls=4,
+        store=True,
+    )
+
+    assert payload["id"] == "resp_123"
+    assert captured["url"] == "https://example.test/openai/v1/responses"
+    assert captured["params"] == {"api-version": "2025-01-01-preview"}
+    assert captured["headers"]["x-policy-id"] == "resp-filter"
+    assert captured["json"]["model"] == "gpt-5.4"
+    assert captured["json"]["tool_choice"] == "required"
+    assert captured["json"]["parallel_tool_calls"] is False
+    assert captured["json"]["reasoning"] == {"effort": "medium"}
+    assert captured["json"]["max_output_tokens"] == 1600
+    assert captured["json"]["previous_response_id"] == "resp_prev"
+    assert captured["json"]["max_tool_calls"] == 4
+    assert captured["json"]["store"] is True

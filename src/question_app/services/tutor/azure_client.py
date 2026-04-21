@@ -54,6 +54,21 @@ class AzureAPIMClient:
             headers["x-policy-id"] = self.content_filter_policy
         return headers
 
+    def _build_chat_url(self) -> str:
+        return f"{self.endpoint}/deployments/{self.deployment}/chat/completions"
+
+    def _build_responses_urls(self) -> List[str]:
+        base = self.endpoint.rstrip("/")
+        candidates = [
+            f"{base}/openai/v1/responses",
+            f"{base}/responses",
+        ]
+        deduped: List[str] = []
+        for candidate in candidates:
+            if candidate not in deduped:
+                deduped.append(candidate)
+        return deduped
+
     def _is_reasoning_model(self) -> bool:
         """Check if the deployment behaves like a reasoning model."""
         deployment = self.deployment.lower()
@@ -96,7 +111,7 @@ class AzureAPIMClient:
         response_format: Optional[Dict[str, Any]] = None,
     ) -> str:
         """Send a non-streaming chat completion request."""
-        url = f"{self.endpoint}/deployments/{self.deployment}/chat/completions"
+        url = self._build_chat_url()
         headers = self._build_headers()
         params = {"api-version": self.api_version}
 
@@ -170,7 +185,7 @@ class AzureAPIMClient:
         max_tokens: int = 1000,
     ) -> AsyncGenerator[str, None]:
         """Yield streamed content deltas from Azure OpenAI."""
-        url = f"{self.endpoint}/deployments/{self.deployment}/chat/completions"
+        url = self._build_chat_url()
         headers = self._build_headers()
         params = {"api-version": self.api_version}
 
@@ -268,7 +283,7 @@ class AzureAPIMClient:
         reasoning_effort: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Send a tool-enabled chat completion request."""
-        url = f"{self.endpoint}/deployments/{self.deployment}/chat/completions"
+        url = self._build_chat_url()
         headers = self._build_headers()
         params = {"api-version": self.api_version}
         payload: Dict[str, Any] = {
@@ -298,6 +313,95 @@ class AzureAPIMClient:
             response.raise_for_status()
             result = response.json()
             return result["choices"][0]["message"]
+
+    async def responses_create(
+        self,
+        *,
+        input: List[Dict[str, Any]],
+        instructions: Optional[str] = None,
+        tools: Optional[List[Dict[str, Any]]] = None,
+        tool_choice: Optional[str] = None,
+        parallel_tool_calls: Optional[bool] = None,
+        reasoning_effort: Optional[str] = None,
+        max_output_tokens: Optional[int] = None,
+        previous_response_id: Optional[str] = None,
+        text: Optional[Dict[str, Any]] = None,
+        include: Optional[List[str]] = None,
+        store: Optional[bool] = None,
+        max_tool_calls: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        """Send a Responses API request via Azure APIM/OpenAI-compatible routing."""
+        headers = self._build_headers()
+        params = {"api-version": self.api_version}
+        payload: Dict[str, Any] = {
+            "model": self.deployment,
+            "input": input,
+        }
+        if instructions is not None:
+            payload["instructions"] = instructions
+        if tools is not None:
+            payload["tools"] = tools
+        if tool_choice is not None:
+            payload["tool_choice"] = tool_choice
+        if parallel_tool_calls is not None:
+            payload["parallel_tool_calls"] = parallel_tool_calls
+        if previous_response_id is not None:
+            payload["previous_response_id"] = previous_response_id
+        if text is not None:
+            payload["text"] = text
+        if include is not None:
+            payload["include"] = include
+        if store is not None:
+            payload["store"] = store
+        if max_tool_calls is not None:
+            payload["max_tool_calls"] = max_tool_calls
+
+        if max_output_tokens is not None:
+            payload["max_output_tokens"] = (
+                self._resolve_reasoning_completion_tokens(
+                    max_tokens=max_output_tokens,
+                    reasoning_effort=reasoning_effort,
+                )
+                if self._reasoning
+                else max_output_tokens
+            )
+        if self._reasoning:
+            payload["reasoning"] = {
+                "effort": self._normalize_reasoning_effort(reasoning_effort)
+            }
+
+        timeout = httpx.Timeout(
+            connect=DEFAULT_CONNECT_TIMEOUT_SECONDS,
+            read=DEFAULT_READ_TIMEOUT_SECONDS,
+            write=DEFAULT_WRITE_TIMEOUT_SECONDS,
+            pool=DEFAULT_POOL_TIMEOUT_SECONDS,
+        )
+        last_http_error: Optional[httpx.HTTPStatusError] = None
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            for url in self._build_responses_urls():
+                try:
+                    response = await client.post(
+                        url,
+                        headers=headers,
+                        params=params,
+                        json=payload,
+                    )
+                    response.raise_for_status()
+                    return response.json()
+                except httpx.HTTPStatusError as exc:
+                    last_http_error = exc
+                    if exc.response.status_code == 404:
+                        logger.warning(
+                            "Azure Responses request path not found for deployment=%s url=%s",
+                            self.deployment,
+                            url,
+                        )
+                        continue
+                    raise
+
+        if last_http_error is not None:
+            raise last_http_error
+        raise RuntimeError("Azure Responses request failed before an HTTP response was returned.")
 
     def make_request(self, prompt: str) -> Dict[str, Any]:
         """Compatibility helper for code paths expecting raw-like responses."""
