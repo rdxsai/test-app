@@ -7,12 +7,15 @@ from question_app.services.tutor.artifacts import (
     GuidedTurnResult,
     RetrievalRunArtifact,
     TeachingContentArtifact,
+    TeachingGraphArtifact,
     TeachingPlanArtifact,
     TurnAnalysisArtifact,
 )
 from question_app.services.tutor.hybrid_system import (
     HybridCrewAISocraticSystem,
     TEACHING_GRAPH_MAX_COMPLETION_TOKENS,
+    TEACHING_GRAPH_NODE_RETRIEVAL_MAX_COMPLETION_TOKENS,
+    TEACHING_GRAPH_NODE_RETRIEVAL_MAX_TOOL_CALLS,
     TEACHING_GRAPH_REASONING_EFFORT,
     TEACHING_PLAN_MAX_COMPLETION_TOKENS,
     TEACHING_PLAN_REASONING_EFFORT,
@@ -336,6 +339,7 @@ class TestHybridSystemModelRoles:
 
     def test_init_exposes_worker_architecture_behind_facade(self, hybrid_system):
         assert hybrid_system._teaching_graph_planner_worker is not None
+        assert hybrid_system._graph_node_evidence_worker is not None
         assert hybrid_system._teaching_plan_worker is not None
         assert hybrid_system._teaching_content_pipeline is not None
         assert hybrid_system._tutor_message_builder is not None
@@ -1755,6 +1759,146 @@ class TestGuidedRetrieval:
         with pytest.raises(TeachingGraphGenerationError):
             await hybrid_system._build_teaching_graph(
                 "Explain the structure of WCAG"
+            )
+
+    @pytest.mark.asyncio
+    async def test_build_graph_node_evidence_uses_per_node_retrieval_budget(
+        self, hybrid_system, monkeypatch
+    ):
+        captured_calls = []
+
+        def fake_chat(
+            messages,
+            temperature=0.7,
+            max_tokens=1000,
+            reasoning_effort=None,
+            response_format=None,
+        ):
+            captured_calls.append(
+                {
+                    "messages": messages,
+                    "temperature": temperature,
+                    "max_tokens": max_tokens,
+                    "reasoning_effort": reasoning_effort,
+                    "response_format": response_format,
+                }
+            )
+            return json.dumps(
+                {
+                    "node_id": "n1",
+                    "evidence_needs": [
+                        {
+                            "kind": "structural_support",
+                            "reason": "Need the top-level WCAG principle list.",
+                        }
+                    ],
+                    "planned_calls": [
+                        {
+                            "tool": "list_principles",
+                            "args": {},
+                            "kind": "structural_support",
+                            "grounding_note": "Principles ground the top-level structure node.",
+                        }
+                    ],
+                }
+            )
+
+        monkeypatch.setattr(hybrid_system.reasoning_client, "chat", fake_chat)
+
+        graph = TeachingGraphArtifact.from_dict(
+            {
+                "objective_text": "Explain the structure of WCAG",
+                "graph_type": "hierarchy",
+                "entry_nodes": ["n1"],
+                "integration_node": "n2",
+                "primary_route": ["n1", "n2"],
+                "nodes": [
+                    {"id": "n1", "label": "Principles", "kind": "core_concept"},
+                    {"id": "n2", "label": "Integrated structure", "kind": "integration"},
+                ],
+                "edges": [
+                    {
+                        "from": "n1",
+                        "to": "n2",
+                        "type": "synthesizes_into",
+                        "bridge_claim": "Principles roll into the full hierarchy.",
+                    }
+                ],
+            }
+        )
+
+        artifact = await hybrid_system._build_graph_node_evidence(
+            objective_text="Explain the structure of WCAG",
+            graph=graph,
+        )
+
+        assert len(artifact.node_evidence) == 2
+        assert artifact.node_evidence[0].retrieved_items[0].tool == "list_principles"
+        assert captured_calls[0]["max_tokens"] == TEACHING_GRAPH_NODE_RETRIEVAL_MAX_COMPLETION_TOKENS
+        assert captured_calls[0]["response_format"] == {"type": "json_object"}
+
+    @pytest.mark.asyncio
+    async def test_build_graph_node_evidence_raises_when_no_hits_returned(
+        self, hybrid_system, monkeypatch
+    ):
+        monkeypatch.setattr(
+            hybrid_system.reasoning_client,
+            "chat",
+            lambda *args, **kwargs: json.dumps(
+                {
+                    "node_id": "n1",
+                    "evidence_needs": [],
+                    "planned_calls": [
+                        {
+                            "tool": "search_wcag",
+                            "args": {"query": "missing"},
+                            "kind": "explanatory_support",
+                            "grounding_note": "Try a search.",
+                        }
+                    ],
+                }
+            ),
+        )
+
+        async def fake_execute(planned_calls):
+            return [
+                {
+                    "tool": "search_wcag",
+                    "args": {"query": "missing"},
+                    "status": "MISS",
+                    "result": "",
+                    "chars": 0,
+                }
+            ]
+
+        monkeypatch.setattr(hybrid_system.wcag_mcp, "execute_planned_tool_calls", fake_execute)
+
+        graph = TeachingGraphArtifact.from_dict(
+            {
+                "objective_text": "Explain the structure of WCAG",
+                "graph_type": "hierarchy",
+                "entry_nodes": ["n1"],
+                "integration_node": "n2",
+                "primary_route": ["n1", "n2"],
+                "nodes": [
+                    {"id": "n1", "label": "Principles", "kind": "core_concept"},
+                    {"id": "n2", "label": "Integrated structure", "kind": "integration"},
+                ],
+                "edges": [
+                    {
+                        "from": "n1",
+                        "to": "n2",
+                        "type": "synthesizes_into",
+                        "bridge_claim": "Principles roll into the full hierarchy.",
+                    }
+                ],
+            }
+        )
+
+        with pytest.raises(TeachingGraphGenerationError):
+            await hybrid_system._build_graph_node_evidence(
+                objective_text="Explain the structure of WCAG",
+                graph=graph,
             )
 
 

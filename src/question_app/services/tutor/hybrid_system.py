@@ -28,7 +28,7 @@ from .workers.content import (
     TeachingContentRenderer,
     TeachingPlanWorker,
 )
-from .workers.graph import TeachingGraphPlannerWorker
+from .workers.graph import NodeEvidenceRetrieverWorker, TeachingGraphPlannerWorker
 from .workers.turns import StructuredTurnAnalyzer, TutorMessageBuilder
 from .repositories import GuidedSessionStateRepository
 from .orchestrators import GuidedTurnOrchestrator
@@ -227,6 +227,9 @@ TEACHING_PLAN_MAX_COMPLETION_TOKENS = 5000
 TEACHING_PLAN_REASONING_EFFORT = "low"
 TEACHING_GRAPH_MAX_COMPLETION_TOKENS = 3000
 TEACHING_GRAPH_REASONING_EFFORT = "low"
+TEACHING_GRAPH_NODE_RETRIEVAL_MAX_COMPLETION_TOKENS = 1800
+TEACHING_GRAPH_NODE_RETRIEVAL_REASONING_EFFORT = "low"
+TEACHING_GRAPH_NODE_RETRIEVAL_MAX_TOOL_CALLS = 4
 
 class HybridCrewAISocraticSystem:
     """Compatibility facade over the guided tutor worker/orchestrator stack."""
@@ -314,6 +317,14 @@ class HybridCrewAISocraticSystem:
             max_completion_tokens=TEACHING_GRAPH_MAX_COMPLETION_TOKENS,
             reasoning_effort=TEACHING_GRAPH_REASONING_EFFORT,
             graph_error_cls=TeachingGraphGenerationError,
+        )
+        self._graph_node_evidence_worker = NodeEvidenceRetrieverWorker(
+            reasoning_client=self.reasoning_client,
+            wcag_mcp=self.wcag_mcp,
+            max_completion_tokens=TEACHING_GRAPH_NODE_RETRIEVAL_MAX_COMPLETION_TOKENS,
+            reasoning_effort=TEACHING_GRAPH_NODE_RETRIEVAL_REASONING_EFFORT,
+            max_tool_calls_per_node=TEACHING_GRAPH_NODE_RETRIEVAL_MAX_TOOL_CALLS,
+            retrieval_error_cls=TeachingGraphGenerationError,
         )
         self._concept_extraction_worker = ConceptExtractionWorker(
             tutor_client=self.tutor_client,
@@ -3166,6 +3177,17 @@ class HybridCrewAISocraticSystem:
             objective_text,
             learner_level=learner_level,
             prerequisite_assumptions=prerequisite_assumptions,
+        )
+
+    async def _build_graph_node_evidence(
+        self,
+        *,
+        objective_text: str,
+        graph,
+    ):
+        return await self._graph_node_evidence_worker.build_node_evidence(
+            objective_text=objective_text,
+            graph=graph,
         )
 
     async def _extract_concept_order(self, teaching_plan: str) -> Optional[List[Dict[str, str]]]:
