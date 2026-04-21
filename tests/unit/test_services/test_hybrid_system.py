@@ -66,6 +66,24 @@ class FakeAzureClient:
         if False:
             yield ""
 
+    async def responses_create(
+        self,
+        *,
+        input,
+        instructions=None,
+        tools=None,
+        tool_choice=None,
+        parallel_tool_calls=None,
+        reasoning_effort=None,
+        max_output_tokens=None,
+        previous_response_id=None,
+        text=None,
+        include=None,
+        store=None,
+        max_tool_calls=None,
+    ):
+        return {"id": "resp_fake", "output": []}
+
 
 class FakeStudentService:
     def __init__(self, session_state, runtime_cache_store=None):
@@ -1773,43 +1791,104 @@ class TestGuidedRetrieval:
     ):
         captured_calls = []
 
-        def fake_chat(
-            messages,
-            temperature=0.7,
-            max_tokens=1000,
+        async def fake_responses_create(
+            *,
+            input,
+            instructions=None,
+            tools=None,
+            tool_choice=None,
+            parallel_tool_calls=None,
             reasoning_effort=None,
-            response_format=None,
+            max_output_tokens=None,
+            previous_response_id=None,
+            text=None,
+            include=None,
+            store=None,
+            max_tool_calls=None,
         ):
             captured_calls.append(
                 {
-                    "messages": messages,
-                    "temperature": temperature,
-                    "max_tokens": max_tokens,
+                    "input": input,
+                    "instructions": instructions,
+                    "tool_choice": tool_choice,
+                    "parallel_tool_calls": parallel_tool_calls,
                     "reasoning_effort": reasoning_effort,
-                    "response_format": response_format,
+                    "max_output_tokens": max_output_tokens,
+                    "previous_response_id": previous_response_id,
+                    "text": text,
+                    "store": store,
+                    "max_tool_calls": max_tool_calls,
                 }
             )
-            return json.dumps(
-                {
-                    "node_id": "n1",
-                    "evidence_needs": [
+            if text:
+                node_id = "n2" if previous_response_id == "resp_node_2" else "n1"
+                return {
+                    "id": f"{previous_response_id or 'resp'}_final",
+                    "output_text": json.dumps(
                         {
-                            "kind": "structural_support",
-                            "reason": "Need the top-level WCAG principle list.",
+                            "node_id": node_id,
+                            "grounding_strength": "adequate",
+                            "coverage_summary": {
+                                "has_definition_support": False,
+                                "has_normative_anchor": False,
+                                "has_explanatory_support": True,
+                                "has_contrast_support": False,
+                                "has_risk_support": False,
+                            },
+                            "retrieval_summary": "Structural WCAG material was gathered.",
+                            "source_tools_used": [
+                                {"tool": "list_principles", "args": {}}
+                            ],
+                            "retrieved_items": [
+                                {
+                                    "item_id": f"{node_id}-item-1",
+                                    "tool": "list_principles",
+                                    "args": {},
+                                    "kind": "structural_support",
+                                    "title": "list_principles",
+                                    "content": "WCAG has four principles.",
+                                    "grounding_note": "Principles ground the structure node.",
+                                }
+                            ],
+                            "notes_on_gaps": [],
                         }
-                    ],
-                    "planned_calls": [
-                        {
-                            "tool": "list_principles",
-                            "args": {},
-                            "kind": "structural_support",
-                            "grounding_note": "Principles ground the top-level structure node.",
-                        }
-                    ],
+                    ),
+                    "output": [],
                 }
-            )
+            if previous_response_id:
+                return {
+                    "id": "resp_node_2" if previous_response_id == "resp_node_1" else "resp_node_done",
+                    "output": [],
+                }
+            return {
+                "id": "resp_node_1",
+                "output": [
+                    {
+                        "type": "function_call",
+                        "id": "fc_1",
+                        "call_id": "call_1",
+                        "name": "list_principles",
+                        "arguments": json.dumps({"rationale": "Need top-level structure."}),
+                    }
+                ],
+            }
 
-        monkeypatch.setattr(hybrid_system.reasoning_client, "chat", fake_chat)
+        monkeypatch.setattr(
+            hybrid_system.reasoning_client, "responses_create", fake_responses_create
+        )
+
+        async def fake_execute(planned_calls):
+            return [
+                {
+                    "tool": planned_calls[0]["tool"],
+                    "args": planned_calls[0]["args"],
+                    "status": "HIT",
+                    "result": "WCAG has four principles.",
+                    "chars": 25,
+                }
+            ]
+
+        monkeypatch.setattr(hybrid_system.wcag_mcp, "execute_planned_tool_calls", fake_execute)
 
         graph = TeachingGraphArtifact.from_dict(
             {
@@ -1840,30 +1919,76 @@ class TestGuidedRetrieval:
 
         assert len(artifact.node_evidence) == 2
         assert artifact.node_evidence[0].retrieved_items[0].tool == "list_principles"
-        assert captured_calls[0]["max_tokens"] == TEACHING_GRAPH_NODE_RETRIEVAL_MAX_COMPLETION_TOKENS
-        assert captured_calls[0]["response_format"] == {"type": "json_object"}
+        assert captured_calls[0]["max_output_tokens"] == TEACHING_GRAPH_NODE_RETRIEVAL_MAX_COMPLETION_TOKENS
+        assert captured_calls[0]["tool_choice"] == "required"
+        assert captured_calls[0]["max_tool_calls"] == TEACHING_GRAPH_NODE_RETRIEVAL_MAX_TOOL_CALLS
+        assert captured_calls[0]["store"] is True
+        assert captured_calls[2]["text"]["format"]["type"] == "json_schema"
 
     @pytest.mark.asyncio
     async def test_build_graph_node_evidence_raises_when_no_hits_returned(
         self, hybrid_system, monkeypatch
     ):
+        async def fake_responses_create(
+            *,
+            input,
+            instructions=None,
+            tools=None,
+            tool_choice=None,
+            parallel_tool_calls=None,
+            reasoning_effort=None,
+            max_output_tokens=None,
+            previous_response_id=None,
+            text=None,
+            include=None,
+            store=None,
+            max_tool_calls=None,
+        ):
+            if text:
+                return {
+                    "id": "resp_final",
+                    "output_text": json.dumps(
+                        {
+                            "node_id": "n1",
+                            "grounding_strength": "thin",
+                            "coverage_summary": {
+                                "has_definition_support": False,
+                                "has_normative_anchor": False,
+                                "has_explanatory_support": False,
+                                "has_contrast_support": False,
+                                "has_risk_support": False,
+                            },
+                            "retrieval_summary": "Nothing useful was retrieved.",
+                            "source_tools_used": [
+                                {"tool": "search_wcag", "args": {"query": "missing"}}
+                            ],
+                            "retrieved_items": [],
+                            "notes_on_gaps": ["No grounded evidence found."],
+                        }
+                    ),
+                    "output": [],
+                }
+            if previous_response_id:
+                return {"id": "resp_done", "output": []}
+            return {
+                "id": "resp_start",
+                "output": [
+                    {
+                        "type": "function_call",
+                        "id": "fc_1",
+                        "call_id": "call_1",
+                        "name": "search_wcag",
+                        "arguments": json.dumps(
+                            {"query": "missing", "rationale": "Try a search."}
+                        ),
+                    }
+                ],
+            }
+
         monkeypatch.setattr(
             hybrid_system.reasoning_client,
-            "chat",
-            lambda *args, **kwargs: json.dumps(
-                {
-                    "node_id": "n1",
-                    "evidence_needs": [],
-                    "planned_calls": [
-                        {
-                            "tool": "search_wcag",
-                            "args": {"query": "missing"},
-                            "kind": "explanatory_support",
-                            "grounding_note": "Try a search.",
-                        }
-                    ],
-                }
-            ),
+            "responses_create",
+            fake_responses_create,
         )
 
         async def fake_execute(planned_calls):

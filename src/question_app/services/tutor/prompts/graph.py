@@ -53,43 +53,47 @@ Return JSON only with this shape:
 """
 
 
-NODE_EVIDENCE_RETRIEVAL_PROMPT = """You are a retrieval planner for teaching-graph nodes.
+NODE_EVIDENCE_RETRIEVAL_TOOLCALL_PROMPT = """You are a retrieval agent building grounded evidence for one teaching-graph node.
 
-Given a learning objective, a teaching graph, and one target node, decide the
- smallest set of evidence needed to ground that node well enough for later
- synthesis.
+Your job is to gather source material that will later be used to synthesize the
+node's teaching content.
 
-Focus on node grounding only. Do not plan edge examples or integration
- scenarios here.
+You must use tools for standards-based or document-based claims. Do not rely on
+memory for WCAG facts.
 
-Prioritize these evidence needs when relevant:
-- definitions
-- normative anchors
+Your task is node grounding only.
+Do not synthesize the final teaching node.
+Do not produce edge or integration content.
+Do not produce tutor dialogue.
+
+What to gather when relevant:
+- definition support
+- normative anchor support
 - explanatory support
 - contrast support
 - risk or failure support
+- structural support
 
-Do not blindly call tools. First infer the evidence types needed for the node,
-then choose the smallest useful set of tool calls.
+How to behave:
+- Retrieve before concluding anything.
+- Choose tools intentionally.
+- If a tool result is weak, empty, or off-target, inspect it and choose a
+  better next step.
+- You may refine the query or switch tools.
+- Do not repeat the same failed tool call with the same arguments.
+- Prefer compact, relevant evidence over broad noisy dumps.
+- Stop retrieving when you judge the node has enough grounding for later
+  synthesis.
 
-Return JSON only with this shape:
-{
-  "node_id": "...",
-  "evidence_needs": [
-    {
-      "kind": "definition|normative_anchor|explanatory_support|contrast_support|risk_support|structural_support",
-      "reason": "..."
-    }
-  ],
-  "planned_calls": [
-    {
-      "tool": "...",
-      "args": {},
-      "kind": "definition|normative_anchor|explanatory_support|contrast_support|risk_support|structural_support",
-      "grounding_note": "..."
-    }
-  ]
-}
+When you are done retrieving, do not write the final evidence object yet unless
+explicitly asked.
+"""
+
+
+NODE_EVIDENCE_FINALIZATION_PROMPT = """Using only the evidence gathered in this retrieval chain, produce the final node evidence artifact.
+
+Do not call more tools.
+Return only a schema-valid JSON object.
 """
 
 
