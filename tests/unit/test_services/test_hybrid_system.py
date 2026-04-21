@@ -12,8 +12,11 @@ from question_app.services.tutor.artifacts import (
 )
 from question_app.services.tutor.hybrid_system import (
     HybridCrewAISocraticSystem,
+    TEACHING_GRAPH_MAX_COMPLETION_TOKENS,
+    TEACHING_GRAPH_REASONING_EFFORT,
     TEACHING_PLAN_MAX_COMPLETION_TOKENS,
     TEACHING_PLAN_REASONING_EFFORT,
+    TeachingGraphGenerationError,
     TeachingPlanGenerationError,
 )
 from question_app.services.tutor.interfaces import VectorStoreInterface
@@ -332,6 +335,7 @@ class TestHybridSystemModelRoles:
         assert hybrid_system.code_analyzer.client is hybrid_system.reasoning_client
 
     def test_init_exposes_worker_architecture_behind_facade(self, hybrid_system):
+        assert hybrid_system._teaching_graph_planner_worker is not None
         assert hybrid_system._teaching_plan_worker is not None
         assert hybrid_system._teaching_content_pipeline is not None
         assert hybrid_system._tutor_message_builder is not None
@@ -1680,6 +1684,76 @@ class TestGuidedRetrieval:
 
         with pytest.raises(TeachingPlanGenerationError):
             await hybrid_system._generate_teaching_plan(
+                "Explain the structure of WCAG"
+            )
+
+    @pytest.mark.asyncio
+    async def test_build_teaching_graph_uses_dedicated_reasoning_budget(
+        self, hybrid_system, monkeypatch
+    ):
+        captured = {}
+
+        def fake_chat(
+            messages,
+            temperature=0.7,
+            max_tokens=1000,
+            reasoning_effort=None,
+            response_format=None,
+        ):
+            captured["messages"] = messages
+            captured["temperature"] = temperature
+            captured["max_tokens"] = max_tokens
+            captured["reasoning_effort"] = reasoning_effort
+            captured["response_format"] = response_format
+            return json.dumps(
+                {
+                    "objective_text": "Explain the structure of WCAG",
+                    "graph_type": "hierarchy",
+                    "entry_nodes": ["n1"],
+                    "integration_node": "n3",
+                    "primary_route": ["n1", "n2", "n3"],
+                    "nodes": [
+                        {"id": "n1", "label": "Principles", "kind": "core_concept"},
+                        {"id": "n2", "label": "Guidelines", "kind": "core_concept"},
+                        {"id": "n3", "label": "Integrated structure", "kind": "integration"},
+                    ],
+                    "edges": [
+                        {
+                            "from": "n1",
+                            "to": "n2",
+                            "type": "prerequisite",
+                            "bridge_claim": "Principles organize guidelines.",
+                        },
+                        {
+                            "from": "n2",
+                            "to": "n3",
+                            "type": "synthesizes_into",
+                            "bridge_claim": "Guidelines roll into the full hierarchy.",
+                        },
+                    ],
+                }
+            )
+
+        monkeypatch.setattr(hybrid_system.reasoning_client, "chat", fake_chat)
+
+        graph = await hybrid_system._build_teaching_graph(
+            "Explain the structure of WCAG"
+        )
+
+        assert graph.graph_type == "hierarchy"
+        assert graph.primary_route[-1] == graph.integration_node
+        assert captured["max_tokens"] == TEACHING_GRAPH_MAX_COMPLETION_TOKENS
+        assert captured["reasoning_effort"] == TEACHING_GRAPH_REASONING_EFFORT
+        assert captured["response_format"] == {"type": "json_object"}
+
+    @pytest.mark.asyncio
+    async def test_build_teaching_graph_raises_on_invalid_response(
+        self, hybrid_system, monkeypatch
+    ):
+        monkeypatch.setattr(hybrid_system.reasoning_client, "chat", lambda *args, **kwargs: "{}")
+
+        with pytest.raises(TeachingGraphGenerationError):
+            await hybrid_system._build_teaching_graph(
                 "Explain the structure of WCAG"
             )
 

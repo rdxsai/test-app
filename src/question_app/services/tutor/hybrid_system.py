@@ -28,6 +28,7 @@ from .workers.content import (
     TeachingContentRenderer,
     TeachingPlanWorker,
 )
+from .workers.graph import TeachingGraphPlannerWorker
 from .workers.turns import StructuredTurnAnalyzer, TutorMessageBuilder
 from .repositories import GuidedSessionStateRepository
 from .orchestrators import GuidedTurnOrchestrator
@@ -49,6 +50,10 @@ class ClientConnectionClosedError(RuntimeError):
 
 class TeachingPlanGenerationError(RuntimeError):
     """Raised when the guided tutor cannot obtain a valid teaching plan."""
+
+
+class TeachingGraphGenerationError(RuntimeError):
+    """Raised when the guided tutor cannot obtain a valid teaching graph."""
 
 
 GUIDED_STAGE_SEQUENCE = [
@@ -220,6 +225,8 @@ class CodeAnalyzerAgent(SocraticAgent):
 MIN_COSINE_SIMILARITY = 0.7
 TEACHING_PLAN_MAX_COMPLETION_TOKENS = 5000
 TEACHING_PLAN_REASONING_EFFORT = "low"
+TEACHING_GRAPH_MAX_COMPLETION_TOKENS = 3000
+TEACHING_GRAPH_REASONING_EFFORT = "low"
 
 class HybridCrewAISocraticSystem:
     """Compatibility facade over the guided tutor worker/orchestrator stack."""
@@ -301,6 +308,12 @@ class HybridCrewAISocraticSystem:
             max_completion_tokens=TEACHING_PLAN_MAX_COMPLETION_TOKENS,
             reasoning_effort=TEACHING_PLAN_REASONING_EFFORT,
             plan_error_cls=TeachingPlanGenerationError,
+        )
+        self._teaching_graph_planner_worker = TeachingGraphPlannerWorker(
+            reasoning_client=self.reasoning_client,
+            max_completion_tokens=TEACHING_GRAPH_MAX_COMPLETION_TOKENS,
+            reasoning_effort=TEACHING_GRAPH_REASONING_EFFORT,
+            graph_error_cls=TeachingGraphGenerationError,
         )
         self._concept_extraction_worker = ConceptExtractionWorker(
             tutor_client=self.tutor_client,
@@ -3141,6 +3154,19 @@ class HybridCrewAISocraticSystem:
             teaching_content=teaching_content,
         )
         return artifact.plan
+
+    async def _build_teaching_graph(
+        self,
+        objective_text: str,
+        *,
+        learner_level: Optional[str] = None,
+        prerequisite_assumptions: Optional[str] = None,
+    ):
+        return await self._teaching_graph_planner_worker.generate(
+            objective_text,
+            learner_level=learner_level,
+            prerequisite_assumptions=prerequisite_assumptions,
+        )
 
     async def _extract_concept_order(self, teaching_plan: str) -> Optional[List[Dict[str, str]]]:
         return await self._concept_extraction_worker.extract(teaching_plan)
