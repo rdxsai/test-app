@@ -119,6 +119,7 @@ async def main() -> None:
     worker_stack: List[str] = []
 
     original_chat = system.reasoning_client.chat
+    original_responses_create = getattr(system.reasoning_client, "responses_create", None)
     original_execute = wcag_mcp.execute_planned_tool_calls if wcag_mcp else None
 
     def current_worker_entry() -> Dict[str, Any] | None:
@@ -164,6 +165,40 @@ async def main() -> None:
             trace.setdefault("unscoped_llm_calls", []).append(llm_call)
         return result
 
+    async def traced_responses_create(**kwargs):
+        started = time.perf_counter()
+        result = await original_responses_create(**kwargs)
+        elapsed = round(time.perf_counter() - started, 2)
+        entry = current_worker_entry()
+        response_text = ""
+        if isinstance(result, dict):
+            response_text = str(result.get("output_text") or "")
+            if not response_text:
+                outputs = result.get("output") or []
+                response_text = shorten_text(pretty_json(outputs), max_chars=2500)
+        llm_call = {
+            "api": "responses",
+            "instructions": kwargs.get("instructions"),
+            "input": copy.deepcopy(kwargs.get("input")),
+            "tool_choice": kwargs.get("tool_choice"),
+            "parallel_tool_calls": kwargs.get("parallel_tool_calls"),
+            "reasoning_effort": kwargs.get("reasoning_effort"),
+            "max_output_tokens": kwargs.get("max_output_tokens"),
+            "previous_response_id": kwargs.get("previous_response_id"),
+            "text": copy.deepcopy(kwargs.get("text")),
+            "tools": copy.deepcopy(kwargs.get("tools")),
+            "store": kwargs.get("store"),
+            "max_tool_calls": kwargs.get("max_tool_calls"),
+            "response_preview": shorten_text(response_text, max_chars=2500),
+            "response_payload": copy.deepcopy(result),
+            "elapsed_seconds": elapsed,
+        }
+        if entry is not None:
+            entry.setdefault("llm_calls", []).append(llm_call)
+        else:
+            trace.setdefault("unscoped_llm_calls", []).append(llm_call)
+        return result
+
     async def traced_execute(planned_calls):
         started = time.perf_counter()
         results = await original_execute(planned_calls)
@@ -186,6 +221,8 @@ async def main() -> None:
         return results
 
     system.reasoning_client.chat = traced_chat
+    if original_responses_create:
+        system.reasoning_client.responses_create = traced_responses_create
     if wcag_mcp and original_execute:
         wcag_mcp.execute_planned_tool_calls = traced_execute
 
@@ -300,15 +337,38 @@ async def main() -> None:
 
             for idx, llm_call in enumerate(worker.get("llm_calls", []), start=1):
                 lines.append(section_header(f"LLM Call {idx}", level=3))
-                lines.append(
-                    f"- max_tokens: `{llm_call['max_tokens']}`\n"
-                    f"- reasoning_effort: `{llm_call['reasoning_effort']}`\n"
-                    f"- response_format: `{llm_call['response_format']}`\n"
-                    f"- elapsed: `{llm_call['elapsed_seconds']}s`"
-                )
-                lines.append("```json")
-                lines.append(pretty_json(llm_call["messages"]))
-                lines.append("```")
+                if llm_call.get("api") == "responses":
+                    lines.append(
+                        f"- api: `responses`\n"
+                        f"- tool_choice: `{llm_call['tool_choice']}`\n"
+                        f"- previous_response_id: `{llm_call['previous_response_id']}`\n"
+                        f"- max_output_tokens: `{llm_call['max_output_tokens']}`\n"
+                        f"- reasoning_effort: `{llm_call['reasoning_effort']}`\n"
+                        f"- elapsed: `{llm_call['elapsed_seconds']}s`"
+                    )
+                    lines.append("**Instructions**")
+                    lines.append("```")
+                    lines.append(llm_call.get("instructions") or "")
+                    lines.append("```")
+                    lines.append("**Input**")
+                    lines.append("```json")
+                    lines.append(pretty_json(llm_call.get("input")))
+                    lines.append("```")
+                    if llm_call.get("text") is not None:
+                        lines.append("**Structured Text Format**")
+                        lines.append("```json")
+                        lines.append(pretty_json(llm_call.get("text")))
+                        lines.append("```")
+                else:
+                    lines.append(
+                        f"- max_tokens: `{llm_call['max_tokens']}`\n"
+                        f"- reasoning_effort: `{llm_call['reasoning_effort']}`\n"
+                        f"- response_format: `{llm_call['response_format']}`\n"
+                        f"- elapsed: `{llm_call['elapsed_seconds']}s`"
+                    )
+                    lines.append("```json")
+                    lines.append(pretty_json(llm_call["messages"]))
+                    lines.append("```")
                 lines.append("**Response Preview**")
                 lines.append("```")
                 lines.append(llm_call["response_preview"])
