@@ -67,6 +67,23 @@ class Config:
             "AZURE_OPENAI_CONTENT_FILTER_POLICY"
         )
 
+        # OpenAI Responses API Configuration
+        # Used only for graph-grounded retrieval tool loops. The existing
+        # Azure/APIM configuration remains the default for tutor chat and
+        # non-retrieval synthesis.
+        self.OPENAI_RESPONSES_API_KEY: Optional[str] = os.getenv(
+            "OPENAI_RESPONSES_API_KEY"
+        )
+        self.OPENAI_RESPONSES_MODEL: str = os.getenv(
+            "OPENAI_RESPONSES_MODEL", "gpt-5.4"
+        )
+        self.OPENAI_RESPONSES_BASE_URL: str = os.getenv(
+            "OPENAI_RESPONSES_BASE_URL", "https://api.openai.com/v1"
+        )
+        self.OPENAI_RESPONSES_ENABLED: bool = (
+            os.getenv("OPENAI_RESPONSES_ENABLED", "true").lower() == "true"
+        )
+
         # Ollama Configuration
         self.OLLAMA_HOST: str = os.getenv("OLLAMA_HOST", "http://localhost:11434")
         self.OLLAMA_EMBEDDING_MODEL: str = os.getenv(

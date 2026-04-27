@@ -248,7 +248,8 @@ class HybridCrewAISocraticSystem:
 
     def __init__(
         self, azure_config: Dict[str, str], vector_store_service : VectorStoreInterface,
-        db_manager=None, wcag_mcp_client=None, student_mcp_client=None
+        db_manager=None, wcag_mcp_client=None, student_mcp_client=None,
+        graph_responses_client=None,
     ):
         tutor_deployment = (
             azure_config.get("tutor_deployment_name")
@@ -295,6 +296,7 @@ class HybridCrewAISocraticSystem:
         self.db = db_manager or get_database_manager()
         self.wcag_mcp = wcag_mcp_client
         self.student_mcp = student_mcp_client
+        self.graph_responses_client = graph_responses_client or self.reasoning_client
         self.instance_a_service = GeneralChatService(
             azure_config=azure_config,
             vector_store_service=vector_store_service,
@@ -331,7 +333,7 @@ class HybridCrewAISocraticSystem:
             graph_error_cls=TeachingGraphGenerationError,
         )
         self._graph_node_evidence_worker = NodeEvidenceRetrieverWorker(
-            reasoning_client=self.reasoning_client,
+            reasoning_client=self.graph_responses_client,
             wcag_mcp=self.wcag_mcp,
             max_completion_tokens=TEACHING_GRAPH_NODE_RETRIEVAL_MAX_COMPLETION_TOKENS,
             reasoning_effort=TEACHING_GRAPH_NODE_RETRIEVAL_REASONING_EFFORT,

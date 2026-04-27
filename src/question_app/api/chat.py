@@ -27,6 +27,7 @@ from ..services.tutor.hybrid_system import (
     HybridCrewAISocraticSystem,
 )
 from ..services.tutor.azure_client import AzureAPIMClient
+from ..services.tutor.openai_responses_client import OpenAIResponsesClient
 from ..services.wcag_mcp_client import WCAGMCPClient
 from ..services.student_service import StudentService
 from ..services.general_chat_service import GeneralChatService
@@ -76,6 +77,15 @@ try:
     if wcag_mcp:
         logger.info("Chat API: WCAG MCP client created with LLM-driven tool calling.")
 
+    graph_responses_client = None
+    if config.OPENAI_RESPONSES_ENABLED and config.OPENAI_RESPONSES_API_KEY:
+        graph_responses_client = OpenAIResponsesClient(
+            api_key=config.OPENAI_RESPONSES_API_KEY,
+            model=config.OPENAI_RESPONSES_MODEL,
+            base_url=config.OPENAI_RESPONSES_BASE_URL,
+        )
+        logger.info("Chat API: OpenAI Responses client enabled for graph retrieval.")
+
     general_chat_service = GeneralChatService(
         azure_config=azure_config,
         vector_store_service=vector_service,
@@ -93,6 +103,7 @@ try:
         vector_store_service=vector_service,
         wcag_mcp_client=wcag_mcp,
         student_mcp_client=student_service,
+        graph_responses_client=graph_responses_client,
     )
     logger.info("Chat API: HybridCrewAISocraticSystem initialized successfully.")
 
