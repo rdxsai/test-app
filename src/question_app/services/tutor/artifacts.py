@@ -733,6 +733,12 @@ class EdgeContentRecord:
 
     @classmethod
     def from_dict(cls, payload: Dict[str, Any]) -> "EdgeContentRecord":
+        transition_misconception = dict(payload.get("transition_misconception") or {})
+        if not transition_misconception:
+            transition_misconception = {
+                "text": "No generated learner misconception.",
+                "grounding_basis": [payload.get("from") or "edge"],
+            }
         return cls(
             from_node=_require_str(payload.get("from"), "edge_content.from"),
             to_node=_require_str(payload.get("to"), "edge_content.to"),
@@ -752,7 +758,7 @@ class EdgeContentRecord:
                 field_name="edge_content.bridge_example",
             ),
             transition_misconception=GroundedTextSpan.from_dict(
-                dict(payload.get("transition_misconception") or {}),
+                transition_misconception,
                 field_name="edge_content.transition_misconception",
             ),
         )

@@ -39,7 +39,7 @@ Do NOT:
 Return JSON only with this shape:
 {
   "objective_text": "...",
-  "graph_type": "hierarchy|comparison|causal|decision|procedure|causal_distinction_application",
+  "graph_type": "hierarchy|comparison|causal|decision|decision_application|procedure|causal_distinction_application",
   "entry_nodes": ["node_id"],
   "integration_node": "node_id",
   "primary_route": ["node_id"],
@@ -73,6 +73,9 @@ What to gather when relevant:
 - contrast support
 - risk or failure support
 - structural support
+- implementation support
+- example support
+- failure support
 
 How to behave:
 - Retrieve before concluding anything.
@@ -113,6 +116,8 @@ Rules:
 - canonical_example may be synthetic, but it must stay within grounded claims.
 - canonical_contrast may be synthetic, but it must stay within grounded distinctions.
 - Do not invent new normative rules or exceptions.
+- Do not generate Socratic questions.
+- Do not generate learner misconceptions.
 - Do not produce tutor dialogue.
 
 Return JSON only with this shape:
@@ -154,9 +159,10 @@ Rules:
 - transition_rationale and bridge_text must reflect the actual conceptual shift
   between source and target nodes.
 - bridge_example may be synthetic, but it must stay within grounded node content.
-- transition_misconception must be a plausible confusion between the connected nodes.
 - integration must require combining multiple nodes, not just repeating one node.
 - Do not invent new normative rules.
+- Do not generate Socratic questions.
+- Do not generate learner misconceptions.
 
 Return JSON only with this shape:
 {
@@ -170,10 +176,6 @@ Return JSON only with this shape:
       "source_requirement": "...",
       "target_shift": "...",
       "bridge_example": {
-        "text": "...",
-        "grounding_basis": ["node_id"]
-      },
-      "transition_misconception": {
         "text": "...",
         "grounding_basis": ["node_id"]
       }
@@ -198,8 +200,10 @@ Validation policy:
 - Supporting claims are the strictest zone. They must be supported by retrieved grounding.
 - Examples may be synthetic, but they must not add unsupported normative rules.
 - Edge rationale and bridge text may be grounded through node content.
-- Edge examples and transition misconceptions must stay consistent with grounded node content.
+- Edge examples must stay consistent with grounded node content.
 - Integration content must combine grounded node ideas without inventing new facts.
+- Do not generate Socratic questions.
+- Do not generate learner misconceptions.
 
 Return JSON only with this shape:
 {

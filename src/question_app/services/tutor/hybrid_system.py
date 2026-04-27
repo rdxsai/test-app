@@ -29,6 +29,7 @@ from .workers.content import (
     TeachingPlanWorker,
 )
 from .workers.graph import (
+    GraphGroundingProjector,
     EdgeIntegrationSynthesizerWorker,
     GroundingValidatorWorker,
     NodeContentSynthesizerWorker,
@@ -3351,16 +3352,44 @@ class HybridCrewAISocraticSystem:
     async def _run_teaching_content_pipeline(
         self, objective_text: str, session_id: str, objective_id: str, ws_send,
     ) -> tuple:
-        artifact = await self._teaching_content_pipeline.run(
+        await ws_send({"type": "stage", "stage": "composing", "detail": "Building teaching graph..."})
+        await ws_send({"type": "teaching_plan_generating"})
+        artifact = await self._build_teaching_graph_content(
             objective_text=objective_text,
-            ws_send=ws_send,
-            prompt_builder=self._guided_retrieval_prompt_builder,
         )
+        teaching_plan = artifact.graph.to_dict()
+        display_plan = json.dumps(teaching_plan, indent=2)
+        await ws_send(
+            {
+                "type": "teaching_plan",
+                "plan": teaching_plan,
+                "display_plan": display_plan,
+            }
+        )
+        if not artifact.tutor_facing_content:
+            raise TeachingGraphGenerationError(
+                "Graph-grounded pipeline did not produce tutor-facing content."
+            )
+        teaching_content = GraphGroundingProjector.render_tutor_content(
+            artifact.tutor_facing_content
+        )
+        await ws_send({"type": "teaching_content_generating"})
+        await ws_send(
+            {
+                "type": "teaching_content",
+                "content": teaching_content,
+                "display_content": teaching_content,
+            }
+        )
+        extracted_concepts = [
+            {"id": node.id, "label": node.label}
+            for node in artifact.graph.nodes
+        ]
         return (
-            artifact.teaching_plan,
-            artifact.teaching_content,
-            artifact.retrieval_bundle,
-            artifact.extracted_concepts,
+            teaching_plan,
+            teaching_content,
+            artifact.to_dict(),
+            extracted_concepts,
         )
 
     async def _generate_retrieval_plan(

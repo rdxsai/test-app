@@ -5,6 +5,7 @@ import logging
 from typing import Any, Awaitable, Callable, Dict, List, Optional
 
 from .artifacts import GuidedTurnResult, TeachingGraphContentArtifact
+from .workers.graph import GraphGroundingProjector
 
 logger = logging.getLogger(__name__)
 
@@ -58,6 +59,36 @@ class TeachingGraphBuildOrchestrator:
             node_content=node_content,
             edge_integration=edge_integration,
         )
+        evidence_cards = GraphGroundingProjector.build_evidence_cards(
+            objective_text=objective_text,
+            node_evidence=node_evidence,
+        )
+        claim_ledger = GraphGroundingProjector.build_claim_ledger(
+            objective_text=objective_text,
+            node_evidence=node_evidence,
+            node_content=node_content,
+            edge_integration=edge_integration,
+            evidence_cards=evidence_cards,
+        )
+        validation = GraphGroundingProjector.deterministic_validate(
+            validation=validation,
+            claim_ledger=claim_ledger,
+            evidence_cards=evidence_cards,
+        )
+        if validation.overall_status != "pass":
+            raise RuntimeError(
+                "Graph-grounded content failed validation: "
+                f"{validation.overall_status}"
+            )
+        tutor_facing_content = GraphGroundingProjector.build_tutor_facing_content(
+            objective_text=objective_text,
+            graph=graph,
+            node_content=node_content,
+            edge_integration=edge_integration,
+            evidence_cards=evidence_cards,
+            claim_ledger=claim_ledger,
+            validation=validation,
+        )
         return TeachingGraphContentArtifact(
             objective_text=objective_text,
             graph=graph,
@@ -65,6 +96,9 @@ class TeachingGraphBuildOrchestrator:
             node_content=node_content,
             edge_integration=edge_integration,
             validation=validation,
+            evidence_cards=evidence_cards,
+            claim_ledger=claim_ledger,
+            tutor_facing_content=tutor_facing_content,
         )
 
 

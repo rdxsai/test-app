@@ -2462,6 +2462,65 @@ class TestGuidedRetrieval:
 
         monkeypatch.setattr(hybrid_system.reasoning_client, "chat", fake_chat)
 
+        async def fake_build_node_evidence(*, objective_text, graph):
+            return NodeEvidenceArtifact.from_dict(
+                {
+                    "objective_text": objective_text,
+                    "graph_summary": {
+                        "graph_type": graph.graph_type,
+                        "node_ids": [node.id for node in graph.nodes],
+                    },
+                    "node_evidence": [
+                        {
+                            "node_id": "n1",
+                            "grounding_strength": "adequate",
+                            "coverage_summary": {
+                                "has_explanatory_support": True,
+                                "has_normative_anchor": True,
+                            },
+                            "source_tools_used": [{"tool": "list_principles", "args": {}}],
+                            "retrieved_items": [
+                                {
+                                    "item_id": "n1-item-1",
+                                    "tool": "list_principles",
+                                    "args": {},
+                                    "kind": "structural_support",
+                                    "title": "list_principles",
+                                    "content": "WCAG has four principles.",
+                                    "grounding_note": "Grounds the top-level structure.",
+                                }
+                            ],
+                        },
+                        {
+                            "node_id": "n2",
+                            "grounding_strength": "adequate",
+                            "coverage_summary": {
+                                "has_explanatory_support": True,
+                                "has_normative_anchor": True,
+                            },
+                            "source_tools_used": [{"tool": "list_principles", "args": {}}],
+                            "retrieved_items": [
+                                {
+                                    "item_id": "n2-item-1",
+                                    "tool": "list_principles",
+                                    "args": {},
+                                    "kind": "structural_support",
+                                    "title": "list_principles",
+                                    "content": "WCAG structure can be explained as layers.",
+                                    "grounding_note": "Grounds the integrated view.",
+                                }
+                            ],
+                        },
+                    ],
+                }
+            )
+
+        monkeypatch.setattr(
+            hybrid_system._graph_node_evidence_worker,
+            "build_node_evidence",
+            fake_build_node_evidence,
+        )
+
         artifact = await hybrid_system._build_teaching_graph_content(
             "Explain the structure of WCAG"
         )
@@ -2471,6 +2530,9 @@ class TestGuidedRetrieval:
         assert len(artifact.node_content.nodes) == 2
         assert len(artifact.edge_integration.edges) == 1
         assert artifact.validation.overall_status == "pass"
+        assert artifact.evidence_cards is not None
+        assert artifact.claim_ledger is not None
+        assert artifact.tutor_facing_content is not None
 
 
 class TestToolActivityRationale:

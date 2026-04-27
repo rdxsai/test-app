@@ -5,11 +5,14 @@ import json
 from typing import Any, Dict, List, Optional
 
 from ..artifacts import (
+    ClaimLedgerArtifact,
     EdgeIntegrationArtifact,
+    EvidenceCardSet,
     GroundingValidationArtifact,
     NodeEvidenceArtifact,
     NodeContentArtifact,
     TeachingGraphArtifact,
+    TutorFacingTeachingContent,
 )
 from ..prompts import (
     EDGE_INTEGRATION_SYNTHESIS_PROMPT,
@@ -118,7 +121,7 @@ class NodeEvidenceRetrieverWorker:
         if tool_name in {"get_criterion", "get_guideline", "list_guidelines", "list_principles"}:
             return "explanatory_support"
         if tool_name in {"get_technique", "get_techniques_for_criterion", "search_techniques"}:
-            return "risk_support"
+            return "implementation_support"
         if tool_name in {"search_wcag", "list_success_criteria", "get_criteria_by_level", "count_criteria"}:
             return "structural_support"
         return "explanatory_support"
@@ -171,6 +174,22 @@ class NodeEvidenceRetrieverWorker:
     def _responses_tool_definitions() -> List[Dict[str, Any]]:
         from ...wcag_mcp_client import GUIDED_WCAG_TOOL_DEFINITIONS
 
+        def _strict_parameters(parameters: Dict[str, Any]) -> Dict[str, Any]:
+            normalized = json.loads(json.dumps(parameters or {}))
+            normalized.setdefault("type", "object")
+            properties = normalized.setdefault("properties", {})
+            originally_required = set(normalized.get("required") or [])
+            for name, schema in properties.items():
+                if name in originally_required:
+                    continue
+                if "type" in schema and isinstance(schema["type"], str):
+                    schema["type"] = [schema["type"], "null"]
+                if "enum" in schema and None not in schema["enum"]:
+                    schema["enum"] = list(schema["enum"]) + [None]
+            normalized["required"] = list(properties.keys())
+            normalized["additionalProperties"] = False
+            return normalized
+
         converted: List[Dict[str, Any]] = []
         for tool in GUIDED_WCAG_TOOL_DEFINITIONS:
             function = tool.get("function") or {}
@@ -179,11 +198,7 @@ class NodeEvidenceRetrieverWorker:
                     "type": "function",
                     "name": function.get("name"),
                     "description": function.get("description", ""),
-                    "parameters": function.get("parameters") or {
-                        "type": "object",
-                        "properties": {},
-                        "required": [],
-                    },
+                    "parameters": _strict_parameters(function.get("parameters") or {}),
                     "strict": True,
                 }
             )
@@ -252,6 +267,9 @@ class NodeEvidenceRetrieverWorker:
                                             "contrast_support",
                                             "risk_support",
                                             "structural_support",
+                                            "implementation_support",
+                                            "example_support",
+                                            "failure_support",
                                         ],
                                     },
                                     "title": {"type": "string"},
@@ -340,6 +358,7 @@ class NodeEvidenceRetrieverWorker:
                     continue
                 raw_args = dict(call.get("arguments") or {})
                 rationale = str(raw_args.pop("rationale", "")).strip()
+                raw_args = {key: value for key, value in raw_args.items() if value is not None}
                 planned_calls.append(
                     {
                         "tool": tool_name,
@@ -668,3 +687,346 @@ class GroundingValidatorWorker:
             raise self.validation_error_cls(
                 f"Teaching graph validation failed: {preview or 'empty response'}"
             ) from exc
+
+
+class GraphGroundingProjector:
+    """Build deterministic grounding artifacts around graph worker outputs."""
+
+    EVIDENCE_TO_CLAIM_TYPE = {
+        "definition": "official_definition",
+        "normative_anchor": "normative_requirement",
+        "explanatory_support": "pedagogical_inference",
+        "contrast_support": "pedagogical_inference",
+        "risk_support": "failure_condition",
+        "structural_support": "structural_fact",
+        "implementation_support": "implementation_pattern",
+        "example_support": "synthetic_example_judgment",
+        "failure_support": "failure_condition",
+    }
+
+    @staticmethod
+    def _node_evidence_lookup(node_evidence: NodeEvidenceArtifact) -> Dict[str, List[str]]:
+        lookup: Dict[str, List[str]] = {}
+        for record in node_evidence.node_evidence:
+            lookup[record.node_id] = [item.item_id for item in record.retrieved_items]
+        return lookup
+
+    @classmethod
+    def build_evidence_cards(
+        cls,
+        *,
+        objective_text: str,
+        node_evidence: NodeEvidenceArtifact,
+    ) -> EvidenceCardSet:
+        raw_records: List[Dict[str, Any]] = []
+        cards: List[Dict[str, Any]] = []
+        raw_id_by_key: Dict[tuple[str, str, str], str] = {}
+
+        for record in node_evidence.node_evidence:
+            for item in record.retrieved_items:
+                raw_id = f"raw_{item.item_id}"
+                raw_key = (item.tool, json.dumps(item.args, sort_keys=True), item.content)
+                if raw_key in raw_id_by_key:
+                    raw_id = raw_id_by_key[raw_key]
+                else:
+                    raw_id_by_key[raw_key] = raw_id
+                    raw_records.append(
+                        {
+                            "raw_evidence_id": raw_id,
+                            "target_refs": [f"node:{record.node_id}"],
+                            "source": "wcag_mcp",
+                            "tool": item.tool,
+                            "args": item.args,
+                            "status": "HIT",
+                            "chars": len(item.content),
+                            "raw_result": item.content,
+                        }
+                    )
+                claim_type = cls.EVIDENCE_TO_CLAIM_TYPE.get(
+                    item.kind, "pedagogical_inference"
+                )
+                cards.append(
+                    {
+                        "evidence_id": item.item_id,
+                        "raw_evidence_id": raw_id,
+                        "target_refs": [f"node:{record.node_id}"],
+                        "evidence_type": item.kind,
+                        "source_ref": item.title,
+                        "title": item.title,
+                        "usable_facts": [
+                            {
+                                "fact_id": f"fact_{item.item_id}",
+                                "text": item.grounding_note or item.content[:400],
+                                "supports_claim_types": [claim_type],
+                            }
+                        ],
+                        "limitations": [],
+                        "grounding_strength": record.grounding_strength,
+                    }
+                )
+
+        return EvidenceCardSet.from_dict(
+            {
+                "objective_text": objective_text,
+                "raw_evidence": raw_records,
+                "evidence_cards": cards,
+                "unsupported_gaps": [],
+            }
+        )
+
+    @classmethod
+    def build_claim_ledger(
+        cls,
+        *,
+        objective_text: str,
+        node_evidence: NodeEvidenceArtifact,
+        node_content: NodeContentArtifact,
+        edge_integration: EdgeIntegrationArtifact,
+        evidence_cards: EvidenceCardSet,
+    ) -> ClaimLedgerArtifact:
+        evidence_by_node = cls._node_evidence_lookup(node_evidence)
+        claims: List[Dict[str, Any]] = []
+
+        for node in node_content.nodes:
+            node_evidence_ids = evidence_by_node.get(node.id, [])
+            claims.append(
+                {
+                    "claim_id": f"claim_{node.id}_core",
+                    "scope": {"type": "node", "id": node.id, "field": "core_claim"},
+                    "text": node.core_claim,
+                    "claim_type": "pedagogical_inference",
+                    "requires_evidence": bool(node_evidence_ids),
+                    "evidence_ids": node_evidence_ids,
+                    "generated": True,
+                    "status": "pending_validation",
+                }
+            )
+            for index, claim_text in enumerate(node.supporting_claims):
+                grounding = next(
+                    (
+                        item
+                        for item in node.supporting_claim_grounding
+                        if item.claim_index == index
+                    ),
+                    None,
+                )
+                evidence_ids = grounding.basis_item_ids if grounding else node_evidence_ids
+                claims.append(
+                    {
+                        "claim_id": f"claim_{node.id}_support_{index}",
+                        "scope": {
+                            "type": "node",
+                            "id": node.id,
+                            "field": f"supporting_claims[{index}]",
+                        },
+                        "text": claim_text,
+                        "claim_type": "pedagogical_inference",
+                        "requires_evidence": True,
+                        "evidence_ids": evidence_ids,
+                        "generated": True,
+                        "status": "pending_validation",
+                    }
+                )
+            claims.append(
+                {
+                    "claim_id": f"claim_{node.id}_example",
+                    "scope": {
+                        "type": "example",
+                        "id": f"{node.id}:canonical_example",
+                        "field": "canonical_example",
+                    },
+                    "text": node.canonical_example.text,
+                    "claim_type": "synthetic_example_judgment",
+                    "requires_evidence": True,
+                    "evidence_ids": node.canonical_example.grounding_basis,
+                    "generated": True,
+                    "status": "pending_validation",
+                }
+            )
+
+        for edge in edge_integration.edges:
+            edge_id = f"{edge.from_node}->{edge.to_node}"
+            edge_evidence_ids = sorted(
+                set(evidence_by_node.get(edge.from_node, []))
+                | set(evidence_by_node.get(edge.to_node, []))
+            )
+            claims.append(
+                {
+                    "claim_id": f"claim_edge_{edge.from_node}_{edge.to_node}",
+                    "scope": {"type": "edge", "id": edge_id, "field": "bridge_text"},
+                    "text": edge.bridge_text,
+                    "claim_type": "pedagogical_inference",
+                    "requires_evidence": bool(edge_evidence_ids),
+                    "evidence_ids": edge_evidence_ids,
+                    "generated": True,
+                    "status": "pending_validation",
+                }
+            )
+
+        integration_evidence_ids: List[str] = []
+        for node_id in edge_integration.integration.what_must_be_combined:
+            integration_evidence_ids.extend(evidence_by_node.get(node_id, []))
+        integration_evidence_ids = sorted(set(integration_evidence_ids))
+        claims.append(
+            {
+                "claim_id": "claim_integration_core",
+                "scope": {
+                    "type": "integration",
+                    "id": edge_integration.integration.node_id,
+                    "field": "integration_claim",
+                },
+                "text": edge_integration.integration.integration_claim,
+                "claim_type": "pedagogical_inference",
+                "requires_evidence": bool(integration_evidence_ids),
+                "evidence_ids": integration_evidence_ids,
+                "generated": True,
+                "status": "pending_validation",
+            }
+        )
+
+        return ClaimLedgerArtifact.from_dict(
+            {
+                "objective_text": objective_text,
+                "claims": claims,
+            },
+            known_evidence_ids={item.evidence_id for item in evidence_cards.evidence_cards},
+        )
+
+    @staticmethod
+    def deterministic_validate(
+        *,
+        validation: GroundingValidationArtifact,
+        claim_ledger: ClaimLedgerArtifact,
+        evidence_cards: EvidenceCardSet,
+    ) -> GroundingValidationArtifact:
+        evidence_ids = {item.evidence_id for item in evidence_cards.evidence_cards}
+        claim_checks: List[Dict[str, Any]] = []
+        status = validation.overall_status
+        for claim in claim_ledger.claims:
+            missing = [item for item in claim.evidence_ids if item not in evidence_ids]
+            if claim.requires_evidence and not claim.evidence_ids:
+                status = "fail"
+                claim_checks.append(
+                    {
+                        "claim_id": claim.claim_id,
+                        "status": "fail",
+                        "reason": "Evidence-required claim has no evidence IDs.",
+                        "action": "Retrieve evidence or remove the claim.",
+                    }
+                )
+            elif missing:
+                status = "fail"
+                claim_checks.append(
+                    {
+                        "claim_id": claim.claim_id,
+                        "status": "fail",
+                        "reason": f"Unknown evidence IDs: {', '.join(missing)}",
+                        "action": "Fix evidence references before exposing content.",
+                    }
+                )
+            else:
+                claim_checks.append(
+                    {
+                        "claim_id": claim.claim_id,
+                        "status": "pass",
+                        "reason": "",
+                        "action": "",
+                    }
+                )
+
+        payload = validation.to_dict()
+        payload["overall_status"] = status
+        payload["claim_checks"] = claim_checks
+        return GroundingValidationArtifact.from_dict(payload)
+
+    @staticmethod
+    def build_tutor_facing_content(
+        *,
+        objective_text: str,
+        graph: TeachingGraphArtifact,
+        node_content: NodeContentArtifact,
+        edge_integration: EdgeIntegrationArtifact,
+        evidence_cards: EvidenceCardSet,
+        claim_ledger: ClaimLedgerArtifact,
+        validation: GroundingValidationArtifact,
+    ) -> TutorFacingTeachingContent:
+        nodes = [
+            {
+                "id": node.id,
+                "label": node.label,
+                "core_claim": node.core_claim,
+                "supporting_claims": list(node.supporting_claims),
+                "canonical_example": node.canonical_example.text,
+                "canonical_contrast": node.canonical_contrast.text,
+            }
+            for node in node_content.nodes
+        ]
+        edges = [
+            {
+                "from": edge.from_node,
+                "to": edge.to_node,
+                "type": edge.type,
+                "bridge_text": edge.bridge_text,
+                "source_requirement": edge.source_requirement,
+                "target_shift": edge.target_shift,
+            }
+            for edge in edge_integration.edges
+        ]
+        integration = {
+            "node_id": edge_integration.integration.node_id,
+            "scenario": edge_integration.integration.integration_scenario.text,
+            "integration_claim": edge_integration.integration.integration_claim,
+            "what_must_be_combined": list(
+                edge_integration.integration.what_must_be_combined
+            ),
+        }
+        return TutorFacingTeachingContent.from_dict(
+            {
+                "objective_text": objective_text,
+                "ordered_concept_path": graph.primary_route,
+                "nodes": nodes,
+                "edges": edges,
+                "integration": integration,
+                "internal_grounding": {
+                    "validation_status": validation.overall_status,
+                    "evidence_count": len(evidence_cards.evidence_cards),
+                    "claim_count": len(claim_ledger.claims),
+                },
+            }
+        )
+
+    @staticmethod
+    def render_tutor_content(content: TutorFacingTeachingContent) -> str:
+        lines = [f"# Graph-Grounded Teaching Content", "", f"Objective: {content.objective_text}", ""]
+        lines.append("## Ordered Concept Path")
+        lines.extend(f"- {node_id}" for node_id in content.ordered_concept_path)
+        lines.append("")
+        lines.append("## Nodes")
+        for node in content.nodes:
+            lines.append(f"### {node.get('id')}: {node.get('label')}")
+            lines.append(str(node.get("core_claim", "")).strip())
+            supporting = node.get("supporting_claims") or []
+            if supporting:
+                lines.append("")
+                lines.extend(f"- {item}" for item in supporting)
+            example = str(node.get("canonical_example") or "").strip()
+            if example:
+                lines.append("")
+                lines.append(f"Example: {example}")
+            contrast = str(node.get("canonical_contrast") or "").strip()
+            if contrast:
+                lines.append(f"Contrast: {contrast}")
+            lines.append("")
+        lines.append("## Transitions")
+        for edge in content.edges:
+            lines.append(
+                f"- {edge.get('from')} -> {edge.get('to')}: {edge.get('bridge_text')}"
+            )
+        lines.append("")
+        lines.append("## Integration")
+        lines.append(str(content.integration.get("integration_claim", "")).strip())
+        scenario = str(content.integration.get("scenario") or "").strip()
+        if scenario:
+            lines.append("")
+            lines.append(f"Scenario: {scenario}")
+        return "\n".join(lines).strip()
