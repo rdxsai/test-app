@@ -73,7 +73,7 @@ class Config:
         # non-retrieval synthesis.
         self.OPENAI_RESPONSES_API_KEY: Optional[str] = os.getenv(
             "OPENAI_RESPONSES_API_KEY"
-        )
+        ) or os.getenv("OPENAI_API_KEY")
         self.OPENAI_RESPONSES_MODEL: str = os.getenv(
             "OPENAI_RESPONSES_MODEL", "gpt-5.4"
         )

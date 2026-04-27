@@ -773,7 +773,6 @@ class EdgeContentRecord:
             "source_requirement": self.source_requirement,
             "target_shift": self.target_shift,
             "bridge_example": self.bridge_example.to_dict(),
-            "transition_misconception": self.transition_misconception.to_dict(),
         }
 
 

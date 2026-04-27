@@ -105,7 +105,7 @@ class NodeEvidenceRetrieverWorker:
         self.max_completion_tokens = max_completion_tokens
         self.reasoning_effort = reasoning_effort
         self.max_tool_calls_per_node = max_tool_calls_per_node
-        self.max_rounds = 4
+        self.max_rounds = 8
         self.retrieval_error_cls = retrieval_error_cls
 
     @staticmethod
@@ -244,7 +244,12 @@ class NodeEvidenceRetrieverWorker:
                                 "type": "object",
                                 "properties": {
                                     "tool": {"type": "string"},
-                                    "args": {"type": "object", "additionalProperties": True},
+                                    "args": {
+                                        "type": "object",
+                                        "properties": {},
+                                        "required": [],
+                                        "additionalProperties": False,
+                                    },
                                 },
                                 "required": ["tool", "args"],
                                 "additionalProperties": False,
@@ -257,7 +262,12 @@ class NodeEvidenceRetrieverWorker:
                                 "properties": {
                                     "item_id": {"type": "string"},
                                     "tool": {"type": "string"},
-                                    "args": {"type": "object", "additionalProperties": True},
+                                    "args": {
+                                        "type": "object",
+                                        "properties": {},
+                                        "required": [],
+                                        "additionalProperties": False,
+                                    },
                                     "kind": {
                                         "type": "string",
                                         "enum": [
@@ -349,7 +359,7 @@ class NodeEvidenceRetrieverWorker:
             store=True,
         )
         rounds = 0
-        while rounds < self.max_rounds:
+        while True:
             tool_calls = self._extract_function_calls(response)
             if not tool_calls:
                 break
@@ -397,6 +407,19 @@ class NodeEvidenceRetrieverWorker:
                     }
                 )
 
+            if rounds >= self.max_rounds:
+                response = await self.reasoning_client.responses_create(
+                    previous_response_id=response.get("id"),
+                    instructions=(
+                        "Retrieval budget reached. Accept these tool outputs and do "
+                        "not call any more tools. Wait for finalization."
+                    ),
+                    input=tool_outputs,
+                    reasoning_effort=self.reasoning_effort,
+                    max_output_tokens=self.max_completion_tokens,
+                )
+                break
+
             response = await self.reasoning_client.responses_create(
                 previous_response_id=response.get("id"),
                 input=tool_outputs,
@@ -412,7 +435,17 @@ class NodeEvidenceRetrieverWorker:
         final_response = await self.reasoning_client.responses_create(
             previous_response_id=response.get("id"),
             instructions=NODE_EVIDENCE_FINALIZATION_PROMPT,
-            input=[],
+            input=[
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "input_text",
+                            "text": "Finalize the evidence artifact now using only the evidence already gathered.",
+                        }
+                    ],
+                }
+            ],
             text=self._node_evidence_text_format(),
             reasoning_effort=self.reasoning_effort,
             max_output_tokens=self.max_completion_tokens,
@@ -864,10 +897,28 @@ class GraphGroundingProjector:
     }
 
     @staticmethod
-    def _node_evidence_lookup(node_evidence: NodeEvidenceArtifact) -> Dict[str, List[str]]:
+    def _safe_evidence_part(value: str) -> str:
+        cleaned = "".join(
+            char if char.isalnum() or char in {"_", "-"} else "_"
+            for char in str(value or "").strip()
+        )
+        return cleaned.strip("_") or "item"
+
+    @classmethod
+    def _qualified_evidence_id(cls, target_id: str, item_id: str) -> str:
+        return (
+            f"{cls._safe_evidence_part(target_id)}"
+            f"__{cls._safe_evidence_part(item_id)}"
+        )
+
+    @classmethod
+    def _node_evidence_lookup(cls, node_evidence: NodeEvidenceArtifact) -> Dict[str, List[str]]:
         lookup: Dict[str, List[str]] = {}
         for record in node_evidence.node_evidence:
-            lookup[record.node_id] = [item.item_id for item in record.retrieved_items]
+            lookup[record.node_id] = [
+                cls._qualified_evidence_id(record.node_id, item.item_id)
+                for item in record.retrieved_items
+            ]
         return lookup
 
     @staticmethod
@@ -892,7 +943,8 @@ class GraphGroundingProjector:
         for record in node_evidence.node_evidence:
             target_refs = cls._target_refs_for_record(record.node_id)
             for item in record.retrieved_items:
-                raw_id = f"raw_{item.item_id}"
+                evidence_id = cls._qualified_evidence_id(record.node_id, item.item_id)
+                raw_id = f"raw_{evidence_id}"
                 raw_key = (item.tool, json.dumps(item.args, sort_keys=True), item.content)
                 if raw_key in raw_id_by_key:
                     raw_id = raw_id_by_key[raw_key]
@@ -915,7 +967,7 @@ class GraphGroundingProjector:
                 )
                 cards.append(
                     {
-                        "evidence_id": item.item_id,
+                        "evidence_id": evidence_id,
                         "raw_evidence_id": raw_id,
                         "target_refs": target_refs,
                         "evidence_type": item.kind,
@@ -923,7 +975,7 @@ class GraphGroundingProjector:
                         "title": item.title,
                         "usable_facts": [
                             {
-                                "fact_id": f"fact_{item.item_id}",
+                                "fact_id": f"fact_{evidence_id}",
                                 "text": item.grounding_note or item.content[:400],
                                 "supports_claim_types": [claim_type],
                             }
@@ -978,7 +1030,14 @@ class GraphGroundingProjector:
                     ),
                     None,
                 )
-                evidence_ids = grounding.basis_item_ids if grounding else node_evidence_ids
+                evidence_ids = (
+                    [
+                        cls._qualified_evidence_id(node.id, basis_id)
+                        for basis_id in grounding.basis_item_ids
+                    ]
+                    if grounding
+                    else node_evidence_ids
+                )
                 claims.append(
                     {
                         "claim_id": f"claim_{node.id}_support_{index}",
@@ -1006,7 +1065,10 @@ class GraphGroundingProjector:
                     "text": node.canonical_example.text,
                     "claim_type": "synthetic_example_judgment",
                     "requires_evidence": True,
-                    "evidence_ids": node.canonical_example.grounding_basis,
+                    "evidence_ids": [
+                        cls._qualified_evidence_id(node.id, basis_id)
+                        for basis_id in node.canonical_example.grounding_basis
+                    ],
                     "generated": True,
                     "status": "pending_validation",
                 }
