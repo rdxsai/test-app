@@ -91,6 +91,7 @@ class TeachingGraphNode:
     id: str
     label: str
     kind: str
+    teachable_claim: str = ""
 
     @classmethod
     def from_dict(cls, payload: Dict[str, Any]) -> "TeachingGraphNode":
@@ -101,10 +102,14 @@ class TeachingGraphNode:
             id=_require_str(payload.get("id"), "node.id"),
             label=_require_str(payload.get("label"), "node.label"),
             kind=kind,
+            teachable_claim=str(payload.get("teachable_claim") or "").strip(),
         )
 
     def to_dict(self) -> Dict[str, Any]:
-        return {"id": self.id, "label": self.label, "kind": self.kind}
+        payload = {"id": self.id, "label": self.label, "kind": self.kind}
+        if self.teachable_claim:
+            payload["teachable_claim"] = self.teachable_claim
+        return payload
 
 
 @dataclass(frozen=True)
@@ -151,6 +156,7 @@ class TeachingGraphArtifact:
         "comparison",
         "causal",
         "decision",
+        "decision_application",
         "procedure",
         "causal_distinction_application",
     }
@@ -277,6 +283,9 @@ class NodeEvidenceItem:
         "contrast_support",
         "risk_support",
         "structural_support",
+        "implementation_support",
+        "example_support",
+        "failure_support",
     }
 
     item_id: str
@@ -392,6 +401,195 @@ class NodeEvidenceArtifact:
             "objective_text": self.objective_text,
             "graph_summary": dict(self.graph_summary),
             "node_evidence": [item.to_dict() for item in self.node_evidence],
+        }
+
+
+@dataclass(frozen=True)
+class RawEvidenceRecord:
+    raw_evidence_id: str
+    target_refs: List[str]
+    source: str
+    tool: str
+    args: Dict[str, Any]
+    status: str
+    chars: int
+    raw_result: str
+
+    @classmethod
+    def from_dict(cls, payload: Dict[str, Any]) -> "RawEvidenceRecord":
+        status = _require_str(payload.get("status"), "raw_evidence.status")
+        if status not in {"HIT", "MISS", "BLOCKED", "ERROR"}:
+            raise ValueError(f"Unsupported raw_evidence.status: {status}")
+        chars = payload.get("chars", 0)
+        if not isinstance(chars, int) or chars < 0:
+            raise ValueError("raw_evidence.chars must be a non-negative integer")
+        return cls(
+            raw_evidence_id=_require_str(
+                payload.get("raw_evidence_id"), "raw_evidence.raw_evidence_id"
+            ),
+            target_refs=_ensure_string_list(
+                payload.get("target_refs"), "raw_evidence.target_refs"
+            ),
+            source=_require_str(payload.get("source"), "raw_evidence.source"),
+            tool=_require_str(payload.get("tool"), "raw_evidence.tool"),
+            args=dict(payload.get("args") or {}),
+            status=status,
+            chars=chars,
+            raw_result=str(payload.get("raw_result") or ""),
+        )
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "raw_evidence_id": self.raw_evidence_id,
+            "target_refs": list(self.target_refs),
+            "source": self.source,
+            "tool": self.tool,
+            "args": dict(self.args),
+            "status": self.status,
+            "chars": self.chars,
+            "raw_result": self.raw_result,
+        }
+
+
+@dataclass(frozen=True)
+class EvidenceFact:
+    fact_id: str
+    text: str
+    supports_claim_types: List[str]
+
+    @classmethod
+    def from_dict(cls, payload: Dict[str, Any]) -> "EvidenceFact":
+        return cls(
+            fact_id=_require_str(payload.get("fact_id"), "evidence_fact.fact_id"),
+            text=_require_str(payload.get("text"), "evidence_fact.text"),
+            supports_claim_types=_ensure_string_list(
+                payload.get("supports_claim_types"),
+                "evidence_fact.supports_claim_types",
+            ),
+        )
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "fact_id": self.fact_id,
+            "text": self.text,
+            "supports_claim_types": list(self.supports_claim_types),
+        }
+
+
+@dataclass(frozen=True)
+class EvidenceCard:
+    VALID_TYPES = NodeEvidenceItem.VALID_KINDS
+    VALID_STRENGTHS = {"thin", "adequate", "strong"}
+
+    evidence_id: str
+    raw_evidence_id: str
+    target_refs: List[str]
+    evidence_type: str
+    source_ref: str
+    title: str
+    usable_facts: List[EvidenceFact]
+    limitations: List[str] = field(default_factory=list)
+    grounding_strength: str = "adequate"
+
+    @classmethod
+    def from_dict(cls, payload: Dict[str, Any]) -> "EvidenceCard":
+        evidence_type = _require_str(
+            payload.get("evidence_type"), "evidence_card.evidence_type"
+        )
+        if evidence_type not in cls.VALID_TYPES:
+            raise ValueError(f"Unsupported evidence_card.evidence_type: {evidence_type}")
+        grounding_strength = str(payload.get("grounding_strength") or "adequate").strip()
+        if grounding_strength not in cls.VALID_STRENGTHS:
+            raise ValueError(
+                f"Unsupported evidence_card.grounding_strength: {grounding_strength}"
+            )
+        facts = [
+            EvidenceFact.from_dict(item)
+            for item in (payload.get("usable_facts") or [])
+        ]
+        if not facts:
+            raise ValueError("evidence_card.usable_facts must not be empty")
+        return cls(
+            evidence_id=_require_str(
+                payload.get("evidence_id"), "evidence_card.evidence_id"
+            ),
+            raw_evidence_id=_require_str(
+                payload.get("raw_evidence_id"), "evidence_card.raw_evidence_id"
+            ),
+            target_refs=_ensure_string_list(
+                payload.get("target_refs"), "evidence_card.target_refs"
+            ),
+            evidence_type=evidence_type,
+            source_ref=_require_str(
+                payload.get("source_ref"), "evidence_card.source_ref"
+            ),
+            title=_require_str(payload.get("title"), "evidence_card.title"),
+            usable_facts=facts,
+            limitations=[
+                str(item).strip()
+                for item in (payload.get("limitations") or [])
+                if str(item).strip()
+            ],
+            grounding_strength=grounding_strength,
+        )
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "evidence_id": self.evidence_id,
+            "raw_evidence_id": self.raw_evidence_id,
+            "target_refs": list(self.target_refs),
+            "evidence_type": self.evidence_type,
+            "source_ref": self.source_ref,
+            "title": self.title,
+            "usable_facts": [item.to_dict() for item in self.usable_facts],
+            "limitations": list(self.limitations),
+            "grounding_strength": self.grounding_strength,
+        }
+
+
+@dataclass(frozen=True)
+class EvidenceCardSet:
+    objective_text: str
+    raw_evidence: List[RawEvidenceRecord]
+    evidence_cards: List[EvidenceCard]
+    unsupported_gaps: List[str] = field(default_factory=list)
+
+    @classmethod
+    def from_dict(cls, payload: Dict[str, Any]) -> "EvidenceCardSet":
+        card_set = cls(
+            objective_text=_require_str(
+                payload.get("objective_text"), "evidence_card_set.objective_text"
+            ),
+            raw_evidence=[
+                RawEvidenceRecord.from_dict(item)
+                for item in (payload.get("raw_evidence") or [])
+            ],
+            evidence_cards=[
+                EvidenceCard.from_dict(item)
+                for item in (payload.get("evidence_cards") or [])
+            ],
+            unsupported_gaps=[
+                str(item).strip()
+                for item in (payload.get("unsupported_gaps") or [])
+                if str(item).strip()
+            ],
+        )
+        _index_by(card_set.raw_evidence, "raw_evidence_id")
+        _index_by(card_set.evidence_cards, "evidence_id")
+        raw_ids = {item.raw_evidence_id for item in card_set.raw_evidence}
+        for card in card_set.evidence_cards:
+            if card.raw_evidence_id not in raw_ids:
+                raise ValueError(
+                    f"Evidence card references unknown raw evidence: {card.raw_evidence_id}"
+                )
+        return card_set
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "objective_text": self.objective_text,
+            "raw_evidence": [item.to_dict() for item in self.raw_evidence],
+            "evidence_cards": [item.to_dict() for item in self.evidence_cards],
+            "unsupported_gaps": list(self.unsupported_gaps),
         }
 
 
@@ -645,6 +843,188 @@ class EdgeIntegrationArtifact:
 
 
 @dataclass(frozen=True)
+class ClaimScope:
+    VALID_TYPES = {"node", "edge", "integration", "example", "scenario", "reasoning_path"}
+
+    type: str
+    id: str
+    field: str = ""
+
+    @classmethod
+    def from_dict(cls, payload: Dict[str, Any]) -> "ClaimScope":
+        scope_type = _require_str(payload.get("type"), "claim_scope.type")
+        if scope_type not in cls.VALID_TYPES:
+            raise ValueError(f"Unsupported claim_scope.type: {scope_type}")
+        return cls(
+            type=scope_type,
+            id=_require_str(payload.get("id"), "claim_scope.id"),
+            field=str(payload.get("field") or "").strip(),
+        )
+
+    def to_dict(self) -> Dict[str, Any]:
+        payload = {"type": self.type, "id": self.id}
+        if self.field:
+            payload["field"] = self.field
+        return payload
+
+
+@dataclass(frozen=True)
+class ClaimRecord:
+    VALID_TYPES = {
+        "normative_requirement",
+        "official_definition",
+        "aria_semantics",
+        "keyboard_requirement",
+        "accessible_name_requirement",
+        "failure_condition",
+        "implementation_pattern",
+        "structural_fact",
+        "pedagogical_inference",
+        "synthetic_example_judgment",
+    }
+    EVIDENCE_REQUIRED_TYPES = {
+        "normative_requirement",
+        "official_definition",
+        "aria_semantics",
+        "keyboard_requirement",
+        "accessible_name_requirement",
+        "failure_condition",
+        "implementation_pattern",
+        "structural_fact",
+        "synthetic_example_judgment",
+    }
+
+    claim_id: str
+    scope: ClaimScope
+    text: str
+    claim_type: str
+    requires_evidence: bool
+    evidence_ids: List[str] = field(default_factory=list)
+    generated: bool = True
+    status: str = "pending_validation"
+
+    @classmethod
+    def from_dict(cls, payload: Dict[str, Any]) -> "ClaimRecord":
+        claim_type = _require_str(payload.get("claim_type"), "claim.claim_type")
+        if claim_type not in cls.VALID_TYPES:
+            raise ValueError(f"Unsupported claim.claim_type: {claim_type}")
+        requires_evidence = bool(
+            payload.get(
+                "requires_evidence",
+                claim_type in cls.EVIDENCE_REQUIRED_TYPES,
+            )
+        )
+        evidence_ids = [
+            str(item).strip()
+            for item in (payload.get("evidence_ids") or [])
+            if str(item).strip()
+        ]
+        if requires_evidence and not evidence_ids:
+            raise ValueError(
+                f"Evidence-required claim has no evidence_ids: {payload.get('claim_id')}"
+            )
+        return cls(
+            claim_id=_require_str(payload.get("claim_id"), "claim.claim_id"),
+            scope=ClaimScope.from_dict(dict(payload.get("scope") or {})),
+            text=_require_str(payload.get("text"), "claim.text"),
+            claim_type=claim_type,
+            requires_evidence=requires_evidence,
+            evidence_ids=evidence_ids,
+            generated=bool(payload.get("generated", True)),
+            status=str(payload.get("status") or "pending_validation").strip(),
+        )
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "claim_id": self.claim_id,
+            "scope": self.scope.to_dict(),
+            "text": self.text,
+            "claim_type": self.claim_type,
+            "requires_evidence": self.requires_evidence,
+            "evidence_ids": list(self.evidence_ids),
+            "generated": self.generated,
+            "status": self.status,
+        }
+
+
+@dataclass(frozen=True)
+class ClaimLedgerArtifact:
+    objective_text: str
+    claims: List[ClaimRecord]
+
+    @classmethod
+    def from_dict(
+        cls,
+        payload: Dict[str, Any],
+        *,
+        known_evidence_ids: Optional[Iterable[str]] = None,
+    ) -> "ClaimLedgerArtifact":
+        ledger = cls(
+            objective_text=_require_str(
+                payload.get("objective_text"), "claim_ledger.objective_text"
+            ),
+            claims=[
+                ClaimRecord.from_dict(item)
+                for item in (payload.get("claims") or [])
+            ],
+        )
+        _index_by(ledger.claims, "claim_id")
+        if known_evidence_ids is not None:
+            ledger.validate_evidence_references(set(known_evidence_ids))
+        return ledger
+
+    def validate_evidence_references(self, known_evidence_ids: set[str]) -> None:
+        for claim in self.claims:
+            for evidence_id in claim.evidence_ids:
+                if evidence_id not in known_evidence_ids:
+                    raise ValueError(
+                        f"Claim {claim.claim_id} references unknown evidence_id: {evidence_id}"
+                    )
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "objective_text": self.objective_text,
+            "claims": [item.to_dict() for item in self.claims],
+        }
+
+
+@dataclass(frozen=True)
+class TutorFacingTeachingContent:
+    objective_text: str
+    ordered_concept_path: List[str]
+    nodes: List[Dict[str, Any]]
+    edges: List[Dict[str, Any]]
+    integration: Dict[str, Any]
+    internal_grounding: Dict[str, Any]
+
+    @classmethod
+    def from_dict(cls, payload: Dict[str, Any]) -> "TutorFacingTeachingContent":
+        return cls(
+            objective_text=_require_str(
+                payload.get("objective_text"), "tutor_content.objective_text"
+            ),
+            ordered_concept_path=_ensure_string_list(
+                payload.get("ordered_concept_path"),
+                "tutor_content.ordered_concept_path",
+            ),
+            nodes=[dict(item) for item in (payload.get("nodes") or [])],
+            edges=[dict(item) for item in (payload.get("edges") or [])],
+            integration=dict(payload.get("integration") or {}),
+            internal_grounding=dict(payload.get("internal_grounding") or {}),
+        )
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "objective_text": self.objective_text,
+            "ordered_concept_path": list(self.ordered_concept_path),
+            "nodes": [dict(item) for item in self.nodes],
+            "edges": [dict(item) for item in self.edges],
+            "integration": dict(self.integration),
+            "internal_grounding": dict(self.internal_grounding),
+        }
+
+
+@dataclass(frozen=True)
 class UnsupportedClaimIssue:
     claim_text: str
     reason: str
@@ -794,6 +1174,34 @@ class IntegrationValidationCheck:
 
 
 @dataclass(frozen=True)
+class ClaimValidationCheck:
+    claim_id: str
+    status: str
+    reason: str = ""
+    action: str = ""
+
+    @classmethod
+    def from_dict(cls, payload: Dict[str, Any]) -> "ClaimValidationCheck":
+        status = _require_str(payload.get("status"), "claim_check.status")
+        if status not in {"pass", "revise", "fail"}:
+            raise ValueError(f"Unsupported claim_check.status: {status}")
+        return cls(
+            claim_id=_require_str(payload.get("claim_id"), "claim_check.claim_id"),
+            status=status,
+            reason=str(payload.get("reason") or "").strip(),
+            action=str(payload.get("action") or "").strip(),
+        )
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "claim_id": self.claim_id,
+            "status": self.status,
+            "reason": self.reason,
+            "action": self.action,
+        }
+
+
+@dataclass(frozen=True)
 class EdgeRepairTarget:
     from_node: str
     to_node: str
@@ -842,6 +1250,7 @@ class GroundingValidationArtifact:
     edge_checks: List[EdgeValidationCheck]
     integration_check: IntegrationValidationCheck
     repair_targets: RepairTargets
+    claim_checks: List[ClaimValidationCheck] = field(default_factory=list)
 
     @classmethod
     def from_dict(cls, payload: Dict[str, Any]) -> "GroundingValidationArtifact":
@@ -871,6 +1280,10 @@ class GroundingValidationArtifact:
             repair_targets=RepairTargets.from_dict(
                 dict(payload.get("repair_targets") or {})
             ),
+            claim_checks=[
+                ClaimValidationCheck.from_dict(item)
+                for item in (payload.get("claim_checks") or [])
+            ],
         )
         return artifact
 
@@ -882,6 +1295,7 @@ class GroundingValidationArtifact:
             "edge_checks": [item.to_dict() for item in self.edge_checks],
             "integration_check": self.integration_check.to_dict(),
             "repair_targets": self.repair_targets.to_dict(),
+            "claim_checks": [item.to_dict() for item in self.claim_checks],
         }
 
 
@@ -893,9 +1307,12 @@ class TeachingGraphContentArtifact:
     node_content: NodeContentArtifact
     edge_integration: EdgeIntegrationArtifact
     validation: GroundingValidationArtifact
+    evidence_cards: Optional[EvidenceCardSet] = None
+    claim_ledger: Optional[ClaimLedgerArtifact] = None
+    tutor_facing_content: Optional[TutorFacingTeachingContent] = None
 
     def to_dict(self) -> Dict[str, Any]:
-        return {
+        payload = {
             "objective_text": self.objective_text,
             "graph": self.graph.to_dict(),
             "node_evidence": self.node_evidence.to_dict(),
@@ -903,3 +1320,10 @@ class TeachingGraphContentArtifact:
             "edge_integration": self.edge_integration.to_dict(),
             "validation": self.validation.to_dict(),
         }
+        if self.evidence_cards is not None:
+            payload["evidence_cards"] = self.evidence_cards.to_dict()
+        if self.claim_ledger is not None:
+            payload["claim_ledger"] = self.claim_ledger.to_dict()
+        if self.tutor_facing_content is not None:
+            payload["tutor_facing_content"] = self.tutor_facing_content.to_dict()
+        return payload

@@ -1,6 +1,8 @@
 import pytest
 
 from question_app.services.tutor.artifacts import (
+    ClaimLedgerArtifact,
+    EvidenceCardSet,
     GroundingValidationArtifact,
     NodeContentArtifact,
     NodeEvidenceArtifact,
@@ -41,6 +43,38 @@ def test_teaching_graph_artifact_parses_and_validates():
     assert artifact.integration_node == "n3"
     assert artifact.primary_route[-1] == "n3"
     assert artifact.to_dict()["graph_type"] == "hierarchy"
+
+
+def test_teaching_graph_accepts_decision_application_and_teachable_claim():
+    artifact = TeachingGraphArtifact.from_dict(
+        {
+            "objective_text": "Apply ARIA rules",
+            "graph_type": "decision_application",
+            "entry_nodes": ["n1"],
+            "integration_node": "n2",
+            "primary_route": ["n1", "n2"],
+            "nodes": [
+                {
+                    "id": "n1",
+                    "label": "Native HTML first",
+                    "kind": "core_concept",
+                    "teachable_claim": "Prefer native HTML when it works.",
+                },
+                {"id": "n2", "label": "Apply the process", "kind": "integration"},
+            ],
+            "edges": [
+                {
+                    "from": "n1",
+                    "to": "n2",
+                    "type": "synthesizes_into",
+                    "bridge_claim": "The native-first check carries into final application.",
+                }
+            ],
+        }
+    )
+
+    assert artifact.graph_type == "decision_application"
+    assert artifact.nodes[0].teachable_claim == "Prefer native HTML when it works."
 
 
 def test_teaching_graph_artifact_rejects_primary_route_without_integration():
@@ -117,6 +151,122 @@ def test_node_evidence_artifact_requires_retrieved_items():
                     }
                 ],
             }
+        )
+
+
+def test_node_evidence_accepts_new_graph_grounding_kinds():
+    artifact = NodeEvidenceArtifact.from_dict(
+        {
+            "objective_text": "Apply ARIA rules",
+            "graph_summary": {"graph_type": "decision_application", "node_ids": ["n1"]},
+            "node_evidence": [
+                {
+                    "node_id": "n1",
+                    "grounding_strength": "adequate",
+                    "coverage_summary": {},
+                    "source_tools_used": [{"tool": "search_techniques", "args": {}}],
+                    "retrieved_items": [
+                        {
+                            "item_id": "item-1",
+                            "tool": "search_techniques",
+                            "args": {"query": "aria button"},
+                            "kind": "implementation_support",
+                            "title": "ARIA button technique",
+                            "content": "Technique details",
+                            "grounding_note": "Supports implementation example.",
+                        },
+                        {
+                            "item_id": "item-2",
+                            "tool": "get_technique",
+                            "args": {"id": "F1"},
+                            "kind": "failure_support",
+                            "title": "Failure",
+                            "content": "Failure details",
+                            "grounding_note": "Supports failure example.",
+                        },
+                    ],
+                }
+            ],
+        }
+    )
+
+    assert artifact.node_evidence[0].retrieved_items[0].kind == "implementation_support"
+
+
+def test_evidence_card_set_rejects_unknown_raw_evidence_id():
+    with pytest.raises(ValueError):
+        EvidenceCardSet.from_dict(
+            {
+                "objective_text": "Apply ARIA rules",
+                "raw_evidence": [
+                    {
+                        "raw_evidence_id": "raw-1",
+                        "target_refs": ["node:n1"],
+                        "source": "wcag_mcp",
+                        "tool": "get_criterion",
+                        "args": {"ref_id": "4.1.2"},
+                        "status": "HIT",
+                        "chars": 100,
+                        "raw_result": "raw text",
+                    }
+                ],
+                "evidence_cards": [
+                    {
+                        "evidence_id": "ev-1",
+                        "raw_evidence_id": "raw-missing",
+                        "target_refs": ["node:n1"],
+                        "evidence_type": "normative_anchor",
+                        "source_ref": "WCAG 4.1.2",
+                        "title": "Name, Role, Value",
+                        "usable_facts": [
+                            {
+                                "fact_id": "fact-1",
+                                "text": "UI components need name and role.",
+                                "supports_claim_types": ["normative_requirement"],
+                            }
+                        ],
+                    }
+                ],
+            }
+        )
+
+
+def test_claim_ledger_requires_evidence_for_high_risk_claims():
+    with pytest.raises(ValueError):
+        ClaimLedgerArtifact.from_dict(
+            {
+                "objective_text": "Apply ARIA rules",
+                "claims": [
+                    {
+                        "claim_id": "claim-1",
+                        "scope": {"type": "node", "id": "n1", "field": "core_claim"},
+                        "text": "Interactive ARIA controls need keyboard support.",
+                        "claim_type": "keyboard_requirement",
+                        "requires_evidence": True,
+                        "evidence_ids": [],
+                    }
+                ],
+            }
+        )
+
+
+def test_claim_ledger_rejects_unknown_evidence_reference():
+    with pytest.raises(ValueError):
+        ClaimLedgerArtifact.from_dict(
+            {
+                "objective_text": "Apply ARIA rules",
+                "claims": [
+                    {
+                        "claim_id": "claim-1",
+                        "scope": {"type": "node", "id": "n1", "field": "core_claim"},
+                        "text": "Interactive controls need names.",
+                        "claim_type": "accessible_name_requirement",
+                        "requires_evidence": True,
+                        "evidence_ids": ["ev-missing"],
+                    }
+                ],
+            },
+            known_evidence_ids={"ev-known"},
         )
 
 
