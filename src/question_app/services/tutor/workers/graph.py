@@ -307,16 +307,18 @@ class NodeEvidenceRetrieverWorker:
             }
         }
 
-    async def _retrieve_node_evidence_payload(
+    async def _retrieve_evidence_payload(
         self,
         *,
         objective_text: str,
         graph: TeachingGraphArtifact,
-        node: Any,
+        target_id: str,
+        target_label: str,
+        target_payload: Dict[str, Any],
     ) -> Dict[str, Any]:
         if not self.wcag_mcp:
             raise self.retrieval_error_cls(
-                "Teaching graph node retrieval failed: WCAG MCP client unavailable."
+                "Teaching graph retrieval failed: WCAG MCP client unavailable."
             )
 
         response = await self.reasoning_client.responses_create(
@@ -331,7 +333,7 @@ class NodeEvidenceRetrieverWorker:
                                 [
                                     f"OBJECTIVE:\n{objective_text}",
                                     f"GRAPH:\n{json.dumps(graph.to_dict(), indent=2)}",
-                                    f"TARGET NODE:\n{json.dumps(node.to_dict(), indent=2)}",
+                                    f"{target_label}:\n{json.dumps(target_payload, indent=2)}",
                                 ]
                             ),
                         }
@@ -364,9 +366,9 @@ class NodeEvidenceRetrieverWorker:
                         "tool": tool_name,
                         "args": raw_args,
                         "kind": self._tool_kind_from_name(tool_name),
-                        "grounding_note": rationale or f"Grounding for node {node.id}",
-                        "category": "graph_node_grounding",
-                        "source": "teaching_graph_node_retrieval",
+                        "grounding_note": rationale or f"Grounding for {target_id}",
+                        "category": "graph_target_grounding",
+                        "source": "teaching_graph_target_retrieval",
                         "tool_call_id": call.get("call_id"),
                     }
                 )
@@ -423,8 +425,100 @@ class NodeEvidenceRetrieverWorker:
             if len(preview) > 200:
                 preview = preview[:200] + "..."
             raise self.retrieval_error_cls(
-                f"Teaching graph node retrieval finalization failed for {node.id}: {preview or 'empty response'}"
+                f"Teaching graph retrieval finalization failed for {target_id}: {preview or 'empty response'}"
             ) from exc
+
+    async def _retrieve_node_evidence_payload(
+        self,
+        *,
+        objective_text: str,
+        graph: TeachingGraphArtifact,
+        node: Any,
+    ) -> Dict[str, Any]:
+        return await self._retrieve_evidence_payload(
+            objective_text=objective_text,
+            graph=graph,
+            target_id=node.id,
+            target_label="TARGET NODE",
+            target_payload=node.to_dict(),
+        )
+
+    @staticmethod
+    def _edge_target_id(edge: Any) -> str:
+        return f"edge:{edge.from_node}->{edge.to_node}"
+
+    @staticmethod
+    def _integration_target_id(graph: TeachingGraphArtifact) -> str:
+        return f"integration:{graph.integration_node}"
+
+    @staticmethod
+    def _edge_needs_retrieval(edge: Any, graph: TeachingGraphArtifact) -> bool:
+        if edge.type in {"contrasts_with", "applies_to", "synthesizes_into"}:
+            return True
+        graph_type = graph.graph_type
+        return "decision" in graph_type or "application" in graph_type
+
+    @classmethod
+    def _edge_target_payload(cls, edge: Any) -> Dict[str, Any]:
+        return {
+            "id": cls._edge_target_id(edge),
+            "kind": "edge",
+            "from": edge.from_node,
+            "to": edge.to_node,
+            "type": edge.type,
+            "bridge_claim": edge.bridge_claim,
+            "retrieval_reason": (
+                "Retrieve only if this edge needs contrastive, exception, risk, "
+                "dependency, or application evidence beyond the connected nodes."
+            ),
+        }
+
+    @classmethod
+    def _integration_target_payload(cls, graph: TeachingGraphArtifact) -> Dict[str, Any]:
+        return {
+            "id": cls._integration_target_id(graph),
+            "kind": "integration",
+            "integration_node": graph.integration_node,
+            "primary_route": list(graph.primary_route),
+            "graph_type": graph.graph_type,
+            "retrieval_reason": (
+                "Retrieve facts needed to combine several graph concepts in one "
+                "realistic scenario, including valid combinations, interaction "
+                "expectations, accessible-name requirements, risks, or failures."
+            ),
+        }
+
+    @staticmethod
+    def _record_from_payload(
+        *,
+        objective_text: str,
+        graph: TeachingGraphArtifact,
+        target_id: str,
+        payload: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        payload["node_id"] = target_id
+        artifact = NodeEvidenceArtifact.from_dict(
+            {
+                "objective_text": objective_text,
+                "graph_summary": {
+                    "graph_type": graph.graph_type,
+                    "node_ids": [node.id for node in graph.nodes],
+                },
+                "node_evidence": [
+                    {
+                        "node_id": target_id,
+                        "grounding_strength": payload["grounding_strength"],
+                        "coverage_summary": payload["coverage_summary"],
+                        "source_tools_used": payload.get("source_tools_used") or [],
+                        "retrieved_items": payload.get("retrieved_items") or [],
+                    }
+                ],
+            }
+        )
+        record = artifact.node_evidence[0]
+        if not record.retrieved_items:
+            raise ValueError("no grounded evidence was retrieved")
+        return record.to_dict()
 
     async def build_node_evidence(
         self,
@@ -444,31 +538,18 @@ class NodeEvidenceRetrieverWorker:
                 graph=graph,
                 node=node,
             )
-            payload["node_id"] = node.id
-            artifact = NodeEvidenceArtifact.from_dict(
-                {
-                    "objective_text": objective_text,
-                    "graph_summary": {
-                        "graph_type": graph.graph_type,
-                        "node_ids": [node.id for node in graph.nodes],
-                    },
-                    "node_evidence": [
-                        {
-                            "node_id": node.id,
-                            "grounding_strength": payload["grounding_strength"],
-                            "coverage_summary": payload["coverage_summary"],
-                            "source_tools_used": payload.get("source_tools_used") or [],
-                            "retrieved_items": payload.get("retrieved_items") or [],
-                        }
-                    ],
-                }
-            )
-            record = artifact.node_evidence[0]
-            if not record.retrieved_items:
+            try:
+                record = self._record_from_payload(
+                    objective_text=objective_text,
+                    graph=graph,
+                    target_id=node.id,
+                    payload=payload,
+                )
+            except Exception as exc:
                 raise self.retrieval_error_cls(
                     f"Teaching graph node retrieval failed for {node.id}: no grounded evidence was retrieved."
-                )
-            node_records.append(record.to_dict())
+                ) from exc
+            node_records.append(record)
 
         return NodeEvidenceArtifact.from_dict(
             {
@@ -478,6 +559,82 @@ class NodeEvidenceRetrieverWorker:
                     "node_ids": [node.id for node in graph.nodes],
                 },
                 "node_evidence": node_records,
+            }
+        )
+
+    async def build_graph_evidence(
+        self,
+        *,
+        objective_text: str,
+        graph: TeachingGraphArtifact,
+    ) -> NodeEvidenceArtifact:
+        node_artifact = await self.build_node_evidence(
+            objective_text=objective_text,
+            graph=graph,
+        )
+        records = [record.to_dict() for record in node_artifact.node_evidence]
+
+        for edge in graph.edges:
+            if not self._edge_needs_retrieval(edge, graph):
+                continue
+            target_id = self._edge_target_id(edge)
+            payload = await self._retrieve_evidence_payload(
+                objective_text=objective_text,
+                graph=graph,
+                target_id=target_id,
+                target_label="TARGET EDGE",
+                target_payload=self._edge_target_payload(edge),
+            )
+            try:
+                records.append(
+                    self._record_from_payload(
+                        objective_text=objective_text,
+                        graph=graph,
+                        target_id=target_id,
+                        payload=payload,
+                    )
+                )
+            except Exception as exc:
+                raise self.retrieval_error_cls(
+                    f"Teaching graph edge retrieval failed for {target_id}: no grounded evidence was retrieved."
+                ) from exc
+
+        integration_id = self._integration_target_id(graph)
+        integration_payload = await self._retrieve_evidence_payload(
+            objective_text=objective_text,
+            graph=graph,
+            target_id=integration_id,
+            target_label="TARGET INTEGRATION",
+            target_payload=self._integration_target_payload(graph),
+        )
+        try:
+            records.append(
+                self._record_from_payload(
+                    objective_text=objective_text,
+                    graph=graph,
+                    target_id=integration_id,
+                    payload=integration_payload,
+                )
+            )
+        except Exception as exc:
+            raise self.retrieval_error_cls(
+                f"Teaching graph integration retrieval failed for {integration_id}: no grounded evidence was retrieved."
+            ) from exc
+
+        return NodeEvidenceArtifact.from_dict(
+            {
+                "objective_text": objective_text,
+                "graph_summary": {
+                    "graph_type": graph.graph_type,
+                    "node_ids": [node.id for node in graph.nodes],
+                    "edge_evidence_ids": [
+                        self._edge_target_id(edge)
+                        for edge in graph.edges
+                        if self._edge_needs_retrieval(edge, graph)
+                    ],
+                    "integration_evidence_id": integration_id,
+                },
+                "node_evidence": records,
             }
         )
 
@@ -591,6 +748,7 @@ class EdgeIntegrationSynthesizerWorker:
         *,
         objective_text: str,
         graph: TeachingGraphArtifact,
+        node_evidence: NodeEvidenceArtifact,
         node_content: NodeContentArtifact,
     ) -> EdgeIntegrationArtifact:
         response = await asyncio.to_thread(
@@ -603,6 +761,7 @@ class EdgeIntegrationSynthesizerWorker:
                         [
                             f"OBJECTIVE:\n{objective_text}",
                             f"GRAPH:\n{json.dumps(graph.to_dict(), indent=2)}",
+                            f"GRAPH EVIDENCE:\n{json.dumps(node_evidence.to_dict(), indent=2)}",
                             f"NODE CONTENT:\n{json.dumps(node_content.to_dict(), indent=2)}",
                         ]
                     ),
@@ -711,6 +870,14 @@ class GraphGroundingProjector:
             lookup[record.node_id] = [item.item_id for item in record.retrieved_items]
         return lookup
 
+    @staticmethod
+    def _target_refs_for_record(record_id: str) -> List[str]:
+        if record_id.startswith("edge:"):
+            return [record_id]
+        if record_id.startswith("integration:"):
+            return [record_id]
+        return [f"node:{record_id}"]
+
     @classmethod
     def build_evidence_cards(
         cls,
@@ -723,6 +890,7 @@ class GraphGroundingProjector:
         raw_id_by_key: Dict[tuple[str, str, str], str] = {}
 
         for record in node_evidence.node_evidence:
+            target_refs = cls._target_refs_for_record(record.node_id)
             for item in record.retrieved_items:
                 raw_id = f"raw_{item.item_id}"
                 raw_key = (item.tool, json.dumps(item.args, sort_keys=True), item.content)
@@ -733,7 +901,7 @@ class GraphGroundingProjector:
                     raw_records.append(
                         {
                             "raw_evidence_id": raw_id,
-                            "target_refs": [f"node:{record.node_id}"],
+                            "target_refs": target_refs,
                             "source": "wcag_mcp",
                             "tool": item.tool,
                             "args": item.args,
@@ -749,7 +917,7 @@ class GraphGroundingProjector:
                     {
                         "evidence_id": item.item_id,
                         "raw_evidence_id": raw_id,
-                        "target_refs": [f"node:{record.node_id}"],
+                        "target_refs": target_refs,
                         "evidence_type": item.kind,
                         "source_ref": item.title,
                         "title": item.title,
@@ -846,9 +1014,11 @@ class GraphGroundingProjector:
 
         for edge in edge_integration.edges:
             edge_id = f"{edge.from_node}->{edge.to_node}"
+            edge_target_id = f"edge:{edge_id}"
             edge_evidence_ids = sorted(
                 set(evidence_by_node.get(edge.from_node, []))
                 | set(evidence_by_node.get(edge.to_node, []))
+                | set(evidence_by_node.get(edge_target_id, []))
             )
             claims.append(
                 {
@@ -866,6 +1036,9 @@ class GraphGroundingProjector:
         integration_evidence_ids: List[str] = []
         for node_id in edge_integration.integration.what_must_be_combined:
             integration_evidence_ids.extend(evidence_by_node.get(node_id, []))
+        integration_evidence_ids.extend(
+            evidence_by_node.get(f"integration:{edge_integration.integration.node_id}", [])
+        )
         integration_evidence_ids = sorted(set(integration_evidence_ids))
         claims.append(
             {

@@ -1655,6 +1655,8 @@ class TestGuidedRetrieval:
                 }
             ]
 
+        hybrid_system.wcag_mcp = FakeWCAGClient()
+        hybrid_system._graph_node_evidence_worker.wcag_mcp = hybrid_system.wcag_mcp
         monkeypatch.setattr(hybrid_system.wcag_mcp, "execute_planned_tool_calls", fake_execute)
 
         graph = TeachingGraphArtifact.from_dict(
@@ -1769,6 +1771,8 @@ class TestGuidedRetrieval:
                 }
             ]
 
+        hybrid_system.wcag_mcp = FakeWCAGClient()
+        hybrid_system._graph_node_evidence_worker.wcag_mcp = hybrid_system.wcag_mcp
         monkeypatch.setattr(hybrid_system.wcag_mcp, "execute_planned_tool_calls", fake_execute)
 
         graph = TeachingGraphArtifact.from_dict(
@@ -2229,13 +2233,15 @@ class TestGuidedRetrieval:
 
         monkeypatch.setattr(hybrid_system.reasoning_client, "chat", fake_chat)
 
-        async def fake_build_node_evidence(*, objective_text, graph):
+        async def fake_build_graph_evidence(*, objective_text, graph):
             return NodeEvidenceArtifact.from_dict(
                 {
                     "objective_text": objective_text,
                     "graph_summary": {
                         "graph_type": graph.graph_type,
                         "node_ids": [node.id for node in graph.nodes],
+                        "edge_evidence_ids": ["edge:n1->n2"],
+                        "integration_evidence_id": "integration:n2",
                     },
                     "node_evidence": [
                         {
@@ -2278,14 +2284,54 @@ class TestGuidedRetrieval:
                                 }
                             ],
                         },
+                        {
+                            "node_id": "edge:n1->n2",
+                            "grounding_strength": "adequate",
+                            "coverage_summary": {
+                                "has_explanatory_support": True,
+                                "has_contrast_support": True,
+                            },
+                            "source_tools_used": [{"tool": "search_wcag", "args": {"query": "WCAG hierarchy"}}],
+                            "retrieved_items": [
+                                {
+                                    "item_id": "edge-n1-n2-item-1",
+                                    "tool": "search_wcag",
+                                    "args": {"query": "WCAG hierarchy"},
+                                    "kind": "structural_support",
+                                    "title": "search_wcag: WCAG hierarchy",
+                                    "content": "Principles connect to lower WCAG layers.",
+                                    "grounding_note": "Grounds the transition from principles into the full structure.",
+                                }
+                            ],
+                        },
+                        {
+                            "node_id": "integration:n2",
+                            "grounding_strength": "adequate",
+                            "coverage_summary": {
+                                "has_explanatory_support": True,
+                                "has_risk_support": True,
+                            },
+                            "source_tools_used": [{"tool": "list_guidelines", "args": {}}],
+                            "retrieved_items": [
+                                {
+                                    "item_id": "integration-n2-item-1",
+                                    "tool": "list_guidelines",
+                                    "args": {},
+                                    "kind": "structural_support",
+                                    "title": "list_guidelines",
+                                    "content": "Guidelines and success criteria sit below principles.",
+                                    "grounding_note": "Grounds the integrated hierarchy scenario.",
+                                }
+                            ],
+                        },
                     ],
                 }
             )
 
         monkeypatch.setattr(
             hybrid_system._graph_node_evidence_worker,
-            "build_node_evidence",
-            fake_build_node_evidence,
+            "build_graph_evidence",
+            fake_build_graph_evidence,
         )
 
         artifact = await hybrid_system._build_teaching_graph_content(
@@ -2293,11 +2339,19 @@ class TestGuidedRetrieval:
         )
 
         assert artifact.graph.graph_type == "hierarchy"
-        assert len(artifact.node_evidence.node_evidence) == 2
+        assert len(artifact.node_evidence.node_evidence) == 4
         assert len(artifact.node_content.nodes) == 2
         assert len(artifact.edge_integration.edges) == 1
         assert artifact.validation.overall_status == "pass"
         assert artifact.evidence_cards is not None
+        assert any(
+            card.target_refs == ["edge:n1->n2"]
+            for card in artifact.evidence_cards.evidence_cards
+        )
+        assert any(
+            card.target_refs == ["integration:n2"]
+            for card in artifact.evidence_cards.evidence_cards
+        )
         assert artifact.claim_ledger is not None
         assert artifact.tutor_facing_content is not None
 

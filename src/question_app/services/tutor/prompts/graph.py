@@ -53,17 +53,17 @@ Return JSON only with this shape:
 """
 
 
-NODE_EVIDENCE_RETRIEVAL_TOOLCALL_PROMPT = """You are a retrieval agent building grounded evidence for one teaching-graph node.
+NODE_EVIDENCE_RETRIEVAL_TOOLCALL_PROMPT = """You are a retrieval agent building grounded evidence for one teaching-graph target.
 
 Your job is to gather source material that will later be used to synthesize the
-node's teaching content.
+target's teaching content. The target may be a node, an important edge, or the
+integration target.
 
 You must use tools for standards-based or document-based claims. Do not rely on
 memory for WCAG facts.
 
-Your task is node grounding only.
-Do not synthesize the final teaching node.
-Do not produce edge or integration content.
+Your task is retrieval grounding only.
+Do not synthesize final teaching content.
 Do not produce tutor dialogue.
 
 What to gather when relevant:
@@ -76,6 +76,14 @@ What to gather when relevant:
 - implementation support
 - example support
 - failure support
+
+Target-specific guidance:
+- For a node, retrieve only facts needed to ground that one concept.
+- For an edge, retrieve only if the transition needs contrastive, exception,
+  risk, dependency, or application evidence beyond the connected nodes.
+- For integration, retrieve facts needed for a realistic multi-concept scenario,
+  such as valid combinations, keyboard expectations, accessible-name
+  requirements, or failure examples.
 
 How to behave:
 - Retrieve before concluding anything.
@@ -93,7 +101,7 @@ explicitly asked.
 """
 
 
-NODE_EVIDENCE_FINALIZATION_PROMPT = """Using only the evidence gathered in this retrieval chain, produce the final node evidence artifact.
+NODE_EVIDENCE_FINALIZATION_PROMPT = """Using only the evidence gathered in this retrieval chain, produce the final target evidence artifact.
 
 Do not call more tools.
 Return only a schema-valid JSON object.
@@ -150,10 +158,12 @@ EDGE_INTEGRATION_SYNTHESIS_PROMPT = """You are synthesizing transition and integ
 You will receive:
 - the objective
 - the graph skeleton
+- retrieved graph evidence, including node evidence and any selective
+  edge/integration evidence
 - grounded node content
 
-Use node content as the grounding basis for edge rationale. You do not need to
-retrieve new raw facts here.
+Use the graph evidence and node content as the grounding basis for edge and
+integration synthesis. Do not retrieve new raw facts here.
 
 Rules:
 - transition_rationale and bridge_text must reflect the actual conceptual shift

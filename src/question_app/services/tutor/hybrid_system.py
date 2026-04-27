@@ -3224,11 +3224,13 @@ class HybridCrewAISocraticSystem:
         *,
         objective_text: str,
         graph,
+        node_evidence,
         node_content,
     ):
         return await self._graph_edge_integration_worker.build_edge_integration_content(
             objective_text=objective_text,
             graph=graph,
+            node_evidence=node_evidence,
             node_content=node_content,
         )
 

@@ -38,7 +38,7 @@ class TeachingGraphBuildOrchestrator:
             learner_level=learner_level,
             prerequisite_assumptions=prerequisite_assumptions,
         )
-        node_evidence = await self.node_evidence_retriever.build_node_evidence(
+        node_evidence = await self.node_evidence_retriever.build_graph_evidence(
             objective_text=objective_text,
             graph=graph,
         )
@@ -50,6 +50,7 @@ class TeachingGraphBuildOrchestrator:
         edge_integration = await self.edge_integration_synthesizer.build_edge_integration_content(
             objective_text=objective_text,
             graph=graph,
+            node_evidence=node_evidence,
             node_content=node_content,
         )
         validation = await self.validator.validate(
