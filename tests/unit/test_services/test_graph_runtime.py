@@ -1,6 +1,7 @@
 from question_app.services.tutor.graph_runtime import (
     build_graph_runtime_patch,
     fallback_graph_decision,
+    format_analyzer_graph_context,
     format_orchestrator_directive,
     normalize_graph_decision,
 )
@@ -180,3 +181,39 @@ def test_orchestrator_directive_requires_bridge_and_assessment_shapes():
     assert "include one explicit bridge sentence" in bridge_directive
     assert "`edge_bridge_used`" in bridge_directive
     assert "ask one clear mastery/transfer assessment question" in assessment_directive
+
+
+def test_analyzer_graph_context_surfaces_orchestrator_feedback():
+    context = format_analyzer_graph_context(
+        {
+            "active_node_id": "n1",
+            "primary_route": ["n1", "n2"],
+            "node_labels": {"n1": "First", "n2": "Second"},
+            "completed_node_ids": [],
+            "previous_orchestrator_override": {
+                "reason": "Analyzer wanted advancement before repair.",
+                "feedback": "Stay on the active node until the misconception is fixed.",
+            },
+        },
+        {"graph": {"graph_type": "teaching_graph"}},
+    )
+
+    assert "GRAPH RUNTIME CONTEXT:" in context
+    assert "ORCHESTRATOR FEEDBACK FROM LAST TURN:" in context
+    assert "Analyzer wanted advancement before repair." in context
+    assert "Stay on the active node" in context
+    assert "do not repeat the rejected recommendation" in context
+
+
+def test_analyzer_graph_context_omits_feedback_block_without_override():
+    context = format_analyzer_graph_context(
+        {
+            "active_node_id": "n1",
+            "primary_route": ["n1"],
+            "node_labels": {"n1": "First"},
+        },
+        None,
+    )
+
+    assert "GRAPH RUNTIME CONTEXT:" in context
+    assert "ORCHESTRATOR FEEDBACK FROM LAST TURN:" not in context

@@ -9,6 +9,7 @@ from langgraph.graph import END, START, StateGraph
 from .artifacts import GuidedTurnResult, TeachingGraphContentArtifact
 from .graph_runtime import (
     build_graph_runtime_patch,
+    format_analyzer_graph_context,
     format_graph_runtime_context,
     format_orchestrator_directive,
 )
@@ -198,7 +199,7 @@ class GuidedTurnOrchestrator:
         state: _GuidedTurnWorkflowState,
     ) -> Dict[str, Any]:
         guided_state = state["guided_state"]
-        graph_context = format_graph_runtime_context(
+        graph_context = format_analyzer_graph_context(
             guided_state.graph_runtime_state,
             guided_state.retrieval_bundle,
         )

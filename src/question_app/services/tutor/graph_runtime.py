@@ -440,6 +440,33 @@ def format_graph_runtime_context(
     return "\n".join(lines)
 
 
+def format_analyzer_graph_context(
+    graph_state: Optional[Dict[str, Any]],
+    retrieval_bundle: Optional[Dict[str, Any]] = None,
+) -> str:
+    base = format_graph_runtime_context(graph_state, retrieval_bundle)
+    state = graph_state or {}
+    previous_override = state.get("previous_orchestrator_override")
+    if not previous_override:
+        return base
+
+    reason = ""
+    feedback = ""
+    if isinstance(previous_override, dict):
+        reason = str(previous_override.get("reason", "") or "").strip()
+        feedback = str(previous_override.get("feedback", "") or "").strip()
+    lines = [base] if base else []
+    lines.extend(
+        [
+            "ORCHESTRATOR FEEDBACK FROM LAST TURN:",
+            f"- override_reason: {reason}",
+            f"- analyzer_feedback: {feedback}",
+            "- Adjust this turn's stage_action, concept_closure, and recommended_next_step so they do not repeat the rejected recommendation unless the student has now supplied new evidence.",
+        ]
+    )
+    return "\n".join(lines)
+
+
 def format_orchestrator_directive(decision: Optional[Dict[str, Any]]) -> str:
     if not decision:
         return ""
