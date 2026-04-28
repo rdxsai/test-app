@@ -6,6 +6,7 @@ from typing import Any, Dict, List, Optional
 
 GRAPH_ORCHESTRATOR_SCHEMA: Dict[str, Any] = {
     "graph_action": "stay | advance | integrate",
+    "route_coverage_mode": "linear | branch_contrast | integration | terminal_assessment",
     "active_node_id": "string",
     "next_node_id": "string",
     "active_edge_id": "string",
@@ -38,6 +39,11 @@ Decision rules:
 - The analyzer recommends; you decide.
 - Keep the student on the active node if there is an open misconception, fragile grasp, high confusion, or concept_closure is not ready.
 - Advance only when the analyzer evidence says the active concept is ready and no must-repair issue remains.
+- Use route_coverage_mode to label the instructional shape of the graph move:
+  - linear: normal primary-route progress or staying on the current route node.
+  - branch_contrast: using a connected contrast/application branch to answer or repair without pretending every intervening primary-route node was linearly taught.
+  - integration: combining several prior nodes into a scenario or transfer task.
+  - terminal_assessment: staying on the final route node to assess mastery; stage progression may continue, but graph progression does not.
 - If you reject an analyzer recommendation, explain the reason so the analyzer can improve next turn.
 - Do not invent WCAG or technical facts. You are only controlling progression.
 - Do not change the analyzer schema. Your output is only the JSON object below.
@@ -45,6 +51,7 @@ Decision rules:
 Return exactly one JSON object matching this schema:
 {
   "graph_action": "stay | advance | integrate",
+  "route_coverage_mode": "linear | branch_contrast | integration | terminal_assessment",
   "active_node_id": "current node after the decision",
   "next_node_id": "next route node if known, else empty string",
   "active_edge_id": "from->to when bridging, else empty string",
@@ -103,6 +110,28 @@ def _skipped_nodes(route: List[str], before_node: str, after_node: str) -> List[
     return route[before + 1 : after]
 
 
+def _infer_route_coverage_mode(
+    *,
+    graph_action: str,
+    allowed_move: str,
+    route: List[str],
+    previous_active: str,
+    active_node_id: str,
+    skipped_node_ids: List[str],
+) -> str:
+    if not _next_route_node(route, active_node_id) and allowed_move == "assess_mastery":
+        return "terminal_assessment"
+    if graph_action == "integrate" or allowed_move == "integrate_nodes":
+        return "integration"
+    if skipped_node_ids:
+        return "branch_contrast"
+    expected_next = _next_route_node(route, previous_active)
+    if graph_action in {"advance", "integrate"} and expected_next:
+        if active_node_id != expected_next:
+            return "branch_contrast"
+    return "linear"
+
+
 def _has_must_repair(analysis: Dict[str, Any]) -> bool:
     for event in analysis.get("misconception_events", []) or []:
         if not isinstance(event, dict):
@@ -149,6 +178,7 @@ def fallback_graph_decision(
         reason = "The latest turn contains a must-address misconception."
         return {
             "graph_action": "stay",
+            "route_coverage_mode": "linear",
             "active_node_id": active,
             "next_node_id": next_node,
             "active_edge_id": "",
@@ -179,6 +209,7 @@ def fallback_graph_decision(
         edge_id = f"{active}->{next_node}" if active else ""
         return {
             "graph_action": "advance",
+            "route_coverage_mode": "linear",
             "active_node_id": next_node,
             "next_node_id": route[index + 2] if index + 2 < len(route) else "",
             "active_edge_id": edge_id,
@@ -203,6 +234,7 @@ def fallback_graph_decision(
     if wants_advance and not next_node:
         return {
             "graph_action": "integrate",
+            "route_coverage_mode": "terminal_assessment",
             "active_node_id": active,
             "next_node_id": "",
             "active_edge_id": "",
@@ -237,6 +269,7 @@ def fallback_graph_decision(
         allowed_move = "practice_current_node"
     return {
         "graph_action": "stay",
+        "route_coverage_mode": "linear",
         "active_node_id": active,
         "next_node_id": next_node,
         "active_edge_id": "",
@@ -291,6 +324,7 @@ def normalize_graph_decision(
     allowed_move = str(normalized.get("allowed_teaching_move", "") or "").strip()
     if allowed_move not in allowed_moves:
         normalized["allowed_teaching_move"] = fallback["allowed_teaching_move"]
+        allowed_move = normalized["allowed_teaching_move"]
 
     route = _as_list((graph_state or {}).get("primary_route"))
     previous_active = str((graph_state or {}).get("active_node_id", "") or "").strip()
@@ -330,6 +364,31 @@ def normalize_graph_decision(
     if edge_id and not str(normalized.get("edge_bridge_used", "") or "").strip():
         normalized["edge_bridge_used"] = _edge_bridge(graph_state or {}, edge_id)
 
+    allowed_coverage_modes = {
+        "linear",
+        "branch_contrast",
+        "integration",
+        "terminal_assessment",
+    }
+    raw_route_coverage_mode = ""
+    if isinstance(decision, dict):
+        raw_route_coverage_mode = str(
+            decision.get("route_coverage_mode", "") or ""
+        ).strip().lower()
+    route_coverage_mode = (
+        str(normalized.get("route_coverage_mode", "") or "").strip().lower()
+    )
+    if raw_route_coverage_mode not in allowed_coverage_modes:
+        route_coverage_mode = _infer_route_coverage_mode(
+            graph_action=normalized["graph_action"],
+            allowed_move=str(normalized.get("allowed_teaching_move", "") or "").strip(),
+            route=route,
+            previous_active=previous_active,
+            active_node_id=active_node_id,
+            skipped_node_ids=_as_list(normalized.get("skipped_node_ids")),
+        )
+    normalized["route_coverage_mode"] = route_coverage_mode
+
     normalized["route_position_before"] = before_index + 1 if before_index >= 0 else 0
     normalized["route_position_after"] = after_index + 1 if after_index >= 0 else 0
 
@@ -341,6 +400,7 @@ def normalize_graph_decision(
 
     for key in (
         "next_node_id",
+        "route_coverage_mode",
         "active_edge_id",
         "expected_next_node_id",
         "skip_rationale",
@@ -474,6 +534,7 @@ def format_orchestrator_directive(decision: Optional[Dict[str, Any]]) -> str:
     lines = [
         "ORCHESTRATOR DIRECTIVE:",
         f"- graph_action: {decision.get('graph_action', '')}",
+        f"- route_coverage_mode: {decision.get('route_coverage_mode', '')}",
         f"- active_node_id: {decision.get('active_node_id', '')}",
         f"- route_position_before: {decision.get('route_position_before', '')}",
         f"- route_position_after: {decision.get('route_position_after', '')}",
@@ -500,6 +561,22 @@ def format_orchestrator_directive(decision: Optional[Dict[str, Any]]) -> str:
         lines.append(
             "- If any skipped_node_ids are present, explicitly connect why the "
             "student's prior answer already covered them before moving on."
+        )
+    coverage_mode = str(decision.get("route_coverage_mode", "") or "").strip()
+    if coverage_mode == "branch_contrast":
+        lines.append(
+            "- Coverage mode note: phrase this as a contrast/application branch, "
+            "not as ordinary linear route progress."
+        )
+    if coverage_mode == "integration":
+        lines.append(
+            "- Coverage mode note: combine the relevant covered nodes into one "
+            "scenario instead of teaching a brand-new isolated node."
+        )
+    if coverage_mode == "terminal_assessment":
+        lines.append(
+            "- Coverage mode note: stay on the terminal graph node while assessing "
+            "mastery; do not imply there is another graph concept to enter."
         )
     return "\n".join(lines)
 

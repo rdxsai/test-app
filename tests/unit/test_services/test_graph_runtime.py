@@ -156,6 +156,7 @@ def test_graph_decision_normalization_exposes_route_audit_fields():
     assert decision["next_node_id"] == ""
     assert decision["active_edge_id"] == "n1->n3"
     assert decision["edge_bridge_used"] == "Compressed bridge."
+    assert decision["route_coverage_mode"] == "branch_contrast"
     assert decision["confidence"] == 0.82
 
 
@@ -164,6 +165,7 @@ def test_orchestrator_directive_requires_bridge_and_assessment_shapes():
         {
             "graph_action": "advance",
             "active_node_id": "n2",
+            "route_coverage_mode": "linear",
             "allowed_teaching_move": "introduce_next_node",
             "edge_bridge_used": "First concept prepares the second.",
             "skipped_node_ids": [],
@@ -173,6 +175,7 @@ def test_orchestrator_directive_requires_bridge_and_assessment_shapes():
         {
             "graph_action": "stay",
             "active_node_id": "n3",
+            "route_coverage_mode": "terminal_assessment",
             "allowed_teaching_move": "assess_mastery",
             "skipped_node_ids": [],
         }
@@ -181,6 +184,43 @@ def test_orchestrator_directive_requires_bridge_and_assessment_shapes():
     assert "include one explicit bridge sentence" in bridge_directive
     assert "`edge_bridge_used`" in bridge_directive
     assert "ask one clear mastery/transfer assessment question" in assessment_directive
+    assert "stay on the terminal graph node" in assessment_directive
+
+
+def test_orchestrator_directive_explains_branch_contrast_mode():
+    directive = format_orchestrator_directive(
+        {
+            "graph_action": "advance",
+            "route_coverage_mode": "branch_contrast",
+            "active_node_id": "n5",
+            "allowed_teaching_move": "repair_current_node",
+            "skipped_node_ids": ["n3", "n4"],
+        }
+    )
+
+    assert "route_coverage_mode: branch_contrast" in directive
+    assert "contrast/application branch" in directive
+
+
+def test_graph_decision_normalization_preserves_valid_route_coverage_mode():
+    graph_state = {
+        "active_node_id": "n2",
+        "primary_route": ["n1", "n2", "n3"],
+        "node_labels": {"n1": "First", "n2": "Second", "n3": "Third"},
+    }
+
+    decision = normalize_graph_decision(
+        {
+            "graph_action": "integrate",
+            "route_coverage_mode": "integration",
+            "active_node_id": "n2",
+            "allowed_teaching_move": "integrate_nodes",
+        },
+        graph_state,
+        {},
+    )
+
+    assert decision["route_coverage_mode"] == "integration"
 
 
 def test_analyzer_graph_context_surfaces_orchestrator_feedback():
