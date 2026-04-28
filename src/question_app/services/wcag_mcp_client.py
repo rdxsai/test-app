@@ -26,9 +26,11 @@ logger = logging.getLogger(__name__)
 # can legitimately contain phrases like "No results returned" in examples.
 NO_RESULT_PREFIXES = (
     "no success criteria found",
+    "no technique found",
     "no techniques found",
     "no glossary terms found",
     "no glossary term found",
+    "term \"",
     "no results",
 )
 
@@ -232,6 +234,8 @@ def is_no_result_text(text: Optional[str]) -> bool:
     if not text:
         return True
     normalized = text.strip().lower()
+    if normalized.startswith("term ") and " not found" in normalized:
+        return True
     return any(normalized.startswith(prefix) for prefix in NO_RESULT_PREFIXES)
 
 

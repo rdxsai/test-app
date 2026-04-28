@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Set
 
 from ..artifacts import (
     ClaimLedgerArtifact,
@@ -19,6 +19,7 @@ from ..prompts import (
     GROUNDING_VALIDATOR_PROMPT,
     NODE_CONTENT_SYNTHESIS_PROMPT,
     NODE_EVIDENCE_FINALIZATION_PROMPT,
+    NODE_EVIDENCE_RETRIEVAL_PLANNING_PROMPT,
     NODE_EVIDENCE_RETRIEVAL_TOOLCALL_PROMPT,
     TEACHING_GRAPH_PLANNER_PROMPT,
 )
@@ -171,7 +172,9 @@ class NodeEvidenceRetrieverWorker:
         return calls
 
     @staticmethod
-    def _responses_tool_definitions() -> List[Dict[str, Any]]:
+    def _responses_tool_definitions(
+        allowed_tool_names: Optional[Set[str]] = None,
+    ) -> List[Dict[str, Any]]:
         from ...wcag_mcp_client import GUIDED_WCAG_TOOL_DEFINITIONS
 
         def _strict_parameters(parameters: Dict[str, Any]) -> Dict[str, Any]:
@@ -193,16 +196,151 @@ class NodeEvidenceRetrieverWorker:
         converted: List[Dict[str, Any]] = []
         for tool in GUIDED_WCAG_TOOL_DEFINITIONS:
             function = tool.get("function") or {}
+            name = function.get("name")
+            if allowed_tool_names is not None and name not in allowed_tool_names:
+                continue
             converted.append(
                 {
                     "type": "function",
-                    "name": function.get("name"),
+                    "name": name,
                     "description": function.get("description", ""),
                     "parameters": _strict_parameters(function.get("parameters") or {}),
                     "strict": True,
                 }
             )
         return converted
+
+    @staticmethod
+    def _retrieval_plan_text_format() -> Dict[str, Any]:
+        return {
+            "format": {
+                "type": "json_schema",
+                "name": "retrieval_plan",
+                "strict": True,
+                "schema": {
+                    "type": "object",
+                    "properties": {
+                        "target_type": {
+                            "type": "string",
+                            "enum": ["node", "edge", "integration"],
+                        },
+                        "retrieval_mode": {
+                            "type": "string",
+                            "enum": [
+                                "known_criterion",
+                                "known_technique",
+                                "definition",
+                                "exploratory",
+                                "mixed",
+                                "reuse_node_evidence",
+                            ],
+                        },
+                        "allow_retrieval": {"type": "boolean"},
+                        "search_allowed": {"type": "boolean"},
+                        "parallel_direct_lookups": {"type": "boolean"},
+                        "initial_tool_choice": {
+                            "type": "string",
+                            "enum": ["required", "auto"],
+                        },
+                        "likely_success_criteria": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                        },
+                        "likely_guidelines": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                        },
+                        "likely_techniques": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                        },
+                        "likely_glossary_terms": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                        },
+                        "rationale": {"type": "string"},
+                    },
+                    "required": [
+                        "target_type",
+                        "retrieval_mode",
+                        "allow_retrieval",
+                        "search_allowed",
+                        "parallel_direct_lookups",
+                        "initial_tool_choice",
+                        "likely_success_criteria",
+                        "likely_guidelines",
+                        "likely_techniques",
+                        "likely_glossary_terms",
+                        "rationale",
+                    ],
+                    "additionalProperties": False,
+                },
+            }
+        }
+
+    @staticmethod
+    def _tool_names_for_plan(plan: Dict[str, Any]) -> Set[str]:
+        mode = str(plan.get("retrieval_mode") or "mixed")
+        direct_criterion = {
+            "get_full_criterion_context",
+            "get_criterion",
+            "get_success_criteria_detail",
+            "get_guideline",
+            "get_techniques_for_criterion",
+        }
+        direct_technique = {"get_technique", "get_techniques_for_criterion"}
+        definition = {"get_glossary_term"}
+        structural = {"list_success_criteria", "list_guidelines", "list_principles"}
+        search = {"search_wcag", "search_techniques", "search_glossary"}
+
+        if mode == "known_criterion":
+            names = set(direct_criterion) | definition
+        elif mode == "known_technique":
+            names = set(direct_technique) | set(direct_criterion)
+        elif mode == "definition":
+            names = set(definition)
+            if plan.get("search_allowed"):
+                names.add("search_glossary")
+        elif mode == "exploratory":
+            names = set(search) | set(direct_criterion) | set(direct_technique) | definition
+        elif mode == "reuse_node_evidence":
+            names = set()
+        else:
+            names = (
+                set(direct_criterion)
+                | set(direct_technique)
+                | definition
+                | structural
+            )
+            if plan.get("search_allowed"):
+                names |= search
+
+        if not plan.get("search_allowed"):
+            names -= search
+        return names
+
+    @staticmethod
+    def _contains_search_tool(tool_names: Set[str]) -> bool:
+        return bool(tool_names & {"search_wcag", "search_techniques", "search_glossary"})
+
+    @staticmethod
+    def _tool_result_is_miss(result: Dict[str, Any]) -> bool:
+        status = str(result.get("status") or "").upper()
+        if status and status != "HIT":
+            return True
+        text = str(result.get("result") or "").strip().lower()
+        return text.startswith(
+            (
+                "no success criteria found",
+                "no techniques found",
+                "no glossary terms found",
+                "no glossary term found",
+                "no results",
+                "blocked:",
+                "unknown tool:",
+                "execution error:",
+            )
+        )
 
     @staticmethod
     def _node_evidence_text_format() -> Dict[str, Any]:
@@ -325,14 +463,53 @@ class NodeEvidenceRetrieverWorker:
         target_id: str,
         target_label: str,
         target_payload: Dict[str, Any],
-    ) -> Dict[str, Any]:
+        connected_evidence: Optional[List[Dict[str, Any]]] = None,
+    ) -> Optional[Dict[str, Any]]:
         if not self.wcag_mcp:
             raise self.retrieval_error_cls(
                 "Teaching graph retrieval failed: WCAG MCP client unavailable."
             )
 
+        plan = await self._plan_retrieval(
+            objective_text=objective_text,
+            graph=graph,
+            target_id=target_id,
+            target_label=target_label,
+            target_payload=target_payload,
+            connected_evidence=connected_evidence,
+        )
+        if target_label == "TARGET EDGE" and not bool(plan.get("allow_retrieval")):
+            return None
+        if not bool(plan.get("allow_retrieval")):
+            plan["allow_retrieval"] = True
+
+        allowed_tool_names = self._tool_names_for_plan(plan)
+        if not allowed_tool_names:
+            allowed_tool_names = self._tool_names_for_plan(
+                {**plan, "retrieval_mode": "mixed", "search_allowed": False}
+            )
+        tools = self._responses_tool_definitions(allowed_tool_names)
+        if not tools:
+            raise self.retrieval_error_cls(
+                f"Teaching graph retrieval failed for {target_id}: no tools available for plan."
+            )
+        search_available = self._contains_search_tool(allowed_tool_names)
+        parallel_direct_lookups = bool(plan.get("parallel_direct_lookups")) and not search_available
+        initial_tool_choice = str(plan.get("initial_tool_choice") or "required")
+        if initial_tool_choice not in {"required", "auto"}:
+            initial_tool_choice = "required"
+
         response = await self.reasoning_client.responses_create(
-            instructions=NODE_EVIDENCE_RETRIEVAL_TOOLCALL_PROMPT,
+            instructions="\n\n".join(
+                [
+                    NODE_EVIDENCE_RETRIEVAL_TOOLCALL_PROMPT,
+                    "RETRIEVAL PLAN:\n" + json.dumps(plan, indent=2),
+                    (
+                        "Tool surface note: only tools appropriate to the plan are "
+                        "available. If search tools are unavailable, use exact lookup."
+                    ),
+                ]
+            ),
             input=[
                 {
                     "role": "user",
@@ -344,15 +521,19 @@ class NodeEvidenceRetrieverWorker:
                                     f"OBJECTIVE:\n{objective_text}",
                                     f"GRAPH:\n{json.dumps(graph.to_dict(), indent=2)}",
                                     f"{target_label}:\n{json.dumps(target_payload, indent=2)}",
+                                    (
+                                        "CONNECTED NODE EVIDENCE:\n"
+                                        + json.dumps(connected_evidence or [], indent=2)
+                                    ),
                                 ]
                             ),
                         }
                     ],
                 }
             ],
-            tools=self._responses_tool_definitions(),
-            tool_choice="required",
-            parallel_tool_calls=False,
+            tools=tools,
+            tool_choice=initial_tool_choice,
+            parallel_tool_calls=parallel_direct_lookups,
             reasoning_effort=self.reasoning_effort,
             max_output_tokens=self.max_completion_tokens,
             max_tool_calls=self.max_tool_calls_per_node,
@@ -388,7 +569,14 @@ class NodeEvidenceRetrieverWorker:
 
             results = await self.wcag_mcp.execute_planned_tool_calls(planned_calls)
             tool_outputs = []
+            saw_search_miss = False
             for planned_call, result in zip(planned_calls, results):
+                if planned_call["tool"] in {
+                    "search_wcag",
+                    "search_techniques",
+                    "search_glossary",
+                } and self._tool_result_is_miss(result):
+                    saw_search_miss = True
                 output_payload = {
                     "status": result.get("status"),
                     "tool": planned_call["tool"],
@@ -420,12 +608,34 @@ class NodeEvidenceRetrieverWorker:
                 )
                 break
 
+            next_allowed_tool_names = set(allowed_tool_names)
+            next_instructions = None
+            if saw_search_miss:
+                next_allowed_tool_names -= {
+                    "search_wcag",
+                    "search_techniques",
+                    "search_glossary",
+                }
+                next_instructions = (
+                    "A search call just missed. Do not issue more search calls for "
+                    "the same intent. Switch to exact lookup using known criterion, "
+                    "guideline, glossary, or technique IDs, or stop if enough usable "
+                    "evidence has already been gathered."
+                )
+            if not next_allowed_tool_names:
+                next_allowed_tool_names = allowed_tool_names
+            next_tools = self._responses_tool_definitions(next_allowed_tool_names)
+            next_parallel = (
+                bool(plan.get("parallel_direct_lookups"))
+                and not self._contains_search_tool(next_allowed_tool_names)
+            )
             response = await self.reasoning_client.responses_create(
                 previous_response_id=response.get("id"),
+                instructions=next_instructions,
                 input=tool_outputs,
-                tools=self._responses_tool_definitions(),
+                tools=next_tools,
                 tool_choice="auto",
-                parallel_tool_calls=False,
+                parallel_tool_calls=next_parallel,
                 reasoning_effort=self.reasoning_effort,
                 max_output_tokens=self.max_completion_tokens,
                 max_tool_calls=self.max_tool_calls_per_node,
@@ -461,6 +671,56 @@ class NodeEvidenceRetrieverWorker:
                 f"Teaching graph retrieval finalization failed for {target_id}: {preview or 'empty response'}"
             ) from exc
 
+    async def _plan_retrieval(
+        self,
+        *,
+        objective_text: str,
+        graph: TeachingGraphArtifact,
+        target_id: str,
+        target_label: str,
+        target_payload: Dict[str, Any],
+        connected_evidence: Optional[List[Dict[str, Any]]],
+    ) -> Dict[str, Any]:
+        response = await self.reasoning_client.responses_create(
+            instructions=NODE_EVIDENCE_RETRIEVAL_PLANNING_PROMPT,
+            input=[
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "input_text",
+                            "text": "\n\n".join(
+                                [
+                                    f"OBJECTIVE:\n{objective_text}",
+                                    f"GRAPH:\n{json.dumps(graph.to_dict(), indent=2)}",
+                                    f"TARGET ID:\n{target_id}",
+                                    f"{target_label}:\n{json.dumps(target_payload, indent=2)}",
+                                    (
+                                        "CONNECTED NODE EVIDENCE:\n"
+                                        + json.dumps(connected_evidence or [], indent=2)
+                                    ),
+                                ]
+                            ),
+                        }
+                    ],
+                }
+            ],
+            text=self._retrieval_plan_text_format(),
+            reasoning_effort=self.reasoning_effort,
+            max_output_tokens=min(self.max_completion_tokens, 1200),
+            store=True,
+        )
+        plan_text = self._strip_code_fences(self._response_text(response))
+        try:
+            return json.loads(plan_text)
+        except Exception as exc:
+            preview = plan_text.replace("\n", " ").strip()
+            if len(preview) > 200:
+                preview = preview[:200] + "..."
+            raise self.retrieval_error_cls(
+                f"Teaching graph retrieval planning failed for {target_id}: {preview or 'empty response'}"
+            ) from exc
+
     async def _retrieve_node_evidence_payload(
         self,
         *,
@@ -468,13 +728,18 @@ class NodeEvidenceRetrieverWorker:
         graph: TeachingGraphArtifact,
         node: Any,
     ) -> Dict[str, Any]:
-        return await self._retrieve_evidence_payload(
+        payload = await self._retrieve_evidence_payload(
             objective_text=objective_text,
             graph=graph,
             target_id=node.id,
             target_label="TARGET NODE",
             target_payload=node.to_dict(),
         )
+        if payload is None:
+            raise self.retrieval_error_cls(
+                f"Teaching graph node retrieval failed for {node.id}: retrieval was skipped."
+            )
+        return payload
 
     @staticmethod
     def _edge_target_id(edge: Any) -> str:
@@ -522,6 +787,36 @@ class NodeEvidenceRetrieverWorker:
         }
 
     @staticmethod
+    def _connected_evidence_summary(
+        records: List[Dict[str, Any]],
+        *node_ids: str,
+    ) -> List[Dict[str, Any]]:
+        record_by_id = {record.get("node_id"): record for record in records}
+        summaries: List[Dict[str, Any]] = []
+        for node_id in node_ids:
+            record = record_by_id.get(node_id)
+            if not record:
+                continue
+            summaries.append(
+                {
+                    "node_id": node_id,
+                    "grounding_strength": record.get("grounding_strength"),
+                    "coverage_summary": record.get("coverage_summary"),
+                    "retrieved_items": [
+                        {
+                            "item_id": item.get("item_id"),
+                            "kind": item.get("kind"),
+                            "title": item.get("title"),
+                            "grounding_note": item.get("grounding_note"),
+                        }
+                        for item in (record.get("retrieved_items") or [])
+                    ],
+                    "notes_on_gaps": record.get("notes_on_gaps") or [],
+                }
+            )
+        return summaries
+
+    @staticmethod
     def _record_from_payload(
         *,
         objective_text: str,
@@ -544,6 +839,7 @@ class NodeEvidenceRetrieverWorker:
                         "coverage_summary": payload["coverage_summary"],
                         "source_tools_used": payload.get("source_tools_used") or [],
                         "retrieved_items": payload.get("retrieved_items") or [],
+                        "notes_on_gaps": payload.get("notes_on_gaps") or [],
                     }
                 ],
             }
@@ -608,8 +904,6 @@ class NodeEvidenceRetrieverWorker:
         records = [record.to_dict() for record in node_artifact.node_evidence]
 
         for edge in graph.edges:
-            if not self._edge_needs_retrieval(edge, graph):
-                continue
             target_id = self._edge_target_id(edge)
             payload = await self._retrieve_evidence_payload(
                 objective_text=objective_text,
@@ -617,7 +911,14 @@ class NodeEvidenceRetrieverWorker:
                 target_id=target_id,
                 target_label="TARGET EDGE",
                 target_payload=self._edge_target_payload(edge),
+                connected_evidence=self._connected_evidence_summary(
+                    records,
+                    edge.from_node,
+                    edge.to_node,
+                ),
             )
+            if payload is None:
+                continue
             try:
                 records.append(
                     self._record_from_payload(
@@ -639,7 +940,15 @@ class NodeEvidenceRetrieverWorker:
             target_id=integration_id,
             target_label="TARGET INTEGRATION",
             target_payload=self._integration_target_payload(graph),
+            connected_evidence=self._connected_evidence_summary(
+                records,
+                *graph.primary_route,
+            ),
         )
+        if integration_payload is None:
+            raise self.retrieval_error_cls(
+                f"Teaching graph integration retrieval failed for {integration_id}: retrieval was skipped."
+            )
         try:
             records.append(
                 self._record_from_payload(
@@ -663,7 +972,10 @@ class NodeEvidenceRetrieverWorker:
                     "edge_evidence_ids": [
                         self._edge_target_id(edge)
                         for edge in graph.edges
-                        if self._edge_needs_retrieval(edge, graph)
+                        if any(
+                            record.get("node_id") == self._edge_target_id(edge)
+                            for record in records
+                        )
                     ],
                     "integration_evidence_id": integration_id,
                 },
@@ -938,10 +1250,13 @@ class GraphGroundingProjector:
     ) -> EvidenceCardSet:
         raw_records: List[Dict[str, Any]] = []
         cards: List[Dict[str, Any]] = []
+        unsupported_gaps: List[str] = []
         raw_id_by_key: Dict[tuple[str, str, str], str] = {}
 
         for record in node_evidence.node_evidence:
             target_refs = cls._target_refs_for_record(record.node_id)
+            for note in getattr(record, "notes_on_gaps", []) or []:
+                unsupported_gaps.append(f"{target_refs[0]}: {note}")
             for item in record.retrieved_items:
                 evidence_id = cls._qualified_evidence_id(record.node_id, item.item_id)
                 raw_id = f"raw_{evidence_id}"
@@ -990,7 +1305,7 @@ class GraphGroundingProjector:
                 "objective_text": objective_text,
                 "raw_evidence": raw_records,
                 "evidence_cards": cards,
-                "unsupported_gaps": [],
+                "unsupported_gaps": unsupported_gaps,
             }
         )
 

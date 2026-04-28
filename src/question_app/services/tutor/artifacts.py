@@ -334,6 +334,7 @@ class NodeEvidenceRecord:
     coverage_summary: NodeEvidenceCoverageSummary
     source_tools_used: List[ToolInvocationRecord] = field(default_factory=list)
     retrieved_items: List[NodeEvidenceItem] = field(default_factory=list)
+    notes_on_gaps: List[str] = field(default_factory=list)
 
     @classmethod
     def from_dict(cls, payload: Dict[str, Any]) -> "NodeEvidenceRecord":
@@ -358,6 +359,11 @@ class NodeEvidenceRecord:
                 NodeEvidenceItem.from_dict(item)
                 for item in (payload.get("retrieved_items") or [])
             ],
+            notes_on_gaps=[
+                str(item).strip()
+                for item in (payload.get("notes_on_gaps") or [])
+                if str(item).strip()
+            ],
         )
         if not record.retrieved_items:
             raise ValueError("node_evidence.retrieved_items must not be empty")
@@ -370,6 +376,7 @@ class NodeEvidenceRecord:
             "coverage_summary": self.coverage_summary.to_dict(),
             "source_tools_used": [item.to_dict() for item in self.source_tools_used],
             "retrieved_items": [item.to_dict() for item in self.retrieved_items],
+            "notes_on_gaps": list(self.notes_on_gaps),
         }
 
 

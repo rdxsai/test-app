@@ -40,6 +40,7 @@ GUIDED_WCAG_TOOL_DEFINITIONS = wcag_mcp_client.GUIDED_WCAG_TOOL_DEFINITIONS
 WCAG_TOOL_DEFINITIONS = wcag_mcp_client.WCAG_TOOL_DEFINITIONS
 WCAGMCPClient = wcag_mcp_client.WCAGMCPClient
 _with_required_rationale = wcag_mcp_client._with_required_rationale
+is_no_result_text = wcag_mcp_client.is_no_result_text
 
 
 def test_guided_tool_definitions_expose_richer_retrieval_tools():
@@ -113,6 +114,12 @@ def test_with_required_rationale_handles_empty_parameters():
     assert params["type"] == "object"
     assert params["properties"]["rationale"]["type"] == "string"
     assert params["required"] == ["rationale"]
+
+
+def test_is_no_result_text_catches_lookup_not_found_payloads():
+    assert is_no_result_text('Term "decorative" not found. Did you mean:\n\n- pure decoration')
+    assert is_no_result_text('No technique found with ID "H45".')
+    assert not is_no_result_text("# H67: Using null alt text")
 
 
 def test_deterministic_router_maps_common_instance_a_topics():

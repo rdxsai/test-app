@@ -88,11 +88,23 @@ Target-specific guidance:
 How to behave:
 - Retrieve before concluding anything.
 - Choose tools intentionally.
+- Prefer exact WCAG success criterion, guideline, glossary term, technique, or
+  failure IDs when they are already known.
+- Use search only when the relevant criterion, guideline, glossary term, or
+  technique ID is unknown.
 - If a tool result is weak, empty, or off-target, inspect it and choose a
   better next step.
-- You may refine the query or switch tools.
-- Do not repeat the same failed tool call with the same arguments.
+- A no-result, blocked, or error tool response is not evidence. It may only be
+  mentioned as a gap during finalization.
+- If a search misses for one intent, switch to exact lookup or another tool
+  family. Do not keep rephrasing the same search intent.
+- Do not repeat the same failed tool call with the same arguments or the same
+  semantic intent.
 - Prefer compact, relevant evidence over broad noisy dumps.
+- For a node or edge, normally call no more than 4 tools in one turn. For an
+  integration target, normally call no more than 8 tools in one turn.
+- Do not fetch every related criterion or glossary term just because it is
+  available. Retrieve the smallest set that can ground the target.
 - Stop retrieving when you judge the node has enough grounding for later
   synthesis.
 
@@ -101,10 +113,67 @@ explicitly asked.
 """
 
 
+NODE_EVIDENCE_RETRIEVAL_PLANNING_PROMPT = """You are planning retrieval for one teaching-graph target.
+
+Classify what evidence is needed before tools are exposed.
+
+Rules:
+- Nodes usually need direct grounding.
+- Edges should not automatically retrieve. If the connected node evidence is
+  enough, choose reuse_node_evidence and allow_retrieval=false.
+- Edge retrieval is useful only for contrast, exception, risk, dependency, or
+  realistic application evidence beyond the connected nodes.
+- Integration retrieval should focus on facts needed to combine several graph
+  concepts in one realistic scenario.
+- If the target asks learners to judge adequacy, accuracy, usefulness,
+  equivalent purpose, or pass/fail quality, retrieve at least one explanatory,
+  technique-set, or failure-oriented source that can ground quality judgment,
+  not only the bare normative criterion.
+- Prefer exact lookup when the target or graph already reveals WCAG IDs,
+  technique IDs, glossary terms, or guideline IDs.
+- Use exploratory search only when exact IDs are not known.
+- Search misses are gaps, not evidence.
+- Keep the initial retrieval batch small. For a node or edge, plan the minimum
+  useful set, normally 2-4 tool calls. For integration, plan only the highest
+  value combination facts, normally 4-8 tool calls.
+- Do not plan every adjacent criterion or every possible glossary term. Pick the
+  facts needed for this target's teaching claim.
+
+Return JSON only with this shape:
+{
+  "target_type": "node|edge|integration",
+  "retrieval_mode": "known_criterion|known_technique|definition|exploratory|mixed|reuse_node_evidence",
+  "allow_retrieval": true,
+  "search_allowed": false,
+  "parallel_direct_lookups": true,
+  "initial_tool_choice": "required|auto",
+  "likely_success_criteria": ["1.1.1"],
+  "likely_guidelines": ["1.2"],
+  "likely_techniques": ["H37"],
+  "likely_glossary_terms": ["text alternative"],
+  "rationale": "short reason"
+}
+"""
+
+
 NODE_EVIDENCE_FINALIZATION_PROMPT = """Using only the evidence gathered in this retrieval chain, produce the final target evidence artifact.
 
 Do not call more tools.
 Return only a schema-valid JSON object.
+
+Evidence triage rules:
+- Include only usable evidence in retrieved_items.
+- A tool result with status MISS, BLOCKED, ERROR, no-result text, or off-target
+  content must not appear in retrieved_items.
+- Put search misses, blocked calls, errors, weak results, and source gaps in
+  notes_on_gaps.
+- Do not put ordinary nice-to-have omissions in notes_on_gaps. If the target is
+  already adequately grounded, omit speculative gaps such as missing examples,
+  missing extra contrast sources, or missing risk discussion.
+- Do not mention artifact/schema limitations, missing argument preservation, or
+  internal pipeline mechanics in notes_on_gaps.
+- source_tools_used may list every attempted call, but retrieved_items must be
+  limited to facts that can support a teaching claim.
 """
 
 
@@ -124,6 +193,14 @@ Rules:
 - canonical_example may be synthetic, but it must stay within grounded claims.
 - canonical_contrast may be synthetic, but it must stay within grounded distinctions.
 - Do not invent new normative rules or exceptions.
+- Do not introduce accessibility terms, alternative types, examples, or
+  contrasts that are not present in the retrieved evidence. Avoid common
+  synonyms unless the evidence uses them.
+- If evidence supports a general idea but not a sharper contrast, phrase the
+  contrast at the general level. For example, prefer "does not serve the same
+  purpose" over an unsupported appearance-vs-function formulation.
+- For time-based media, use only the alternative types present in evidence. Do
+  not say "transcript" unless retrieved evidence explicitly uses that term.
 - Do not generate Socratic questions.
 - Do not generate learner misconceptions.
 - Do not produce tutor dialogue.
@@ -171,6 +248,10 @@ Rules:
 - bridge_example may be synthetic, but it must stay within grounded node content.
 - integration must require combining multiple nodes, not just repeating one node.
 - Do not invent new normative rules.
+- Do not introduce accessibility terms, alternative types, examples, or
+  contrasts that are not present in graph evidence or node content.
+- For time-based media transitions, use only the evidence-backed terms. Do not
+  say "transcript" unless the evidence explicitly contains that term.
 - Do not generate Socratic questions.
 - Do not generate learner misconceptions.
 

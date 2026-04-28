@@ -1588,6 +1588,26 @@ class TestGuidedRetrieval:
                 }
             )
             if text:
+                if text["format"].get("name") == "retrieval_plan":
+                    return {
+                        "id": "resp_plan",
+                        "output_text": json.dumps(
+                            {
+                                "target_type": "node",
+                                "retrieval_mode": "mixed",
+                                "allow_retrieval": True,
+                                "search_allowed": False,
+                                "parallel_direct_lookups": True,
+                                "initial_tool_choice": "required",
+                                "likely_success_criteria": [],
+                                "likely_guidelines": [],
+                                "likely_techniques": [],
+                                "likely_glossary_terms": [],
+                                "rationale": "Need structural WCAG grounding.",
+                            }
+                        ),
+                        "output": [],
+                    }
                 node_id = "n2" if previous_response_id == "resp_node_2" else "n1"
                 return {
                     "id": f"{previous_response_id or 'resp'}_final",
@@ -1688,11 +1708,13 @@ class TestGuidedRetrieval:
 
         assert len(artifact.node_evidence) == 2
         assert artifact.node_evidence[0].retrieved_items[0].tool == "list_principles"
-        assert captured_calls[0]["max_output_tokens"] == TEACHING_GRAPH_NODE_RETRIEVAL_MAX_COMPLETION_TOKENS
-        assert captured_calls[0]["tool_choice"] == "required"
-        assert captured_calls[0]["max_tool_calls"] == TEACHING_GRAPH_NODE_RETRIEVAL_MAX_TOOL_CALLS
-        assert captured_calls[0]["store"] is True
-        assert captured_calls[2]["text"]["format"]["type"] == "json_schema"
+        assert captured_calls[0]["text"]["format"]["name"] == "retrieval_plan"
+        assert captured_calls[1]["max_output_tokens"] == TEACHING_GRAPH_NODE_RETRIEVAL_MAX_COMPLETION_TOKENS
+        assert captured_calls[1]["tool_choice"] == "required"
+        assert captured_calls[1]["parallel_tool_calls"] is True
+        assert captured_calls[1]["max_tool_calls"] == TEACHING_GRAPH_NODE_RETRIEVAL_MAX_TOOL_CALLS
+        assert captured_calls[1]["store"] is True
+        assert captured_calls[3]["text"]["format"]["type"] == "json_schema"
 
     @pytest.mark.asyncio
     async def test_build_graph_node_evidence_raises_when_no_hits_returned(
@@ -1714,6 +1736,26 @@ class TestGuidedRetrieval:
             max_tool_calls=None,
         ):
             if text:
+                if text["format"].get("name") == "retrieval_plan":
+                    return {
+                        "id": "resp_plan",
+                        "output_text": json.dumps(
+                            {
+                                "target_type": "node",
+                                "retrieval_mode": "exploratory",
+                                "allow_retrieval": True,
+                                "search_allowed": True,
+                                "parallel_direct_lookups": False,
+                                "initial_tool_choice": "required",
+                                "likely_success_criteria": [],
+                                "likely_guidelines": [],
+                                "likely_techniques": [],
+                                "likely_glossary_terms": [],
+                                "rationale": "Need exploratory search.",
+                            }
+                        ),
+                        "output": [],
+                    }
                 return {
                     "id": "resp_final",
                     "output_text": json.dumps(
