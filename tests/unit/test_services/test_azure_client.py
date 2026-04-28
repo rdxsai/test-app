@@ -1,6 +1,9 @@
 import pytest
 
-from question_app.services.tutor.azure_client import AzureAPIMClient
+from question_app.services.tutor.azure_client import (
+    AzureAPIMClient,
+    build_graph_responses_client,
+)
 
 
 class FakeResponse:
@@ -118,8 +121,8 @@ def test_reasoning_completion_budget_scales_by_effort_with_cap():
     assert client._resolve_reasoning_completion_tokens(180, "medium") == 800
     assert client._resolve_reasoning_completion_tokens(900, "medium") == 1800
     assert client._resolve_reasoning_completion_tokens(180, "high") == 1200
-    assert client._resolve_reasoning_completion_tokens(900, "high") == 2400
-    assert client._resolve_reasoning_completion_tokens(3000, "high") == 2400
+    assert client._resolve_reasoning_completion_tokens(900, "high") == 2700
+    assert client._resolve_reasoning_completion_tokens(3000, "high") == 6000
 
 
 @pytest.mark.asyncio
@@ -168,7 +171,15 @@ async def test_responses_create_uses_responses_payload_shape(monkeypatch):
     payload = await client.responses_create(
         instructions="Retrieve first.",
         input=[{"role": "user", "content": [{"type": "input_text", "text": "hello"}]}],
-        tools=[{"type": "function", "name": "search_wcag", "description": "", "parameters": {"type": "object", "properties": {}, "required": []}, "strict": True}],
+        tools=[
+            {
+                "type": "function",
+                "name": "search_wcag",
+                "description": "",
+                "parameters": {"type": "object", "properties": {}, "required": []},
+                "strict": True,
+            }
+        ],
         tool_choice="required",
         parallel_tool_calls=False,
         reasoning_effort="medium",
@@ -181,6 +192,8 @@ async def test_responses_create_uses_responses_payload_shape(monkeypatch):
     assert payload["id"] == "resp_123"
     assert captured["url"] == "https://example.test/openai/v1/responses"
     assert captured["params"] == {"api-version": "2025-01-01-preview"}
+    assert "Authorization" not in captured["headers"]
+    assert captured["headers"]["Ocp-Apim-Subscription-Key"] == "test-key"
     assert captured["headers"]["x-policy-id"] == "resp-filter"
     assert captured["json"]["model"] == "gpt-5.4"
     assert captured["json"]["tool_choice"] == "required"
@@ -190,3 +203,70 @@ async def test_responses_create_uses_responses_payload_shape(monkeypatch):
     assert captured["json"]["previous_response_id"] == "resp_prev"
     assert captured["json"]["max_tool_calls"] == 4
     assert captured["json"]["store"] is True
+
+
+def test_build_graph_responses_client_uses_dedicated_azure_gpt54_deployment():
+    client = build_graph_responses_client(
+        azure_config={
+            "endpoint": "https://example.test",
+            "api_key": "azure-key",
+            "api_version": "2025-01-01-preview",
+            "content_filter_policy": "resp-filter",
+            "tutor_deployment_name": "gpt-5.4-mini",
+            "reasoning_deployment_name": "some-other-model",
+        },
+        responses_deployment="gpt-5.4",
+    )
+
+    assert client is not None
+    assert client.endpoint == "https://example.test"
+    assert client.deployment == "gpt-5.4"
+    assert client.api_key == "azure-key"
+    assert client.api_version == "2025-01-01-preview"
+    assert client.content_filter_policy == "resp-filter"
+
+
+@pytest.mark.asyncio
+async def test_responses_create_accepts_v1_base_endpoint(monkeypatch):
+    captured = {}
+
+    class FakeResponsesPayload:
+        status_code = 200
+
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return {"id": "resp_123", "output": []}
+
+    class FakeAsyncClient:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+        async def post(self, url, headers=None, params=None, json=None):
+            captured["url"] = url
+            return FakeResponsesPayload()
+
+    monkeypatch.setattr(
+        "question_app.services.tutor.azure_client.httpx.AsyncClient",
+        FakeAsyncClient,
+    )
+
+    client = AzureAPIMClient(
+        endpoint="https://example.test/openai/v1",
+        deployment="gpt-5.4",
+        api_key="test-key",
+        api_version="preview",
+    )
+
+    await client.responses_create(
+        input=[{"role": "user", "content": [{"type": "input_text", "text": "hi"}]}],
+    )
+
+    assert captured["url"] == "https://example.test/openai/v1/responses"

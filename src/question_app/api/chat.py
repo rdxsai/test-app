@@ -18,7 +18,7 @@ from ..utils import (
     get_default_chat_system_prompt,
     get_default_welcome_message,
     load_chat_system_prompt,
-    load_welcome_message,       # <-- We will use this
+    load_welcome_message,  # <-- We will use this
     save_chat_system_prompt,
     save_welcome_message,
 )
@@ -26,8 +26,7 @@ from ..services.tutor.hybrid_system import (
     ClientConnectionClosedError,
     HybridCrewAISocraticSystem,
 )
-from ..services.tutor.azure_client import AzureAPIMClient
-from ..services.tutor.openai_responses_client import OpenAIResponsesClient
+from ..services.tutor.azure_client import AzureAPIMClient, build_graph_responses_client
 from ..services.wcag_mcp_client import WCAGMCPClient
 from ..services.student_service import StudentService
 from ..services.general_chat_service import GeneralChatService
@@ -70,21 +69,31 @@ try:
         content_filter_policy=azure_config.get("content_filter_policy"),
     )
 
-    wcag_mcp = WCAGMCPClient(
-        command=config.WCAG_MCP_COMMAND,
-        azure_client=azure_client,
-    ) if config.WCAG_MCP_ENABLED else None
+    wcag_mcp = (
+        WCAGMCPClient(
+            command=config.WCAG_MCP_COMMAND,
+            azure_client=azure_client,
+        )
+        if config.WCAG_MCP_ENABLED
+        else None
+    )
     if wcag_mcp:
         logger.info("Chat API: WCAG MCP client created with LLM-driven tool calling.")
 
-    graph_responses_client = None
-    if config.OPENAI_RESPONSES_ENABLED and config.OPENAI_RESPONSES_API_KEY:
-        graph_responses_client = OpenAIResponsesClient(
-            api_key=config.OPENAI_RESPONSES_API_KEY,
-            model=config.OPENAI_RESPONSES_MODEL,
-            base_url=config.OPENAI_RESPONSES_BASE_URL,
+    graph_responses_client = build_graph_responses_client(
+        azure_config={
+            **azure_config,
+            "endpoint": config.OPENAI_RESPONSES_ENDPOINT,
+            "api_version": config.OPENAI_RESPONSES_API_VERSION,
+        },
+        responses_deployment=config.OPENAI_RESPONSES_MODEL,
+        enabled=config.OPENAI_RESPONSES_ENABLED,
+    )
+    if graph_responses_client:
+        logger.info(
+            "Chat API: Azure Responses client enabled for graph retrieval: deployment=%s",
+            config.OPENAI_RESPONSES_MODEL,
         )
-        logger.info("Chat API: OpenAI Responses client enabled for graph retrieval.")
 
     general_chat_service = GeneralChatService(
         azure_config=azure_config,
@@ -125,24 +134,28 @@ async def chat_page(request: Request):
     return templates.TemplateResponse("chat.html", {"request": request})
 
 
-#Define a pydantic model for incoming request body
+# Define a pydantic model for incoming request body
 class ChatMessage(BaseModel):
-    message : str
-    student_id: str | None = None 
+    message: str
+    student_id: str | None = None
+
 
 # --- Constants for instance A session bootstrap ---
 DEFAULT_CHAT_SESSION_ID = "default-student"
 
+
 @router.post("/message")
-async def handle_chat_message(chat_message : ChatMessage):
+async def handle_chat_message(chat_message: ChatMessage):
     """
     Handles a single chat message via POST request.
     (This is the updated, corrected version)
     """
-    
+
     if not general_chat_service:
         logger.error("General chat service is not initialized. Check server logs.")
-        raise HTTPException(status_code=503, detail="Chat service is offline. Please check server logs.")
+        raise HTTPException(
+            status_code=503, detail="Chat service is offline. Please check server logs."
+        )
 
     try:
         session = await general_chat_service.ensure_session(
@@ -154,7 +167,9 @@ async def handle_chat_message(chat_message : ChatMessage):
                 "Handling new conversation start for session_id: %s",
                 session["session_id"],
             )
-            session = await general_chat_service.start_new_session(session["session_id"])
+            session = await general_chat_service.start_new_session(
+                session["session_id"]
+            )
             welcome_message = load_welcome_message()
             return {
                 "response": welcome_message,
@@ -164,7 +179,7 @@ async def handle_chat_message(chat_message : ChatMessage):
                     "intent_executed": "start_session",
                     "analysis": {},
                     "progress": {},
-                }
+                },
             }
 
         logger.info(f"Received chat message for session_id: {session['session_id']}")
@@ -182,14 +197,16 @@ async def handle_chat_message(chat_message : ChatMessage):
         logger.error(f"HTTP Exception in handle_chat_message : {e.detail}")
         raise e
     except Exception as e:
-        logger.error(f"Unexpected error in handle_chat_message : {e}" , exc_info=True)
+        logger.error(f"Unexpected error in handle_chat_message : {e}", exc_info=True)
         raise HTTPException(
-            status_code=500 , detail = f"Failed to process chat message : {str(e)}"
+            status_code=500, detail=f"Failed to process chat message : {str(e)}"
         )
+
 
 # ============================================================================
 # WEBSOCKET ENDPOINT
 # ============================================================================
+
 
 @router.websocket("/ws")
 async def websocket_chat(websocket: WebSocket):
@@ -217,7 +234,9 @@ async def websocket_chat(websocket: WebSocket):
     await websocket.accept()
 
     if not general_chat_service:
-        await websocket.send_json({"type": "error", "message": "Chat service is offline."})
+        await websocket.send_json(
+            {"type": "error", "message": "Chat service is offline."}
+        )
         await websocket.close(code=1011)
         return
 
@@ -246,11 +265,13 @@ async def websocket_chat(websocket: WebSocket):
                     msg.get("student_id") or DEFAULT_CHAT_SESSION_ID
                 )
                 session_id = session["session_id"]
-                await websocket.send_json({
-                    "type": "authenticated",
-                    "student_id": session["session_id"],
-                    "session_number": session["session_number"],
-                })
+                await websocket.send_json(
+                    {
+                        "type": "authenticated",
+                        "student_id": session["session_id"],
+                        "session_number": session["session_number"],
+                    }
+                )
 
             # --- NEW SESSION ---
             elif msg_type == "new_session":
@@ -261,18 +282,22 @@ async def websocket_chat(websocket: WebSocket):
                 session = await general_chat_service.start_new_session(session_id)
 
                 welcome = load_welcome_message()
-                await websocket.send_json({
-                    "type": "welcome",
-                    "content": welcome,
-                    "student_id": session["session_id"],
-                    "session_number": session["session_number"],
-                })
+                await websocket.send_json(
+                    {
+                        "type": "welcome",
+                        "content": welcome,
+                        "student_id": session["session_id"],
+                        "session_number": session["session_number"],
+                    }
+                )
 
             # --- CHAT MESSAGE ---
             elif msg_type == "message":
                 content = msg.get("content", "").strip()
                 if not content:
-                    await websocket.send_json({"type": "error", "message": "Empty message"})
+                    await websocket.send_json(
+                        {"type": "error", "message": "Empty message"}
+                    )
                     continue
 
                 session = await general_chat_service.ensure_session(
@@ -290,17 +315,18 @@ async def websocket_chat(websocket: WebSocket):
                 await websocket.send_json({"type": "pong"})
 
             else:
-                await websocket.send_json({
-                    "type": "error",
-                    "message": f"Unknown message type: {msg_type}"
-                })
+                await websocket.send_json(
+                    {"type": "error", "message": f"Unknown message type: {msg_type}"}
+                )
 
     except WebSocketDisconnect:
         logger.info(f"WS: Client disconnected (session_id={session_id})")
     except Exception as e:
         logger.error(f"WS: Unexpected error: {e}", exc_info=True)
         try:
-            await websocket.send_json({"type": "error", "message": "Internal server error"})
+            await websocket.send_json(
+                {"type": "error", "message": "Internal server error"}
+            )
             await websocket.close(code=1011)
         except Exception:
             pass
@@ -309,6 +335,7 @@ async def websocket_chat(websocket: WebSocket):
 # ============================================================================
 # INSTANCE B: GUIDED LEARNING
 # ============================================================================
+
 
 @router.get("/guided", response_class=HTMLResponse)
 async def guided_chat_page(request: Request):
@@ -348,12 +375,16 @@ async def websocket_guided_chat(websocket: WebSocket):
     await websocket.accept()
 
     if not guided_tutor_system:
-        await websocket.send_json({"type": "error", "message": "Tutor system is offline."})
+        await websocket.send_json(
+            {"type": "error", "message": "Tutor system is offline."}
+        )
         await websocket.close(code=1011)
         return
 
     if not guided_tutor_system.student_mcp:
-        await websocket.send_json({"type": "error", "message": "Student MCP not available."})
+        await websocket.send_json(
+            {"type": "error", "message": "Student MCP not available."}
+        )
         await websocket.close(code=1011)
         return
 
@@ -385,95 +416,124 @@ async def websocket_guided_chat(websocket: WebSocket):
             if msg_type == "auth":
                 student_id = msg.get("student_id", "").strip()
                 if not student_id:
-                    await websocket.send_json({"type": "error", "message": "student_id required"})
+                    await websocket.send_json(
+                        {"type": "error", "message": "student_id required"}
+                    )
                     continue
 
                 # Generate a session ID for this connection
                 import uuid
+
                 session_id = f"guided-{uuid.uuid4().hex[:12]}"
 
                 # Check if student has a profile in the Student MCP
                 profile = await guided_tutor_system.student_mcp.get_profile(student_id)
-                session = await guided_tutor_system.student_mcp.get_active_session(student_id) if profile else None
+                session = (
+                    await guided_tutor_system.student_mcp.get_active_session(student_id)
+                    if profile
+                    else None
+                )
 
                 if profile:
                     # Returning student — resume or start new objective
                     current_stage = (session or {}).get("current_stage", "introduction")
                     objective = (session or {}).get("active_objective_id", "")
-                    await websocket.send_json({
-                        "type": "authenticated",
-                        "student_id": student_id,
-                        "instance": "guided",
-                        "stage": current_stage,
-                        "objective": objective,
-                        "has_profile": True,
-                    })
+                    await websocket.send_json(
+                        {
+                            "type": "authenticated",
+                            "student_id": student_id,
+                            "instance": "guided",
+                            "stage": current_stage,
+                            "objective": objective,
+                            "has_profile": True,
+                        }
+                    )
 
                     # Create a new session for this connection
                     await guided_tutor_system.student_mcp.update_session_state(
-                        session_id, student_id=student_id,
-                        stage=current_stage, active_objective_id=objective,
+                        session_id,
+                        student_id=student_id,
+                        stage=current_stage,
+                        active_objective_id=objective,
                     )
                 else:
                     # New student — onboarding handled by conduct_guided_session_streaming.
                     # Don't create a session here (no profile yet → FK would fail).
                     # Send auth confirmation, then the first onboarding prompt.
-                    await websocket.send_json({
-                        "type": "authenticated",
-                        "student_id": student_id,
-                        "instance": "guided",
-                        "stage": "onboarding",
-                        "has_profile": False,
-                    })
+                    await websocket.send_json(
+                        {
+                            "type": "authenticated",
+                            "student_id": student_id,
+                            "instance": "guided",
+                            "stage": "onboarding",
+                            "has_profile": False,
+                        }
+                    )
 
                     # Check if this student has partial onboarding progress
                     history = guided_tutor_system.get_conversation_history(student_id)
-                    assistant_turns = sum(1 for m in history if m.get("role") == "assistant")
+                    assistant_turns = sum(
+                        1 for m in history if m.get("role") == "assistant"
+                    )
 
                     if assistant_turns == 0:
                         # Brand new — send welcome + first question
-                        await websocket.send_json({
-                            "type": "welcome",
-                            "content": "Welcome! I'm your web accessibility tutor. Let me learn a bit about you so I can personalize your learning.",
-                            "student_id": student_id,
-                            "stage": "onboarding",
-                        })
+                        await websocket.send_json(
+                            {
+                                "type": "welcome",
+                                "content": "Welcome! I'm your web accessibility tutor. Let me learn a bit about you so I can personalize your learning.",
+                                "student_id": student_id,
+                                "stage": "onboarding",
+                            }
+                        )
                         first_question = guided_tutor_system._ONBOARDING_QUESTIONS[0]
-                        await websocket.send_json({
-                            "type": "onboarding_question",
-                            "step": 1,
-                            "total_steps": 3,
-                            **first_question,
-                        })
+                        await websocket.send_json(
+                            {
+                                "type": "onboarding_question",
+                                "step": 1,
+                                "total_steps": 3,
+                                **first_question,
+                            }
+                        )
                         guided_tutor_system.append_to_conversation(
-                            student_id, "assistant", guided_tutor_system._ONBOARDING_PROMPTS[0]
+                            student_id,
+                            "assistant",
+                            guided_tutor_system._ONBOARDING_PROMPTS[0],
                         )
                     else:
                         # Returning mid-onboarding — send the next unanswered question
                         next_step = min(assistant_turns, 2)
                         question = guided_tutor_system._ONBOARDING_QUESTIONS[next_step]
-                        await websocket.send_json({
-                            "type": "welcome",
-                            "content": "Welcome back! Let's continue where we left off.",
-                            "student_id": student_id,
-                            "stage": "onboarding",
-                        })
-                        await websocket.send_json({
-                            "type": "onboarding_question",
-                            "step": next_step + 1,
-                            "total_steps": 3,
-                            **question,
-                        })
+                        await websocket.send_json(
+                            {
+                                "type": "welcome",
+                                "content": "Welcome back! Let's continue where we left off.",
+                                "student_id": student_id,
+                                "stage": "onboarding",
+                            }
+                        )
+                        await websocket.send_json(
+                            {
+                                "type": "onboarding_question",
+                                "step": next_step + 1,
+                                "total_steps": 3,
+                                **question,
+                            }
+                        )
 
             # --- CHAT MESSAGE ---
             elif msg_type == "message":
                 content = msg.get("content", "").strip()
                 if not content:
-                    await websocket.send_json({"type": "error", "message": "Empty message"})
+                    await websocket.send_json(
+                        {"type": "error", "message": "Empty message"}
+                    )
                     continue
 
                 if not student_id or not session_id:
-                    await websocket.send_json({"type": "error", "message": "Not authenticated"})
+                    await websocket.send_json(
+                        {"type": "error", "message": "Not authenticated"}
+                    )
                     continue
 
                 await guided_tutor_system.conduct_guided_session_streaming(
@@ -492,25 +552,26 @@ async def websocket_guided_chat(websocket: WebSocket):
                     # Invalidate session cache
                     if session_id:
                         guided_tutor_system._session_cache.invalidate(session_id)
-                        if (
-                            guided_tutor_system.student_mcp
-                            and hasattr(guided_tutor_system.student_mcp, "clear_session_runtime_cache")
+                        if guided_tutor_system.student_mcp and hasattr(
+                            guided_tutor_system.student_mcp,
+                            "clear_session_runtime_cache",
                         ):
                             await guided_tutor_system.student_mcp.clear_session_runtime_cache(
                                 session_id
                             )
                     logger.info(f"WS Guided: Session reset for {student_id}")
-                    await websocket.send_json({"type": "session_reset", "student_id": student_id})
+                    await websocket.send_json(
+                        {"type": "session_reset", "student_id": student_id}
+                    )
 
             # --- PING ---
             elif msg_type == "ping":
                 await websocket.send_json({"type": "pong"})
 
             else:
-                await websocket.send_json({
-                    "type": "error",
-                    "message": f"Unknown message type: {msg_type}"
-                })
+                await websocket.send_json(
+                    {"type": "error", "message": f"Unknown message type: {msg_type}"}
+                )
 
     except WebSocketDisconnect:
         logger.info(f"WS Guided: Client disconnected (student_id={student_id})")
@@ -521,7 +582,9 @@ async def websocket_guided_chat(websocket: WebSocket):
                 if not profile:
                     return
                 await guided_tutor_system.student_mcp.save_session_summary(
-                    session_id, student_id, "short",
+                    session_id,
+                    student_id,
+                    "short",
                     content=json.dumps({"disconnected": True}),
                 )
             except Exception:
@@ -535,7 +598,9 @@ async def websocket_guided_chat(websocket: WebSocket):
     except Exception as e:
         logger.error(f"WS Guided: Unexpected error: {e}", exc_info=True)
         try:
-            await websocket.send_json({"type": "error", "message": "Internal server error"})
+            await websocket.send_json(
+                {"type": "error", "message": "Internal server error"}
+            )
             await websocket.close(code=1011)
         except Exception:
             pass

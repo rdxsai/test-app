@@ -25,9 +25,11 @@ load_dotenv()
 
 from question_app.api.pg_vector_store import VectorStoreService
 from question_app.core.config import config
-from question_app.services.tutor.azure_client import AzureAPIMClient
+from question_app.services.tutor.azure_client import (
+    AzureAPIMClient,
+    build_graph_responses_client,
+)
 from question_app.services.tutor.hybrid_system import HybridCrewAISocraticSystem
-from question_app.services.tutor.openai_responses_client import OpenAIResponsesClient
 from question_app.services.tutor.workers.graph import GraphGroundingProjector
 from question_app.services.wcag_mcp_client import WCAGMCPClient
 
@@ -68,13 +70,15 @@ async def main() -> None:
         if config.WCAG_MCP_ENABLED
         else None
     )
-    graph_responses_client = None
-    if config.OPENAI_RESPONSES_ENABLED and config.OPENAI_RESPONSES_API_KEY:
-        graph_responses_client = OpenAIResponsesClient(
-            api_key=config.OPENAI_RESPONSES_API_KEY,
-            model=config.OPENAI_RESPONSES_MODEL,
-            base_url=config.OPENAI_RESPONSES_BASE_URL,
-        )
+    graph_responses_client = build_graph_responses_client(
+        azure_config={
+            **azure_config,
+            "endpoint": config.OPENAI_RESPONSES_ENDPOINT,
+            "api_version": config.OPENAI_RESPONSES_API_VERSION,
+        },
+        responses_deployment=config.OPENAI_RESPONSES_MODEL,
+        enabled=config.OPENAI_RESPONSES_ENABLED,
+    )
 
     system = HybridCrewAISocraticSystem(
         azure_config=azure_config,

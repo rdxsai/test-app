@@ -13,7 +13,9 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+BASE_DIR = os.path.dirname(
+    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+)
 
 
 def _derive_reasoning_deployment(default_deployment: Optional[str]) -> Optional[str]:
@@ -23,6 +25,7 @@ def _derive_reasoning_deployment(default_deployment: Optional[str]) -> Optional[
     if default_deployment.endswith("-mini"):
         return default_deployment[:-5]
     return default_deployment
+
 
 class Config:
     """Centralized configuration management for the Question App."""
@@ -47,8 +50,7 @@ class Config:
         self.AZURE_OPENAI_REASONING_DEPLOYMENT_ID: Optional[str] = os.getenv(
             "AZURE_OPENAI_REASONING_DEPLOYMENT_ID",
             _derive_reasoning_deployment(
-                self.AZURE_OPENAI_TUTOR_DEPLOYMENT_ID
-                or self.AZURE_OPENAI_DEPLOYMENT_ID
+                self.AZURE_OPENAI_TUTOR_DEPLOYMENT_ID or self.AZURE_OPENAI_DEPLOYMENT_ID
             ),
         )
         self.AZURE_OPENAI_INSTANCE_A_DEPLOYMENT_ID: Optional[str] = os.getenv(
@@ -67,18 +69,20 @@ class Config:
             "AZURE_OPENAI_CONTENT_FILTER_POLICY"
         )
 
-        # OpenAI Responses API Configuration
-        # Used only for graph-grounded retrieval tool loops. The existing
-        # Azure/APIM configuration remains the default for tutor chat and
-        # non-retrieval synthesis.
-        self.OPENAI_RESPONSES_API_KEY: Optional[str] = os.getenv(
-            "OPENAI_RESPONSES_API_KEY"
-        ) or os.getenv("OPENAI_API_KEY")
-        self.OPENAI_RESPONSES_MODEL: str = os.getenv(
-            "OPENAI_RESPONSES_MODEL", "gpt-5.4"
+        # Responses API Configuration
+        # Used only for graph-grounded retrieval tool loops. Requests go through
+        # Azure/APIM, not a personal OpenAI API key.
+        self.OPENAI_RESPONSES_ENDPOINT: str = os.getenv(
+            "AZURE_OPENAI_RESPONSES_ENDPOINT",
+            self.AZURE_OPENAI_ENDPOINT or "",
         )
-        self.OPENAI_RESPONSES_BASE_URL: str = os.getenv(
-            "OPENAI_RESPONSES_BASE_URL", "https://api.openai.com/v1"
+        self.OPENAI_RESPONSES_API_VERSION: str = os.getenv(
+            "AZURE_OPENAI_RESPONSES_API_VERSION",
+            os.getenv("OPENAI_RESPONSES_API_VERSION", "preview"),
+        )
+        self.OPENAI_RESPONSES_MODEL: str = os.getenv(
+            "AZURE_OPENAI_RESPONSES_DEPLOYMENT_ID",
+            os.getenv("OPENAI_RESPONSES_MODEL", "gpt-5.4"),
         )
         self.OPENAI_RESPONSES_ENABLED: bool = (
             os.getenv("OPENAI_RESPONSES_ENABLED", "true").lower() == "true"
@@ -91,11 +95,17 @@ class Config:
         )
 
         # WCAG MCP Server Configuration
-        self.WCAG_MCP_ENABLED: bool = os.getenv("WCAG_MCP_ENABLED", "true").lower() == "true"
-        self.WCAG_MCP_COMMAND: str = os.getenv("WCAG_MCP_COMMAND", "wcag-guidelines-mcp")
+        self.WCAG_MCP_ENABLED: bool = (
+            os.getenv("WCAG_MCP_ENABLED", "true").lower() == "true"
+        )
+        self.WCAG_MCP_COMMAND: str = os.getenv(
+            "WCAG_MCP_COMMAND", "wcag-guidelines-mcp"
+        )
 
         # Student MCP Server Configuration
-        self.STUDENT_MCP_ENABLED: bool = os.getenv("STUDENT_MCP_ENABLED", "true").lower() == "true"
+        self.STUDENT_MCP_ENABLED: bool = (
+            os.getenv("STUDENT_MCP_ENABLED", "true").lower() == "true"
+        )
 
         # Application Configuration
         self.APP_TITLE: str = "Canvas Quiz Manager"
@@ -118,8 +128,6 @@ class Config:
             f"dbname={self.POSTGRES_DB} user={self.POSTGRES_USER} "
             f"password={self.POSTGRES_PASSWORD}"
         )
-
-
 
     def validate_canvas_config(self) -> bool:
         """Validate that Canvas configuration is complete."""

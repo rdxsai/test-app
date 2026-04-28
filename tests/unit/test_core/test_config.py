@@ -20,6 +20,7 @@ class TestConfig:
         assert hasattr(config, "AZURE_OPENAI_TUTOR_DEPLOYMENT_ID")
         assert hasattr(config, "AZURE_OPENAI_REASONING_DEPLOYMENT_ID")
         assert hasattr(config, "AZURE_OPENAI_INSTANCE_A_DEPLOYMENT_ID")
+        assert hasattr(config, "OPENAI_RESPONSES_MODEL")
 
     def test_validate_canvas_config_valid(self):
         """Test canvas config validation with valid values"""
@@ -109,3 +110,30 @@ class TestConfig:
             assert config.AZURE_OPENAI_INSTANCE_A_DEPLOYMENT_ID == "gpt-5.4"
             assert config.AZURE_OPENAI_TUTOR_DEPLOYMENT_ID == "gpt-5.4-mini"
             assert config.AZURE_OPENAI_REASONING_DEPLOYMENT_ID == "gpt-5.4"
+
+    def test_responses_model_defaults_to_gpt54_without_openai_api_key(self):
+        with patch.dict(os.environ, {}, clear=True):
+            config = Config()
+            assert config.OPENAI_RESPONSES_API_VERSION == "preview"
+            assert config.OPENAI_RESPONSES_MODEL == "gpt-5.4"
+            assert not hasattr(config, "OPENAI_RESPONSES_API_KEY")
+
+    def test_azure_responses_settings_override_legacy_responses_model(self):
+        with patch.dict(
+            os.environ,
+            {
+                "AZURE_OPENAI_ENDPOINT": "https://chat.example.test",
+                "AZURE_OPENAI_RESPONSES_ENDPOINT": "https://resp.example.test/openai/v1",
+                "AZURE_OPENAI_RESPONSES_API_VERSION": "preview",
+                "AZURE_OPENAI_RESPONSES_DEPLOYMENT_ID": "gpt-5.4",
+                "OPENAI_RESPONSES_MODEL": "gpt-5.4-mini",
+            },
+            clear=True,
+        ):
+            config = Config()
+            assert (
+                config.OPENAI_RESPONSES_ENDPOINT
+                == "https://resp.example.test/openai/v1"
+            )
+            assert config.OPENAI_RESPONSES_API_VERSION == "preview"
+            assert config.OPENAI_RESPONSES_MODEL == "gpt-5.4"

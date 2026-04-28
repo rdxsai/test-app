@@ -2,7 +2,7 @@
 """Run the graph-grounded retrieval pipeline from a saved Markdown graph.
 
 The script writes a timestamped trace directory under results/ containing:
-- every OpenAI Responses API request/response
+- every Azure Responses API request/response
 - every Azure synthesis/validation chat request/response
 - every planned WCAG MCP tool call and result
 - every intermediate graph artifact
@@ -31,8 +31,14 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from question_app.core.config import config
-from question_app.services.tutor.artifacts import TeachingGraphArtifact, TeachingGraphContentArtifact
-from question_app.services.tutor.azure_client import AzureAPIMClient
+from question_app.services.tutor.artifacts import (
+    TeachingGraphArtifact,
+    TeachingGraphContentArtifact,
+)
+from question_app.services.tutor.azure_client import (
+    AzureAPIMClient,
+    build_graph_responses_client,
+)
 from question_app.services.tutor.hybrid_system import (
     TEACHING_GRAPH_EDGE_SYNTHESIS_MAX_COMPLETION_TOKENS,
     TEACHING_GRAPH_EDGE_SYNTHESIS_REASONING_EFFORT,
@@ -45,7 +51,6 @@ from question_app.services.tutor.hybrid_system import (
     TEACHING_GRAPH_VALIDATION_REASONING_EFFORT,
     TeachingGraphGenerationError,
 )
-from question_app.services.tutor.openai_responses_client import OpenAIResponsesClient
 from question_app.services.tutor.workers.graph import (
     EdgeIntegrationSynthesizerWorker,
     GraphGroundingProjector,
@@ -100,17 +105,17 @@ class TraceLogger:
         return path
 
 
-class TracedOpenAIResponsesClient:
-    def __init__(self, inner: OpenAIResponsesClient, trace: TraceLogger) -> None:
+class TracedAzureResponsesClient:
+    def __init__(self, inner: AzureAPIMClient, trace: TraceLogger) -> None:
         self.inner = inner
         self.trace = trace
-        self.model = inner.model
+        self.deployment = inner.deployment
 
     async def responses_create(self, **kwargs: Any) -> Dict[str, Any]:
         label = "responses_create"
         request_payload = {
-            "model": self.inner.model,
-            "base_url": self.inner.base_url,
+            "deployment": self.inner.deployment,
+            "endpoint": self.inner.endpoint,
             "kwargs": kwargs,
         }
         self.trace.write("llm_request", label, request_payload)
@@ -204,7 +209,9 @@ class TracedWCAGMCPClient:
         self.inner = inner
         self.trace = trace
 
-    async def execute_planned_tool_calls(self, planned_calls: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    async def execute_planned_tool_calls(
+        self, planned_calls: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
         self.trace.write("mcp_request", "execute_planned_tool_calls", planned_calls)
         started = time.perf_counter()
         results = await self.inner.execute_planned_tool_calls(planned_calls)
@@ -228,7 +235,9 @@ def _section(text: str, heading: str, next_heading_level: str = "##") -> str:
     if not match:
         return ""
     start = match.end()
-    next_match = re.search(rf"^{re.escape(next_heading_level)}\s+", text[start:], flags=re.MULTILINE)
+    next_match = re.search(
+        rf"^{re.escape(next_heading_level)}\s+", text[start:], flags=re.MULTILINE
+    )
     end = start + next_match.start() if next_match else len(text)
     return text[start:end].strip()
 
@@ -243,10 +252,14 @@ def _first_nonempty_line(text: str) -> str:
 
 def _parse_nodes(nodes_text: str) -> List[Dict[str, str]]:
     nodes: List[Dict[str, str]] = []
-    matches = list(re.finditer(r"^### `([^`]+)`: (.+)$", nodes_text, flags=re.MULTILINE))
+    matches = list(
+        re.finditer(r"^### `([^`]+)`: (.+)$", nodes_text, flags=re.MULTILINE)
+    )
     for index, match in enumerate(matches):
         start = match.end()
-        end = matches[index + 1].start() if index + 1 < len(matches) else len(nodes_text)
+        end = (
+            matches[index + 1].start() if index + 1 < len(matches) else len(nodes_text)
+        )
         body = nodes_text[start:end]
         kind_match = re.search(r"\*\*Kind:\*\*\s*([A-Za-z_]+)", body)
         claim_match = re.search(r"\*\*Teachable claim:\*\*\s*(.+)", body)
@@ -264,11 +277,15 @@ def _parse_nodes(nodes_text: str) -> List[Dict[str, str]]:
 def _parse_edges(edges_text: str) -> List[Dict[str, str]]:
     edges: List[Dict[str, str]] = []
     matches = list(
-        re.finditer(r"^### `([^`]+)`\s*->\s*`([^`]+)`\s*$", edges_text, flags=re.MULTILINE)
+        re.finditer(
+            r"^### `([^`]+)`\s*->\s*`([^`]+)`\s*$", edges_text, flags=re.MULTILINE
+        )
     )
     for index, match in enumerate(matches):
         start = match.end()
-        end = matches[index + 1].start() if index + 1 < len(matches) else len(edges_text)
+        end = (
+            matches[index + 1].start() if index + 1 < len(matches) else len(edges_text)
+        )
         body = edges_text[start:end]
         type_match = re.search(r"\*\*Type:\*\*\s*([A-Za-z_]+)", body)
         bridge_match = re.search(r"\*\*Bridge claim:\*\*\s*(.+)", body)
@@ -301,8 +318,12 @@ def parse_markdown_graph(path: Path) -> TeachingGraphArtifact:
     edges = _parse_edges(_section(text, "Edges"))
     if not primary_route and nodes:
         primary_route = [node["id"] for node in nodes]
-    integration_candidates = [node["id"] for node in nodes if node.get("kind") == "integration"]
-    integration_node = integration_candidates[-1] if integration_candidates else primary_route[-1]
+    integration_candidates = [
+        node["id"] for node in nodes if node.get("kind") == "integration"
+    ]
+    integration_node = (
+        integration_candidates[-1] if integration_candidates else primary_route[-1]
+    )
     return TeachingGraphArtifact.from_dict(
         {
             "objective_text": objective_text,
@@ -321,19 +342,6 @@ async def run_demo(graph_path: Path, trace_dir: Path) -> Path:
     graph = parse_markdown_graph(graph_path)
     trace.write("input", "parsed_graph", graph.to_dict())
 
-    openai_api_key = os.getenv("OPENAI_API_KEY")
-    if not openai_api_key:
-        raise RuntimeError("OPENAI_API_KEY is required for the graph retrieval demo")
-
-    responses_client = TracedOpenAIResponsesClient(
-        OpenAIResponsesClient(
-            api_key=openai_api_key,
-            model=config.OPENAI_RESPONSES_MODEL,
-            base_url=config.OPENAI_RESPONSES_BASE_URL,
-        ),
-        trace,
-    )
-
     azure_config = {
         "endpoint": config.AZURE_OPENAI_ENDPOINT,
         "deployment": (
@@ -345,6 +353,20 @@ async def run_demo(graph_path: Path, trace_dir: Path) -> Path:
         "api_version": config.AZURE_OPENAI_API_VERSION,
         "content_filter_policy": config.AZURE_OPENAI_CONTENT_FILTER_POLICY,
     }
+    azure_responses_client = build_graph_responses_client(
+        azure_config={
+            "endpoint": config.OPENAI_RESPONSES_ENDPOINT,
+            "api_key": azure_config["api_key"],
+            "api_version": config.OPENAI_RESPONSES_API_VERSION,
+            "content_filter_policy": azure_config["content_filter_policy"],
+        },
+        responses_deployment=config.OPENAI_RESPONSES_MODEL,
+        enabled=config.OPENAI_RESPONSES_ENABLED,
+    )
+    if azure_responses_client is None:
+        raise RuntimeError("Responses API is disabled; graph retrieval cannot run.")
+    responses_client = TracedAzureResponsesClient(azure_responses_client, trace)
+
     azure_client = TracedAzureChatClient(
         AzureAPIMClient(
             endpoint=azure_config["endpoint"],

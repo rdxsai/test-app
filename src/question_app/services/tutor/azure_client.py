@@ -59,10 +59,15 @@ class AzureAPIMClient:
 
     def _build_responses_urls(self) -> List[str]:
         base = self.endpoint.rstrip("/")
-        candidates = [
-            f"{base}/openai/v1/responses",
-            f"{base}/responses",
-        ]
+        if base.endswith("/openai/v1"):
+            candidates = [f"{base}/responses"]
+        else:
+            candidates = [
+                f"{base}/openai/v1/responses",
+                f"{base}/deployments/{self.deployment}/responses",
+                f"{base}/openai/deployments/{self.deployment}/responses",
+                f"{base}/responses",
+            ]
         deduped: List[str] = []
         for candidate in candidates:
             if candidate not in deduped:
@@ -90,16 +95,28 @@ class AzureAPIMClient:
         requested = max(1, int(max_tokens or 0))
         if effort == "low":
             if requested <= 150:
-                return min(max(requested * 2, SHORT_REASONING_COMPLETION_TOKENS), MEDIUM_REASONING_COMPLETION_TOKENS)
+                return min(
+                    max(requested * 2, SHORT_REASONING_COMPLETION_TOKENS),
+                    MEDIUM_REASONING_COMPLETION_TOKENS,
+                )
             if requested <= 400:
-                return min(max(requested * 2, MEDIUM_REASONING_COMPLETION_TOKENS), DEFAULT_REASONING_COMPLETION_TOKENS)
-            return min(max(requested, DEFAULT_REASONING_COMPLETION_TOKENS), MAX_REASONING_COMPLETION_TOKENS)
+                return min(
+                    max(requested * 2, MEDIUM_REASONING_COMPLETION_TOKENS),
+                    DEFAULT_REASONING_COMPLETION_TOKENS,
+                )
+            return min(
+                max(requested, DEFAULT_REASONING_COMPLETION_TOKENS),
+                MAX_REASONING_COMPLETION_TOKENS,
+            )
         if effort == "medium":
             if requested <= 200:
                 return min(max(requested * 3, MEDIUM_REASONING_COMPLETION_TOKENS), 1600)
             return min(max(requested * 2, 1600), MAX_REASONING_COMPLETION_TOKENS)
         if requested <= 200:
-            return min(max(requested * 4, DEFAULT_REASONING_COMPLETION_TOKENS), MAX_REASONING_COMPLETION_TOKENS)
+            return min(
+                max(requested * 4, DEFAULT_REASONING_COMPLETION_TOKENS),
+                MAX_REASONING_COMPLETION_TOKENS,
+            )
         return min(max(requested * 3, 2000), MAX_REASONING_COMPLETION_TOKENS)
 
     def chat(
@@ -118,7 +135,9 @@ class AzureAPIMClient:
         payload: Dict[str, Any] = {"messages": messages}
         if self._reasoning:
             normalized_effort = self._normalize_reasoning_effort(reasoning_effort)
-            payload["max_completion_tokens"] = self._resolve_reasoning_completion_tokens(
+            payload[
+                "max_completion_tokens"
+            ] = self._resolve_reasoning_completion_tokens(
                 max_tokens=max_tokens,
                 reasoning_effort=normalized_effort,
             )
@@ -153,7 +172,10 @@ class AzureAPIMClient:
                         result.get("usage", {}),
                     )
                 return content
-            except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectionError) as exc:
+            except (
+                requests.exceptions.ReadTimeout,
+                requests.exceptions.ConnectionError,
+            ) as exc:
                 logger.warning(
                     "Azure APIM request attempt %d/%d failed for deployment=%s: %s",
                     attempt,
@@ -192,7 +214,9 @@ class AzureAPIMClient:
         payload: Dict[str, Any] = {"messages": messages, "stream": True}
         if self._reasoning:
             payload["reasoning_effort"] = "low"
-            payload["max_completion_tokens"] = self._resolve_reasoning_completion_tokens(
+            payload[
+                "max_completion_tokens"
+            ] = self._resolve_reasoning_completion_tokens(
                 max_tokens=max_tokens,
                 reasoning_effort=payload["reasoning_effort"],
             )
@@ -238,7 +262,11 @@ class AzureAPIMClient:
                                 except (json.JSONDecodeError, KeyError, IndexError):
                                     continue
                 return
-            except (httpx.ReadTimeout, httpx.ConnectError, httpx.RemoteProtocolError) as exc:
+            except (
+                httpx.ReadTimeout,
+                httpx.ConnectError,
+                httpx.RemoteProtocolError,
+            ) as exc:
                 logger.warning(
                     "Azure streaming request attempt %d/%d failed for deployment=%s: %s",
                     attempt,
@@ -294,7 +322,9 @@ class AzureAPIMClient:
         }
         if self._reasoning:
             normalized_effort = self._normalize_reasoning_effort(reasoning_effort)
-            payload["max_completion_tokens"] = self._resolve_reasoning_completion_tokens(
+            payload[
+                "max_completion_tokens"
+            ] = self._resolve_reasoning_completion_tokens(
                 max_tokens=max_tokens,
                 reasoning_effort=normalized_effort,
             )
@@ -401,7 +431,9 @@ class AzureAPIMClient:
 
         if last_http_error is not None:
             raise last_http_error
-        raise RuntimeError("Azure Responses request failed before an HTTP response was returned.")
+        raise RuntimeError(
+            "Azure Responses request failed before an HTTP response was returned."
+        )
 
     def make_request(self, prompt: str) -> Dict[str, Any]:
         """Compatibility helper for code paths expecting raw-like responses."""
@@ -411,3 +443,21 @@ class AzureAPIMClient:
         except Exception as exc:
             logger.error(f"Make request failed: {exc}")
             return {"choices": [{"message": {"content": f"Error: {exc}"}}]}
+
+
+def build_graph_responses_client(
+    *,
+    azure_config: Dict[str, Any],
+    responses_deployment: str,
+    enabled: bool = True,
+) -> Optional[AzureAPIMClient]:
+    """Build the Azure/APIM Responses client used by graph retrieval only."""
+    if not enabled:
+        return None
+    return AzureAPIMClient(
+        endpoint=azure_config["endpoint"],
+        deployment=responses_deployment,
+        api_key=azure_config["api_key"],
+        api_version=azure_config.get("api_version", "2024-02-15-preview"),
+        content_filter_policy=azure_config.get("content_filter_policy"),
+    )
