@@ -31,6 +31,7 @@ markdown = "^3.10"
 pygments = "^2.19.2"
 mcp = "^1.0.0"
 textstat = ">=0.7.0"
+langgraph = "^1.1.10"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.3"
