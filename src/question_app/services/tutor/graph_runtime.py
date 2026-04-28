@@ -9,8 +9,15 @@ GRAPH_ORCHESTRATOR_SCHEMA: Dict[str, Any] = {
     "active_node_id": "string",
     "next_node_id": "string",
     "active_edge_id": "string",
+    "route_position_before": 0,
+    "route_position_after": 0,
+    "expected_next_node_id": "string",
+    "skipped_node_ids": [],
+    "skip_rationale": "string",
+    "edge_bridge_used": "string",
     "allowed_teaching_move": "string",
     "decision_reason": "string",
+    "confidence": 0.0,
     "accepted_analyzer_recommendation": True,
     "override_reason": "string",
     "tutor_directive": "string",
@@ -41,8 +48,15 @@ Return exactly one JSON object matching this schema:
   "active_node_id": "current node after the decision",
   "next_node_id": "next route node if known, else empty string",
   "active_edge_id": "from->to when bridging, else empty string",
+  "route_position_before": 0,
+  "route_position_after": 0,
+  "expected_next_node_id": "the next primary-route node after the previous active node, else empty string",
+  "skipped_node_ids": ["route nodes skipped by this decision, else empty array"],
+  "skip_rationale": "required when skipped_node_ids is non-empty, else empty string",
+  "edge_bridge_used": "bridge claim used for the transition, else empty string",
   "allowed_teaching_move": "repair_current_node | clarify_current_node | practice_current_node | answer_student_question_then_return | introduce_next_node | integrate_nodes | assess_mastery",
   "decision_reason": "brief reason for the decision",
+  "confidence": 0.0,
   "accepted_analyzer_recommendation": true,
   "override_reason": "non-empty only when you reject or narrow the analyzer recommendation",
   "tutor_directive": "specific instruction for what the tutor should do now",
@@ -63,6 +77,30 @@ def _active_index(graph_state: Dict[str, Any]) -> int:
     if active in route:
         return route.index(active)
     return 0
+
+
+def _node_index(route: List[str], node_id: str) -> int:
+    return route.index(node_id) if node_id in route else -1
+
+
+def _next_route_node(route: List[str], node_id: str) -> str:
+    index = _node_index(route, node_id)
+    if index < 0 or index + 1 >= len(route):
+        return ""
+    return route[index + 1]
+
+
+def _edge_bridge(graph_state: Dict[str, Any], edge_id: str) -> str:
+    bridges = graph_state.get("edge_bridges") or {}
+    return str(bridges.get(edge_id) or "").strip()
+
+
+def _skipped_nodes(route: List[str], before_node: str, after_node: str) -> List[str]:
+    before = _node_index(route, before_node)
+    after = _node_index(route, after_node)
+    if before < 0 or after < 0 or after <= before + 1:
+        return []
+    return route[before + 1 : after]
 
 
 def _has_must_repair(analysis: Dict[str, Any]) -> bool:
@@ -103,6 +141,7 @@ def fallback_graph_decision(
     if not active and route:
         active = route[index]
     next_node = route[index + 1] if index + 1 < len(route) else ""
+    position = index + 1 if route else 0
     must_repair = _has_must_repair(analysis)
     wants_advance = _analyzer_wants_advance(analysis)
 
@@ -113,8 +152,15 @@ def fallback_graph_decision(
             "active_node_id": active,
             "next_node_id": next_node,
             "active_edge_id": "",
+            "route_position_before": position,
+            "route_position_after": position,
+            "expected_next_node_id": next_node,
+            "skipped_node_ids": [],
+            "skip_rationale": "",
+            "edge_bridge_used": "",
             "allowed_teaching_move": "repair_current_node",
             "decision_reason": reason,
+            "confidence": 0.9,
             "accepted_analyzer_recommendation": not wants_advance,
             "override_reason": reason if wants_advance else "",
             "tutor_directive": (
@@ -136,8 +182,15 @@ def fallback_graph_decision(
             "active_node_id": next_node,
             "next_node_id": route[index + 2] if index + 2 < len(route) else "",
             "active_edge_id": edge_id,
+            "route_position_before": position,
+            "route_position_after": index + 2,
+            "expected_next_node_id": next_node,
+            "skipped_node_ids": [],
+            "skip_rationale": "",
+            "edge_bridge_used": _edge_bridge(state, edge_id),
             "allowed_teaching_move": "introduce_next_node",
             "decision_reason": "Analyzer evidence indicates the current node is ready.",
+            "confidence": 0.75,
             "accepted_analyzer_recommendation": True,
             "override_reason": "",
             "tutor_directive": (
@@ -153,8 +206,15 @@ def fallback_graph_decision(
             "active_node_id": active,
             "next_node_id": "",
             "active_edge_id": "",
+            "route_position_before": position,
+            "route_position_after": position,
+            "expected_next_node_id": "",
+            "skipped_node_ids": [],
+            "skip_rationale": "",
+            "edge_bridge_used": "",
             "allowed_teaching_move": "integrate_nodes",
             "decision_reason": "The active node is the end of the route.",
+            "confidence": 0.75,
             "accepted_analyzer_recommendation": True,
             "override_reason": "",
             "tutor_directive": (
@@ -180,8 +240,15 @@ def fallback_graph_decision(
         "active_node_id": active,
         "next_node_id": next_node,
         "active_edge_id": "",
+        "route_position_before": position,
+        "route_position_after": position,
+        "expected_next_node_id": next_node,
+        "skipped_node_ids": [],
+        "skip_rationale": "",
+        "edge_bridge_used": "",
         "allowed_teaching_move": allowed_move,
         "decision_reason": "The current node still needs teaching evidence.",
+        "confidence": 0.7,
         "accepted_analyzer_recommendation": True,
         "override_reason": "",
         "tutor_directive": (
@@ -226,13 +293,58 @@ def normalize_graph_decision(
         normalized["allowed_teaching_move"] = fallback["allowed_teaching_move"]
 
     route = _as_list((graph_state or {}).get("primary_route"))
+    previous_active = str((graph_state or {}).get("active_node_id", "") or "").strip()
+    before_index = _node_index(route, previous_active)
     active_node_id = str(normalized.get("active_node_id", "") or "").strip()
     if route and active_node_id not in route:
         normalized["active_node_id"] = fallback["active_node_id"]
+        active_node_id = normalized["active_node_id"]
+
+    after_index = _node_index(route, active_node_id)
+    expected_next = _next_route_node(route, previous_active)
+    if str(normalized.get("expected_next_node_id", "") or "").strip() not in set(
+        route + [""]
+    ):
+        normalized["expected_next_node_id"] = expected_next
+    elif not str(normalized.get("expected_next_node_id", "") or "").strip():
+        normalized["expected_next_node_id"] = expected_next
+
+    route_next = _next_route_node(route, active_node_id)
+    next_node_id = str(normalized.get("next_node_id", "") or "").strip()
+    if next_node_id == active_node_id or (route and next_node_id not in route and next_node_id):
+        normalized["next_node_id"] = route_next
+
+    edge_id = str(normalized.get("active_edge_id", "") or "").strip()
+    if normalized["graph_action"] in {"advance", "integrate"} and not edge_id:
+        if previous_active and active_node_id and previous_active != active_node_id:
+            edge_id = f"{previous_active}->{active_node_id}"
+            normalized["active_edge_id"] = edge_id
+
+    skipped = _skipped_nodes(route, previous_active, active_node_id)
+    if not isinstance(normalized.get("skipped_node_ids"), list):
+        normalized["skipped_node_ids"] = skipped
+    else:
+        normalized["skipped_node_ids"] = _as_list(normalized["skipped_node_ids"])
+    if skipped and not normalized["skipped_node_ids"]:
+        normalized["skipped_node_ids"] = skipped
+    if edge_id and not str(normalized.get("edge_bridge_used", "") or "").strip():
+        normalized["edge_bridge_used"] = _edge_bridge(graph_state or {}, edge_id)
+
+    normalized["route_position_before"] = before_index + 1 if before_index >= 0 else 0
+    normalized["route_position_after"] = after_index + 1 if after_index >= 0 else 0
+
+    try:
+        confidence = float(normalized.get("confidence", fallback.get("confidence", 0.0)))
+    except (TypeError, ValueError):
+        confidence = float(fallback.get("confidence", 0.0) or 0.0)
+    normalized["confidence"] = min(1.0, max(0.0, confidence))
 
     for key in (
         "next_node_id",
         "active_edge_id",
+        "expected_next_node_id",
+        "skip_rationale",
+        "edge_bridge_used",
         "decision_reason",
         "override_reason",
         "tutor_directive",
@@ -331,16 +443,38 @@ def format_graph_runtime_context(
 def format_orchestrator_directive(decision: Optional[Dict[str, Any]]) -> str:
     if not decision:
         return ""
-    return (
-        "ORCHESTRATOR DIRECTIVE:\n"
-        f"- graph_action: {decision.get('graph_action', '')}\n"
-        f"- active_node_id: {decision.get('active_node_id', '')}\n"
-        f"- allowed_teaching_move: {decision.get('allowed_teaching_move', '')}\n"
-        f"- decision_reason: {decision.get('decision_reason', '')}\n"
-        f"- tutor_directive: {decision.get('tutor_directive', '')}\n"
-        "- Do not advance to another graph node unless this directive explicitly "
-        "allows it."
-    )
+    allowed_move = str(decision.get("allowed_teaching_move", "") or "").strip()
+    lines = [
+        "ORCHESTRATOR DIRECTIVE:",
+        f"- graph_action: {decision.get('graph_action', '')}",
+        f"- active_node_id: {decision.get('active_node_id', '')}",
+        f"- route_position_before: {decision.get('route_position_before', '')}",
+        f"- route_position_after: {decision.get('route_position_after', '')}",
+        f"- expected_next_node_id: {decision.get('expected_next_node_id', '')}",
+        f"- skipped_node_ids: {', '.join(_as_list(decision.get('skipped_node_ids')))}",
+        f"- active_edge_id: {decision.get('active_edge_id', '')}",
+        f"- edge_bridge_used: {decision.get('edge_bridge_used', '')}",
+        f"- allowed_teaching_move: {allowed_move}",
+        f"- decision_reason: {decision.get('decision_reason', '')}",
+        f"- tutor_directive: {decision.get('tutor_directive', '')}",
+        "- Do not advance to another graph node unless this directive explicitly allows it.",
+    ]
+    if allowed_move == "introduce_next_node":
+        lines.append(
+            "- Required response shape: include one explicit bridge sentence using "
+            "`edge_bridge_used` before teaching the new node, then ask one focused check."
+        )
+    if allowed_move == "assess_mastery":
+        lines.append(
+            "- Required response shape: ask one clear mastery/transfer assessment "
+            "question and wait for the student's answer."
+        )
+    if decision.get("skipped_node_ids"):
+        lines.append(
+            "- If any skipped_node_ids are present, explicitly connect why the "
+            "student's prior answer already covered them before moving on."
+        )
+    return "\n".join(lines)
 
 
 def format_graph_orchestrator_input(

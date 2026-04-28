@@ -454,6 +454,15 @@ class SessionContentCache:
             for node_id in (graph.get("primary_route", []) or [])
             if str(node_id or "").strip()
         ]
+        edge_bridges = {}
+        for edge in graph.get("edges", []) or []:
+            if not isinstance(edge, dict):
+                continue
+            source = str(edge.get("from", "") or "").strip()
+            target = str(edge.get("to", "") or "").strip()
+            bridge = str(edge.get("bridge_claim", "") or "").strip()
+            if source and target and bridge:
+                edge_bridges[f"{source}->{target}"] = bridge
         if not primary_route:
             primary_route = [
                 str(concept.get("id", "") or "").strip()
@@ -481,6 +490,7 @@ class SessionContentCache:
             "completed_node_ids": [],
             "visited_node_ids": [active_node_id] if active_node_id else [],
             "node_labels": node_labels,
+            "edge_bridges": edge_bridges,
             "node_status": node_status,
             "mode": "teach",
             "repair_count_for_active_node": 0,
