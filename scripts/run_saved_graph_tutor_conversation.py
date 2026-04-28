@@ -123,6 +123,10 @@ class InMemoryStudentService:
         return copy.deepcopy(self.session)
 
     async def update_session_state(self, session_id: str, **kwargs) -> Dict[str, Any]:
+        if "stage" in kwargs:
+            kwargs["current_stage"] = kwargs.pop("stage")
+        if "turns" in kwargs:
+            kwargs["turns_on_objective"] = kwargs.pop("turns")
         self.session.update(kwargs)
         self.session["session_id"] = session_id
         return copy.deepcopy(self.session)
