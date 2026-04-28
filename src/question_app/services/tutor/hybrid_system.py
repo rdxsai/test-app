@@ -261,6 +261,8 @@ TEACHING_GRAPH_EDGE_SYNTHESIS_MAX_COMPLETION_TOKENS = 5000
 TEACHING_GRAPH_EDGE_SYNTHESIS_REASONING_EFFORT = "low"
 TEACHING_GRAPH_VALIDATION_MAX_COMPLETION_TOKENS = 4000
 TEACHING_GRAPH_VALIDATION_REASONING_EFFORT = "low"
+GUIDED_TUTOR_RESPONSE_MAX_TOKENS = 3500
+GUIDED_TUTOR_RESPONSE_REASONING_EFFORT = "medium"
 
 
 class HybridCrewAISocraticSystem:
@@ -2812,7 +2814,13 @@ class HybridCrewAISocraticSystem:
         removes the unstable long-lived SSE transport while preserving the same
         user-facing progressive render in the browser.
         """
-        result = await asyncio.to_thread(self.client.chat, messages, 0.7, 1000)
+        result = await asyncio.to_thread(
+            self.client.chat,
+            messages,
+            0.7,
+            GUIDED_TUTOR_RESPONSE_MAX_TOKENS,
+            reasoning_effort=GUIDED_TUTOR_RESPONSE_REASONING_EFFORT,
+        )
         await ws_send({"type": "stream_start"})
         await self._progressive_send(result, ws_send)
         logger.info(f"Sent non-streamed tutor response ({len(result)} chars)")

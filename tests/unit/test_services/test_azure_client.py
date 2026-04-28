@@ -122,7 +122,8 @@ def test_reasoning_completion_budget_scales_by_effort_with_cap():
     assert client._resolve_reasoning_completion_tokens(900, "medium") == 1800
     assert client._resolve_reasoning_completion_tokens(180, "high") == 1200
     assert client._resolve_reasoning_completion_tokens(900, "high") == 2700
-    assert client._resolve_reasoning_completion_tokens(3000, "high") == 6000
+    assert client._resolve_reasoning_completion_tokens(3000, "high") == 9000
+    assert client._resolve_reasoning_completion_tokens(6000, "high") == 12000
 
 
 @pytest.mark.asyncio

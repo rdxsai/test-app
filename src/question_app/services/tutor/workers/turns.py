@@ -10,6 +10,13 @@ from ..graph_runtime import (
     normalize_graph_decision,
 )
 
+TURN_ANALYZER_MAX_TOKENS = 3500
+TURN_ANALYZER_REASONING_EFFORT = "medium"
+ASSESSMENT_REFLECTOR_MAX_TOKENS = 2500
+ASSESSMENT_REFLECTOR_REASONING_EFFORT = "medium"
+GRAPH_ORCHESTRATOR_MAX_TOKENS = 2200
+GRAPH_ORCHESTRATOR_REASONING_EFFORT = "medium"
+
 
 class TutorMessageBuilder:
     def __init__(
@@ -149,7 +156,8 @@ class StructuredTurnAnalyzer:
                 {"role": "user", "content": transcript},
             ],
             0.0,
-            1200,
+            TURN_ANALYZER_MAX_TOKENS,
+            reasoning_effort=TURN_ANALYZER_REASONING_EFFORT,
         )
         return self.json_parser(
             response,
@@ -233,7 +241,8 @@ class StructuredTurnAnalyzer:
                 {"role": "user", "content": transcript},
             ],
             0.0,
-            900,
+            ASSESSMENT_REFLECTOR_MAX_TOKENS,
+            reasoning_effort=ASSESSMENT_REFLECTOR_REASONING_EFFORT,
         )
         return self.json_parser(
             response,
@@ -291,7 +300,8 @@ class GraphProgressionOrchestrator:
                 },
             ],
             0.0,
-            700,
+            GRAPH_ORCHESTRATOR_MAX_TOKENS,
+            reasoning_effort=GRAPH_ORCHESTRATOR_REASONING_EFFORT,
         )
         parsed = self.json_parser(response, fallback=fallback)
         return normalize_graph_decision(parsed, graph_state, turn_analysis)
