@@ -45,6 +45,7 @@ class GuidedSessionStateArtifact:
     teaching_content: str
     retrieval_bundle: Dict[str, Any]
     lesson_state: Optional[Dict[str, Any]] = None
+    graph_runtime_state: Optional[Dict[str, Any]] = None
     pacing_state: Optional[Dict[str, Any]] = None
     misconception_state: Optional[Dict[str, Any]] = None
     student_context: str = ""
@@ -179,7 +180,9 @@ class TeachingGraphArtifact:
                 payload.get("objective_text"), "graph.objective_text"
             ),
             graph_type=graph_type,
-            entry_nodes=_ensure_string_list(payload.get("entry_nodes"), "graph.entry_nodes"),
+            entry_nodes=_ensure_string_list(
+                payload.get("entry_nodes"), "graph.entry_nodes"
+            ),
             integration_node=_require_str(
                 payload.get("integration_node"), "graph.integration_node"
             ),
@@ -504,15 +507,18 @@ class EvidenceCard:
             payload.get("evidence_type"), "evidence_card.evidence_type"
         )
         if evidence_type not in cls.VALID_TYPES:
-            raise ValueError(f"Unsupported evidence_card.evidence_type: {evidence_type}")
-        grounding_strength = str(payload.get("grounding_strength") or "adequate").strip()
+            raise ValueError(
+                f"Unsupported evidence_card.evidence_type: {evidence_type}"
+            )
+        grounding_strength = str(
+            payload.get("grounding_strength") or "adequate"
+        ).strip()
         if grounding_strength not in cls.VALID_STRENGTHS:
             raise ValueError(
                 f"Unsupported evidence_card.grounding_strength: {grounding_strength}"
             )
         facts = [
-            EvidenceFact.from_dict(item)
-            for item in (payload.get("usable_facts") or [])
+            EvidenceFact.from_dict(item) for item in (payload.get("usable_facts") or [])
         ]
         if not facts:
             raise ValueError("evidence_card.usable_facts must not be empty")
@@ -606,7 +612,9 @@ class GroundedTextSpan:
     grounding_basis: List[str]
 
     @classmethod
-    def from_dict(cls, payload: Dict[str, Any], *, field_name: str) -> "GroundedTextSpan":
+    def from_dict(
+        cls, payload: Dict[str, Any], *, field_name: str
+    ) -> "GroundedTextSpan":
         return cls(
             text=_require_str(payload.get("text"), f"{field_name}.text"),
             grounding_basis=_ensure_string_list(
@@ -660,7 +668,9 @@ class NodeContentRecord:
             id=_require_str(payload.get("id"), "node_content.id"),
             label=_require_str(payload.get("label"), "node_content.label"),
             kind=_require_str(payload.get("kind"), "node_content.kind"),
-            core_claim=_require_str(payload.get("core_claim"), "node_content.core_claim"),
+            core_claim=_require_str(
+                payload.get("core_claim"), "node_content.core_claim"
+            ),
             supporting_claims=_ensure_string_list(
                 payload.get("supporting_claims"), "node_content.supporting_claims"
             ),
@@ -754,12 +764,16 @@ class EdgeContentRecord:
                 payload.get("transition_rationale"),
                 "edge_content.transition_rationale",
             ),
-            bridge_text=_require_str(payload.get("bridge_text"), "edge_content.bridge_text"),
+            bridge_text=_require_str(
+                payload.get("bridge_text"), "edge_content.bridge_text"
+            ),
             source_requirement=_require_str(
                 payload.get("source_requirement"),
                 "edge_content.source_requirement",
             ),
-            target_shift=_require_str(payload.get("target_shift"), "edge_content.target_shift"),
+            target_shift=_require_str(
+                payload.get("target_shift"), "edge_content.target_shift"
+            ),
             bridge_example=GroundedTextSpan.from_dict(
                 dict(payload.get("bridge_example") or {}),
                 field_name="edge_content.bridge_example",
@@ -856,7 +870,14 @@ class EdgeIntegrationArtifact:
 
 @dataclass(frozen=True)
 class ClaimScope:
-    VALID_TYPES = {"node", "edge", "integration", "example", "scenario", "reasoning_path"}
+    VALID_TYPES = {
+        "node",
+        "edge",
+        "integration",
+        "example",
+        "scenario",
+        "reasoning_path",
+    }
 
     type: str
     id: str
@@ -976,8 +997,7 @@ class ClaimLedgerArtifact:
                 payload.get("objective_text"), "claim_ledger.objective_text"
             ),
             claims=[
-                ClaimRecord.from_dict(item)
-                for item in (payload.get("claims") or [])
+                ClaimRecord.from_dict(item) for item in (payload.get("claims") or [])
             ],
         )
         _index_by(ledger.claims, "claim_id")
@@ -1094,7 +1114,11 @@ class NodeValidationCheck:
                 RiskyExampleIssue.from_dict(item)
                 for item in (payload.get("risky_examples") or [])
             ],
-            notes=[str(item).strip() for item in (payload.get("notes") or []) if str(item).strip()],
+            notes=[
+                str(item).strip()
+                for item in (payload.get("notes") or [])
+                if str(item).strip()
+            ],
         )
 
     def to_dict(self) -> Dict[str, Any]:
@@ -1144,7 +1168,11 @@ class EdgeValidationCheck:
                 EdgeValidationIssue.from_dict(item)
                 for item in (payload.get("issues") or [])
             ],
-            notes=[str(item).strip() for item in (payload.get("notes") or []) if str(item).strip()],
+            notes=[
+                str(item).strip()
+                for item in (payload.get("notes") or [])
+                if str(item).strip()
+            ],
         )
 
     def to_dict(self) -> Dict[str, Any]:
@@ -1174,7 +1202,11 @@ class IntegrationValidationCheck:
                 EdgeValidationIssue.from_dict(item)
                 for item in (payload.get("issues") or [])
             ],
-            notes=[str(item).strip() for item in (payload.get("notes") or []) if str(item).strip()],
+            notes=[
+                str(item).strip()
+                for item in (payload.get("notes") or [])
+                if str(item).strip()
+            ],
         )
 
     def to_dict(self) -> Dict[str, Any]:
@@ -1238,7 +1270,11 @@ class RepairTargets:
     @classmethod
     def from_dict(cls, payload: Dict[str, Any]) -> "RepairTargets":
         return cls(
-            node_ids=[str(item).strip() for item in (payload.get("node_ids") or []) if str(item).strip()],
+            node_ids=[
+                str(item).strip()
+                for item in (payload.get("node_ids") or [])
+                if str(item).strip()
+            ],
             edge_ids=[
                 EdgeRepairTarget.from_dict(item)
                 for item in (payload.get("edge_ids") or [])
@@ -1270,9 +1306,7 @@ class GroundingValidationArtifact:
             payload.get("overall_status"), "validation.overall_status"
         )
         if overall_status not in {"pass", "revise", "fail"}:
-            raise ValueError(
-                f"Unsupported validation.overall_status: {overall_status}"
-            )
+            raise ValueError(f"Unsupported validation.overall_status: {overall_status}")
         artifact = cls(
             objective_text=_require_str(
                 payload.get("objective_text"), "validation.objective_text"

@@ -18,25 +18,26 @@ from typing import Any, Dict, List, Optional
 
 from dotenv import load_dotenv
 
-from .interfaces import VectorStoreInterface
+from ...models.tutor import KnowledgeLevel, SessionPhase, StudentProfile
+from ..general_chat_service import GeneralChatService
 from .azure_client import AzureAPIMClient
-from .workers.content import (
-    ConceptExtractionWorker,
-    TeachingPlanWorker,
-)
+from .interfaces import VectorStoreInterface
+from .orchestrators import GuidedTurnOrchestrator, TeachingGraphBuildOrchestrator
+from .repositories import GuidedSessionStateRepository
+from .workers.content import ConceptExtractionWorker, TeachingPlanWorker
 from .workers.graph import (
-    GraphGroundingProjector,
     EdgeIntegrationSynthesizerWorker,
+    GraphGroundingProjector,
     GroundingValidatorWorker,
     NodeContentSynthesizerWorker,
     NodeEvidenceRetrieverWorker,
     TeachingGraphPlannerWorker,
 )
-from .workers.turns import StructuredTurnAnalyzer, TutorMessageBuilder
-from .repositories import GuidedSessionStateRepository
-from .orchestrators import GuidedTurnOrchestrator, TeachingGraphBuildOrchestrator
-from ..general_chat_service import GeneralChatService
-from ...models.tutor import KnowledgeLevel, SessionPhase, StudentProfile
+from .workers.turns import (
+    GraphProgressionOrchestrator,
+    StructuredTurnAnalyzer,
+    TutorMessageBuilder,
+)
 
 load_dotenv()
 from question_app.services.database import get_database_manager
@@ -96,7 +97,13 @@ class SocraticAgent:
         self.client = client
         logger.info(f"Initialized {role} agent")
 
-    def execute_task(self, task_description: str, context: str = "", history : Optional[List[Dict[str , str]]] = None, reasoning_effort: Optional[str] = None) -> str:
+    def execute_task(
+        self,
+        task_description: str,
+        context: str = "",
+        history: Optional[List[Dict[str, str]]] = None,
+        reasoning_effort: Optional[str] = None,
+    ) -> str:
         context_block = ""
         if context:
             context_block = f"""
@@ -126,9 +133,11 @@ If the cues mention a correct answer or misconception, teach *why* it is correct
         ]
         if history:
             messages.extend(history[-4:])
-        messages.append({"role": "user" , "content": task_description})
+        messages.append({"role": "user", "content": task_description})
         try:
-            response = self.client.chat(messages, temperature=0.7, reasoning_effort=reasoning_effort)
+            response = self.client.chat(
+                messages, temperature=0.7, reasoning_effort=reasoning_effort
+            )
             logger.info(f"{self.role} completed task successfully")
             return response
         except Exception as e:
@@ -137,20 +146,21 @@ If the cues mention a correct answer or misconception, teach *why* it is correct
 
 
 class CoordinatorAgent(SocraticAgent):
-
-    def __init__(self , client = AzureAPIMClient) -> None:
+    def __init__(self, client=AzureAPIMClient) -> None:
         super().__init__(
-            role = "Socratic Session Coordinator",
+            role="Socratic Session Coordinator",
             # --- === FIX 1: UPDATE THE GOAL === ---
-            goal = "Analyze the user's input to determine its primary intent: 'conceptual_question', 'code_analysis_request', or 'off_topic'.",
-            backstory = """You are the central "brain" of a tutoring system focused *only* on web accessibility.
+            goal="Analyze the user's input to determine its primary intent: 'conceptual_question', 'code_analysis_request', or 'off_topic'.",
+            backstory="""You are the central "brain" of a tutoring system focused *only* on web accessibility.
             You do not answer the student. Your job is to classify the user's
             input so it can be routed to the correct specialist agent.""",
             # --- === END OF FIX 1 === ---
-            client = client
+            client=client,
         )
 
-    def decide_intent(self, student_response : str, history:Optional[List[Dict[str, str]]] = None) -> str:
+    def decide_intent(
+        self, student_response: str, history: Optional[List[Dict[str, str]]] = None
+    ) -> str:
         # --- === FIX 2: UPDATE THE TASK PROMPT === ---
         task_description = f"""
 Analyze the following user input in the context of the ongoing conversation. Classify it as one of three intents:
@@ -175,33 +185,44 @@ Respond with ONLY a JSON object in this exact format:
 """
         # --- === END OF FIX 2 === ---
         try:
-            repsonse_json = self.execute_task(task_description , context = "", history=history, reasoning_effort="low")
-            intent = json.loads(repsonse_json).get("intent" , "conceptual_question")
+            repsonse_json = self.execute_task(
+                task_description, context="", history=history, reasoning_effort="low"
+            )
+            intent = json.loads(repsonse_json).get("intent", "conceptual_question")
 
             # Add the new intent to the valid list
-            if intent not in ["conceptual_question" , "code_analysis_request", "off_topic"]:
-                logger.warning(f"CoordinatorAgent returned non-standard intent: {intent}")
-                return "conceptual_question" # Default to this if confused
-            
+            if intent not in [
+                "conceptual_question",
+                "code_analysis_request",
+                "off_topic",
+            ]:
+                logger.warning(
+                    f"CoordinatorAgent returned non-standard intent: {intent}"
+                )
+                return "conceptual_question"  # Default to this if confused
+
             logger.info(f"CoordinatorAgent decided intent : {intent}")
             return intent
 
         except Exception as e:
-            logger.error(f"CoordinatorAgent failed : {e} , Defaulting to 'conceptual_question'")
+            logger.error(
+                f"CoordinatorAgent failed : {e} , Defaulting to 'conceptual_question'"
+            )
             return "conceptual_question"
 
 
 class CodeAnalyzerAgent(SocraticAgent):
-    def __init__(self, client:AzureAPIMClient):
+    def __init__(self, client: AzureAPIMClient):
         super().__init__(
-            role = "Expert Web Accessibility Code Analyst",
-            goal = "Analyze a snippet of HTML, CSS, or JS and identify potential accessibility issues. Provide your analysis in a structured list.",
-            backstory = """You are an expert on WCAG and web accessibility. 
+            role="Expert Web Accessibility Code Analyst",
+            goal="Analyze a snippet of HTML, CSS, or JS and identify potential accessibility issues. Provide your analysis in a structured list.",
+            backstory="""You are an expert on WCAG and web accessibility.
             You do not talk to the student. You are a tool that provides technical analysis.
             Your job is to find common errors like missing alt text, non-semantic HTML (e.g., div used as a button), or poor color contrast hints.""",
-            client = client
+            client=client,
         )
-    def analyze_code_snippet(self, code_snippet:str):
+
+    def analyze_code_snippet(self, code_snippet: str):
         task_description = f"""
         Analyze the following code snippet for potential accessibility errors.
         List 1-3 potential issues you find. Be concise and return your analysis as a simple string.
@@ -220,11 +241,12 @@ class CodeAnalyzerAgent(SocraticAgent):
             logger.error(f"CodeAnalyzerAgent fauled : {e}")
             return "Error during code analysis"
 
+
 # ============================================================================
 # HYBRID CREWAI SYSTEM
 # ============================================================================
-#If the min cosine similarity is set to 0, the RAG pipeline will just use the vector DB
-#If the min cosine similarity is set to 1, the RAG pipeline will default to using LLM's general knowledge.
+# If the min cosine similarity is set to 0, the RAG pipeline will just use the vector DB
+# If the min cosine similarity is set to 1, the RAG pipeline will default to using LLM's general knowledge.
 MIN_COSINE_SIMILARITY = 0.7
 TEACHING_PLAN_MAX_COMPLETION_TOKENS = 5000
 TEACHING_PLAN_REASONING_EFFORT = "low"
@@ -240,18 +262,22 @@ TEACHING_GRAPH_EDGE_SYNTHESIS_REASONING_EFFORT = "low"
 TEACHING_GRAPH_VALIDATION_MAX_COMPLETION_TOKENS = 4000
 TEACHING_GRAPH_VALIDATION_REASONING_EFFORT = "low"
 
+
 class HybridCrewAISocraticSystem:
     """Compatibility facade over the guided tutor worker/orchestrator stack."""
 
     def __init__(
-        self, azure_config: Dict[str, str], vector_store_service : VectorStoreInterface,
-        db_manager=None, wcag_mcp_client=None, student_mcp_client=None,
+        self,
+        azure_config: Dict[str, str],
+        vector_store_service: VectorStoreInterface,
+        db_manager=None,
+        wcag_mcp_client=None,
+        student_mcp_client=None,
         graph_responses_client=None,
     ):
-        tutor_deployment = (
-            azure_config.get("tutor_deployment_name")
-            or azure_config.get("deployment_name")
-        )
+        tutor_deployment = azure_config.get(
+            "tutor_deployment_name"
+        ) or azure_config.get("deployment_name")
         reasoning_deployment = azure_config.get("reasoning_deployment_name")
         if (
             not reasoning_deployment
@@ -303,6 +329,7 @@ class HybridCrewAISocraticSystem:
         self._legacy_instance_a_bootstrapped_sessions: set[str] = set()
         # Session content cache: teaching material cached per objective (zero-latency reuse)
         from .session_cache import SessionContentCache
+
         self._session_cache = SessionContentCache()
         from .prompts import (
             FIRST_TURN_INSTRUCTION,
@@ -361,6 +388,7 @@ class HybridCrewAISocraticSystem:
             edge_integration_synthesizer=self._graph_edge_integration_worker,
             validator=self._graph_validator_worker,
         )
+        self._teaching_content_pipeline = self._run_teaching_content_pipeline
         self._concept_extraction_worker = ConceptExtractionWorker(
             tutor_client=self.tutor_client,
         )
@@ -384,36 +412,98 @@ class HybridCrewAISocraticSystem:
             transcript_formatter=self._format_reflection_transcript,
             json_parser=self._parse_json_response,
         )
+        self._graph_progression_orchestrator = GraphProgressionOrchestrator(
+            reasoning_client=self.reasoning_client,
+            json_parser=self._parse_json_response,
+        )
         self._session_state_repository = GuidedSessionStateRepository(
             session_cache=self._session_cache,
-            restore_cache=self._restore_session_cache,
-            persist_cache=self._persist_session_cache,
-            load_student_bundle=self._load_student_bundle,
-            format_student_context=self._format_student_context,
+            restore_cache=lambda *args, **kwargs: self._restore_session_cache(
+                *args,
+                **kwargs,
+            ),
+            persist_cache=lambda *args, **kwargs: self._persist_session_cache(
+                *args,
+                **kwargs,
+            ),
+            load_student_bundle=lambda *args, **kwargs: self._load_student_bundle(
+                *args,
+                **kwargs,
+            ),
+            format_student_context=lambda *args, **kwargs: self._format_student_context(
+                *args,
+                **kwargs,
+            ),
         )
         self._guided_turn_orchestrator = GuidedTurnOrchestrator(
             student_mcp=self.student_mcp,
             state_repository=self._session_state_repository,
-            content_pipeline=self._run_teaching_content_pipeline,
+            content_pipeline=lambda *args, **kwargs: self._run_teaching_content_pipeline(
+                *args,
+                **kwargs,
+            ),
             teaching_plan_error_cls=TeachingPlanGenerationError,
-            get_combined_context=self.get_combined_context,
-            generate_teaching_plan=self._generate_teaching_plan,
-            get_assessment_context=self._get_assessment_context,
-            assessment_reflector=self._run_assessment_reflector,
-            turn_analyzer=self._run_turn_analyzer,
-            coerce_misconception_events=self._coerce_misconception_events,
-            apply_misconception_events=self._apply_misconception_events,
-            apply_memory_patches=self._apply_memory_patches,
-            apply_turn_analysis_updates=self._apply_turn_analysis_updates,
-            build_tutor_messages=self._build_guided_tutor_messages,
-            stream_response=self._stream_response,
+            get_combined_context=lambda *args, **kwargs: self.get_combined_context(
+                *args,
+                **kwargs,
+            ),
+            generate_teaching_plan=lambda *args, **kwargs: self._generate_teaching_plan(
+                *args,
+                **kwargs,
+            ),
+            get_assessment_context=lambda *args, **kwargs: self._get_assessment_context(
+                *args,
+                **kwargs,
+            ),
+            assessment_reflector=lambda *args, **kwargs: self._run_assessment_reflector(
+                *args,
+                **kwargs,
+            ),
+            turn_analyzer=lambda *args, **kwargs: self._run_turn_analyzer(
+                *args,
+                **kwargs,
+            ),
+            coerce_misconception_events=lambda *args, **kwargs: self._coerce_misconception_events(
+                *args,
+                **kwargs,
+            ),
+            apply_misconception_events=lambda *args, **kwargs: self._apply_misconception_events(
+                *args,
+                **kwargs,
+            ),
+            apply_memory_patches=lambda *args, **kwargs: self._apply_memory_patches(
+                *args,
+                **kwargs,
+            ),
+            apply_turn_analysis_updates=lambda *args, **kwargs: self._apply_turn_analysis_updates(
+                *args,
+                **kwargs,
+            ),
+            decide_graph_progression=lambda *args, **kwargs: self._decide_graph_progression(
+                *args,
+                **kwargs,
+            ),
+            build_tutor_messages=lambda *args, **kwargs: self._build_guided_tutor_messages(
+                *args,
+                **kwargs,
+            ),
+            stream_response=lambda *args, **kwargs: self._stream_response(
+                *args,
+                **kwargs,
+            ),
             append_to_conversation=self.append_to_conversation,
-            advance_to_next_objective=self._advance_to_next_objective,
-            render_turn_analysis=self._render_turn_analysis_for_display,
+            advance_to_next_objective=lambda *args, **kwargs: self._advance_to_next_objective(
+                *args,
+                **kwargs,
+            ),
+            render_turn_analysis=lambda *args, **kwargs: self._render_turn_analysis_for_display(
+                *args,
+                **kwargs,
+            ),
             safe_serialize=safe_serialize,
         )
         self.memory_file = "conversation_memory.json"
-        self.conversation_memory : Dict[str, List[Dict[str , str]]] = {}
+        self.conversation_memory: Dict[str, List[Dict[str, str]]] = {}
         self._load_conversation_memory()
         self.coordinator_agent = CoordinatorAgent(self.tutor_client)
         self.code_analyzer = CodeAnalyzerAgent(self.reasoning_client)
@@ -421,11 +511,11 @@ class HybridCrewAISocraticSystem:
 
     # --- (This is the corrected create_student_profile function from last time) ---
     def create_student_profile(
-        self, 
-        name: str, 
-        topic: str, 
+        self,
+        name: str,
+        topic: str,
         initial_assessment: str = "",
-        student_id_override: str | None = None
+        student_id_override: str | None = None,
     ) -> Dict[str, Any]:
         try:
             student_id = student_id_override or str(uuid.uuid4())[:8]
@@ -433,10 +523,10 @@ class HybridCrewAISocraticSystem:
                 student_id=student_id,
                 name=name,
                 topic=topic,
-                initial_assessment=initial_assessment
+                initial_assessment=initial_assessment,
             )
             return {
-                "student_id": profile.id, # Corrected to profile.id
+                "student_id": profile.id,  # Corrected to profile.id
                 "name": profile.name,
                 "topic": profile.current_topic,
                 "status": "success",
@@ -480,8 +570,10 @@ class HybridCrewAISocraticSystem:
         try:
             return [
                 {
-                    "session_id": "session-1", "student_id": student_id,
-                    "timestamp": datetime.now().isoformat(), "response": "Sample response",
+                    "session_id": "session-1",
+                    "student_id": student_id,
+                    "timestamp": datetime.now().isoformat(),
+                    "response": "Sample response",
                     "tutor_response": "Sample tutor response",
                 }
             ]
@@ -491,11 +583,7 @@ class HybridCrewAISocraticSystem:
 
     # --- (This is the corrected create_student function from last time) ---
     def create_student(
-        self, 
-        student_id: str,
-        name: str, 
-        topic: str, 
-        initial_assessment: str = ""
+        self, student_id: str, name: str, topic: str, initial_assessment: str = ""
     ) -> StudentProfile:
         profile = StudentProfile(
             id=student_id,
@@ -511,6 +599,7 @@ class HybridCrewAISocraticSystem:
             raise RuntimeError(f"Failed to save student profile for {name}")
 
         # -----------------------------------------------------------------------
+
     # MEMORY MANAGEMENT
     # -----------------------------------------------------------------------
     def _save_conversation_memory(self):
@@ -536,7 +625,9 @@ class HybridCrewAISocraticSystem:
         self.conversation_memory.setdefault(student_id, [])
         self.conversation_memory[student_id].append({"role": role, "content": content})
         # keep only last 10 turns
-        self.conversation_memory[student_id] = self.conversation_memory[student_id][-10:]
+        self.conversation_memory[student_id] = self.conversation_memory[student_id][
+            -10:
+        ]
         self._save_conversation_memory()
 
     def generate_hyde_query(self, query: str, history: List[Dict[str, str]]) -> str:
@@ -552,9 +643,11 @@ class HybridCrewAISocraticSystem:
         recent = history[-4:] if history else []
         context_str = ""
         if recent:
-            context_str = "Recent conversation:\n" + "\n".join(
-                f"{m['role']}: {m['content']}" for m in recent
-            ) + "\n\n"
+            context_str = (
+                "Recent conversation:\n"
+                + "\n".join(f"{m['role']}: {m['content']}" for m in recent)
+                + "\n\n"
+            )
 
         try:
             messages = [
@@ -573,67 +666,81 @@ class HybridCrewAISocraticSystem:
                     "role": "user",
                     "content": (
                         f"{context_str}"
-                        f"Student's question: \"{query}\"\n\n"
+                        f'Student\'s question: "{query}"\n\n'
                         "Hypothetical correct answer:"
                     ),
                 },
             ]
-            hyde_answer = self.client.chat(messages, temperature=0.3, max_tokens=300, reasoning_effort="low")
+            hyde_answer = self.client.chat(
+                messages, temperature=0.3, max_tokens=300, reasoning_effort="low"
+            )
             hyde_answer = hyde_answer.strip()
             if hyde_answer and len(hyde_answer) > 10:
-                logger.info(f"HyDE generated ({len(hyde_answer)} chars): '{hyde_answer[:80]}...'")
+                logger.info(
+                    f"HyDE generated ({len(hyde_answer)} chars): '{hyde_answer[:80]}...'"
+                )
                 return hyde_answer
         except Exception as e:
             logger.warning(f"HyDE generation failed, using original query: {e}")
 
         return query
 
-    async def get_rag_context(self, query: str, history: Optional[List[Dict[str, str]]] = None) -> tuple:
-            """
-            Retrieve RAG context using HyDE + hybrid search.
+    async def get_rag_context(
+        self, query: str, history: Optional[List[Dict[str, str]]] = None
+    ) -> tuple:
+        """
+        Retrieve RAG context using HyDE + hybrid search.
 
-            1. Generate a hypothetical answer (answer-shaped, context-resolved)
-            2. Embed it and search against feedback-centered chunks via RRF
-            3. Filter by cosine distance threshold to reject garbage matches
-            4. Return (context_string, filtered_chunks_list)
-            """
-            logger.info(f"Retrieving Context for : {query[:50]}...")
+        1. Generate a hypothetical answer (answer-shaped, context-resolved)
+        2. Embed it and search against feedback-centered chunks via RRF
+        3. Filter by cosine distance threshold to reject garbage matches
+        4. Return (context_string, filtered_chunks_list)
+        """
+        logger.info(f"Retrieving Context for : {query[:50]}...")
 
-            # HyDE: generate answer-shaped text for better embedding match
-            hyde_query = self.generate_hyde_query(query, history or [])
+        # HyDE: generate answer-shaped text for better embedding match
+        hyde_query = self.generate_hyde_query(query, history or [])
 
-            # Hybrid search: vector (on HyDE embedding) + BM25 (on original student words)
-            # HyDE text matches answer-shaped feedback in embedding space
-            # Original query provides keyword signal for BM25
-            retrieved_chunks = await self.vector_store.hybrid_search(
-                query=hyde_query, k=5, bm25_query=query
+        # Hybrid search: vector (on HyDE embedding) + BM25 (on original student words)
+        # HyDE text matches answer-shaped feedback in embedding space
+        # Original query provides keyword signal for BM25
+        retrieved_chunks = await self.vector_store.hybrid_search(
+            query=hyde_query, k=5, bm25_query=query
+        )
+
+        # Filter: reject chunks where vector distance is too high
+        # 0.3 keeps direct hits + close adjacents, rejects unrelated noise
+        MAX_COSINE_DISTANCE = 0.3
+        MIN_RRF_SCORE = 0.01
+        high_quality_chunks = []
+        for chunk in retrieved_chunks:
+            distance = chunk.get("distance")
+            rrf = chunk.get("rrf_score", 0)
+            # Accept if: good RRF score AND reasonable vector distance
+            if distance is not None and distance > MAX_COSINE_DISTANCE:
+                logger.debug(
+                    f"Rejected chunk (distance={distance:.3f}): {chunk.get('content', '')[:60]}"
+                )
+                continue
+            if rrf < MIN_RRF_SCORE:
+                continue
+            high_quality_chunks.append(chunk)
+
+        if not high_quality_chunks:
+            logger.info(
+                "No high-quality chunks found. LLM will rely on general knowledge."
             )
+            return "", []
 
-            # Filter: reject chunks where vector distance is too high
-            # 0.3 keeps direct hits + close adjacents, rejects unrelated noise
-            MAX_COSINE_DISTANCE = 0.3
-            MIN_RRF_SCORE = 0.01
-            high_quality_chunks = []
-            for chunk in retrieved_chunks:
-                distance = chunk.get('distance')
-                rrf = chunk.get('rrf_score', 0)
-                # Accept if: good RRF score AND reasonable vector distance
-                if distance is not None and distance > MAX_COSINE_DISTANCE:
-                    logger.debug(f"Rejected chunk (distance={distance:.3f}): {chunk.get('content', '')[:60]}")
-                    continue
-                if rrf < MIN_RRF_SCORE:
-                    continue
-                high_quality_chunks.append(chunk)
+        context_for_agents = "\n--\n".join(
+            c.get("content", "") for c in high_quality_chunks
+        )
+        logger.info(f"RAG context: {len(high_quality_chunks)} chunks passed to agents")
+        return context_for_agents, high_quality_chunks
 
-            if not high_quality_chunks:
-                logger.info("No high-quality chunks found. LLM will rely on general knowledge.")
-                return "", []
-
-            context_for_agents = "\n--\n".join(c.get('content', '') for c in high_quality_chunks)
-            logger.info(f"RAG context: {len(high_quality_chunks)} chunks passed to agents")
-            return context_for_agents, high_quality_chunks
-
-    async def get_combined_context(self, query: str, history: Optional[List[Dict[str, str]]] = None) -> tuple:
+    async def get_combined_context(
+        self, query: str, history: Optional[List[Dict[str, str]]] = None
+    ) -> tuple:
         """
         Run RAG + MCP concurrently.
         Returns (combined_context_str, quiz_chunks_list, wcag_context_str).
@@ -643,22 +750,28 @@ class HybridCrewAISocraticSystem:
         if self.wcag_mcp:
             mcp_coro = self.wcag_mcp.get_wcag_context(query)
         else:
+
             async def _empty():
                 return ""
+
             mcp_coro = _empty()
 
         (rag_context, quiz_chunks), wcag_context = await asyncio.gather(
             rag_coro, mcp_coro
         )
 
-        logger.info(f"Combined context: RAG={len(rag_context)} chars, WCAG MCP={len(wcag_context)} chars")
+        logger.info(
+            f"Combined context: RAG={len(rag_context)} chars, WCAG MCP={len(wcag_context)} chars"
+        )
 
         # Build combined context with labeled sections
         parts = []
         if rag_context:
             parts.append(f"--- QUIZ KNOWLEDGE BASE ---\n{rag_context}")
         if wcag_context:
-            parts.append(f"--- WCAG GUIDELINES REFERENCE (authoritative) ---\n{wcag_context}")
+            parts.append(
+                f"--- WCAG GUIDELINES REFERENCE (authoritative) ---\n{wcag_context}"
+            )
 
         combined = "\n\n".join(parts)
         return combined, quiz_chunks, wcag_context
@@ -668,7 +781,9 @@ class HybridCrewAISocraticSystem:
     # ------------------------------------------------------------------
 
     async def _load_student_bundle(
-        self, student_id: str, objective_id: str = "",
+        self,
+        student_id: str,
+        objective_id: str = "",
     ) -> Dict[str, Any]:
         """Load the complete learner-state bundle for guided tutoring."""
         if not self.student_mcp:
@@ -708,7 +823,9 @@ class HybridCrewAISocraticSystem:
             return {}
 
     async def _load_student_context(
-        self, student_id: str, objective_id: str = "",
+        self,
+        student_id: str,
+        objective_id: str = "",
     ) -> str:
         """Load learner state and format it for tutor or reflector prompts."""
         bundle = await self._load_student_bundle(student_id, objective_id)
@@ -724,12 +841,16 @@ class HybridCrewAISocraticSystem:
         )
 
     async def _restore_session_cache(
-        self, session_id: str, objective_id: str = "",
+        self,
+        session_id: str,
+        objective_id: str = "",
     ) -> None:
         """Rehydrate the in-memory session cache from durable storage if available."""
         if self._session_cache.get(session_id):
             return
-        if not self.student_mcp or not hasattr(self.student_mcp, "get_session_runtime_cache"):
+        if not self.student_mcp or not hasattr(
+            self.student_mcp, "get_session_runtime_cache"
+        ):
             return
         try:
             payload = await self.student_mcp.get_session_runtime_cache(session_id)
@@ -757,7 +878,9 @@ class HybridCrewAISocraticSystem:
 
     async def _persist_session_cache(self, session_id: str) -> None:
         """Persist the current in-memory session cache payload when supported."""
-        if not self.student_mcp or not hasattr(self.student_mcp, "save_session_runtime_cache"):
+        if not self.student_mcp or not hasattr(
+            self.student_mcp, "save_session_runtime_cache"
+        ):
             return
         payload = self._session_cache.export_session(session_id)
         if not payload:
@@ -769,7 +892,9 @@ class HybridCrewAISocraticSystem:
 
     async def _clear_persisted_session_cache(self, session_id: str) -> None:
         """Remove any durable runtime cache for a session."""
-        if not self.student_mcp or not hasattr(self.student_mcp, "clear_session_runtime_cache"):
+        if not self.student_mcp or not hasattr(
+            self.student_mcp, "clear_session_runtime_cache"
+        ):
             return
         try:
             await self.student_mcp.clear_session_runtime_cache(session_id)
@@ -777,8 +902,11 @@ class HybridCrewAISocraticSystem:
             logger.warning(f"Failed to clear session runtime cache: {e}")
 
     def _format_student_context(
-        self, profile: Optional[Dict], mastery: List[Dict],
-        session: Optional[Dict], misconceptions: List[Dict],
+        self,
+        profile: Optional[Dict],
+        mastery: List[Dict],
+        session: Optional[Dict],
+        misconceptions: List[Dict],
         learner_memory: Optional[Dict] = None,
         objective_memory: Optional[Dict] = None,
     ) -> str:
@@ -812,7 +940,11 @@ class HybridCrewAISocraticSystem:
             for m in mastery[:10]:  # cap to avoid token bloat
                 mastery_lines.append(
                     f"  {m.get('objective_id', '?')}: {m.get('mastery_level', '?')}"
-                    + (f" ({m.get('evidence_summary', '')})" if m.get('evidence_summary') else "")
+                    + (
+                        f" ({m.get('evidence_summary', '')})"
+                        if m.get("evidence_summary")
+                        else ""
+                    )
                 )
             parts.append("MASTERY STATE:\n" + "\n".join(mastery_lines))
 
@@ -834,8 +966,7 @@ class HybridCrewAISocraticSystem:
                 )
             if objective_memory.get("active_gaps"):
                 obj_lines.append(
-                    "  Gaps: "
-                    + ", ".join(objective_memory.get("active_gaps", [])[:5])
+                    "  Gaps: " + ", ".join(objective_memory.get("active_gaps", [])[:5])
                 )
             if objective_memory.get("next_focus"):
                 obj_lines.append(f"  Next focus: {objective_memory['next_focus']}")
@@ -848,8 +979,7 @@ class HybridCrewAISocraticSystem:
                 learner_lines.append(f"  Summary: {learner_memory['summary']}")
             if learner_memory.get("strengths"):
                 learner_lines.append(
-                    "  Strengths: "
-                    + ", ".join(learner_memory.get("strengths", [])[:5])
+                    "  Strengths: " + ", ".join(learner_memory.get("strengths", [])[:5])
                 )
             if learner_memory.get("support_needs"):
                 learner_lines.append(
@@ -875,14 +1005,18 @@ class HybridCrewAISocraticSystem:
         return "\n".join(parts)
 
     @staticmethod
-    def _parse_json_response(text: str, fallback: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    def _parse_json_response(
+        text: str, fallback: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
         """Parse a JSON object from a model response, stripping code fences."""
         fallback = fallback or {}
         raw = (text or "").strip()
         if raw.startswith("```"):
             lines = raw.splitlines()
             if len(lines) >= 2:
-                raw = "\n".join(lines[1:-1] if lines[-1].strip() == "```" else lines[1:])
+                raw = "\n".join(
+                    lines[1:-1] if lines[-1].strip() == "```" else lines[1:]
+                )
         try:
             parsed = json.loads(raw)
             return parsed if isinstance(parsed, dict) else fallback
@@ -971,19 +1105,19 @@ class HybridCrewAISocraticSystem:
                 text=text,
                 key=str(raw_event.get("key", "") or ""),
             )
-            priority = str(
-                raw_event.get("repair_priority", "") or default_priority
-            ).strip().lower()
+            priority = (
+                str(raw_event.get("repair_priority", "") or default_priority)
+                .strip()
+                .lower()
+            )
             if priority not in {"normal", "must_address_now"}:
                 priority = default_priority
-            repair_scope = str(
-                raw_event.get("repair_scope", "") or ""
-            ).strip().lower()
+            repair_scope = str(raw_event.get("repair_scope", "") or "").strip().lower()
             if repair_scope not in {"fact", "distinction", "full_sequence"}:
                 repair_scope = "fact"
-            repair_pattern = str(
-                raw_event.get("repair_pattern", "") or ""
-            ).strip().lower()
+            repair_pattern = (
+                str(raw_event.get("repair_pattern", "") or "").strip().lower()
+            )
             if repair_pattern not in {
                 "direct_recheck",
                 "same_snippet_walkthrough",
@@ -1072,12 +1206,10 @@ class HybridCrewAISocraticSystem:
             if HybridCrewAISocraticSystem._is_procedural_full_sequence_repair(item):
                 procedural_sequence_repair = True
             else:
-                repair_scope = str(
-                    item.get("repair_scope", "") or ""
-                ).strip().lower()
-                repair_pattern = str(
-                    item.get("repair_pattern", "") or ""
-                ).strip().lower()
+                repair_scope = str(item.get("repair_scope", "") or "").strip().lower()
+                repair_pattern = (
+                    str(item.get("repair_pattern", "") or "").strip().lower()
+                )
                 if (
                     repair_scope == "full_sequence"
                     or repair_pattern == "same_snippet_walkthrough"
@@ -1124,7 +1256,8 @@ class HybridCrewAISocraticSystem:
         if not concepts:
             return 0.0
         covered = sum(
-            1 for concept in concepts
+            1
+            for concept in concepts
             if isinstance(concept, dict) and concept.get("status") == "covered"
         )
         return covered / len(concepts)
@@ -1147,12 +1280,8 @@ class HybridCrewAISocraticSystem:
                 times_seen = int(item.get("times_seen", 0) or 0)
             except (TypeError, ValueError):
                 times_seen = 0
-            if (
-                times_seen >= min_times_seen
-                and (
-                    scope == "full_sequence"
-                    or pattern == "same_snippet_walkthrough"
-                )
+            if times_seen >= min_times_seen and (
+                scope == "full_sequence" or pattern == "same_snippet_walkthrough"
             ):
                 return True
         return False
@@ -1171,8 +1300,7 @@ class HybridCrewAISocraticSystem:
         ):
             return False
         combined = " ".join(
-            str(item.get(field, "") or "").lower()
-            for field in ("key", "text")
+            str(item.get(field, "") or "").lower() for field in ("key", "text")
         )
         procedural_markers = (
             "aria",
@@ -1187,22 +1315,24 @@ class HybridCrewAISocraticSystem:
             "debug",
             "walkthrough",
             "checklist",
+            "rule sequence",
+            "full rule sequence",
         )
         return any(marker in combined for marker in procedural_markers)
 
     @staticmethod
     def _supports_repair_exit(pacing_signal: Optional[Dict[str, Any]]) -> bool:
         pacing_signal = pacing_signal or {}
-        concept_closure = str(
-            pacing_signal.get("concept_closure", "") or ""
-        ).strip().lower()
-        reasoning_mode = str(
-            pacing_signal.get("reasoning_mode", "") or ""
-        ).strip().lower()
-        return (
-            concept_closure in {"almost_ready", "ready"}
-            and reasoning_mode in {"application", "transfer"}
+        concept_closure = (
+            str(pacing_signal.get("concept_closure", "") or "").strip().lower()
         )
+        reasoning_mode = (
+            str(pacing_signal.get("reasoning_mode", "") or "").strip().lower()
+        )
+        return concept_closure in {"almost_ready", "ready"} and reasoning_mode in {
+            "application",
+            "transfer",
+        }
 
     @staticmethod
     def _is_open_must_repair_event(item: Optional[Dict[str, Any]]) -> bool:
@@ -1225,16 +1355,16 @@ class HybridCrewAISocraticSystem:
         ):
             return False
         pacing_signal = pacing_signal or {}
-        concept_closure = str(
-            pacing_signal.get("concept_closure", "") or ""
-        ).strip().lower()
-        reasoning_mode = str(
-            pacing_signal.get("reasoning_mode", "") or ""
-        ).strip().lower()
-        return (
-            concept_closure in {"almost_ready", "ready"}
-            and reasoning_mode in {"application", "transfer"}
+        concept_closure = (
+            str(pacing_signal.get("concept_closure", "") or "").strip().lower()
         )
+        reasoning_mode = (
+            str(pacing_signal.get("reasoning_mode", "") or "").strip().lower()
+        )
+        return concept_closure in {"almost_ready", "ready"} and reasoning_mode in {
+            "application",
+            "transfer",
+        }
 
     @classmethod
     def _normalize_stage_transition(
@@ -1307,28 +1437,28 @@ class HybridCrewAISocraticSystem:
             return {}
 
         pacing_signal = guarded.setdefault("pacing_signal", {})
-        current_pace = str(
-            (pacing_state or {}).get("current_pace", "") or ""
-        ).strip().lower()
-        teaching_move = str(
-            guarded.get("teaching_move", "") or ""
-        ).strip().lower()
+        current_pace = (
+            str((pacing_state or {}).get("current_pace", "") or "").strip().lower()
+        )
+        teaching_move = str(guarded.get("teaching_move", "") or "").strip().lower()
         answer_current_question_first = bool(
             guarded.get("answer_current_question_first")
         )
-        concept_closure = str(
-            pacing_signal.get("concept_closure", "") or ""
-        ).strip().lower()
-        reasoning_mode = str(
-            pacing_signal.get("reasoning_mode", "") or ""
-        ).strip().lower()
-        guarded["stage_action"], guarded["target_stage"], guarded["stage_reason"] = (
-            cls._normalize_stage_transition(
-                current_stage=current_stage,
-                stage_action=guarded.get("stage_action", ""),
-                target_stage=guarded.get("target_stage", current_stage),
-                stage_reason=guarded.get("stage_reason", ""),
-            )
+        concept_closure = (
+            str(pacing_signal.get("concept_closure", "") or "").strip().lower()
+        )
+        reasoning_mode = (
+            str(pacing_signal.get("reasoning_mode", "") or "").strip().lower()
+        )
+        (
+            guarded["stage_action"],
+            guarded["target_stage"],
+            guarded["stage_reason"],
+        ) = cls._normalize_stage_transition(
+            current_stage=current_stage,
+            stage_action=guarded.get("stage_action", ""),
+            target_stage=guarded.get("target_stage", current_stage),
+            stage_reason=guarded.get("stage_reason", ""),
         )
         stage_action_value = str(guarded.get("stage_action", "") or "").strip().lower()
         target_stage = str(guarded.get("target_stage", "") or "").strip()
@@ -1339,8 +1469,7 @@ class HybridCrewAISocraticSystem:
             if isinstance(item, dict)
         ]
         must_repair_now = any(
-            cls._is_open_must_repair_event(item)
-            for item in current_turn_misconceptions
+            cls._is_open_must_repair_event(item) for item in current_turn_misconceptions
         )
         repeated_active_sequence = cls._has_repeated_full_sequence_signal(
             misconception_state,
@@ -1354,7 +1483,9 @@ class HybridCrewAISocraticSystem:
 
         reasons: List[str] = []
         if must_repair_now:
-            reasons.append("Open must-repair misconception still needs explicit correction.")
+            reasons.append(
+                "Open must-repair misconception still needs explicit correction."
+            )
         if (
             stage_action_value == "advance"
             and concept_closure != "ready"
@@ -1368,7 +1499,8 @@ class HybridCrewAISocraticSystem:
         coverage_ratio = cls._lesson_coverage_ratio(lesson_state)
         if (
             stage_action_value == "advance"
-            and target_stage in {"readiness_check", "mini_assessment", "final_assessment"}
+            and target_stage
+            in {"readiness_check", "mini_assessment", "final_assessment"}
             and coverage_ratio < 0.6
         ):
             reasons.append("Objective coverage is still too low for the next stage.")
@@ -1379,9 +1511,7 @@ class HybridCrewAISocraticSystem:
             existing_reason = str(guarded.get("stage_reason", "") or "").strip()
             joined = " ".join(reasons)
             guarded["stage_reason"] = (
-                f"{existing_reason} {joined}".strip()
-                if existing_reason
-                else joined
+                f"{existing_reason} {joined}".strip() if existing_reason else joined
             )
             if must_repair_now and str(
                 guarded.get("teaching_move", "") or ""
@@ -1389,9 +1519,9 @@ class HybridCrewAISocraticSystem:
                 guarded["teaching_move"] = "repair"
             if must_repair_now:
                 pacing_signal["override_pace"] = "slow"
-                pacing_signal["override_reason"] = (
-                    "Active misconception requires explicit repair before moving on."
-                )
+                pacing_signal[
+                    "override_reason"
+                ] = "Active misconception requires explicit repair before moving on."
                 if pacing_signal.get("recommended_next_step") == "advance":
                     pacing_signal["recommended_next_step"] = "ask_narrower"
 
@@ -1400,14 +1530,16 @@ class HybridCrewAISocraticSystem:
             and teaching_move in {"repair", "clarify"}
             and not repeated_active_sequence
             and reasoning_mode in {"application", "transfer"}
-            and str(pacing_signal.get("recommended_next_step", "") or "").strip().lower()
+            and str(pacing_signal.get("recommended_next_step", "") or "")
+            .strip()
+            .lower()
             in {"ask_narrower", "ask_same_level"}
         ):
             pacing_signal["recommended_next_step"] = "give_example"
             pacing_signal["override_pace"] = "steady"
-            pacing_signal["override_reason"] = (
-                "Learner already shows causal footing; use a fresh case instead of another same-level restatement check."
-            )
+            pacing_signal[
+                "override_reason"
+            ] = "Learner already shows causal footing; use a fresh case instead of another same-level restatement check."
 
         if (
             not must_repair_now
@@ -1420,14 +1552,16 @@ class HybridCrewAISocraticSystem:
             not must_repair_now
             and repeated_active_sequence
             and supports_repair_exit
-            and str(pacing_signal.get("recommended_next_step", "") or "").strip().lower()
+            and str(pacing_signal.get("recommended_next_step", "") or "")
+            .strip()
+            .lower()
             == "ask_narrower"
         ):
             pacing_signal["recommended_next_step"] = "give_example"
             pacing_signal["override_pace"] = "steady"
-            pacing_signal["override_reason"] = (
-                "Repeated full-sequence repair now has enough evidence for a fresh transfer check."
-            )
+            pacing_signal[
+                "override_reason"
+            ] = "Repeated full-sequence repair now has enough evidence for a fresh transfer check."
 
         if (
             not must_repair_now
@@ -1443,24 +1577,24 @@ class HybridCrewAISocraticSystem:
                 guarded["stage_action"] = "advance"
                 guarded["target_stage"] = next_stage
                 existing_reason = str(guarded.get("stage_reason", "") or "").strip()
-                repair_reason = (
-                    "Repeated full-sequence repair now looks stable after transfer-level reasoning."
-                )
+                repair_reason = "Repeated full-sequence repair now looks stable after transfer-level reasoning."
                 guarded["stage_reason"] = (
                     f"{existing_reason} {repair_reason}".strip()
                     if existing_reason
                     else repair_reason
                 )
-                if str(pacing_signal.get("recommended_next_step", "") or "").strip().lower() in {
+                if str(
+                    pacing_signal.get("recommended_next_step", "") or ""
+                ).strip().lower() in {
                     "ask_narrower",
                     "ask_same_level",
                     "give_example",
                 }:
                     pacing_signal["recommended_next_step"] = "advance"
                 pacing_signal["override_pace"] = "steady"
-                pacing_signal["override_reason"] = (
-                    "Repeated full-sequence repair was resolved with application-level evidence."
-                )
+                pacing_signal[
+                    "override_reason"
+                ] = "Repeated full-sequence repair was resolved with application-level evidence."
 
         return guarded
 
@@ -1491,23 +1625,26 @@ class HybridCrewAISocraticSystem:
             and not HybridCrewAISocraticSystem._is_procedural_full_sequence_repair(item)
             and (
                 str(item.get("repair_scope", "") or "") == "full_sequence"
-                or str(item.get("repair_pattern", "") or "") == "same_snippet_walkthrough"
+                or str(item.get("repair_pattern", "") or "")
+                == "same_snippet_walkthrough"
             )
             for item in (((turn_analysis or {}).get("misconception_events", []) or []))
         )
         pacing_signal = (turn_analysis or {}).get("pacing_signal", {}) or {}
-        recommended_next_step = str(
-            pacing_signal.get("recommended_next_step", "") or ""
-        ).strip().lower()
-        teaching_move = str(
-            (turn_analysis or {}).get("teaching_move", "") or ""
-        ).strip().lower()
+        recommended_next_step = (
+            str(pacing_signal.get("recommended_next_step", "") or "").strip().lower()
+        )
+        teaching_move = (
+            str((turn_analysis or {}).get("teaching_move", "") or "").strip().lower()
+        )
         answer_current_question_first = bool(
             (turn_analysis or {}).get("answer_current_question_first")
         )
-        repeated_active_sequence = HybridCrewAISocraticSystem._has_repeated_full_sequence_signal(
-            misconception_state,
-            "active_misconceptions",
+        repeated_active_sequence = (
+            HybridCrewAISocraticSystem._has_repeated_full_sequence_signal(
+                misconception_state,
+                "active_misconceptions",
+            )
         )
 
         response_shape = "question_only"
@@ -1515,7 +1652,11 @@ class HybridCrewAISocraticSystem:
             response_shape = "full_sequence_repair"
         elif requires_conceptual_sequence_completion:
             response_shape = "repair_and_check"
-        elif teaching_move == "clarify" and answer_current_question_first and not must_repair:
+        elif (
+            teaching_move == "clarify"
+            and answer_current_question_first
+            and not must_repair
+        ):
             response_shape = "answer_then_optional_check"
         elif must_repair or recommended_next_step in {"re-explain", "ask_narrower"}:
             response_shape = "repair_and_check"
@@ -1527,7 +1668,8 @@ class HybridCrewAISocraticSystem:
         if (
             not must_repair
             and repeated_active_sequence
-            and recommended_next_step in {"ask_narrower", "ask_same_level", "give_example"}
+            and recommended_next_step
+            in {"ask_narrower", "ask_same_level", "give_example"}
         ):
             response_shape = "example_then_check"
 
@@ -1538,7 +1680,9 @@ class HybridCrewAISocraticSystem:
         lines.append(f"- Response shape: {response_shape}")
         lines.append(f"- Max new concepts: {max_new_concepts}")
         lines.append("- Max questions: 1")
-        lines.append(f"- Max setup sentences before the question: {max_setup_sentences}")
+        lines.append(
+            f"- Max setup sentences before the question: {max_setup_sentences}"
+        )
         if teaching_move in {"repair", "clarify"}:
             lines.append(
                 "- Do not ask an answer-echo question whose answer you just stated explicitly."
@@ -1557,11 +1701,15 @@ class HybridCrewAISocraticSystem:
             )
             lines.append("- Do not reduce the repair to one local sub-question.")
         elif requires_conceptual_sequence_completion:
-            lines.append("- Repair pattern: exact ordered completion on the same example.")
+            lines.append(
+                "- Repair pattern: exact ordered completion on the same example."
+            )
             lines.append(
                 "- Hard requirement: require one complete ordered restatement with the missing named step(s) and final label."
             )
-            lines.append("- Do not expand into a new concept before the exact completion check.")
+            lines.append(
+                "- Do not expand into a new concept before the exact completion check."
+            )
         elif teaching_move == "repair":
             lines.append(
                 "- After correcting the misconception, use one fresh case, comparison, or consequence check, not a restatement of your correction."
@@ -1571,11 +1719,15 @@ class HybridCrewAISocraticSystem:
             and repeated_active_sequence
             and response_shape == "example_then_check"
         ):
-            lines.append("- Prefer one fresh transfer example over another paraphrase recheck.")
+            lines.append(
+                "- Prefer one fresh transfer example over another paraphrase recheck."
+            )
         if must_repair:
             lines.append("- Advancement lock: open misconception")
         elif str((turn_analysis or {}).get("stage_action", "") or "") != "advance":
-            lines.append("- Advancement lock: stay on the current stage for this response")
+            lines.append(
+                "- Advancement lock: stay on the current stage for this response"
+            )
         else:
             lines.append("- Advancement lock: none")
         return "\n".join(lines)
@@ -1657,7 +1809,7 @@ class HybridCrewAISocraticSystem:
         if isinstance(value, str):
             text = value.strip()
             if not text:
-                return "`\"\"`"
+                return '`""`'
             if len(text) > max_chars:
                 text = f"{text[:max_chars - 3]}..."
             return f"`{text}`"
@@ -1916,7 +2068,9 @@ class HybridCrewAISocraticSystem:
                     second_row.append(f"{label} `{pacing.get(fk)}`")
             override_row = []
             if pacing.get("override_pace"):
-                override_row.append(f"**override pace:** `{pacing.get('override_pace')}`")
+                override_row.append(
+                    f"**override pace:** `{pacing.get('override_pace')}`"
+                )
             if pacing.get("override_reason"):
                 override_row.append(
                     f"_{cls._ta_format_value(pacing.get('override_reason'), max_chars=200)}_"
@@ -2104,6 +2258,19 @@ class HybridCrewAISocraticSystem:
             misconception_state=misconception_state,
         )
 
+    async def _decide_graph_progression(
+        self,
+        *,
+        graph_state: Optional[Dict[str, Any]],
+        turn_analysis: Optional[Dict[str, Any]],
+        lesson_state: Optional[Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        return await self._graph_progression_orchestrator.decide(
+            graph_state=graph_state,
+            turn_analysis=turn_analysis,
+            lesson_state=lesson_state,
+        )
+
     async def _apply_memory_patches(
         self,
         student_id: str,
@@ -2134,14 +2301,12 @@ class HybridCrewAISocraticSystem:
                     existing_objective.get("active_gaps", []),
                     objective_memory_patch.get("active_gaps", []),
                 )
-            summary = (
-                objective_memory_patch.get("summary")
-                or existing_objective.get("summary", "")
+            summary = objective_memory_patch.get("summary") or existing_objective.get(
+                "summary", ""
             )
-            next_focus = (
-                objective_memory_patch.get("next_focus")
-                or existing_objective.get("next_focus", "")
-            )
+            next_focus = objective_memory_patch.get(
+                "next_focus"
+            ) or existing_objective.get("next_focus", "")
             await self.student_mcp.upsert_objective_memory(
                 student_id,
                 objective_id,
@@ -2184,9 +2349,8 @@ class HybridCrewAISocraticSystem:
                     learner_memory_patch.get("successful_strategies", []),
                 ),
             )
-            summary = (
-                learner_memory_patch.get("summary")
-                or existing_learner.get("summary", "")
+            summary = learner_memory_patch.get("summary") or existing_learner.get(
+                "summary", ""
             )
             await self.student_mcp.upsert_learner_memory(
                 student_id,
@@ -2274,9 +2438,7 @@ class HybridCrewAISocraticSystem:
             elif action == "resolve_candidate":
                 resolve_targets: List[str] = []
                 if key and key in active_lookup:
-                    tracked_text = str(
-                        active_lookup[key].get("text", "") or ""
-                    ).strip()
+                    tracked_text = str(active_lookup[key].get("text", "") or "").strip()
                     if tracked_text:
                         resolve_targets.append(tracked_text)
                 if text and text not in resolve_targets:
@@ -2334,6 +2496,7 @@ class HybridCrewAISocraticSystem:
             pacing_state=preview_pacing_state,
             misconception_state=preview_misconception_state,
         )
+        result["analysis"] = copy.deepcopy(analysis)
 
         await self.student_mcp.increment_turn_count(session_id)
         misconception_events = self._coerce_misconception_events(
@@ -2359,9 +2522,7 @@ class HybridCrewAISocraticSystem:
         self._session_cache.recompute_lesson_state(
             session_id,
             objective_memory=preview_objective_memory,
-            misconception_state=self._session_cache.get_misconception_state(
-                session_id
-            ),
+            misconception_state=self._session_cache.get_misconception_state(session_id),
         )
         self._session_cache.apply_pacing_signal(
             session_id,
@@ -2420,16 +2581,14 @@ class HybridCrewAISocraticSystem:
         # The turn analyzer may recommend assessment after a strong answer on
         # one concept, but if the teaching plan still has uncovered knowledge
         # concepts, the student hasn't been taught enough material yet.
-        if (
-            stage_action == "advance"
-            and target_stage in ("mini_assessment", "final_assessment")
+        if stage_action == "advance" and target_stage in (
+            "mini_assessment",
+            "final_assessment",
         ):
             lesson_state = self._session_cache.get_lesson_state(session_id)
             concepts = (lesson_state or {}).get("concepts", [])
             if concepts:
-                covered = sum(
-                    1 for c in concepts if c.get("status") == "covered"
-                )
+                covered = sum(1 for c in concepts if c.get("status") == "covered")
                 ratio = covered / len(concepts)
                 if ratio < 0.6:
                     logger.info(
@@ -2470,7 +2629,7 @@ class HybridCrewAISocraticSystem:
                     await self.student_mcp.update_session_state(
                         session_id,
                         assessment_progress='{"asked": 0, "correct": 0}',
-                )
+                    )
                 await ws_send(
                     {
                         "type": "stage_update",
@@ -2483,7 +2642,10 @@ class HybridCrewAISocraticSystem:
         return result
 
     async def _advance_to_next_objective(
-        self, student_id: str, session_id: str, ws_send,
+        self,
+        student_id: str,
+        session_id: str,
+        ws_send,
     ) -> Dict[str, Any]:
         """Move from transition to the next recommended objective."""
         next_obj = await self.student_mcp.get_recommended_next_objective(student_id)
@@ -2551,7 +2713,9 @@ class HybridCrewAISocraticSystem:
             return {"id": student_id}
 
     def _build_legacy_instance_a_response_messages(
-        self, student_response: str, context: str,
+        self,
+        student_response: str,
+        context: str,
         history: Optional[List[Dict[str, str]]] = None,
         student_context: str = "",
     ) -> List[Dict]:
@@ -2587,7 +2751,9 @@ class HybridCrewAISocraticSystem:
         Single LLM call: context + history + student query → tutor response.
         Used by the non-streaming POST endpoint.
         """
-        messages = self._build_legacy_instance_a_response_messages(student_response, context, history, student_context=student_context)
+        messages = self._build_legacy_instance_a_response_messages(
+            student_response, context, history, student_context=student_context
+        )
         try:
             return self.client.chat(messages, temperature=0.7, max_tokens=1000)
         except Exception as e:
@@ -2625,7 +2791,7 @@ class HybridCrewAISocraticSystem:
                 "fallback": True,
                 "status": "error",
             }
-    
+
     async def _progressive_send(self, text: str, ws_send):
         """
         Send text to the client progressively in small word-chunks.
@@ -2646,15 +2812,15 @@ class HybridCrewAISocraticSystem:
         removes the unstable long-lived SSE transport while preserving the same
         user-facing progressive render in the browser.
         """
-        result = await asyncio.to_thread(
-            self.client.chat, messages, 0.7, 1000
-        )
+        result = await asyncio.to_thread(self.client.chat, messages, 0.7, 1000)
         await ws_send({"type": "stream_start"})
         await self._progressive_send(result, ws_send)
         logger.info(f"Sent non-streamed tutor response ({len(result)} chars)")
         return result
 
-    async def conduct_socratic_session_streaming(self, student_id: str, student_response: str, ws_send):
+    async def conduct_socratic_session_streaming(
+        self, student_id: str, student_response: str, ws_send
+    ):
         """
         Legacy compatibility wrapper for Instance A streaming calls.
         Active Instance A behavior now lives in GeneralChatService.
@@ -2687,8 +2853,11 @@ class HybridCrewAISocraticSystem:
     # ==================================================================
 
     async def conduct_guided_session_streaming(
-        self, student_id: str, student_response: str,
-        session_id: str, ws_send,
+        self,
+        student_id: str,
+        student_response: str,
+        session_id: str,
+        ws_send,
     ) -> Dict[str, Any]:
         """Instance B: tutor pass + structured reflection pass."""
         if not self.student_mcp:
@@ -2703,18 +2872,26 @@ class HybridCrewAISocraticSystem:
             current_stage = (session_state or {}).get("current_stage", "onboarding")
             if not session_state or current_stage == "onboarding":
                 return await self._handle_onboarding(
-                    student_id, student_response, session_id, ws_send, history,
+                    student_id,
+                    student_response,
+                    session_id,
+                    ws_send,
+                    history,
                 )
 
             objective_id = session_state.get("active_objective_id", "")
             objective_text = ""
             if objective_id:
                 try:
-                    obj = await asyncio.to_thread(self._fetch_objective_by_id, objective_id)
+                    obj = await asyncio.to_thread(
+                        self._fetch_objective_by_id, objective_id
+                    )
                     if obj:
                         objective_text = obj.get("text", "")
                 except Exception as e:
-                    logger.warning(f"Failed to fetch objective text for {objective_id}: {e}")
+                    logger.warning(
+                        f"Failed to fetch objective text for {objective_id}: {e}"
+                    )
 
             await self._session_state_repository.restore(session_id, objective_id)
             turn_result = await self._guided_turn_orchestrator.run_guided_turn(
@@ -2732,10 +2909,13 @@ class HybridCrewAISocraticSystem:
             if cached and cached.get("rag_chunks"):
                 try:
                     from ..eval.repository import EvalRepository
+
                     eval_repo = EvalRepository(db=self.db)
                     eval_repo.capture_rag_sample(
                         query=student_response,
-                        retrieved_contexts=[c.get("content", "") for c in cached["rag_chunks"]],
+                        retrieved_contexts=[
+                            c.get("content", "") for c in cached["rag_chunks"]
+                        ],
                         response=turn_result.final_text,
                         student_id=student_id,
                         session_id=session_id,
@@ -2795,19 +2975,23 @@ class HybridCrewAISocraticSystem:
             return {}
 
         try:
-            turn_result = await self._guided_turn_orchestrator.start_first_teaching_turn(
-                student_id=student_id,
-                session_id=session_id,
-                objective_id=objective_id,
-                objective_text=objective_text,
-                ws_send=ws_send,
+            turn_result = (
+                await self._guided_turn_orchestrator.start_first_teaching_turn(
+                    student_id=student_id,
+                    session_id=session_id,
+                    objective_id=objective_id,
+                    objective_text=objective_text,
+                    ws_send=ws_send,
+                )
             )
             await ws_send({"type": "stream_end", "metadata": turn_result.metadata})
             return turn_result.metadata
         except TeachingPlanGenerationError as e:
             logger.error(
                 "First-turn teaching plan generation failed for objective=%s: %s",
-                objective_id, e, exc_info=True,
+                objective_id,
+                e,
+                exc_info=True,
             )
             await ws_send(
                 {
@@ -2821,7 +3005,9 @@ class HybridCrewAISocraticSystem:
             return {}
         except Exception as e:
             logger.error(
-                "First-turn teaching content pipeline failed: %s", e, exc_info=True,
+                "First-turn teaching content pipeline failed: %s",
+                e,
+                exc_info=True,
             )
             await ws_send(
                 {
@@ -2856,10 +3042,26 @@ class HybridCrewAISocraticSystem:
             "description": "We'll match the starting topic to your level.",
             "field": "a11y_exposure",
             "options": [
-                {"label": "None", "value": "none", "description": "I'm just getting started"},
-                {"label": "Some awareness", "value": "awareness", "description": "I've heard of WCAG but haven't applied it"},
-                {"label": "Working knowledge", "value": "working_knowledge", "description": "I've worked on accessible websites"},
-                {"label": "Professional", "value": "professional", "description": "Deep a11y expertise or certification"},
+                {
+                    "label": "None",
+                    "value": "none",
+                    "description": "I'm just getting started",
+                },
+                {
+                    "label": "Some awareness",
+                    "value": "awareness",
+                    "description": "I've heard of WCAG but haven't applied it",
+                },
+                {
+                    "label": "Working knowledge",
+                    "value": "working_knowledge",
+                    "description": "I've worked on accessible websites",
+                },
+                {
+                    "label": "Professional",
+                    "value": "professional",
+                    "description": "Deep a11y expertise or certification",
+                },
             ],
             "allow_other": False,
         },
@@ -2884,8 +3086,12 @@ class HybridCrewAISocraticSystem:
     ]
 
     async def _handle_onboarding(
-        self, student_id: str, student_response: str,
-        session_id: str, ws_send, history: List[Dict],
+        self,
+        student_id: str,
+        student_response: str,
+        session_id: str,
+        ws_send,
+        history: List[Dict],
     ) -> Dict[str, Any]:
         """Handle onboarding (first 2-3 turns before guided learning begins).
 
@@ -2905,15 +3111,19 @@ class HybridCrewAISocraticSystem:
             prompt_idx = min(assistant_turns, 2)
             question_data = self._ONBOARDING_QUESTIONS[prompt_idx]
             prompt_text = self._ONBOARDING_PROMPTS[prompt_idx]
-            logger.info(f"[ONBOARDING] Sending question #{prompt_idx + 1} of 3: {question_data['field']}")
+            logger.info(
+                f"[ONBOARDING] Sending question #{prompt_idx + 1} of 3: {question_data['field']}"
+            )
 
             # Send as structured form question
-            await ws_send({
-                "type": "onboarding_question",
-                "step": assistant_turns + 1,
-                "total_steps": 3,
-                **question_data,
-            })
+            await ws_send(
+                {
+                    "type": "onboarding_question",
+                    "step": assistant_turns + 1,
+                    "total_steps": 3,
+                    **question_data,
+                }
+            )
             self.append_to_conversation(student_id, "assistant", prompt_text)
 
             return {"stage": "onboarding", "step": assistant_turns + 1}
@@ -2938,19 +3148,35 @@ class HybridCrewAISocraticSystem:
 
         # Create session and transition to introduction
         await self.student_mcp.update_session_state(
-            session_id, student_id=student_id,
-            stage="introduction", active_objective_id=objective_id, turns=0,
+            session_id,
+            student_id=student_id,
+            stage="introduction",
+            active_objective_id=objective_id,
+            turns=0,
         )
 
         # Notify frontend of onboarding completion and stage change
         a11y_exposure = profile_data.get("a11y_exposure", "none")
-        await ws_send({"type": "onboarding_complete", "profile": profile_data,
-                       "first_objective": objective_text})
-        await ws_send({"type": "stage_update", "stage": "introduction",
-                       "objective": objective_text, "summary": ""})
+        await ws_send(
+            {
+                "type": "onboarding_complete",
+                "profile": profile_data,
+                "first_objective": objective_text,
+            }
+        )
+        await ws_send(
+            {
+                "type": "stage_update",
+                "stage": "introduction",
+                "objective": objective_text,
+                "summary": "",
+            }
+        )
 
         # Send level-appropriate objective introduction
-        intro_text = self._OBJECTIVE_INTROS.get(a11y_exposure, self._OBJECTIVE_INTROS["none"])
+        intro_text = self._OBJECTIVE_INTROS.get(
+            a11y_exposure, self._OBJECTIVE_INTROS["none"]
+        )
         intro_msg = f"{intro_text}\n\nLet's begin!"
         await ws_send({"type": "stream_start"})
         await self._progressive_send(intro_msg, ws_send)
@@ -2971,7 +3197,9 @@ class HybridCrewAISocraticSystem:
         return {"stage": "introduction", "objective": objective_text}
 
     def _extract_onboarding_profile(
-        self, history: List[Dict], final_response: str,
+        self,
+        history: List[Dict],
+        final_response: str,
     ) -> Dict[str, str]:
         """Extract structured profile from onboarding answers.
 
@@ -3038,7 +3266,6 @@ class HybridCrewAISocraticSystem:
         "none": "I.A.2",
         # "Explain the structure of WCAG 2.2, including the POUR principles,
         #  guidelines, success criteria, and conformance levels"
-
         # Level 1: some awareness — semantic controls vs generic elements
         "awareness": "I.B.4",
         "working_knowledge": "I.D.10",
@@ -3046,7 +3273,6 @@ class HybridCrewAISocraticSystem:
         #         elements in terms of built-in accessibility."
         # I.D.10: "Apply ARIA live regions to communicate dynamic content
         #          updates without moving keyboard focus."
-
         # Level 2: professional — analysis-level challenges
         "professional": "I.H.2",
         # "Analyze how design elements such as headings, landmarks, and color
@@ -3092,7 +3318,9 @@ class HybridCrewAISocraticSystem:
     }
 
     async def _select_starting_objective(
-        self, student_id: str, a11y_exposure: str,
+        self,
+        student_id: str,
+        a11y_exposure: str,
     ) -> tuple:
         """Select the first objective based on the student's assessed level.
 
@@ -3100,14 +3328,18 @@ class HybridCrewAISocraticSystem:
         get_recommended_next_objective if the level-specific objective
         is not found or already mastered.
         """
-        target_id = self._STARTING_OBJECTIVES.get(a11y_exposure, self._STARTING_OBJECTIVES["none"])
+        target_id = self._STARTING_OBJECTIVES.get(
+            a11y_exposure, self._STARTING_OBJECTIVES["none"]
+        )
         target_text = self._STARTING_OBJECTIVE_TEXTS.get(a11y_exposure, "")
 
         # Prefer a direct text match when configured. The runtime DB stores UUID
         # primary keys, so curriculum codes like I.A.2 do not resolve directly.
         if target_text:
             try:
-                obj = await asyncio.to_thread(self._fetch_objective_by_text, target_text)
+                obj = await asyncio.to_thread(
+                    self._fetch_objective_by_text, target_text
+                )
                 if obj:
                     logger.info(
                         f"[ONBOARDING] Level-based objective selected by text: "
@@ -3135,7 +3367,9 @@ class HybridCrewAISocraticSystem:
         # Fallback to generic recommendation
         next_obj = await self.student_mcp.get_recommended_next_objective(student_id)
         if next_obj:
-            return next_obj.get("objective_id", ""), next_obj.get("objective_text", "web accessibility fundamentals")
+            return next_obj.get("objective_id", ""), next_obj.get(
+                "objective_text", "web accessibility fundamentals"
+            )
         return "", "web accessibility fundamentals"
 
     def _fetch_objective_by_id(self, objective_id: str) -> Optional[Dict]:
@@ -3174,7 +3408,9 @@ class HybridCrewAISocraticSystem:
         return TeachingPlanWorker.is_valid_legacy_plan(plan)
 
     async def _generate_teaching_plan(
-        self, objective_text: str, teaching_content: str = "",
+        self,
+        objective_text: str,
+        teaching_content: str = "",
     ):
         artifact = await self._teaching_plan_worker.generate(
             objective_text,
@@ -3264,7 +3500,9 @@ class HybridCrewAISocraticSystem:
             prerequisite_assumptions=prerequisite_assumptions,
         )
 
-    async def _extract_concept_order(self, teaching_plan: str) -> Optional[List[Dict[str, str]]]:
+    async def _extract_concept_order(
+        self, teaching_plan: str
+    ) -> Optional[List[Dict[str, str]]]:
         return await self._concept_extraction_worker.extract(teaching_plan)
 
     # ------------------------------------------------------------------
@@ -3272,9 +3510,19 @@ class HybridCrewAISocraticSystem:
     # ------------------------------------------------------------------
 
     async def _run_teaching_content_pipeline(
-        self, objective_text: str, session_id: str, objective_id: str, ws_send,
+        self,
+        objective_text: str,
+        session_id: str,
+        objective_id: str,
+        ws_send,
     ) -> tuple:
-        await ws_send({"type": "stage", "stage": "composing", "detail": "Building teaching graph..."})
+        await ws_send(
+            {
+                "type": "stage",
+                "stage": "composing",
+                "detail": "Building teaching graph...",
+            }
+        )
         await ws_send({"type": "teaching_plan_generating"})
         artifact = await self._build_teaching_graph_content(
             objective_text=objective_text,
@@ -3304,8 +3552,7 @@ class HybridCrewAISocraticSystem:
             }
         )
         extracted_concepts = [
-            {"id": node.id, "label": node.label}
-            for node in artifact.graph.nodes
+            {"id": node.id, "label": node.label} for node in artifact.graph.nodes
         ]
         return (
             teaching_plan,
@@ -3332,7 +3579,9 @@ class HybridCrewAISocraticSystem:
             if not questions:
                 return ""
 
-            lines = ["ASSESSMENT REFERENCE QUESTIONS (use as templates, do NOT reuse verbatim):"]
+            lines = [
+                "ASSESSMENT REFERENCE QUESTIONS (use as templates, do NOT reuse verbatim):"
+            ]
             for i, q in enumerate(questions[:5], 1):  # max 5 questions
                 lines.append(f"\nQ{i}: {q.get('question_text', '')}")
                 for a in q.get("answers", []):

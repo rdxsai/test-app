@@ -65,6 +65,16 @@ class GuidedSessionStateRepository:
     def get_lesson_state(self, session_id: str) -> Optional[Dict[str, Any]]:
         return self.session_cache.get_lesson_state(session_id)
 
+    def get_graph_runtime_state(self, session_id: str) -> Dict[str, Any]:
+        return self.session_cache.get_graph_runtime_state(session_id)
+
+    def apply_graph_runtime_patch(
+        self,
+        session_id: str,
+        patch: Optional[Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        return self.session_cache.apply_graph_runtime_patch(session_id, patch)
+
     def get_pacing_state(self, session_id: str) -> Optional[Dict[str, Any]]:
         return self.session_cache.get_pacing_state(session_id)
 
@@ -85,6 +95,7 @@ class GuidedSessionStateRepository:
         teaching_plan = self.session_cache.get_teaching_plan(session_id)
         teaching_content = self.session_cache.get_teaching_content(session_id)
         lesson_state = self.session_cache.get_lesson_state(session_id)
+        graph_runtime_state = self.session_cache.get_graph_runtime_state(session_id)
         pacing_state = self.session_cache.get_pacing_state(session_id)
         bundle = await self.load_student_bundle(student_id, objective_id)
         misconception_state = self.session_cache.seed_misconception_state(
@@ -107,9 +118,9 @@ class GuidedSessionStateRepository:
             teaching_content=teaching_content,
             retrieval_bundle=self.session_cache.get_retrieval_bundle(session_id) or {},
             lesson_state=lesson_state,
+            graph_runtime_state=graph_runtime_state,
             pacing_state=pacing_state,
             misconception_state=misconception_state,
             student_context=student_context,
             bundle=bundle,
         )
-

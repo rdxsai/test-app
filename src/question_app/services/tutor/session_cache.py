@@ -104,7 +104,7 @@ def _clean_plan_line(line: str) -> str:
 
 def _parse_text_plan_sections(plan_text: str) -> Dict[str, str]:
     section_pattern = re.compile(
-        r'(?:^|\n)(?:##?\s*)?(\d{1,2})\.\s*([a-z][\w_]*)\s*\n(.*?)(?=\n(?:##?\s*)?\d{1,2}\.\s*[a-z][\w_]*\s*\n|\Z)',
+        r"(?:^|\n)(?:##?\s*)?(\d{1,2})\.\s*([a-z][\w_]*)\s*\n(.*?)(?=\n(?:##?\s*)?\d{1,2}\.\s*[a-z][\w_]*\s*\n|\Z)",
         re.DOTALL,
     )
     sections: Dict[str, str] = {}
@@ -168,11 +168,13 @@ def _extract_ordered_concepts_from_text_plan(plan_text: str) -> List[Dict[str, s
         if concept_id in seen:
             continue
         seen.add(concept_id)
-        concepts.append({
-            "id": concept_id,
-            "label": label,
-            "status": "not_covered",
-        })
+        concepts.append(
+            {
+                "id": concept_id,
+                "label": label,
+                "status": "not_covered",
+            }
+        )
     return concepts
 
 
@@ -186,25 +188,26 @@ def _build_lesson_state(
     if extracted_concepts:
         seen: set = set()
         for item in extracted_concepts:
-            cid = str(
-                item.get("id")
-                or _normalize_concept_id(item.get("label", ""))
-            )
+            cid = str(item.get("id") or _normalize_concept_id(item.get("label", "")))
             if cid in seen:
                 continue
             seen.add(cid)
-            concepts.append({
-                "id": cid,
-                "label": item.get("label", cid),
-                "status": "not_covered",
-            })
+            concepts.append(
+                {
+                    "id": cid,
+                    "label": item.get("label", cid),
+                    "status": "not_covered",
+                }
+            )
 
     # Priority 2: Legacy JSON plan with concepts array
     if not concepts and isinstance(plan, dict) and plan.get("concepts"):
         order = plan.get("recommended_order") or []
         concepts_by_id = {}
         for concept in plan.get("concepts", []):
-            concept_id = str(concept.get("id") or _normalize_concept_id(concept.get("name", "")))
+            concept_id = str(
+                concept.get("id") or _normalize_concept_id(concept.get("name", ""))
+            )
             concepts_by_id[concept_id] = {
                 "id": concept_id,
                 "label": concept.get("name", concept_id),
@@ -263,9 +266,8 @@ class SessionContentCache:
             "teaching_content": str(entry.get("teaching_content", "") or ""),
             "retrieval_bundle": entry.get("retrieval_bundle"),
             "lesson_state": dict(entry.get("lesson_state", {}) or {}),
-            "pacing_state": self._normalize_pacing_state(
-                entry.get("pacing_state")
-            ),
+            "graph_runtime_state": dict(entry.get("graph_runtime_state", {}) or {}),
+            "pacing_state": self._normalize_pacing_state(entry.get("pacing_state")),
             "misconception_state": self._normalize_misconception_state(
                 entry.get("misconception_state")
             ),
@@ -287,6 +289,7 @@ class SessionContentCache:
         "teaching_content",
         "teaching_plan",
         "lesson_state",
+        "graph_runtime_state",
         "pacing_state",
         "misconception_state",
         "retrieved_at",
@@ -334,7 +337,9 @@ class SessionContentCache:
             return None
         snapshot = {k: entry[k] for k in self._PERSIST_FIELDS if k in entry}
         if "retrieval_bundle" in snapshot:
-            snapshot["retrieval_bundle"] = self._slim_bundle(snapshot["retrieval_bundle"])
+            snapshot["retrieval_bundle"] = self._slim_bundle(
+                snapshot["retrieval_bundle"]
+            )
         return copy.deepcopy(snapshot)
 
     def store(
@@ -367,6 +372,7 @@ class SessionContentCache:
             "teaching_content": teaching_content,
             "retrieval_bundle": retrieval_bundle,
             "lesson_state": {},
+            "graph_runtime_state": {},
             "pacing_state": self._default_pacing_state(),
             "misconception_state": self._default_misconception_state(),
             "retrieved_at": datetime.now().isoformat(),
@@ -414,6 +420,111 @@ class SessionContentCache:
         return bundle if bundle else None
 
     # ------------------------------------------------------------------
+    # Teaching graph runtime state
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _graph_payload_from_bundle(
+        retrieval_bundle: Optional[Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        if not isinstance(retrieval_bundle, dict):
+            return {}
+        graph = retrieval_bundle.get("graph")
+        return graph if isinstance(graph, dict) else {}
+
+    @classmethod
+    def _build_graph_runtime_state(
+        cls,
+        retrieval_bundle: Optional[Dict[str, Any]],
+        lesson_state: Optional[Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        graph = cls._graph_payload_from_bundle(retrieval_bundle)
+        nodes = [
+            node for node in graph.get("nodes", []) or [] if isinstance(node, dict)
+        ]
+        node_labels = {
+            str(node.get("id", "") or "")
+            .strip(): str(node.get("label", "") or node.get("id", ""))
+            .strip()
+            for node in nodes
+            if str(node.get("id", "") or "").strip()
+        }
+        primary_route = [
+            str(node_id or "").strip()
+            for node_id in (graph.get("primary_route", []) or [])
+            if str(node_id or "").strip()
+        ]
+        if not primary_route:
+            primary_route = [
+                str(concept.get("id", "") or "").strip()
+                for concept in ((lesson_state or {}).get("concepts", []) or [])
+                if isinstance(concept, dict)
+                and str(concept.get("id", "") or "").strip()
+            ]
+            for concept in (lesson_state or {}).get("concepts", []) or []:
+                if not isinstance(concept, dict):
+                    continue
+                concept_id = str(concept.get("id", "") or "").strip()
+                if concept_id and concept_id not in node_labels:
+                    node_labels[concept_id] = str(
+                        concept.get("label", "") or concept_id
+                    ).strip()
+        active_node_id = primary_route[0] if primary_route else ""
+        node_status = {
+            node_id: ("active" if node_id == active_node_id else "locked")
+            for node_id in primary_route
+        }
+        return {
+            "active_node_id": active_node_id,
+            "active_edge_id": "",
+            "primary_route": primary_route,
+            "completed_node_ids": [],
+            "visited_node_ids": [active_node_id] if active_node_id else [],
+            "node_labels": node_labels,
+            "node_status": node_status,
+            "mode": "teach",
+            "repair_count_for_active_node": 0,
+            "last_orchestrator_decision": {},
+            "previous_orchestrator_override": None,
+        }
+
+    def get_graph_runtime_state(self, session_id: str) -> Dict[str, Any]:
+        entry = self._cache.get(session_id)
+        if not entry:
+            return {}
+        graph_state = entry.get("graph_runtime_state")
+        if not graph_state:
+            graph_state = self._build_graph_runtime_state(
+                entry.get("retrieval_bundle"),
+                entry.get("lesson_state"),
+            )
+            entry["graph_runtime_state"] = graph_state
+        return copy.deepcopy(graph_state)
+
+    def apply_graph_runtime_patch(
+        self,
+        session_id: str,
+        patch: Optional[Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        entry = self._cache.get(session_id)
+        if not entry:
+            return {}
+        current = self.get_graph_runtime_state(session_id)
+        if not patch:
+            return current
+        for key, value in patch.items():
+            if value is None:
+                current[key] = None
+            elif isinstance(value, dict):
+                merged = dict(current.get(key, {}) or {})
+                merged.update(copy.deepcopy(value))
+                current[key] = merged
+            else:
+                current[key] = copy.deepcopy(value)
+        entry["graph_runtime_state"] = current
+        return copy.deepcopy(current)
+
+    # ------------------------------------------------------------------
     # Adaptive pacing runtime state
     # ------------------------------------------------------------------
 
@@ -429,7 +540,8 @@ class SessionContentCache:
 
     @classmethod
     def _normalize_pacing_state(
-        cls, pacing_state: Optional[Dict[str, Any]],
+        cls,
+        pacing_state: Optional[Dict[str, Any]],
     ) -> Dict[str, Any]:
         normalized = cls._default_pacing_state()
         if not pacing_state or not isinstance(pacing_state, dict):
@@ -472,19 +584,29 @@ class SessionContentCache:
         allowed = {
             "grasp_level": {"fragile", "emerging", "solid"},
             "reasoning_mode": {
-                "guessing", "recall", "paraphrase", "application", "transfer",
+                "guessing",
+                "recall",
+                "paraphrase",
+                "application",
+                "transfer",
             },
             "support_needed": {"heavy", "moderate", "light", "none"},
             "confusion_level": {"high", "medium", "low"},
             "response_pattern": {
-                "guessing", "hedging", "direct", "self_correcting",
+                "guessing",
+                "hedging",
+                "direct",
+                "self_correcting",
             },
             "concept_closure": {"not_ready", "almost_ready", "ready"},
             "override_pace": {"none", "slow", "steady", "fast"},
             "override_reason": None,
             "recommended_next_step": {
-                "re-explain", "give_example", "ask_narrower",
-                "ask_same_level", "advance",
+                "re-explain",
+                "give_example",
+                "ask_narrower",
+                "ask_same_level",
+                "advance",
             },
         }
 
@@ -564,7 +686,9 @@ class SessionContentCache:
             or (low_reasoning >= max(2, n - 1) and ready == 0)
         ):
             if high_confusion >= 2:
-                reason = "Recent turns show repeated confusion; slow down and re-scaffold."
+                reason = (
+                    "Recent turns show repeated confusion; slow down and re-scaffold."
+                )
             elif heavy_support >= max(2, n - 1):
                 reason = "Recent turns needed repeated support; keep the pace slower."
             elif fragile >= 2 or guessing_or_hedging >= 2:
@@ -633,7 +757,9 @@ class SessionContentCache:
             allow_change = False
             if forced or cooldown == 0:
                 allow_change = True
-            elif target_pace == "slow" and cls._is_strong_confusion_signal(compact_signal):
+            elif target_pace == "slow" and cls._is_strong_confusion_signal(
+                compact_signal
+            ):
                 allow_change = True
 
             if allow_change:
@@ -698,7 +824,8 @@ class SessionContentCache:
 
     @classmethod
     def _normalize_misconception_state(
-        cls, misconception_state: Optional[Dict[str, Any]],
+        cls,
+        misconception_state: Optional[Dict[str, Any]],
     ) -> Dict[str, Any]:
         normalized = cls._default_misconception_state()
         if not misconception_state or not isinstance(misconception_state, dict):
@@ -815,7 +942,7 @@ class SessionContentCache:
             if item.get("key")
         }
 
-        for raw_event in (events or []):
+        for raw_event in events or []:
             event = cls._compact_misconception_event(raw_event)
             if not event:
                 continue
@@ -827,14 +954,17 @@ class SessionContentCache:
             repair_pattern = event.get("repair_pattern", "direct_recheck")
 
             if action in {"log", "still_active"}:
-                item = active_map.get(key, {
-                    "key": key,
-                    "text": text,
-                    "repair_priority": priority,
-                    "repair_scope": repair_scope,
-                    "repair_pattern": repair_pattern,
-                    "times_seen": 0,
-                })
+                item = active_map.get(
+                    key,
+                    {
+                        "key": key,
+                        "text": text,
+                        "repair_priority": priority,
+                        "repair_scope": repair_scope,
+                        "repair_pattern": repair_pattern,
+                        "times_seen": 0,
+                    },
+                )
                 item["text"] = text or item.get("text", key.replace("_", " "))
                 if priority == "must_address_now":
                     item["repair_priority"] = "must_address_now"
@@ -854,21 +984,23 @@ class SessionContentCache:
             elif action == "resolve_candidate":
                 item = active_map.pop(key, None)
                 if key in active_order:
-                    active_order = [existing for existing in active_order if existing != key]
+                    active_order = [
+                        existing for existing in active_order if existing != key
+                    ]
                 resolved_map[key] = {
                     "key": key,
                     "text": text or (item or {}).get("text", key.replace("_", " ")),
                     "repair_priority": priority,
-                    "repair_scope": repair_scope or str((item or {}).get("repair_scope", "") or "fact"),
-                    "repair_pattern": repair_pattern or str((item or {}).get("repair_pattern", "") or "direct_recheck"),
+                    "repair_scope": repair_scope
+                    or str((item or {}).get("repair_scope", "") or "fact"),
+                    "repair_pattern": repair_pattern
+                    or str((item or {}).get("repair_pattern", "") or "direct_recheck"),
                     "times_seen": int((item or {}).get("times_seen", 0) or 0),
                 }
 
         return {
             "active_misconceptions": [
-                active_map[key]
-                for key in active_order
-                if key in active_map
+                active_map[key] for key in active_order if key in active_map
             ],
             "recently_resolved": list(resolved_map.values())[-6:],
         }
@@ -919,13 +1051,11 @@ class SessionContentCache:
         entry = self._cache.get(session_id)
         if not entry:
             return None
-        current = self._normalize_misconception_state(
-            entry.get("misconception_state")
-        )
+        current = self._normalize_misconception_state(entry.get("misconception_state"))
         if current.get("active_misconceptions"):
             return copy.deepcopy(current)
         seed_events = []
-        for misconception in (misconceptions or []):
+        for misconception in misconceptions or []:
             if not isinstance(misconception, dict):
                 continue
             text = str(misconception.get("misconception_text", "") or "").strip()
@@ -972,7 +1102,9 @@ class SessionContentCache:
                 detail = f"{len(str(plan))} chars"
             logger.info(
                 "Teaching plan stored for session=%s (%s, %d lesson concepts)",
-                session_id, detail, n,
+                session_id,
+                detail,
+                n,
             )
 
     def get_teaching_plan(self, session_id: str):
@@ -981,7 +1113,10 @@ class SessionContentCache:
         return entry.get("teaching_plan") if entry else None
 
     def update_concept_status(
-        self, session_id: str, concept_id: str, status: str,
+        self,
+        session_id: str,
+        concept_id: str,
+        status: str,
     ) -> None:
         """Mark a concept as covered/partially_covered/not_covered.
 
@@ -1010,7 +1145,9 @@ class SessionContentCache:
         return state if state else None
 
     def apply_lesson_state_patch(
-        self, session_id: str, patch: Optional[Dict[str, Any]],
+        self,
+        session_id: str,
+        patch: Optional[Dict[str, Any]],
     ) -> Optional[Dict[str, Any]]:
         if not patch:
             return self.get_lesson_state(session_id)
@@ -1109,9 +1246,7 @@ class SessionContentCache:
             for concept_id in (lesson_state.get("teaching_order") or [])
             if concept_id in concept_lookup
         ] or [str(concept.get("id", "") or "") for concept in concepts]
-        order_index = {
-            concept_id: idx for idx, concept_id in enumerate(ordered_ids)
-        }
+        order_index = {concept_id: idx for idx, concept_id in enumerate(ordered_ids)}
 
         direct_open: set[str] = set()
 
@@ -1124,12 +1259,12 @@ class SessionContentCache:
             _track_reference(str(lesson_state.get(field, "") or ""))
 
         objective_memory = objective_memory or {}
-        for gap in (objective_memory.get("active_gaps", []) or []):
+        for gap in objective_memory.get("active_gaps", []) or []:
             _track_reference(str(gap or ""))
         _track_reference(str(objective_memory.get("next_focus", "") or ""))
 
         misconception_state = misconception_state or {}
-        for item in (misconception_state.get("active_misconceptions", []) or []):
+        for item in misconception_state.get("active_misconceptions", []) or []:
             if not isinstance(item, dict):
                 continue
             _track_reference(str(item.get("key", "") or ""))

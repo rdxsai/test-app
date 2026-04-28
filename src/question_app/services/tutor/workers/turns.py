@@ -3,6 +3,13 @@ from __future__ import annotations
 import asyncio
 from typing import Any, Callable, Dict, List, Optional
 
+from ..graph_runtime import (
+    GRAPH_ORCHESTRATOR_PROMPT,
+    fallback_graph_decision,
+    format_graph_orchestrator_input,
+    normalize_graph_decision,
+)
+
 
 class TutorMessageBuilder:
     def __init__(
@@ -252,6 +259,44 @@ class StructuredTurnAnalyzer:
         )
 
 
+class GraphProgressionOrchestrator:
+    def __init__(
+        self,
+        *,
+        reasoning_client,
+        json_parser: Callable[[str, Dict[str, Any]], Dict[str, Any]],
+    ) -> None:
+        self.reasoning_client = reasoning_client
+        self.json_parser = json_parser
+
+    async def decide(
+        self,
+        *,
+        graph_state: Optional[Dict[str, Any]],
+        turn_analysis: Optional[Dict[str, Any]],
+        lesson_state: Optional[Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        fallback = fallback_graph_decision(graph_state, turn_analysis)
+        response = await asyncio.to_thread(
+            self.reasoning_client.chat,
+            [
+                {"role": "system", "content": GRAPH_ORCHESTRATOR_PROMPT},
+                {
+                    "role": "user",
+                    "content": format_graph_orchestrator_input(
+                        graph_state,
+                        turn_analysis,
+                        lesson_state,
+                    ),
+                },
+            ],
+            0.0,
+            700,
+        )
+        parsed = self.json_parser(response, fallback=fallback)
+        return normalize_graph_decision(parsed, graph_state, turn_analysis)
+
+
 class ResponseControlGuard:
     def __init__(self, *, guard_fn: Callable[..., Dict[str, Any]]) -> None:
         self.guard_fn = guard_fn
@@ -278,9 +323,13 @@ class LessonStateController:
     def __init__(
         self,
         *,
-        preview_misconceptions: Callable[[str, Optional[List[Dict[str, Any]]]], Dict[str, Any]],
+        preview_misconceptions: Callable[
+            [str, Optional[List[Dict[str, Any]]]], Dict[str, Any]
+        ],
         preview_pacing: Callable[[str, Optional[Dict[str, Any]]], Dict[str, Any]],
-        preview_objective_memory: Callable[[Optional[Dict[str, Any]], Optional[Dict[str, Any]]], Dict[str, Any]],
+        preview_objective_memory: Callable[
+            [Optional[Dict[str, Any]], Optional[Dict[str, Any]]], Dict[str, Any]
+        ],
         response_guard: ResponseControlGuard,
         lesson_state_getter: Callable[[str], Optional[Dict[str, Any]]],
         misconception_state_getter: Callable[[str], Optional[Dict[str, Any]]],
@@ -430,4 +479,3 @@ class LessonStateController:
 
         result["analysis"] = guarded
         return result
-
