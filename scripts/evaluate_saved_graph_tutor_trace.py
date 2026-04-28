@@ -188,6 +188,164 @@ EVALUATION_SCHEMA: Dict[str, Any] = {
 }
 
 
+SECTION_EVALUATION_SCHEMA: Dict[str, Any] = {
+    "type": "json_schema",
+    "name": "saved_graph_tutor_trace_section_evaluation",
+    "schema": {
+        "type": "object",
+        "additionalProperties": False,
+        "required": [
+            "section",
+            "score",
+            "summary",
+            "findings",
+            "tool_call_failures",
+            "recommended_fixes",
+            "per_turn_notes",
+        ],
+        "properties": {
+            "section": {"type": "string"},
+            "score": {"type": "number"},
+            "summary": {"type": "string"},
+            "findings": {
+                "type": "array",
+                "items": {"$ref": "#/$defs/finding"},
+            },
+            "tool_call_failures": {
+                "type": "array",
+                "items": {"$ref": "#/$defs/tool_failure"},
+            },
+            "recommended_fixes": {
+                "type": "array",
+                "items": {"$ref": "#/$defs/fix"},
+            },
+            "per_turn_notes": {
+                "type": "array",
+                "items": {"$ref": "#/$defs/turn_note"},
+            },
+        },
+        "$defs": {
+            "finding": {
+                "type": "object",
+                "additionalProperties": False,
+                "required": ["severity", "category", "turns", "summary", "evidence"],
+                "properties": {
+                    "severity": {
+                        "type": "string",
+                        "enum": ["critical", "high", "medium", "low"],
+                    },
+                    "category": {
+                        "type": "string",
+                        "enum": [
+                            "model_or_prompt_failure",
+                            "mcp_source_gap",
+                            "overdoing",
+                            "underdoing",
+                            "strength",
+                        ],
+                    },
+                    "turns": {"type": "array", "items": {"type": "integer"}},
+                    "summary": {"type": "string"},
+                    "evidence": {"type": "string"},
+                },
+            },
+            "tool_failure": {
+                "type": "object",
+                "additionalProperties": False,
+                "required": [
+                    "turns",
+                    "tool_or_step",
+                    "what_went_wrong",
+                    "wrong_parameter",
+                    "reasoning_failure",
+                    "missing_call",
+                    "evidence",
+                ],
+                "properties": {
+                    "turns": {"type": "array", "items": {"type": "integer"}},
+                    "tool_or_step": {"type": "string"},
+                    "what_went_wrong": {"type": "string"},
+                    "wrong_parameter": {"type": "boolean"},
+                    "reasoning_failure": {"type": "boolean"},
+                    "missing_call": {"type": "boolean"},
+                    "evidence": {"type": "string"},
+                },
+            },
+            "fix": {
+                "type": "object",
+                "additionalProperties": False,
+                "required": [
+                    "priority",
+                    "target",
+                    "change",
+                    "why_this_matches_agent_best_practices",
+                    "expected_effect",
+                ],
+                "properties": {
+                    "priority": {"type": "string", "enum": ["high", "medium", "low"]},
+                    "target": {"type": "string"},
+                    "change": {"type": "string"},
+                    "why_this_matches_agent_best_practices": {"type": "string"},
+                    "expected_effect": {"type": "string"},
+                },
+            },
+            "turn_note": {
+                "type": "object",
+                "additionalProperties": False,
+                "required": ["turn", "note"],
+                "properties": {
+                    "turn": {"type": "integer"},
+                    "note": {"type": "string"},
+                },
+            },
+        },
+    },
+    "strict": True,
+}
+
+
+EVALUATION_SECTIONS: List[Dict[str, str]] = [
+    {
+        "name": "graph_behavior",
+        "focus": (
+            "Evaluate graph progression, route adherence, route_coverage_mode usage, "
+            "branch/skip explanations, terminal-node handling, and orchestrator/tutor "
+            "directive quality."
+        ),
+    },
+    {
+        "name": "analyzer_consistency",
+        "focus": (
+            "Evaluate turn analyzer consistency: concept_closure, stage_action, "
+            "recommended_next_step, lesson_state_patch, misconception events, and "
+            "whether bridge questions were separated from active-node progression."
+        ),
+    },
+    {
+        "name": "tutor_pedagogy",
+        "focus": (
+            "Evaluate teaching quality: usefulness for real learning, Socratic balance, "
+            "examples, pacing, repair quality, overdoing, underdoing, and transfer tasks."
+        ),
+    },
+    {
+        "name": "source_grounding",
+        "focus": (
+            "Evaluate whether shortcomings come from missing/weak MCP source evidence "
+            "versus model synthesis. Identify any unsupported factual claims or places "
+            "where stronger WCAG evidence would be needed."
+        ),
+    },
+    {
+        "name": "runtime_tool_health",
+        "focus": (
+            "Evaluate workflow/tool/API behavior: timeouts, malformed structured output, "
+            "wrong parameters, missing calls, retry behavior, and trace completeness."
+        ),
+    },
+]
+
+
 def latest_trace_path(results_dir: Path = RESULTS_DIR) -> Path:
     candidates = sorted(results_dir.glob(TRACE_PATTERN), key=lambda path: path.stat().st_mtime)
     if not candidates:
@@ -281,6 +439,39 @@ def build_evaluator_prompt(compacted_trace: Dict[str, Any]) -> str:
     )
 
 
+def build_section_prompt(
+    compacted_trace: Dict[str, Any],
+    *,
+    section_name: str,
+    section_focus: str,
+) -> str:
+    return "\n\n".join(
+        [
+            f"Evaluate only this section of the graph-guided tutor trace: {section_name}.",
+            f"SECTION FOCUS:\n{section_focus}",
+            (
+                "Separate shortcomings into model/prompt/agent behavior failures and "
+                "MCP/source-information gaps. If there are workflow/tool failures, "
+                "identify wrong parameters, model reasoning failures, missing calls, "
+                "or API/tool misbehavior."
+            ),
+            (
+                "Do not propose deterministic backend-driven instructional rules. "
+                "Prefer prompt contracts, structured outputs, trace evaluators, "
+                "or orchestrator-worker communication improvements aligned with "
+                "OpenAI/Anthropic agent guidance."
+            ),
+            (
+                "Keep the report concise: at most 6 findings, at most 4 fixes, and "
+                "only per-turn notes for turns that matter."
+            ),
+            "Return only JSON matching the provided schema.",
+            "COMPACT TRACE:",
+            json.dumps(compacted_trace, indent=2, ensure_ascii=False),
+        ]
+    )
+
+
 def response_text(response: Dict[str, Any]) -> str:
     direct = str(response.get("output_text") or "").strip()
     if direct:
@@ -317,9 +508,15 @@ def render_markdown(report: Dict[str, Any], trace_path: Path, output_json: Path)
         "## Teaching Sufficiency",
         "",
         report.get("teaching_sufficiency", {}).get("rationale", ""),
-        "",
-        "## Model Or Prompt Failures",
     ]
+    if report.get("sections"):
+        lines.extend(["", "## Section Scores"])
+        for section in report.get("sections") or []:
+            lines.append(
+                f"- `{section.get('section')}` score `{section.get('score')}`: "
+                f"{section.get('summary')}"
+            )
+    lines.extend(["", "## Model Or Prompt Failures"])
     for finding in report.get("model_or_prompt_failures") or []:
         lines.append(
             f"- `{finding.get('severity')}` turns {finding.get('turns')}: "
@@ -345,11 +542,14 @@ def render_markdown(report: Dict[str, Any], trace_path: Path, output_json: Path)
         )
     lines.extend(["", "## Per-Turn Notes"])
     for note in report.get("per_turn_notes") or []:
-        lines.append(
-            f"- Turn {note.get('turn')}: orchestrator={note.get('orchestrator')} "
-            f"analyzer={note.get('analyzer')} tutor={note.get('tutor')} "
-            f"learning={note.get('student_learning_value')}"
-        )
+        if "note" in note:
+            lines.append(f"- Turn {note.get('turn')}: {note.get('note')}")
+        else:
+            lines.append(
+                f"- Turn {note.get('turn')}: orchestrator={note.get('orchestrator')} "
+                f"analyzer={note.get('analyzer')} tutor={note.get('tutor')} "
+                f"learning={note.get('student_learning_value')}"
+            )
     lines.append("")
     return "\n".join(lines)
 
@@ -367,28 +567,150 @@ def build_responses_client(model: str) -> AzureAPIMClient:
 async def evaluate_trace(trace_path: Path, *, model: str) -> Dict[str, Any]:
     trace = json.loads(trace_path.read_text())
     compacted = compact_trace(trace)
-    prompt = build_evaluator_prompt(compacted)
-    response = await build_responses_client(model).responses_create(
-        instructions=(
-            "You are a rigorous evaluator for an agentic tutoring system. "
-            "Be specific, evidence-driven, and separate model behavior failures "
-            "from missing source-information gaps."
-        ),
-        input=[
-            {
-                "role": "user",
-                "content": [{"type": "input_text", "text": prompt}],
-            }
-        ],
-        text={"format": EVALUATION_SCHEMA},
-        reasoning_effort="medium",
-        max_output_tokens=3000,
-    )
-    report = parse_json_response(response_text(response))
+    client = build_responses_client(model)
+    sections: List[Dict[str, Any]] = []
+    for section in EVALUATION_SECTIONS:
+        prompt = build_section_prompt(
+            compacted,
+            section_name=section["name"],
+            section_focus=section["focus"],
+        )
+        response = await client.responses_create(
+            instructions=(
+                "You are a rigorous evaluator for one section of an agentic tutoring "
+                "system trace. Be concise, evidence-driven, and separate model "
+                "behavior failures from missing source-information gaps."
+            ),
+            input=[
+                {
+                    "role": "user",
+                    "content": [{"type": "input_text", "text": prompt}],
+                }
+            ],
+            text={"format": SECTION_EVALUATION_SCHEMA},
+            reasoning_effort="medium",
+            max_output_tokens=1800,
+        )
+        section_report = parse_json_response(response_text(response))
+        section_report["section"] = section["name"]
+        sections.append(section_report)
+    report = synthesize_section_reports(sections)
     report["trace_file"] = str(trace_path)
     report["evaluated_at"] = datetime.now().isoformat(timespec="seconds")
     report["evaluator_model"] = model
     return report
+
+
+def synthesize_section_reports(sections: List[Dict[str, Any]]) -> Dict[str, Any]:
+    scores = [
+        float(section.get("score", 0.0) or 0.0)
+        for section in sections
+        if isinstance(section, dict)
+    ]
+    findings = [
+        finding
+        for section in sections
+        for finding in section.get("findings", []) or []
+        if isinstance(finding, dict)
+    ]
+    fixes = [
+        fix
+        for section in sections
+        for fix in section.get("recommended_fixes", []) or []
+        if isinstance(fix, dict)
+    ]
+    tool_failures = [
+        failure
+        for section in sections
+        for failure in section.get("tool_call_failures", []) or []
+        if isinstance(failure, dict)
+    ]
+    model_failures = [
+        finding
+        for finding in findings
+        if finding.get("category") == "model_or_prompt_failure"
+    ]
+    mcp_gaps = [
+        finding for finding in findings if finding.get("category") == "mcp_source_gap"
+    ]
+    overdoing = [
+        finding for finding in findings if finding.get("category") == "overdoing"
+    ]
+    underdoing = [
+        finding for finding in findings if finding.get("category") == "underdoing"
+    ]
+    teaching_section = _find_section(sections, "tutor_pedagogy")
+    grounding_section = _find_section(sections, "source_grounding")
+    average_score = round(sum(scores) / len(scores), 2) if scores else 0.0
+    return {
+        "overall_score": average_score,
+        "verdict": "; ".join(
+            section.get("summary", "") for section in sections if section.get("summary")
+        )[:1200],
+        "teaching_sufficiency": {
+            "is_enough_for_teaching": float(teaching_section.get("score", 0) or 0) >= 7,
+            "score": float(teaching_section.get("score", 0) or 0),
+            "rationale": str(teaching_section.get("summary", "") or ""),
+        },
+        "model_or_prompt_failures": model_failures,
+        "mcp_source_gaps": mcp_gaps,
+        "tool_call_failures": tool_failures,
+        "overdoing": overdoing,
+        "underdoing": underdoing,
+        "orchestrator_behavior": _component_summary(sections, "graph_behavior"),
+        "tutor_behavior": _component_summary(sections, "tutor_pedagogy"),
+        "analyzer_behavior": _component_summary(sections, "analyzer_consistency"),
+        "reasoning_quality": _component_summary(sections, "source_grounding"),
+        "prompt_or_agent_fixes": fixes,
+        "per_turn_notes": [
+            note
+            for section in sections
+            for note in section.get("per_turn_notes", []) or []
+            if isinstance(note, dict)
+        ],
+        "residual_risks": [
+            str(section.get("summary", "") or "")
+            for section in sections
+            if section.get("section") == "runtime_tool_health"
+        ],
+        "sections": sections,
+        "source_grounding_summary": grounding_section.get("summary", ""),
+    }
+
+
+def _find_section(sections: List[Dict[str, Any]], section_name: str) -> Dict[str, Any]:
+    return next(
+        (
+            section
+            for section in sections
+            if isinstance(section, dict) and section.get("section") == section_name
+        ),
+        {},
+    )
+
+
+def _component_summary(
+    sections: List[Dict[str, Any]],
+    section_name: str,
+) -> Dict[str, Any]:
+    section = _find_section(sections, section_name)
+    findings = section.get("findings", []) or []
+    strengths = [
+        finding.get("summary", "")
+        for finding in findings
+        if finding.get("category") == "strength"
+    ]
+    weaknesses = [
+        finding.get("summary", "")
+        for finding in findings
+        if finding.get("category") != "strength"
+    ]
+    return {
+        "score": float(section.get("score", 0) or 0),
+        "strengths": strengths,
+        "weaknesses": weaknesses,
+        "evidence": str(section.get("summary", "") or ""),
+    }
 
 
 async def main() -> None:

@@ -60,6 +60,74 @@ def test_evaluator_prompt_preserves_fix_constraints():
     assert "evaluator-optimizer" in prompt
 
 
+def test_section_prompt_preserves_concise_evaluator_constraints():
+    prompt = evaluator.build_section_prompt(
+        {"turns": []},
+        section_name="graph_behavior",
+        section_focus="Evaluate graph behavior.",
+    )
+
+    assert "Evaluate only this section" in prompt
+    assert "graph_behavior" in prompt
+    assert "at most 6 findings" in prompt
+    assert "Do not propose deterministic backend-driven instructional rules" in prompt
+
+
+def test_synthesize_section_reports_groups_findings_by_category():
+    report = evaluator.synthesize_section_reports(
+        [
+            {
+                "section": "tutor_pedagogy",
+                "score": 8,
+                "summary": "Enough for teaching.",
+                "findings": [
+                    {
+                        "category": "overdoing",
+                        "severity": "medium",
+                        "turns": [6],
+                        "summary": "Stayed too long.",
+                        "evidence": "Turn 6 repeated same boundary.",
+                    }
+                ],
+                "tool_call_failures": [],
+                "recommended_fixes": [
+                    {
+                        "priority": "medium",
+                        "target": "analyzer",
+                        "change": "Tighten closure language.",
+                        "why_this_matches_agent_best_practices": "Prompt contract.",
+                        "expected_effect": "Less repetition.",
+                    }
+                ],
+                "per_turn_notes": [{"turn": 6, "note": "Repeated n6."}],
+            },
+            {
+                "section": "source_grounding",
+                "score": 7,
+                "summary": "Mostly grounded.",
+                "findings": [
+                    {
+                        "category": "mcp_source_gap",
+                        "severity": "low",
+                        "turns": [8],
+                        "summary": "Thin live chart evidence.",
+                        "evidence": "Turn 8 live-update claim.",
+                    }
+                ],
+                "tool_call_failures": [],
+                "recommended_fixes": [],
+                "per_turn_notes": [],
+            },
+        ]
+    )
+
+    assert report["overall_score"] == 7.5
+    assert report["teaching_sufficiency"]["is_enough_for_teaching"] is True
+    assert report["overdoing"][0]["summary"] == "Stayed too long."
+    assert report["mcp_source_gaps"][0]["summary"] == "Thin live chart evidence."
+    assert report["prompt_or_agent_fixes"][0]["target"] == "analyzer"
+
+
 def test_render_markdown_contains_key_sections(tmp_path):
     report = {
         "overall_score": 7.5,
@@ -86,10 +154,14 @@ def test_render_markdown_contains_key_sections(tmp_path):
         "per_turn_notes": [
             {
                 "turn": 1,
-                "orchestrator": "Stayed.",
-                "analyzer": "Consistent.",
-                "tutor": "Clear.",
-                "student_learning_value": "High.",
+                "note": "Stayed and taught clearly.",
+            }
+        ],
+        "sections": [
+            {
+                "section": "graph_behavior",
+                "score": 7,
+                "summary": "Mostly sound.",
             }
         ],
     }
@@ -99,4 +171,6 @@ def test_render_markdown_contains_key_sections(tmp_path):
     assert "# Saved Graph Tutor Trace Evaluation" in markdown
     assert "## Model Or Prompt Failures" in markdown
     assert "## MCP Source Gaps" in markdown
+    assert "## Section Scores" in markdown
     assert "Tighten closure contract." in markdown
+    assert "Stayed and taught clearly." in markdown
