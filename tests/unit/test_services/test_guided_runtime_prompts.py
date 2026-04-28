@@ -11,3 +11,12 @@ def test_turn_analyzer_prompt_requires_consistent_progression_signals():
         in TURN_ANALYZER_PROMPT
     )
     assert "no open must-repair misconception" in TURN_ANALYZER_PROMPT
+
+
+def test_turn_analyzer_prompt_separates_bridge_questions_from_node_progression():
+    assert "Separate bridge questions from graph/node progression" in (
+        TURN_ANALYZER_PROMPT
+    )
+    assert "does not by itself" in TURN_ANALYZER_PROMPT
+    assert "Keep `active_concept` anchored" in TURN_ANALYZER_PROMPT
+    assert "Use `bridge_back_target` and `pending_check`" in TURN_ANALYZER_PROMPT

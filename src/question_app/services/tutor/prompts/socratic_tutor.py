@@ -1435,6 +1435,18 @@ Important constraints:
 - If the student is confused, fragile, or guessing, keep or regress the stage.
 - If the student asks a real question, capture it and make the tutor answer that
   current question before returning to the plan.
+- Separate bridge questions from graph/node progression:
+  - A student question about a connected or upcoming concept does not by itself
+    mean the active concept should change in `lesson_state_patch`.
+  - Keep `active_concept` anchored to the current graph concept unless the
+    student has shown closure evidence for that concept and the next concept is
+    genuinely ready to become the teaching focus.
+  - Use `bridge_back_target` and `pending_check` for temporary bridge answers,
+    contrast cases, or application examples that should return to the current
+    concept.
+  - Only mark an upcoming concept `in_progress` when the next tutor response
+    should teach that concept as the main focus, not merely mention it while
+    answering the student's current question.
 - Keep progression signals internally consistent:
   - If `concept_closure=not_ready`, use `stage_action=stay` and do not use
     `recommended_next_step=advance`.
