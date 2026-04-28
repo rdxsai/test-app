@@ -59,10 +59,13 @@ class AzureAPIMClient:
 
     def _build_responses_urls(self) -> List[str]:
         base = self.endpoint.rstrip("/")
-        if base.endswith("/openai/v1"):
+        if base.endswith("/responses"):
+            candidates = [base]
+        elif base.endswith("/v1"):
             candidates = [f"{base}/responses"]
         else:
             candidates = [
+                f"{base}/v1/responses",
                 f"{base}/openai/v1/responses",
                 f"{base}/deployments/{self.deployment}/responses",
                 f"{base}/openai/deployments/{self.deployment}/responses",
@@ -362,7 +365,7 @@ class AzureAPIMClient:
     ) -> Dict[str, Any]:
         """Send a Responses API request via Azure APIM/OpenAI-compatible routing."""
         headers = self._build_headers()
-        params = {"api-version": self.api_version}
+        params = {"api-version": self.api_version} if self.api_version else None
         payload: Dict[str, Any] = {
             "model": self.deployment,
             "input": input,

@@ -114,7 +114,7 @@ class TestConfig:
     def test_responses_model_defaults_to_gpt54_without_openai_api_key(self):
         with patch.dict(os.environ, {}, clear=True):
             config = Config()
-            assert config.OPENAI_RESPONSES_API_VERSION == "preview"
+            assert config.OPENAI_RESPONSES_API_VERSION == ""
             assert config.OPENAI_RESPONSES_MODEL == "gpt-5.4"
             assert not hasattr(config, "OPENAI_RESPONSES_API_KEY")
 

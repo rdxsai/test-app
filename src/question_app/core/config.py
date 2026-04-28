@@ -78,7 +78,7 @@ class Config:
         )
         self.OPENAI_RESPONSES_API_VERSION: str = os.getenv(
             "AZURE_OPENAI_RESPONSES_API_VERSION",
-            os.getenv("OPENAI_RESPONSES_API_VERSION", "preview"),
+            os.getenv("OPENAI_RESPONSES_API_VERSION", ""),
         )
         self.OPENAI_RESPONSES_MODEL: str = os.getenv(
             "AZURE_OPENAI_RESPONSES_DEPLOYMENT_ID",

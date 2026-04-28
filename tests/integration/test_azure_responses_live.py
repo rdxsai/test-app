@@ -40,7 +40,7 @@ async def test_azure_responses_api_responds_with_gpt54_deployment():
             os.getenv("OPENAI_RESPONSES_MODEL", "gpt-5.4"),
         ),
         api_key=api_key,
-        api_version=os.getenv("AZURE_OPENAI_RESPONSES_API_VERSION", "preview"),
+        api_version=os.getenv("AZURE_OPENAI_RESPONSES_API_VERSION", ""),
         content_filter_policy=os.getenv("AZURE_OPENAI_CONTENT_FILTER_POLICY"),
     )
 

@@ -190,7 +190,7 @@ async def test_responses_create_uses_responses_payload_shape(monkeypatch):
     )
 
     assert payload["id"] == "resp_123"
-    assert captured["url"] == "https://example.test/openai/v1/responses"
+    assert captured["url"] == "https://example.test/v1/responses"
     assert captured["params"] == {"api-version": "2025-01-01-preview"}
     assert "Authorization" not in captured["headers"]
     assert captured["headers"]["Ocp-Apim-Subscription-Key"] == "test-key"
@@ -270,3 +270,51 @@ async def test_responses_create_accepts_v1_base_endpoint(monkeypatch):
     )
 
     assert captured["url"] == "https://example.test/openai/v1/responses"
+
+
+@pytest.mark.asyncio
+async def test_responses_create_accepts_full_responses_endpoint_without_api_version(
+    monkeypatch,
+):
+    captured = {}
+
+    class FakeResponsesPayload:
+        status_code = 200
+
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return {"id": "resp_123", "output": []}
+
+    class FakeAsyncClient:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+        async def post(self, url, headers=None, params=None, json=None):
+            captured["url"] = url
+            captured["params"] = params
+            return FakeResponsesPayload()
+
+    monkeypatch.setattr(
+        "question_app.services.tutor.azure_client.httpx.AsyncClient",
+        FakeAsyncClient,
+    )
+
+    client = AzureAPIMClient(
+        endpoint="https://example.test/v1/responses",
+        deployment="gpt-5.4",
+        api_key="test-key",
+        api_version="",
+    )
+
+    await client.responses_create(input="Connectivity check.")
+
+    assert captured["url"] == "https://example.test/v1/responses"
+    assert captured["params"] is None
