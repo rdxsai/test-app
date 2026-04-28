@@ -1435,6 +1435,18 @@ Important constraints:
 - If the student is confused, fragile, or guessing, keep or regress the stage.
 - If the student asks a real question, capture it and make the tutor answer that
   current question before returning to the plan.
+- Keep progression signals internally consistent:
+  - If `concept_closure=not_ready`, use `stage_action=stay` and do not use
+    `recommended_next_step=advance`.
+  - If `concept_closure=almost_ready`, usually use `stage_action=stay`; the next
+    tutor response should close the concept with an example, contrast, or check.
+  - Do not pair `recommended_next_step=give_example` with
+    `stage_action=advance`; `give_example` means more teaching is needed first.
+  - Recommend advancement only when `concept_closure=ready`, no real student
+    question must be answered first, and no open must-repair misconception
+    remains.
+  - At a terminal integration concept, recommend a mastery/transfer check before
+    moving stages unless the student has already completed that check.
 - If the student's direct question can be fully answered in the next tutor turn,
   do not force a follow-up check when the only available check would be a trivial
   echo of the tutor's explanation.
