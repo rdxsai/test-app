@@ -66,6 +66,24 @@ def test_tutor_system_prompt_carries_new_concept_probe_guide():
     assert "Spot the failure" in text
 
 
+def test_tutor_system_prompt_calibrates_source_certainty():
+    text = TUTOR_SYSTEM_PROMPT
+
+    assert "Calibrate source certainty" in text
+    assert "source-backed WCAG facts" in text
+    assert "technique-level implementation guidance" in text
+    assert "avoid phrases like \"verified\"" in text
+    assert "sufficient pattern" in text
+
+
+def test_tutor_system_prompt_stops_repeated_edge_case_loops():
+    text = TUTOR_SYSTEM_PROMPT
+
+    assert "Stop repeated edge-case loops" in text
+    assert "two consecutive strong transfer" in text
+    assert "mixed-case check" in text
+
+
 def test_build_instance_b_prompt_propagates_new_concept_probe_guide():
     """The assembled tutor prompt must carry the anti-echo guidance —
     if it ever stops appearing, the model will start producing the old
