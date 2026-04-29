@@ -365,7 +365,70 @@ def normalize_analyzer_output(
         "conflict": _string(consistency.get("conflict"))[:280],
         "repair_instruction": _string(consistency.get("repair_instruction"))[:280],
     }
+    _mark_consistency_conflicts(out)
     return out
+
+
+def _mark_consistency_conflicts(output: Dict[str, Any]) -> None:
+    """Flag contradictions between grouped sections without choosing pedagogy.
+
+    This is a schema integrity check, not a lesson policy. It only catches
+    impossible or internally conflicting combinations so the orchestrator can
+    narrow the move instead of treating mixed signals as authoritative.
+    """
+    tutor = output.get("next_tutor_handoff") or {}
+    progression = output.get("progression_recommendation") or {}
+    graph = output.get("graph_handoff") or {}
+    state = output.get("state_patch") or {}
+    mastery = output.get("mastery_signal") or {}
+    consistency = output.setdefault("consistency_check", {})
+
+    conflicts: List[str] = []
+    if (
+        progression.get("stage_action") == "advance"
+        and progression.get("closure_state") != "ready"
+    ):
+        conflicts.append("stage_action=advance requires closure_state=ready")
+    if progression.get("stage_action") == "advance" and progression.get(
+        "evidence_quality"
+    ) in {"none", "weak"}:
+        conflicts.append("stage_action=advance requires stronger evidence_quality")
+    if (
+        progression.get("progression_blocker") not in {"", "none"}
+        and progression.get("stage_action") == "advance"
+    ):
+        conflicts.append("stage_action=advance conflicts with progression_blocker")
+    if (
+        progression.get("closure_state") == "ready"
+        and progression.get("progression_blocker") == "none"
+        and tutor.get("move") in {"repair", "clarify"}
+    ):
+        conflicts.append(
+            "ready/no-blocker progression conflicts with repair/clarify move"
+        )
+    if (
+        graph.get("bridge_mode") == "temporary_bridge"
+        and graph.get("return_to_current_node") is True
+        and state.get("active_concept_id")
+        and state.get("active_concept_id") == graph.get("candidate_next_node_id")
+    ):
+        conflicts.append("temporary bridge cannot also make candidate_next_node active")
+    if mastery.get("update") and progression.get("evidence_quality") in {
+        "none",
+        "weak",
+    }:
+        conflicts.append("mastery update requires partial or strong evidence")
+
+    if not conflicts:
+        return
+    existing = _string(consistency.get("conflict"))
+    joined = "; ".join(conflicts)
+    consistency["status"] = "needs_repair"
+    consistency["conflict"] = f"{existing}; {joined}".strip("; ")
+    if not _string(consistency.get("repair_instruction")):
+        consistency[
+            "repair_instruction"
+        ] = "Choose one owner for the disputed decision and use the conservative stay/clarify interpretation."
 
 
 def legacy_to_analyzer_output(

@@ -132,3 +132,107 @@ def test_analyzer_output_to_legacy_maps_canonical_schema_for_runtime_consumers()
     assert legacy["pacing_signal"]["recommended_next_step"] == "advance"
     assert legacy["lesson_state_patch"]["active_concept"] == "n7"
     assert legacy["mastery_signal"]["should_update"] is True
+
+
+def test_normalize_flags_overlapping_next_move_and_progression_signals():
+    output = normalize_analyzer_output(
+        {
+            "student_turn": {
+                "route": "objective_answer",
+                "answer_first": False,
+                "question_to_answer": "",
+                "open_question_type": "none",
+            },
+            "next_tutor_handoff": {
+                "move": "clarify",
+                "support_level": "light",
+                "one_turn_goal": "Clarify the same point again.",
+                "source_certainty_needed": "low",
+            },
+            "progression_recommendation": {
+                "stage_action": "advance",
+                "target_stage": "readiness_check",
+                "closure_state": "ready",
+                "evidence_quality": "strong",
+                "progression_blocker": "none",
+            },
+            "graph_handoff": {
+                "bridge_mode": "answer_within_current_node",
+                "current_node_id": "n6",
+                "candidate_next_node_id": "n7",
+                "return_to_current_node": False,
+            },
+            "state_patch": {
+                "active_concept_id": "n7",
+                "pending_check": "",
+                "concept_updates": [],
+            },
+            "misconceptions": [],
+            "mastery_signal": {"update": False, "level": "in_progress"},
+            "memory_patch": {
+                "objective_summary": "",
+                "learner_summary": "",
+                "next_focus": "",
+            },
+            "consistency_check": {
+                "status": "consistent",
+                "conflict": "",
+                "repair_instruction": "",
+            },
+        }
+    )
+
+    assert output["consistency_check"]["status"] == "needs_repair"
+    assert "repair/clarify move" in output["consistency_check"]["conflict"]
+
+
+def test_normalize_flags_temporary_bridge_that_activates_next_node():
+    output = normalize_analyzer_output(
+        {
+            "student_turn": {
+                "route": "objective_answer",
+                "answer_first": True,
+                "question_to_answer": "What about the next media case?",
+                "open_question_type": "edge_case",
+            },
+            "next_tutor_handoff": {
+                "move": "clarify",
+                "support_level": "light",
+                "one_turn_goal": "Answer briefly and return.",
+                "source_certainty_needed": "medium",
+            },
+            "progression_recommendation": {
+                "stage_action": "stay",
+                "target_stage": "exploration",
+                "closure_state": "almost_ready",
+                "evidence_quality": "partial",
+                "progression_blocker": "open_question",
+            },
+            "graph_handoff": {
+                "bridge_mode": "temporary_bridge",
+                "current_node_id": "n6",
+                "candidate_next_node_id": "n7",
+                "return_to_current_node": True,
+            },
+            "state_patch": {
+                "active_concept_id": "n7",
+                "pending_check": "",
+                "concept_updates": [],
+            },
+            "misconceptions": [],
+            "mastery_signal": {"update": False, "level": "in_progress"},
+            "memory_patch": {
+                "objective_summary": "",
+                "learner_summary": "",
+                "next_focus": "",
+            },
+            "consistency_check": {
+                "status": "consistent",
+                "conflict": "",
+                "repair_instruction": "",
+            },
+        }
+    )
+
+    assert output["consistency_check"]["status"] == "needs_repair"
+    assert "temporary bridge" in output["consistency_check"]["conflict"]
