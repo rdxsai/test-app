@@ -589,7 +589,7 @@ async def evaluate_trace(trace_path: Path, *, model: str) -> Dict[str, Any]:
             ],
             text={"format": SECTION_EVALUATION_SCHEMA},
             reasoning_effort="medium",
-            max_output_tokens=1800,
+            max_output_tokens=4000,
         )
         raw_text = response_text(response)
         try:
@@ -610,8 +610,14 @@ async def evaluate_trace(trace_path: Path, *, model: str) -> Dict[str, Any]:
 
 
 def synthesize_section_reports(sections: List[Dict[str, Any]]) -> Dict[str, Any]:
+    normalized_sections = []
+    for section in sections:
+        normalized = dict(section)
+        normalized["score"] = _normalize_score(normalized.get("score", 0.0))
+        normalized_sections.append(normalized)
+    sections = normalized_sections
     scores = [
-        _normalize_score(section.get("score", 0.0))
+        float(section.get("score", 0.0) or 0.0)
         for section in sections
         if isinstance(section, dict)
     ]
