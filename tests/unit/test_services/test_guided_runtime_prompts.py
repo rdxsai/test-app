@@ -20,6 +20,8 @@ def test_turn_analyzer_prompt_separates_bridge_questions_from_node_progression()
     assert "does not by itself" in TURN_ANALYZER_PROMPT
     assert "Keep `state_patch.active_concept_id` anchored" in TURN_ANALYZER_PROMPT
     assert '`graph_handoff.bridge_mode="temporary_bridge"`' in TURN_ANALYZER_PROMPT
+    assert "Branch movement is not" in TURN_ANALYZER_PROMPT
+    assert "the same thing as linear coverage" in TURN_ANALYZER_PROMPT
 
 
 def test_turn_analyzer_prompt_classifies_question_ownership():

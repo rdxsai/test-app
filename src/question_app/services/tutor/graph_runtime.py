@@ -73,8 +73,8 @@ Return exactly one JSON object matching this schema:
   "route_position_before": 0,
   "route_position_after": 0,
   "expected_next_node_id": "the next primary-route node after the previous active node, else empty string",
-  "skipped_node_ids": ["route nodes skipped by this decision, else empty array"],
-  "skip_rationale": "required when skipped_node_ids is non-empty, else empty string",
+  "skipped_node_ids": ["primary-route nodes bypassed but not taught/credited by this decision, else empty array"],
+  "skip_rationale": "required when skipped_node_ids is non-empty; explain why they remain uncovered and when to revisit them",
   "edge_bridge_used": "bridge claim used for the transition, else empty string",
   "allowed_teaching_move": "repair_current_node | clarify_current_node | practice_current_node | answer_student_question_then_return | introduce_next_node | integrate_nodes | assess_mastery",
   "decision_reason": "brief reason for the decision",
@@ -592,8 +592,10 @@ def format_orchestrator_directive(decision: Optional[Dict[str, Any]]) -> str:
         )
     if decision.get("skipped_node_ids"):
         lines.append(
-            "- If any skipped_node_ids are present, explicitly connect why the "
-            "student's prior answer already covered them before moving on."
+            "- If any skipped_node_ids are present, do not imply they were "
+            "covered. Briefly acknowledge the branch move and preserve those "
+            "nodes as material to revisit later unless the directive explicitly "
+            "says otherwise."
         )
     coverage_mode = str(decision.get("route_coverage_mode", "") or "").strip()
     if coverage_mode == "branch_contrast":

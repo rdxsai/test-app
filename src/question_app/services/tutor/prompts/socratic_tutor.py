@@ -1511,6 +1511,10 @@ Important constraints:
   - Only mark an upcoming concept `in_progress` when the next tutor response
     should teach that concept as the main focus, not merely mention it while
     answering the student's current question.
+  - If the student warrants a branch jump to a later graph node, do not credit
+    skipped primary-route concepts in `state_patch.concept_updates` unless the
+    learner directly demonstrated those exact concepts. Branch movement is not
+    the same thing as linear coverage.
 - Keep progression signals internally consistent:
   - If `closure_state=not_ready`, use `stage_action=stay`.
   - If `closure_state=almost_ready`, usually use `stage_action=stay`; the next

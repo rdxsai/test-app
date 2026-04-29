@@ -66,6 +66,127 @@ def test_graph_runtime_patch_advances_route_and_records_decision():
     assert patch["previous_orchestrator_override"] is None
 
 
+def test_graph_runtime_patch_branch_jump_keeps_skipped_nodes_locked():
+    graph_state = {
+        "active_node_id": "n2",
+        "active_edge_id": "n1->n2",
+        "primary_route": ["n1", "n2", "n3", "n4", "n5"],
+        "completed_node_ids": ["n1"],
+        "visited_node_ids": ["n1", "n2"],
+        "node_status": {
+            "n1": "covered",
+            "n2": "active",
+            "n3": "locked",
+            "n4": "locked",
+            "n5": "locked",
+        },
+        "repair_count_for_active_node": 0,
+    }
+    decision = {
+        "graph_action": "advance",
+        "route_coverage_mode": "branch_contrast",
+        "active_node_id": "n5",
+        "active_edge_id": "n2->n5",
+        "skipped_node_ids": ["n3", "n4"],
+        "allowed_teaching_move": "introduce_next_node",
+        "accepted_analyzer_recommendation": True,
+    }
+
+    patch = build_graph_runtime_patch(graph_state, decision)
+
+    assert patch["active_node_id"] == "n5"
+    assert patch["completed_node_ids"] == ["n1", "n2"]
+    assert patch["visited_node_ids"] == ["n1", "n2", "n5"]
+    assert patch["node_status"]["n2"] == "covered"
+    assert patch["node_status"]["n3"] == "locked"
+    assert patch["node_status"]["n4"] == "locked"
+    assert patch["node_status"]["n5"] == "active"
+
+
+def test_session_cache_graph_patch_corrects_skipped_lesson_coverage():
+    cache = SessionContentCache()
+    cache.store(
+        "sess-1",
+        "obj-1",
+        "Explain non-text content alternatives",
+        [],
+        "",
+        "teaching content",
+        retrieval_bundle={
+            "graph": {
+                "primary_route": ["n1", "n2", "n3", "n4", "n5"],
+                "nodes": [
+                    {"id": "n1", "label": "Non-text content purpose"},
+                    {"id": "n2", "label": "Purpose-based alternatives"},
+                    {"id": "n3", "label": "Informative image alternatives"},
+                    {"id": "n4", "label": "Decorative image handling"},
+                    {"id": "n5", "label": "Functional image labels"},
+                ],
+            }
+        },
+    )
+    cache.store_teaching_plan(
+        "sess-1",
+        plan=None,
+        extracted_concepts=[
+            {"id": "n1", "label": "Non-text content purpose"},
+            {"id": "n2", "label": "Purpose-based alternatives"},
+            {"id": "n3", "label": "Informative image alternatives"},
+            {"id": "n4", "label": "Decorative image handling"},
+            {"id": "n5", "label": "Functional image labels"},
+        ],
+    )
+    cache.apply_lesson_state_patch(
+        "sess-1",
+        {
+            "active_concept": "n5",
+            "bridge_back_target": "n5",
+            "concept_updates": [
+                {"concept_id": "n1", "status": "covered"},
+                {"concept_id": "n2", "status": "covered"},
+                {"concept_id": "n3", "status": "covered"},
+                {"concept_id": "n4", "status": "covered"},
+                {"concept_id": "n5", "status": "in_progress"},
+            ],
+        },
+    )
+
+    cache.apply_graph_runtime_patch(
+        "sess-1",
+        {
+            "active_node_id": "n5",
+            "active_edge_id": "n2->n5",
+            "completed_node_ids": ["n1", "n2"],
+            "visited_node_ids": ["n1", "n2", "n5"],
+            "node_status": {
+                "n1": "covered",
+                "n2": "covered",
+                "n3": "locked",
+                "n4": "locked",
+                "n5": "active",
+            },
+            "last_orchestrator_decision": {
+                "graph_action": "advance",
+                "route_coverage_mode": "branch_contrast",
+                "active_node_id": "n5",
+                "skipped_node_ids": ["n3", "n4"],
+            },
+        },
+    )
+
+    lesson_state = cache.get_lesson_state("sess-1")
+    statuses = {
+        concept["id"]: concept["status"] for concept in lesson_state["concepts"]
+    }
+
+    assert statuses["n1"] == "covered"
+    assert statuses["n2"] == "covered"
+    assert statuses["n3"] == "not_covered"
+    assert statuses["n4"] == "not_covered"
+    assert statuses["n5"] == "in_progress"
+    assert lesson_state["active_concept"] == "n5"
+
+
 def test_session_cache_derives_graph_runtime_state_from_retrieval_bundle():
     cache = SessionContentCache()
     cache.store(
@@ -200,6 +321,8 @@ def test_orchestrator_directive_explains_branch_contrast_mode():
 
     assert "route_coverage_mode: branch_contrast" in directive
     assert "contrast/application branch" in directive
+    assert "do not imply they were covered" in directive
+    assert "material to revisit later" in directive
 
 
 def test_graph_decision_normalization_preserves_valid_route_coverage_mode():

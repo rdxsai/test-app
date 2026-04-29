@@ -532,7 +532,71 @@ class SessionContentCache:
             else:
                 current[key] = copy.deepcopy(value)
         entry["graph_runtime_state"] = current
+        self._align_lesson_state_with_graph_runtime(entry, current)
         return copy.deepcopy(current)
+
+    @classmethod
+    def _align_lesson_state_with_graph_runtime(
+        cls,
+        entry: Dict[str, Any],
+        graph_state: Dict[str, Any],
+    ) -> None:
+        """Let graph progression correct lesson coverage after branch jumps."""
+        lesson_state = entry.get("lesson_state") or {}
+        concepts = lesson_state.get("concepts", []) or []
+        if not concepts:
+            return
+
+        concept_lookup = {
+            str(concept.get("id", "") or ""): concept
+            for concept in concepts
+            if isinstance(concept, dict)
+        }
+        node_labels = graph_state.get("node_labels", {}) or {}
+        node_status = graph_state.get("node_status", {}) or {}
+        decision = graph_state.get("last_orchestrator_decision", {}) or {}
+        completed_node_ids = {
+            str(node_id or "").strip()
+            for node_id in graph_state.get("completed_node_ids", []) or []
+            if str(node_id or "").strip()
+        }
+        skipped_node_ids = {
+            str(node_id or "").strip()
+            for node_id in decision.get("skipped_node_ids", []) or []
+            if str(node_id or "").strip()
+        }
+
+        def _concept_for_node(node_id: str) -> Optional[Dict[str, Any]]:
+            for candidate in (node_id, str(node_labels.get(node_id, "") or "")):
+                concept_id = _resolve_concept_reference(candidate, concepts)
+                if concept_id:
+                    return concept_lookup.get(concept_id)
+            return None
+
+        for node_id in completed_node_ids:
+            concept = _concept_for_node(node_id)
+            if concept:
+                concept["status"] = "covered"
+
+        for node_id in skipped_node_ids:
+            if node_id in completed_node_ids or node_status.get(node_id) == "covered":
+                continue
+            concept = _concept_for_node(node_id)
+            if concept:
+                concept["status"] = "not_covered"
+
+        active_node_id = str(graph_state.get("active_node_id", "") or "").strip()
+        active_concept = _concept_for_node(active_node_id) if active_node_id else None
+        if active_concept and active_concept.get("status") != "covered":
+            active_concept["status"] = "in_progress"
+            active_concept_id = str(active_concept.get("id", "") or "")
+            lesson_state["active_concept"] = active_concept_id
+            lesson_state["bridge_back_target"] = active_concept_id
+            lesson_state["pending_check"] = str(
+                active_concept.get("label", active_concept_id) or active_concept_id
+            )
+
+        cls._sync_active_concept(lesson_state)
 
     # ------------------------------------------------------------------
     # Adaptive pacing runtime state
