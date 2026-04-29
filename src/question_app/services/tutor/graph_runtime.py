@@ -4,6 +4,8 @@ import copy
 import json
 from typing import Any, Dict, List, Optional
 
+from .analyzer_schema import analyzer_output_to_legacy
+
 GRAPH_ORCHESTRATOR_SCHEMA: Dict[str, Any] = {
     "graph_action": "stay | advance | integrate",
     "route_coverage_mode": "linear | branch_contrast | integration | terminal_assessment",
@@ -37,15 +39,15 @@ Inputs:
 
 Decision rules:
 - The analyzer recommends; you decide.
-- Keep the student on the active node if there is an open misconception, fragile grasp, high confusion, or concept_closure is not ready.
+- Keep the student on the active node if there is an open misconception, weak evidence, a progression blocker, or closure_state is not ready.
 - Advance only when the analyzer evidence says the active concept is ready and no must-repair issue remains.
-- Read analyzer `bridge_scope` and `self_consistency` as advisory handoff
-  signals. If `self_consistency.needs_repair=true`, prefer staying or narrowing
-  the move unless the student response supplies clearer new evidence.
-- Treat `bridge_scope.mode=temporary_bridge` as permission to answer a connected
+- Read analyzer `graph_handoff` and `consistency_check` as advisory handoff
+  signals. If `consistency_check.status=needs_repair`, prefer staying or
+  narrowing the move unless the student response supplies clearer new evidence.
+- Treat `graph_handoff.bridge_mode=temporary_bridge` as permission to answer a connected
   concept briefly while keeping graph progression anchored, not as automatic
   route advancement. Treat `entry_into_next_node` as a possible transition only
-  when concept_closure is ready and the evidence supports the next node.
+  when closure_state is ready and the evidence supports the next node.
 - Use route_coverage_mode to label the instructional shape of the graph move:
   - linear: normal primary-route progress or staying on the current route node.
   - branch_contrast: using a connected contrast/application branch to answer or repair without pretending every intervening primary-route node was linearly taught.
@@ -140,6 +142,8 @@ def _infer_route_coverage_mode(
 
 
 def _has_must_repair(analysis: Dict[str, Any]) -> bool:
+    if isinstance(analysis, dict) and "student_turn" in analysis:
+        analysis = analyzer_output_to_legacy(analysis)
     for event in analysis.get("misconception_events", []) or []:
         if not isinstance(event, dict):
             continue
@@ -151,6 +155,8 @@ def _has_must_repair(analysis: Dict[str, Any]) -> bool:
 
 
 def _analyzer_wants_advance(analysis: Dict[str, Any]) -> bool:
+    if isinstance(analysis, dict) and "student_turn" in analysis:
+        analysis = analyzer_output_to_legacy(analysis)
     pacing = analysis.get("pacing_signal") or {}
     return (
         str(analysis.get("stage_action", "") or "").strip().lower() == "advance"
@@ -171,6 +177,8 @@ def fallback_graph_decision(
 ) -> Dict[str, Any]:
     state = graph_state or {}
     analysis = turn_analysis or {}
+    if isinstance(analysis, dict) and "student_turn" in analysis:
+        analysis = analyzer_output_to_legacy(analysis)
     route = _as_list(state.get("primary_route"))
     index = _active_index(state)
     active = str(state.get("active_node_id", "") or "").strip()
@@ -352,7 +360,9 @@ def normalize_graph_decision(
 
     route_next = _next_route_node(route, active_node_id)
     next_node_id = str(normalized.get("next_node_id", "") or "").strip()
-    if next_node_id == active_node_id or (route and next_node_id not in route and next_node_id):
+    if next_node_id == active_node_id or (
+        route and next_node_id not in route and next_node_id
+    ):
         normalized["next_node_id"] = route_next
 
     edge_id = str(normalized.get("active_edge_id", "") or "").strip()
@@ -379,9 +389,9 @@ def normalize_graph_decision(
     }
     raw_route_coverage_mode = ""
     if isinstance(decision, dict):
-        raw_route_coverage_mode = str(
-            decision.get("route_coverage_mode", "") or ""
-        ).strip().lower()
+        raw_route_coverage_mode = (
+            str(decision.get("route_coverage_mode", "") or "").strip().lower()
+        )
     route_coverage_mode = (
         str(normalized.get("route_coverage_mode", "") or "").strip().lower()
     )
@@ -400,7 +410,9 @@ def normalize_graph_decision(
     normalized["route_position_after"] = after_index + 1 if after_index >= 0 else 0
 
     try:
-        confidence = float(normalized.get("confidence", fallback.get("confidence", 0.0)))
+        confidence = float(
+            normalized.get("confidence", fallback.get("confidence", 0.0))
+        )
     except (TypeError, ValueError):
         confidence = float(fallback.get("confidence", 0.0) or 0.0)
     normalized["confidence"] = min(1.0, max(0.0, confidence))
@@ -528,7 +540,7 @@ def format_analyzer_graph_context(
             "ORCHESTRATOR FEEDBACK FROM LAST TURN:",
             f"- override_reason: {reason}",
             f"- analyzer_feedback: {feedback}",
-            "- Adjust this turn's stage_action, concept_closure, and recommended_next_step so they do not repeat the rejected recommendation unless the student has now supplied new evidence.",
+            "- Adjust this turn's progression_recommendation, graph_handoff, and next_tutor_handoff so they do not repeat the rejected recommendation unless the student has now supplied new evidence.",
         ]
     )
     return "\n".join(lines)
@@ -597,6 +609,9 @@ def format_graph_orchestrator_input(
         {
             "graph_runtime_state": graph_state or {},
             "turn_analysis": turn_analysis or {},
+            "legacy_runtime_turn_analysis": analyzer_output_to_legacy(turn_analysis)
+            if isinstance(turn_analysis, dict) and "student_turn" in turn_analysis
+            else turn_analysis or {},
             "lesson_state": lesson_state or {},
         },
         ensure_ascii=True,

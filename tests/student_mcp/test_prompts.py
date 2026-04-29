@@ -46,8 +46,8 @@ class TestInstanceAPrompt:
         prompt = build_instance_a_prompt()
         assert "EXAMPLES OF GOOD TUTORING" in prompt
         assert "blue decorative border" in prompt  # Example 1
-        assert "screen reader is" in prompt         # Example 2
-        assert "volume levels" in prompt            # Example 3
+        assert "screen reader is" in prompt  # Example 2
+        assert "volume levels" in prompt  # Example 3
 
     def test_contains_scope_boundary(self):
         prompt = build_instance_a_prompt()
@@ -81,7 +81,9 @@ class TestInstanceAPrompt:
         assert "KNOWLEDGE BASE CONTEXT" in prompt
 
     def test_includes_student_context(self):
-        prompt = build_instance_a_prompt(student_context="Level: intermediate | Role: developer")
+        prompt = build_instance_a_prompt(
+            student_context="Level: intermediate | Role: developer"
+        )
         assert "Level: intermediate" in prompt
         assert "Adapt your vocabulary" in prompt
 
@@ -149,7 +151,7 @@ class TestInstanceBPrompt:
         prompt = build_instance_b_prompt()
         assert "STAYING ON TOPIC" in prompt
         assert "TURN ROUTING" in prompt
-        assert "answer_current_question_first" in prompt
+        assert "student_turn.answer_first" in prompt
 
     def test_includes_lesson_state(self):
         prompt = build_instance_b_prompt(
@@ -233,12 +235,16 @@ class TestPromptTokenBudget:
     def test_instance_a_base_size(self):
         """Base prompt (no context) should be under 3000 tokens (~12000 chars)."""
         prompt = build_instance_a_prompt()
-        assert len(prompt) < 12000, f"Instance A base prompt is {len(prompt)} chars — may be too large"
+        assert (
+            len(prompt) < 12000
+        ), f"Instance A base prompt is {len(prompt)} chars — may be too large"
 
     def test_instance_b_base_size(self):
         """Base prompt (no context) should be under 4500 tokens (~18000 chars)."""
         prompt = build_instance_b_prompt()
-        assert len(prompt) < 18000, f"Instance B base prompt is {len(prompt)} chars — may be too large"
+        assert (
+            len(prompt) < 18000
+        ), f"Instance B base prompt is {len(prompt)} chars — may be too large"
 
     def test_instance_a_with_contexts(self):
         """With typical context, should stay under 4000 tokens (~16000 chars)."""
@@ -267,18 +273,17 @@ class TestReflectorPrompts:
             current_stage="exploration",
             active_objective="Apply alt text to images",
         )
-        assert "turn_route" in prompt
-        assert "answer_current_question_first" in prompt
-        assert "lesson_state_patch" in prompt
-        assert "pacing_signal" in prompt
+        assert "student_turn" in prompt
+        assert "next_tutor_handoff" in prompt
+        assert "progression_recommendation" in prompt
+        assert "graph_handoff" in prompt
+        assert "state_patch" in prompt
+        assert "consistency_check" in prompt
+        assert "Single-ownership rule" in prompt
         assert "stage_action" in prompt
-        assert "misconception_events" in prompt
-        assert "repair_scope" in prompt
-        assert "repair_pattern" in prompt
-        assert "objective_memory_patch" in prompt
-        assert "learner_memory_patch" in prompt
-        assert "active_gaps_current" in prompt
-        assert "support_needs_current" in prompt
+        assert "misconceptions" in prompt
+        assert "repair_focus" in prompt
+        assert "memory_patch" in prompt
         assert "CURRENT STAGE: EXPLORATION" in prompt
 
     def test_turn_analyzer_alias_matches_guided_reflector(self):
@@ -301,19 +306,31 @@ class TestReflectorPrompts:
 
     def test_turn_analyzer_rewards_causal_understanding_over_exact_rephrasing(self):
         prompt = build_turn_analyzer_prompt(current_stage="exploration")
-        assert "Treat causal understanding as stronger evidence than wording fidelity" in prompt
+        assert (
+            "Treat causal understanding as stronger evidence than wording fidelity"
+            in prompt
+        )
         assert "did not mirror the tutor's phrasing" in prompt
 
     def test_turn_analyzer_allows_full_sequence_repair_to_exit_after_transfer(self):
         prompt = build_turn_analyzer_prompt(current_stage="exploration")
         assert "one correct ordered walkthrough on" in prompt
         assert "one fresh transfer example is enough evidence to move on" in prompt
-        assert "Do not spend repeated turns asking the learner to restate the same checklist" in prompt
+        assert (
+            "Do not spend repeated turns asking the learner to restate the same checklist"
+            in prompt
+        )
 
     def test_assessment_reflector_accepts_compressed_but_causally_correct_answers(self):
         prompt = build_assessment_reflector_prompt(current_stage="mini_assessment")
-        assert "count answers as correct when the key distinction and causal reasoning are" in prompt
-        assert "do not mark it wrong just because it omits the tutor's preferred phrasing" in prompt
+        assert (
+            "count answers as correct when the key distinction and causal reasoning are"
+            in prompt
+        )
+        assert (
+            "do not mark it wrong just because it omits the tutor's preferred phrasing"
+            in prompt
+        )
 
     def test_analyzer_includes_lesson_state(self):
         prompt = build_turn_analyzer_prompt(

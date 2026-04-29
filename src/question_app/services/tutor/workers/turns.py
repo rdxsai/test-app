@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 from typing import Any, Callable, Dict, List, Optional
 
+from ..analyzer_schema import default_analyzer_output, normalize_analyzer_output
 from ..graph_runtime import (
     GRAPH_ORCHESTRATOR_PROMPT,
     fallback_graph_decision,
@@ -159,71 +160,17 @@ class StructuredTurnAnalyzer:
             TURN_ANALYZER_MAX_TOKENS,
             reasoning_effort=TURN_ANALYZER_REASONING_EFFORT,
         )
-        return self.json_parser(
+        parsed = self.json_parser(
             response,
-            fallback={
-                "turn_route": "objective_answer",
-                "answer_current_question_first": True,
-                "student_question_to_answer": student_response[:160],
-                "teaching_move": "continue",
-                "stage_action": "stay",
-                "target_stage": current_stage,
-                "stage_reason": "",
-                "bridge_scope": {
-                    "mode": "answer_within_current_node",
-                    "current_node_basis": "",
-                    "candidate_next_node": "",
-                    "return_to_current_node": True,
-                    "reason": "Fallback analyzer output keeps the tutor anchored.",
-                },
-                "self_consistency": {
-                    "current_node_basis": "",
-                    "proposed_active_concept": "",
-                    "concept_closure_evidence": "Fallback output has no closure evidence.",
-                    "stage_progression_intent": "stay",
-                    "graph_progression_intent": "stay",
-                    "fields_agree": True,
-                    "needs_repair": False,
-                    "repair_note": "",
-                },
-                "mastery_signal": {
-                    "should_update": False,
-                    "level": "not_attempted",
-                    "confidence": 0.0,
-                    "evidence_summary": "",
-                },
-                "misconception_events": [],
-                "lesson_state_patch": {
-                    "active_concept": "",
-                    "pending_check": "",
-                    "bridge_back_target": "",
-                    "concept_updates": [],
-                },
-                "pacing_signal": {
-                    "grasp_level": "emerging",
-                    "reasoning_mode": "paraphrase",
-                    "support_needed": "moderate",
-                    "confusion_level": "medium",
-                    "response_pattern": "direct",
-                    "concept_closure": "not_ready",
-                    "override_pace": "none",
-                    "override_reason": "",
-                    "recommended_next_step": "ask_same_level",
-                },
-                "objective_memory_patch": {
-                    "summary": "",
-                    "demonstrated_skills_add": [],
-                    "active_gaps_current": [],
-                    "next_focus": "",
-                },
-                "learner_memory_patch": {
-                    "summary": "",
-                    "strengths_add": [],
-                    "support_needs_current": [],
-                    "tendencies_current": [],
-                    "successful_strategies_add": [],
-                },
-            },
+            fallback=default_analyzer_output(
+                student_response=student_response,
+                current_stage=current_stage,
+            ),
+        )
+        return normalize_analyzer_output(
+            parsed,
+            student_response=student_response,
+            current_stage=current_stage,
         )
 
     async def reflect_on_assessment(

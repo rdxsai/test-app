@@ -65,13 +65,14 @@ async def test_turn_analyzer_uses_explicit_generous_reasoning_budget():
         teaching_plan={},
     )
 
-    assert result == {"parsed": True}
+    assert result["student_turn"]["route"] == "objective_answer"
+    assert result["progression_recommendation"]["stage_action"] == "stay"
     assert client.calls[-1]["max_tokens"] == TURN_ANALYZER_MAX_TOKENS
     assert client.calls[-1]["reasoning_effort"] == TURN_ANALYZER_REASONING_EFFORT
 
 
 @pytest.mark.asyncio
-async def test_turn_analyzer_fallback_includes_handoff_consistency_fields():
+async def test_turn_analyzer_fallback_uses_grouped_non_overlapping_schema():
     client = CapturingClient()
 
     analyzer = StructuredTurnAnalyzer(
@@ -95,9 +96,12 @@ async def test_turn_analyzer_fallback_includes_handoff_consistency_fields():
         teaching_plan={},
     )
 
-    assert result["bridge_scope"]["mode"] == "answer_within_current_node"
-    assert result["self_consistency"]["graph_progression_intent"] == "stay"
-    assert result["self_consistency"]["fields_agree"] is True
+    assert result["student_turn"]["answer_first"] is True
+    assert result["student_turn"]["question_to_answer"] == "What about the next case?"
+    assert result["next_tutor_handoff"]["move"] == "continue"
+    assert result["progression_recommendation"]["stage_action"] == "stay"
+    assert result["graph_handoff"]["bridge_mode"] == "answer_within_current_node"
+    assert result["consistency_check"]["status"] == "consistent"
 
 
 @pytest.mark.asyncio
@@ -126,10 +130,7 @@ async def test_assessment_reflector_uses_explicit_generous_reasoning_budget():
 
     assert result == {"reflected": True}
     assert client.calls[-1]["max_tokens"] == ASSESSMENT_REFLECTOR_MAX_TOKENS
-    assert (
-        client.calls[-1]["reasoning_effort"]
-        == ASSESSMENT_REFLECTOR_REASONING_EFFORT
-    )
+    assert client.calls[-1]["reasoning_effort"] == ASSESSMENT_REFLECTOR_REASONING_EFFORT
 
 
 @pytest.mark.asyncio
@@ -184,5 +185,7 @@ async def test_guided_tutor_response_uses_explicit_generous_reasoning_budget(
 
     assert result == "Tutor response."
     assert client.calls[-1]["max_tokens"] == GUIDED_TUTOR_RESPONSE_MAX_TOKENS
-    assert client.calls[-1]["reasoning_effort"] == GUIDED_TUTOR_RESPONSE_REASONING_EFFORT
+    assert (
+        client.calls[-1]["reasoning_effort"] == GUIDED_TUTOR_RESPONSE_REASONING_EFFORT
+    )
     assert events[0]["type"] == "stream_start"

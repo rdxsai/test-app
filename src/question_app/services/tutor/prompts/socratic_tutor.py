@@ -721,8 +721,8 @@ def _format_text_plan(plan_text: str) -> str:
 
     # Parse sections by numbered headers (e.g., "## 7. concept_decomposition" or "7. concept_decomposition")
     section_pattern = re.compile(
-        r'(?:^|\n)(?:##?\s*)?(\d{1,2})\.\s*([a-z][\w_]*)\s*\n(.*?)(?=\n(?:##?\s*)?\d{1,2}\.\s*[a-z][\w_]*\s*\n|\Z)',
-        re.DOTALL
+        r"(?:^|\n)(?:##?\s*)?(\d{1,2})\.\s*([a-z][\w_]*)\s*\n(.*?)(?=\n(?:##?\s*)?\d{1,2}\.\s*[a-z][\w_]*\s*\n|\Z)",
+        re.DOTALL,
     )
     sections = {}
     for match in section_pattern.finditer(plan_text):
@@ -756,7 +756,9 @@ def _format_text_plan(plan_text: str) -> str:
 
     # Teaching strategy per concept
     if "explanation_vs_question_strategy" in sections:
-        lines.append(f"STRATEGY PER CONCEPT:\n{sections['explanation_vs_question_strategy']}")
+        lines.append(
+            f"STRATEGY PER CONCEPT:\n{sections['explanation_vs_question_strategy']}"
+        )
         lines.append("")
 
     # Misconceptions to watch for
@@ -771,7 +773,9 @@ def _format_text_plan(plan_text: str) -> str:
 
     # Prerequisite gap handling
     if "prerequisite_gap_policy" in sections:
-        lines.append(f"IF STUDENT LACKS PREREQUISITES:\n{sections['prerequisite_gap_policy']}")
+        lines.append(
+            f"IF STUDENT LACKS PREREQUISITES:\n{sections['prerequisite_gap_policy']}"
+        )
         lines.append("")
 
     if not lines:
@@ -787,8 +791,8 @@ def _parse_structured_plan_sections(plan_text: str) -> dict:
     import re
 
     section_pattern = re.compile(
-        r'(?:^|\n)(?:##?\s*)?(\d{1,2})\.\s*([a-z][\w_]*)\s*\n(.*?)(?=\n(?:##?\s*)?\d{1,2}\.\s*[a-z][\w_]*\s*\n|\Z)',
-        re.DOTALL
+        r"(?:^|\n)(?:##?\s*)?(\d{1,2})\.\s*([a-z][\w_]*)\s*\n(.*?)(?=\n(?:##?\s*)?\d{1,2}\.\s*[a-z][\w_]*\s*\n|\Z)",
+        re.DOTALL,
     )
     sections = {}
     for match in section_pattern.finditer(plan_text or ""):
@@ -855,13 +859,21 @@ def _format_text_plan_for_display(plan_text: str) -> str:
 
 def _format_legacy_plan(plan: dict) -> str:
     """Format legacy JSON teaching plan (backward compatibility)."""
-    lines = [f"Objective: {plan.get('objective', '')}",
-             f"Teaching order: {' → '.join(plan.get('recommended_order', []))}",
-             ""]
+    lines = [
+        f"Objective: {plan.get('objective', '')}",
+        f"Teaching order: {' → '.join(plan.get('recommended_order', []))}",
+        "",
+    ]
     for c in plan.get("concepts", []):
         status = c.get("status", "not_covered")
-        marker = {"covered": "✓", "partially_covered": "◐", "not_covered": "○"}.get(status, "○")
-        prereqs = f" (requires: {', '.join(c['prerequisites'])})" if c.get("prerequisites") else ""
+        marker = {"covered": "✓", "partially_covered": "◐", "not_covered": "○"}.get(
+            status, "○"
+        )
+        prereqs = (
+            f" (requires: {', '.join(c['prerequisites'])})"
+            if c.get("prerequisites")
+            else ""
+        )
         lines.append(f"{marker} {c['id']}: {c['name']} [{status}]{prereqs}")
         if c.get("key_points"):
             lines.append(f"   Key points: {', '.join(c['key_points'])}")
@@ -916,9 +928,13 @@ def _format_legacy_plan_for_display(plan: dict) -> str:
         description = str(concept.get("description", "") or "").strip()
         concept_points = concept.get("key_points", []) or []
         if description and description != objective:
-            key_points.append(f"- {name}: {description}" if name else f"- {description}")
+            key_points.append(
+                f"- {name}: {description}" if name else f"- {description}"
+            )
         elif concept_points:
-            joined = ", ".join(str(point) for point in concept_points[:3] if str(point).strip())
+            joined = ", ".join(
+                str(point) for point in concept_points[:3] if str(point).strip()
+            )
             if joined:
                 key_points.append(f"- {name}: {joined}" if name else f"- {joined}")
 
@@ -995,8 +1011,7 @@ def build_instance_a_prompt(
 
     if student_context:
         context_sections.append(
-            f"{student_context}\n---\n"
-            f"{_INSTANCE_A_STUDENT_CONTEXT_RULE}"
+            f"{student_context}\n---\n" f"{_INSTANCE_A_STUDENT_CONTEXT_RULE}"
         )
 
     if knowledge_context:
@@ -1288,11 +1303,11 @@ If they ask about a valid accessibility topic that's not the current objective, 
 == TURN ROUTING ==
 
 You may receive a TURN ANALYSIS block with fields such as:
-- turn_route
-- answer_current_question_first
-- student_question_to_answer
-- teaching_move
-- bridge_back_target
+- student_turn.route
+- student_turn.answer_first
+- student_turn.question_to_answer
+- next_tutor_handoff.move
+- graph_handoff.bridge_mode
 
 Follow that routing exactly.
 
@@ -1304,7 +1319,7 @@ Route meanings:
   then continue the lesson.
 - off_topic: redirect in one sentence and do not teach a new concept.
 
-If `answer_current_question_first` is true, the next response MUST answer the student's \
+If `student_turn.answer_first` is true, the next response MUST answer the student's \
 current question before any bridge-back or new teaching move.
 
 == STRUCTURED LESSON STATE ==
@@ -1416,15 +1431,28 @@ You must be conservative, precise, and structured.
 If the evidence is weak, keep the current stage.
 Do not hallucinate mastery or misconceptions.
 
-You are responsible for:
-- routing the student's turn so the tutor answers the current question first when needed
-- judging whether the student showed conceptual footing, reasoning, transfer, or confusion
-- deciding whether the current teaching stage should stay, advance, or regress
-- emitting compact pacing signals that describe how much scaffold the learner needs
-- identifying misconceptions to log or resolve
-- generating concise memory patches for objective-specific and learner-level memory
-- updating structured lesson state (active concept, pending check, bridge-back target)
-- recommending a bounded mastery signal
+You are responsible for nine non-overlapping decisions:
+- `student_turn`: classify only what the student just did.
+- `next_tutor_handoff`: tell the tutor only what to do in the next response.
+- `progression_recommendation`: describe only learning/stage readiness.
+- `graph_handoff`: describe only how the turn relates to graph traversal.
+- `state_patch`: record only state changes, not teaching advice.
+- `misconceptions`: record only misconception lifecycle events.
+- `mastery_signal`: update only durable mastery threshold, and only when useful.
+- `memory_patch`: store only compact durable memory.
+- `consistency_check`: validate whether the above fields agree.
+
+Single-ownership rule:
+- Do not encode the same decision in multiple fields.
+- `next_tutor_handoff.move` is the only field that controls the next tutor move.
+- `progression_recommendation.closure_state` only describes readiness; it does
+  not tell the tutor what to say.
+- `graph_handoff` only describes graph relation; the graph orchestrator remains
+  the authority on actual graph movement.
+- `state_patch` reflects local lesson bookkeeping; it must not independently
+  justify graph traversal.
+- If fields disagree, set `consistency_check.status="needs_repair"` and choose
+  the conservative stay/clarify recommendation.
 
 Important constraints:
 - Only recommend `partial` or `mastered` during assessment-complete cases.
@@ -1435,9 +1463,9 @@ Important constraints:
 - Treat causal understanding as stronger evidence than wording fidelity. If the
   learner explains the right mechanism or tradeoff in their own words, do not
   keep the concept open only because they did not mirror the tutor's phrasing.
-- If the learner already shows application or transfer reasoning, do not recommend
-  `ask_narrower` or `ask_same_level` just to make them restate the tutor's wording.
-  Prefer `give_example` or `advance`.
+- If the learner already shows application or transfer reasoning, do not make
+  the next tutor move another same-level restatement check unless there is a
+  real misconception or open source/coverage issue.
 - Advance to `mini_assessment` only when BOTH conditions are met:
   1. The student has shown constructive, comparative, causal, or transfer reasoning
      with enough stability.
@@ -1453,36 +1481,22 @@ Important constraints:
   current question before returning to the plan.
 - Separate bridge questions from graph/node progression:
   - A student question about a connected or upcoming concept does not by itself
-    mean the active concept should change in `lesson_state_patch`.
-  - Keep `active_concept` anchored to the current graph concept unless the
+    mean the active concept should change in `state_patch`.
+  - Keep `state_patch.active_concept_id` anchored to the current graph concept unless the
     student has shown closure evidence for that concept and the next concept is
     genuinely ready to become the teaching focus.
-  - Use `bridge_back_target` and `pending_check` for temporary bridge answers,
-    contrast cases, or application examples that should return to the current
-    concept.
+  - Use `graph_handoff.bridge_mode="temporary_bridge"` when the tutor should
+    answer a connected edge case but return to the current node.
   - Only mark an upcoming concept `in_progress` when the next tutor response
     should teach that concept as the main focus, not merely mention it while
     answering the student's current question.
-- Emit explicit handoff signals:
-  - `bridge_scope` says whether the student's current question should be
-    answered within the current node, used as a temporary bridge, treated as
-    entry into the next node, used as integration, or used as assessment.
-  - `self_consistency` must explain why the stage recommendation, graph
-    recommendation, active concept patch, and concept closure agree. If they do
-    not agree, set `needs_repair=true` and choose the conservative stay/clarify
-    recommendation.
-  - Stage progression and graph progression are separate. At a terminal graph
-    node, stage progression to assessment can be appropriate while graph
-    progression should still be represented as staying on the terminal concept.
 - Keep progression signals internally consistent:
-  - If `concept_closure=not_ready`, use `stage_action=stay` and do not use
-    `recommended_next_step=advance`.
-  - If `concept_closure=almost_ready`, usually use `stage_action=stay`; the next
-    tutor response should close the concept with an example, contrast, or check.
-  - Do not pair `recommended_next_step=give_example` with
-    `stage_action=advance`; `give_example` means more teaching is needed first.
-  - Recommend advancement only when `concept_closure=ready`, no real student
-    question must be answered first, and no open must-repair misconception
+  - If `closure_state=not_ready`, use `stage_action=stay`.
+  - If `closure_state=almost_ready`, usually use `stage_action=stay`; the next
+    tutor response should close the concept with one example, contrast, or check.
+  - Recommend stage advancement only when `closure_state=ready`,
+    `evidence_quality=strong`, no real student question must be answered first,
+    and no open must-repair misconception
     remains.
   - At a terminal integration concept, recommend a mastery/transfer check before
     moving stages unless the student has already completed that check.
@@ -1494,77 +1508,59 @@ Important constraints:
 
 Output ONLY a JSON object with this exact top-level shape:
 {
-  "turn_route": "objective_answer|adjacent_topic|meta_request|off_topic",
-  "answer_current_question_first": true,
-  "student_question_to_answer": "short string",
-  "teaching_move": "continue|clarify|repair|consolidate|redirect",
-  "stage_action": "stay|advance|regress",
-  "target_stage": "onboarding|introduction|exploration|readiness_check|mini_assessment|final_assessment|transition",
-  "stage_reason": "short string",
-  "bridge_scope": {
-    "mode": "none|answer_within_current_node|temporary_bridge|entry_into_next_node|integration|terminal_assessment",
-    "current_node_basis": "short string",
-    "candidate_next_node": "short string",
-    "return_to_current_node": true,
-    "reason": "short string"
+  "student_turn": {
+    "route": "objective_answer|adjacent_topic|meta_request|off_topic",
+    "answer_first": true,
+    "question_to_answer": "short string",
+    "open_question_type": "none|clarification|edge_case|implementation|scope_boundary|meta"
   },
-  "self_consistency": {
-    "current_node_basis": "short string",
-    "proposed_active_concept": "short string",
-    "concept_closure_evidence": "short string",
-    "stage_progression_intent": "stay|advance|regress",
-    "graph_progression_intent": "stay|advance|integrate|terminal_assessment",
-    "fields_agree": true,
-    "needs_repair": false,
-    "repair_note": "short string"
+  "next_tutor_handoff": {
+    "move": "continue|clarify|repair|consolidate|redirect",
+    "support_level": "heavy|moderate|light|none",
+    "one_turn_goal": "short string",
+    "source_certainty_needed": "none|low|medium|high"
   },
-  "mastery_signal": {
-    "should_update": true,
-    "level": "not_attempted|misconception|in_progress|assessment_ready|partial|mastered",
-    "confidence": 0.0,
-    "evidence_summary": "short string"
+  "progression_recommendation": {
+    "stage_action": "stay|advance|regress",
+    "target_stage": "onboarding|introduction|exploration|readiness_check|mini_assessment|final_assessment|transition",
+    "closure_state": "not_ready|almost_ready|ready",
+    "evidence_quality": "none|weak|partial|strong",
+    "progression_blocker": "none|open_question|misconception|weak_evidence|coverage_gap|terminal_node|source_uncertainty"
   },
-  "misconception_events": [
-    {
-      "key": "short_snake_case_key",
-      "text": "short string",
-      "action": "log|still_active|resolve_candidate",
-      "repair_priority": "normal|must_address_now",
-      "repair_scope": "fact|distinction|full_sequence",
-      "repair_pattern": "direct_recheck|same_snippet_walkthrough|fresh_transfer"
-    }
-  ],
-  "lesson_state_patch": {
-    "active_concept": "short string",
+  "graph_handoff": {
+    "bridge_mode": "none|answer_within_current_node|temporary_bridge|entry_into_next_node|integration|terminal_assessment",
+    "current_node_id": "short string",
+    "candidate_next_node_id": "short string",
+    "return_to_current_node": true
+  },
+  "state_patch": {
+    "active_concept_id": "short string",
     "pending_check": "short string",
-    "bridge_back_target": "short string",
     "concept_updates": [
-      {"concept_id": "...", "status": "not_covered|in_progress|covered", "label": "optional short string"}
+      {"concept_id": "...", "status": "not_covered|in_progress|covered"}
     ]
   },
-  "pacing_signal": {
-    "grasp_level": "fragile|emerging|solid",
-    "reasoning_mode": "guessing|recall|paraphrase|application|transfer",
-    "support_needed": "heavy|moderate|light|none",
-    "confusion_level": "high|medium|low",
-    "response_pattern": "guessing|hedging|direct|self_correcting",
-    "concept_closure": "not_ready|almost_ready|ready",
-    "override_pace": "none|slow|steady|fast",
-    "override_reason": "short string",
-    "recommended_next_step": "re-explain|give_example|ask_narrower|ask_same_level|advance"
+  "misconceptions": [
+    {
+      "key": "short_snake_case_key",
+      "action": "log|still_active|resolve_candidate",
+      "priority": "normal|must_address_now",
+      "repair_focus": "short string"
+    }
+  ],
+  "mastery_signal": {
+    "update": true,
+    "level": "not_attempted|misconception|in_progress|assessment_ready|partial|mastered"
   },
-  "objective_memory_patch": {
-    "summary": "short string",
-    "demonstrated_skills_add": ["..."],
-    "active_gaps_current": ["..."],
+  "memory_patch": {
+    "objective_summary": "short string",
+    "learner_summary": "short string",
     "next_focus": "short string"
   },
-  "learner_memory_patch": {
-    "summary": "short string",
-    "strengths_add": ["..."],
-    "support_needs_current": ["..."],
-    "tendencies_current": ["..."],
-    "successful_strategies_add": ["..."]
+  "consistency_check": {
+    "status": "consistent|needs_repair",
+    "conflict": "short string",
+    "repair_instruction": "short string"
   }
 }
 
@@ -1574,31 +1570,15 @@ Rules:
 - Use stable misconception keys whenever possible.
 - If the live misconception state already shows the same issue, reuse that exact
   key for `still_active` or `resolve_candidate` instead of inventing a new key.
-- Use `repair_scope=full_sequence` only for genuinely procedural,
-  order-dependent tasks where skipping a step breaks the whole process
-  (for example: audit walkthroughs, code/debug sequences, same-snippet
-  procedural checks).
-- If the learner shows the right conceptual structure but omits one named item,
-  one final label, or gives a partially complete hierarchy/example, prefer
-  `repair_scope=fact` or `repair_scope=distinction` with
-  `repair_pattern=direct_recheck` instead of `full_sequence`.
-- When `repair_scope=full_sequence`, use
-  `repair_pattern=same_snippet_walkthrough`, mark it `must_address_now`, and
-  keep it active until the learner walks the whole sequence on the same snippet.
-- After a `same_snippet_walkthrough` repair, emit `resolve_candidate` as soon as
-  the learner gives the correct ordered pass and explains the key causal
-  distinction. Prefer `recommended_next_step=give_example` or `advance`, not
-  another paraphrase-only check.
+- Use `priority=must_address_now` only when the misconception must be explicitly
+  repaired in the tutor's next response before moving on.
+- `repair_focus` should state the specific distinction or fact to repair; do
+  not include a full transcript.
+- After a repair, emit `resolve_candidate` as soon as the learner demonstrates
+  the corrected distinction on a direct check, fresh example, or assessment item.
 - Do not escalate a conceptual hierarchy miss into `full_sequence` just because
   the learner omitted the final named example step or conformance label.
-- `active_gaps_current`, `support_needs_current`, and `tendencies_current` are
-  current-state snapshots, not append-only logs.
-- Keep current-state lists short and prune stale items that no longer fit the
-  student's latest demonstrated understanding.
-- Emit `resolve_candidate` only when the student has actually demonstrated the
-  corrected distinction on a direct check, fresh example, or assessment item.
-- Use `must_address_now` when the misconception should be explicitly repaired in
-  the tutor's next response before moving on.
+- Keep `memory_patch` short; it is durable memory, not a transcript.
 - Do not include markdown fences.
 - Do not include extra keys."""
 
@@ -1764,9 +1744,7 @@ def build_turn_analyzer_prompt(
         context_sections.append(f"ACTIVE OBJECTIVE: {active_objective}")
 
     if student_context:
-        context_sections.append(
-            f"STUDENT MEMORY AND STATE:\n{student_context}"
-        )
+        context_sections.append(f"STUDENT MEMORY AND STATE:\n{student_context}")
 
     if teaching_plan:
         plan_text = format_teaching_plan(teaching_plan)
@@ -1831,9 +1809,7 @@ def build_assessment_reflector_prompt(
         context_sections.append(f"ACTIVE OBJECTIVE: {active_objective}")
 
     if student_context:
-        context_sections.append(
-            f"STUDENT MEMORY AND STATE:\n{student_context}"
-        )
+        context_sections.append(f"STUDENT MEMORY AND STATE:\n{student_context}")
 
     if teaching_plan:
         plan_text = format_teaching_plan(teaching_plan)
@@ -1849,9 +1825,7 @@ def build_assessment_reflector_prompt(
         )
 
     if knowledge_context:
-        context_sections.append(
-            f"ASSESSMENT EVIDENCE PACK:\n{knowledge_context}"
-        )
+        context_sections.append(f"ASSESSMENT EVIDENCE PACK:\n{knowledge_context}")
 
     return f"""{ASSESSMENT_REFLECTOR_PROMPT}
 

@@ -20,6 +20,7 @@ from dotenv import load_dotenv
 
 from ...models.tutor import KnowledgeLevel, SessionPhase, StudentProfile
 from ..general_chat_service import GeneralChatService
+from .analyzer_schema import analyzer_output_to_legacy, normalize_analyzer_output
 from .azure_client import AzureAPIMClient
 from .interfaces import VectorStoreInterface
 from .orchestrators import GuidedTurnOrchestrator, TeachingGraphBuildOrchestrator
@@ -1091,6 +1092,8 @@ class HybridCrewAISocraticSystem:
         events: List[Dict[str, str]] = []
         seen = set()
         payload = payload or {}
+        if isinstance(payload, dict) and "student_turn" in payload:
+            payload = analyzer_output_to_legacy(payload)
 
         raw_events = payload.get("misconception_events", []) or []
         if isinstance(raw_events, dict):
@@ -1189,6 +1192,8 @@ class HybridCrewAISocraticSystem:
         turn_analysis: Optional[Dict[str, Any]],
         misconception_state: Optional[Dict[str, Any]],
     ) -> str:
+        if isinstance(turn_analysis, dict) and "student_turn" in turn_analysis:
+            turn_analysis = analyzer_output_to_legacy(turn_analysis)
         must_address = [
             item
             for item in (((turn_analysis or {}).get("misconception_events", []) or []))
@@ -1434,7 +1439,16 @@ class HybridCrewAISocraticSystem:
         pacing_state: Optional[Dict[str, Any]],
         misconception_state: Optional[Dict[str, Any]],
     ) -> Dict[str, Any]:
-        guarded = copy.deepcopy(analysis or {})
+        canonical_input = (
+            normalize_analyzer_output(analysis, current_stage=current_stage)
+            if isinstance(analysis, dict) and "student_turn" in analysis
+            else None
+        )
+        guarded = (
+            analyzer_output_to_legacy(canonical_input)
+            if canonical_input is not None
+            else copy.deepcopy(analysis or {})
+        )
         if not guarded:
             return {}
 
@@ -1598,7 +1612,9 @@ class HybridCrewAISocraticSystem:
                     "override_reason"
                 ] = "Repeated full-sequence repair was resolved with application-level evidence."
 
-        return guarded
+        if canonical_input is None:
+            return guarded
+        return normalize_analyzer_output(guarded, current_stage=current_stage)
 
     @staticmethod
     def _format_response_constraints_for_tutor(
@@ -1606,6 +1622,8 @@ class HybridCrewAISocraticSystem:
         turn_analysis: Optional[Dict[str, Any]] = None,
         misconception_state: Optional[Dict[str, Any]] = None,
     ) -> str:
+        if isinstance(turn_analysis, dict) and "student_turn" in turn_analysis:
+            turn_analysis = analyzer_output_to_legacy(turn_analysis)
         pace = str((pacing_state or {}).get("current_pace", "") or "").strip().lower()
         if pace not in {"slow", "steady", "fast"}:
             pace = "steady"
@@ -1756,6 +1774,49 @@ class HybridCrewAISocraticSystem:
             return ""
 
         lines = ["TURN ANALYSIS:"]
+        if isinstance(turn_analysis, dict) and "student_turn" in turn_analysis:
+            student_turn = turn_analysis.get("student_turn") or {}
+            tutor = turn_analysis.get("next_tutor_handoff") or {}
+            progression = turn_analysis.get("progression_recommendation") or {}
+            graph = turn_analysis.get("graph_handoff") or {}
+            route = student_turn.get("route", "")
+            if route:
+                lines.append(f"- Route: {route}")
+            answer_first = student_turn.get("answer_first")
+            if answer_first is not None:
+                lines.append(
+                    f"- Answer current question first: {'yes' if answer_first else 'no'}"
+                )
+            if student_turn.get("question_to_answer"):
+                lines.append(
+                    f"- Student question to answer: {student_turn['question_to_answer']}"
+                )
+            if student_turn.get("open_question_type"):
+                lines.append(
+                    f"- Open question type: {student_turn['open_question_type']}"
+                )
+            if tutor.get("move"):
+                lines.append(f"- Tutor move: {tutor['move']}")
+            if tutor.get("one_turn_goal"):
+                lines.append(f"- One-turn goal: {tutor['one_turn_goal']}")
+            if progression:
+                lines.append(
+                    "- Progression: "
+                    f"{progression.get('stage_action', 'stay')} -> "
+                    f"{progression.get('target_stage', '')}; "
+                    f"closure={progression.get('closure_state', '')}; "
+                    f"evidence={progression.get('evidence_quality', '')}; "
+                    f"blocker={progression.get('progression_blocker', '')}"
+                )
+            if graph.get("bridge_mode"):
+                lines.append(
+                    "- Graph handoff: "
+                    f"{graph.get('bridge_mode')} "
+                    f"current={graph.get('current_node_id', '')} "
+                    f"candidate={graph.get('candidate_next_node_id', '')}"
+                )
+            return "\n".join(lines)
+
         route = turn_analysis.get("turn_route", "")
         if route:
             lines.append(f"- Route: {route}")
@@ -1947,6 +2008,116 @@ class HybridCrewAISocraticSystem:
             return ""
 
         sections: List[str] = []
+        if isinstance(turn_analysis, dict) and "student_turn" in turn_analysis:
+            student = turn_analysis.get("student_turn") or {}
+            tutor = turn_analysis.get("next_tutor_handoff") or {}
+            progression = turn_analysis.get("progression_recommendation") or {}
+            graph = turn_analysis.get("graph_handoff") or {}
+            state_patch = turn_analysis.get("state_patch") or {}
+            mastery = turn_analysis.get("mastery_signal") or {}
+            memory = turn_analysis.get("memory_patch") or {}
+            consistency = turn_analysis.get("consistency_check") or {}
+
+            sections.append(
+                "  \n".join(
+                    [
+                        f"**Route:** {cls._ta_format_value(student.get('route'))}",
+                        f"**Answer first:** {cls._ta_format_value(student.get('answer_first'))}",
+                        f"**Open question type:** {cls._ta_format_value(student.get('open_question_type'))}",
+                        f"**Question:** _{cls._ta_format_value(student.get('question_to_answer'), max_chars=180)}_",
+                    ]
+                )
+            )
+            sections.append(
+                "**Next tutor handoff**\n"
+                + "\n".join(
+                    cls._ta_kv_lines(
+                        tutor,
+                        [
+                            ("move", "move"),
+                            ("support_level", "support"),
+                            ("one_turn_goal", "one-turn goal"),
+                            ("source_certainty_needed", "source certainty needed"),
+                        ],
+                    )
+                )
+            )
+            sections.append(
+                "**Progression recommendation**\n"
+                + "\n".join(
+                    cls._ta_kv_lines(
+                        progression,
+                        [
+                            ("stage_action", "stage action"),
+                            ("target_stage", "target stage"),
+                            ("closure_state", "closure"),
+                            ("evidence_quality", "evidence quality"),
+                            ("progression_blocker", "blocker"),
+                        ],
+                    )
+                )
+            )
+            sections.append(
+                "**Graph handoff**\n"
+                + "\n".join(
+                    cls._ta_kv_lines(
+                        graph,
+                        [
+                            ("bridge_mode", "bridge mode"),
+                            ("current_node_id", "current node"),
+                            ("candidate_next_node_id", "candidate next"),
+                            ("return_to_current_node", "return to current"),
+                        ],
+                    )
+                )
+            )
+            state_lines = cls._ta_kv_lines(
+                state_patch,
+                [
+                    ("active_concept_id", "active concept"),
+                    ("pending_check", "pending check"),
+                    ("concept_updates", "concept updates"),
+                ],
+            )
+            if state_lines:
+                sections.append("**State patch**\n" + "\n".join(state_lines))
+            misconceptions = turn_analysis.get("misconceptions") or []
+            if misconceptions:
+                sections.append(
+                    f"**Misconceptions** ({len(misconceptions)})\n"
+                    + cls._ta_format_value(misconceptions)
+                )
+            sections.append(
+                "**Mastery and memory**\n"
+                + "\n".join(
+                    cls._ta_kv_lines(
+                        mastery,
+                        [("update", "mastery update"), ("level", "level")],
+                    )
+                    + cls._ta_kv_lines(
+                        memory,
+                        [
+                            ("objective_summary", "objective summary"),
+                            ("learner_summary", "learner summary"),
+                            ("next_focus", "next focus"),
+                        ],
+                    )
+                )
+            )
+            sections.append(
+                "**Consistency check**\n"
+                + "\n".join(
+                    cls._ta_kv_lines(
+                        consistency,
+                        [
+                            ("status", "status"),
+                            ("conflict", "conflict"),
+                            ("repair_instruction", "repair instruction"),
+                        ],
+                    )
+                )
+            )
+            return "\n\n".join(section for section in sections if section.strip())
 
         # Routing line: turn_route + answer-question flag + student question
         route = cls._ta_format_value(turn_analysis.get("turn_route"))
@@ -2471,13 +2642,20 @@ class HybridCrewAISocraticSystem:
     ) -> Dict[str, Any]:
         """Apply deterministic state changes from the structured turn analyzer."""
         result = {"stage": current_stage, "stage_advanced": False}
+        canonical_analysis = normalize_analyzer_output(
+            analysis,
+            current_stage=current_stage,
+        )
+        runtime_analysis = analyzer_output_to_legacy(canonical_analysis)
         preview_misconception_state = self._session_cache.preview_misconception_state(
             session_id,
             self._coerce_misconception_events(
-                analysis,
+                runtime_analysis,
                 default_priority=(
                     "must_address_now"
-                    if str(analysis.get("teaching_move", "") or "").strip().lower()
+                    if str(runtime_analysis.get("teaching_move", "") or "")
+                    .strip()
+                    .lower()
                     == "repair"
                     else "normal"
                 ),
@@ -2485,27 +2663,29 @@ class HybridCrewAISocraticSystem:
         )
         preview_pacing_state = self._session_cache.preview_pacing_state(
             session_id,
-            analysis.get("pacing_signal"),
+            runtime_analysis.get("pacing_signal"),
         )
         preview_objective_memory = self._preview_objective_memory_state(
             (bundle or {}).get("objective_memory") or {},
-            analysis.get("objective_memory_patch"),
+            runtime_analysis.get("objective_memory_patch"),
         )
-        analysis = self._enforce_turn_response_controls(
+        canonical_analysis = self._enforce_turn_response_controls(
             current_stage=current_stage,
-            analysis=analysis,
+            analysis=canonical_analysis,
             lesson_state=self._session_cache.get_lesson_state(session_id),
             pacing_state=preview_pacing_state,
             misconception_state=preview_misconception_state,
         )
-        result["analysis"] = copy.deepcopy(analysis)
+        runtime_analysis = analyzer_output_to_legacy(canonical_analysis)
+        result["analysis"] = copy.deepcopy(canonical_analysis)
+        result["runtime_analysis"] = copy.deepcopy(runtime_analysis)
 
         await self.student_mcp.increment_turn_count(session_id)
         misconception_events = self._coerce_misconception_events(
-            analysis,
+            runtime_analysis,
             default_priority=(
                 "must_address_now"
-                if str(analysis.get("teaching_move", "") or "").strip().lower()
+                if str(runtime_analysis.get("teaching_move", "") or "").strip().lower()
                 == "repair"
                 else "normal"
             ),
@@ -2518,7 +2698,7 @@ class HybridCrewAISocraticSystem:
         )
 
         lesson_state_before = self._session_cache.get_lesson_state(session_id)
-        lesson_patch = analysis.get("lesson_state_patch")
+        lesson_patch = runtime_analysis.get("lesson_state_patch")
         patched_lesson_state = self._session_cache.apply_lesson_state_patch(
             session_id,
             lesson_patch,
@@ -2538,26 +2718,24 @@ class HybridCrewAISocraticSystem:
             ),
             "lesson_state_after": copy.deepcopy(lesson_state_after or {}),
             "commit_status": (
-                "applied"
-                if lesson_state_after is not None
-                else "missing_lesson_state"
+                "applied" if lesson_state_after is not None else "missing_lesson_state"
             ),
         }
         self._session_cache.apply_pacing_signal(
             session_id,
-            analysis.get("pacing_signal"),
+            runtime_analysis.get("pacing_signal"),
         )
         await self._persist_session_cache(session_id)
 
         await self._apply_memory_patches(
             student_id,
             objective_id,
-            analysis.get("objective_memory_patch"),
-            analysis.get("learner_memory_patch"),
+            runtime_analysis.get("objective_memory_patch"),
+            runtime_analysis.get("learner_memory_patch"),
             bundle=bundle,
         )
 
-        mastery_signal = analysis.get("mastery_signal") or {}
+        mastery_signal = runtime_analysis.get("mastery_signal") or {}
         mastery_level = mastery_signal.get("level", "")
         if mastery_signal.get("should_update") and mastery_level in (
             "not_attempted",
@@ -2592,9 +2770,9 @@ class HybridCrewAISocraticSystem:
                         }
                     )
 
-        stage_action = analysis.get("stage_action", "stay")
-        target_stage = analysis.get("target_stage", current_stage)
-        stage_reason = analysis.get("stage_reason", "")
+        stage_action = runtime_analysis.get("stage_action", "stay")
+        target_stage = runtime_analysis.get("target_stage", current_stage)
+        stage_reason = runtime_analysis.get("stage_reason", "")
 
         # Guardrail: block premature assessment if concept coverage is too low.
         # The turn analyzer may recommend assessment after a strong answer on
