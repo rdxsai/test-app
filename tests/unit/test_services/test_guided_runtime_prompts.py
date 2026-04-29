@@ -22,6 +22,29 @@ def test_turn_analyzer_prompt_separates_bridge_questions_from_node_progression()
     assert '`graph_handoff.bridge_mode="temporary_bridge"`' in TURN_ANALYZER_PROMPT
 
 
+def test_turn_analyzer_prompt_classifies_question_ownership():
+    assert "Do not treat every student question as a progression blocker" in (
+        TURN_ANALYZER_PROMPT
+    )
+    assert "Current-node blocker" in TURN_ANALYZER_PROMPT
+    assert "Next-node entry" in TURN_ANALYZER_PROMPT
+    assert 'stage_action="advance"' in TURN_ANALYZER_PROMPT
+    assert 'bridge_mode="entry_into_next_node"' in TURN_ANALYZER_PROMPT
+    assert "Temporary bridge" in TURN_ANALYZER_PROMPT
+
+
+def test_turn_analyzer_prompt_tightens_mastery_update_discipline():
+    assert "Mastery update discipline" in TURN_ANALYZER_PROMPT
+    assert "Prefer `memory_patch` over `mastery_signal.update=true`" in (
+        TURN_ANALYZER_PROMPT
+    )
+    assert (
+        "Never set `mastery_signal.update=true` when `evidence_quality` is `none` or"
+        in (TURN_ANALYZER_PROMPT)
+    )
+    assert 'consistency_check.status="needs_repair"' in TURN_ANALYZER_PROMPT
+
+
 def test_turn_analyzer_prompt_requires_non_overlapping_grouped_schema():
     assert "nine non-overlapping decisions" in TURN_ANALYZER_PROMPT
     assert '"student_turn"' in TURN_ANALYZER_PROMPT

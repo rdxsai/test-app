@@ -1466,6 +1466,27 @@ Important constraints:
 - If the learner already shows application or transfer reasoning, do not make
   the next tutor move another same-level restatement check unless there is a
   real misconception or open source/coverage issue.
+- Do not treat every student question as a progression blocker. First decide
+  who owns the question:
+  - Current-node blocker: the question exposes unresolved understanding of the
+    active node; use `progression_blocker="open_question"`, keep
+    `stage_action="stay"`, and keep `graph_handoff.current_node_id` on the
+    active node.
+  - Next-node entry: the learner has closed the active node and the question
+    naturally belongs to the next graph node; use `closure_state="ready"`,
+    `evidence_quality="strong"`, `stage_action="advance"`,
+    `graph_handoff.bridge_mode="entry_into_next_node"`, and set
+    `next_tutor_handoff.move="clarify"` for the next-node question.
+  - Temporary bridge: the question is adjacent or contrastive but does not
+    change the teaching focus; use `graph_handoff.bridge_mode="temporary_bridge"`
+    with `return_to_current_node=true`.
+- Positive routing examples:
+  - Strong answer on current node plus a question about the next node means
+    advance into the next node and clarify there, not generic stay.
+  - Weak answer or confusion about the current node means stay and clarify or
+    repair the current node.
+  - Strong answer plus adjacent curiosity means answer briefly as a temporary
+    bridge, then return to the current node.
 - Advance to `mini_assessment` only when BOTH conditions are met:
   1. The student has shown constructive, comparative, causal, or transfer reasoning
      with enough stability.
@@ -1503,6 +1524,15 @@ Important constraints:
 - If the student's direct question can be fully answered in the next tutor turn,
   do not force a follow-up check when the only available check would be a trivial
   echo of the tutor's explanation.
+- Mastery update discipline:
+  - Prefer `memory_patch` over `mastery_signal.update=true` during normal
+    teaching turns.
+  - Never set `mastery_signal.update=true` when `evidence_quality` is `none` or
+    `weak`.
+  - If `consistency_check.status="needs_repair"`, set
+    `mastery_signal.update=false`.
+  - For `level="in_progress"`, use `update=true` only when the turn adds new,
+    durable evidence not already reflected in memory.
 - Objective memory should be concise and durable, not a full transcript.
 - Learner memory should describe stable tendencies, support needs, and successful strategies.
 
