@@ -1,0 +1,1538 @@
+{
+  "overall_score": 6.42,
+  "verdict": "Graph control was mostly adaptive and route-aware, with strong orchestrator overrides and correct terminal-node handling. The main weaknesses were trace reliability gaps: lesson-state persistence was inconsistent with graph state, route_coverage_mode was not surfaced, and one skip/advance sequence (past n3) left prerequisite coverage underexplained.; Analyzer outputs were often locally sensible, but consistency across concept_closure, stage_action, lesson_state_patch, and graph progression was weak. The orchestrator had to override multiple analyzer recommendations, bridge-question handling was not cleanly separated from active-node progression, and persisted lesson state appears stale/corrupted, limiting trust in analyzer-state alignment.; Overall teaching was strong: the tutor usually answered the student’s exact question first, used contrastive examples well, and elicited solid transfer across cases. Main weaknesses were pedagogical over-dwelling on complex/live chart edge cases after the learner was already reasoning well, and lighter-than-ideal breadth on simple informative images and some media subtypes. No clear MCP/source-information gaps were evident; the main issues came ",
+  "teaching_sufficiency": {
+    "is_enough_for_teaching": true,
+    "score": 8.1,
+    "rationale": "Overall teaching was strong: the tutor usually answered the student’s exact question first, used contrastive examples well, and elicited solid transfer across cases. Main weaknesses were pedagogical over-dwelling on complex/live chart edge cases after the learner was already reasoning well, and lighter-than-ideal breadth on simple informative images and some media subtypes. No clear MCP/source-information gaps were evident; the main issues came from tutor pacing and workflow-state coordination."
+  },
+  "model_or_prompt_failures": [
+    {
+      "severity": "medium",
+      "category": "model_or_prompt_failure",
+      "turns": [
+        3,
+        4
+      ],
+      "summary": "The route skips n3 too aggressively, then proceeds to n6 without clearly accounting for the skipped informative-image prerequisite.",
+      "evidence": "Turn 3 jumps route_position 2→5 with skipped_node_ids [\"n3\",\"n4\"]. The rationale focuses on the current blockage at n5, not on why n3 is safe to bypass. At turn 4, n6 becomes active while n3 remains locked in graph_state_after.node_status."
+    },
+    {
+      "severity": "high",
+      "category": "model_or_prompt_failure",
+      "turns": [
+        2,
+        3,
+        12,
+        14
+      ],
+      "summary": "Analyzer recommendations repeatedly contradicted its own evidence about what concept was actually active or closed.",
+      "evidence": "Turn 2 marks n1 covered and open work in n2/n4, yet analyzer keeps stage_action='stay' on introduction and graph recommendation on n1; orchestrator overrides to integrate n2->n4. Turn 3 marks n2 covered and active_concept n5 with a must-address-now misconception, yet analyzer still recommends staying; orchestrator advances to n5. Turn 12 marks the video-only distinction resolved and shifts active_concept to n8, but analyzer still says stay on n7; orchestrator advances to n8. Turn 14 marks n9 covered/assessment-ready and stage_action='advance' even though n9 is terminal; orchestrator correctly stays on n9."
+    },
+    {
+      "severity": "high",
+      "category": "model_or_prompt_failure",
+      "turns": [
+        8,
+        9
+      ],
+      "summary": "Bridge/edge-case questions were not cleanly separated from node progression in lesson_state_patch.",
+      "evidence": "On turns 8 and 9, graph_decision correctly says stay on n6 until the live-chart boundary is closed, but lesson_state_patch already shifts active_concept to n7 and marks n6 covered/in transition. Turn 9 orchestrator feedback explicitly warns not to mark the current concept covered or shift to n7 while closure is still only almost_ready, showing the analyzer mixed bridge handling with active-node advancement."
+    },
+    {
+      "severity": "medium",
+      "category": "model_or_prompt_failure",
+      "turns": [
+        8,
+        9,
+        10,
+        13,
+        14
+      ],
+      "summary": "Concept-closure and stage progression semantics are inconsistently applied, especially near transitions and assessment.",
+      "evidence": "Turn 8 sets concept_closure='ready' but still recommends 'give_example' and stay on n6. Turn 9 drops back to almost_ready while still pre-marking n7. Turn 13 advances target_stage to mini_assessment while stage_after is only readiness_check. Turn 14 again uses stage_action='advance' even though graph advancement is impossible on terminal n9. This suggests weak separation between pedagogical stage changes and graph-node movement."
+    },
+    {
+      "severity": "medium",
+      "category": "model_or_prompt_failure",
+      "turns": [
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        12,
+        14
+      ],
+      "summary": "Workflow-state inconsistencies likely made pacing less crisp, even though the visible tutoring remained coherent.",
+      "evidence": "Analyzer/orchestrator overrides were needed several times to correct stay/advance choices (e.g., 12, 14), and lesson state stayed internally inconsistent throughout, with active_concept stuck at n1 and all concepts marked covered from the start. That kind of drift can encourage redundant questioning or mistimed transitions."
+    },
+    {
+      "severity": "high",
+      "category": "model_or_prompt_failure",
+      "turns": [
+        2
+      ],
+      "summary": "The tutor made an exact implementation claim for decorative images as if source-verified, without showing evidence.",
+      "evidence": "Turn 2: \"the sufficient HTML pattern to rely on here is alt=\\\"\\\" and no title attribute... That’s the verified way\". This is stronger than the trace’s visible evidence and mixes HTML/AT technique guidance with a certainty claim."
+    },
+    {
+      "severity": "medium",
+      "category": "model_or_prompt_failure",
+      "turns": [
+        9
+      ],
+      "summary": "The tutor attributed a specific allowance to WCAG without identifying the SC/technique or signaling uncertainty.",
+      "evidence": "Turn 9: \"for complex images WCAG allows that longer explanation to be nearby text or in an immediately adjacent linked location.\" This may be technique-level guidance, but it is presented as a direct WCAG allowance with no source anchor."
+    },
+    {
+      "severity": "medium",
+      "category": "model_or_prompt_failure",
+      "turns": [
+        11,
+        12
+      ],
+      "summary": "Media guidance compresses multiple WCAG requirements into a single 'baseline' explanation without grounding the level/scope distinctions.",
+      "evidence": "Turn 11: \"For prerecorded video-only, the baseline is either an alternative for time-based media or an audio track... audio description belongs to prerecorded synchronized media...\" Turn 12 continues with equivalence claims. These are plausible, but the trace does not ground which SC/level is being taught."
+    },
+    {
+      "severity": "high",
+      "category": "model_or_prompt_failure",
+      "turns": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14
+      ],
+      "summary": "State persistence/trace materialization is internally inconsistent, making lesson-state logs unreliable.",
+      "evidence": "Across all turns, lesson_state_after remains effectively stale (active_concept stays \"n1\" and all concepts are marked \"covered\") even when graph_state_after advances through n2, n5, n6, n7, n8, and n9 and turn patches mark concepts as in_progress. This indicates the patch output is not being coherently applied or logged."
+    },
+    {
+      "severity": "medium",
+      "category": "model_or_prompt_failure",
+      "turns": [
+        2,
+        3,
+        12,
+        14
+      ],
+      "summary": "Analyzer-to-orchestrator contract is unstable; repeated overrides indicate reasoning inconsistencies between worker outputs.",
+      "evidence": "Turn 2: analyzer recommends stay on n1 while its own evidence says n1 is covered; orchestrator overrides to n2. Turn 3: analyzer stays while lesson-state patch moves to n5; orchestrator overrides. Turn 12: analyzer stay vs orchestrator advance to n8. Turn 14: analyzer evidence supports assessment transition, but orchestrator must reinterpret it to stay on terminal n9."
+    }
+  ],
+  "mcp_source_gaps": [
+    {
+      "severity": "critical",
+      "category": "mcp_source_gap",
+      "turns": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14
+      ],
+      "summary": "Lesson-state outputs are not trustworthy enough to audit graph progression.",
+      "evidence": "Across all shown turns, lesson_state_after.active_concept stays \"n1\" and every concept is marked \"covered,\" even while graph_state_after.active_node_id progresses from n1 to n9 and node_status shows many nodes still locked/active."
+    },
+    {
+      "severity": "medium",
+      "category": "mcp_source_gap",
+      "turns": [
+        2,
+        3,
+        4,
+        8,
+        9,
+        10
+      ],
+      "summary": "The trace does not expose route_coverage_mode or a comparable explicit coverage policy, so integrate/skip decisions are hard to evaluate rigorously.",
+      "evidence": "The graph uses stay/integrate/advance and explicit skipping, but no route_coverage_mode field is present to distinguish covered vs integrated vs deferred coverage. This matters especially when n4 is integrated at turn 2, n3/n4 are skipped at turn 3, and n6 is later treated as closed."
+    },
+    {
+      "severity": "high",
+      "category": "mcp_source_gap",
+      "turns": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14
+      ],
+      "summary": "Persisted lesson state is not trustworthy, obscuring whether analyzer patches are actually applied.",
+      "evidence": "Every lesson_state_after keeps active_concept='n1', bridge_back_target='n9', and marks all concepts as covered from turn 1 onward, despite turn_analysis.lesson_state_patch and graph_state_after changing across turns. This makes downstream evaluation of analyzer consistency against source state unreliable."
+    },
+    {
+      "severity": "high",
+      "category": "mcp_source_gap",
+      "turns": [
+        2,
+        9,
+        11,
+        12
+      ],
+      "summary": "No MCP-surfaced WCAG evidence appears for nuanced HTML and time-based media claims that needed stronger grounding.",
+      "evidence": "Across these turns, the tutor gives precise baselines such as decorative-image handling, \"WCAG allows\" nearby/adjacent linked explanations, prerecorded video-only baselines, and live synchronized media captions, but the trace shows no source retrieval/citation events or attached evidence objects."
+    },
+    {
+      "severity": "medium",
+      "category": "mcp_source_gap",
+      "turns": [
+        6
+      ],
+      "summary": "Slow-call health cannot be properly assessed because timeout, retry, and degraded-mode metadata are absent.",
+      "evidence": "Turn 6 shows turn_analyzer latency of 223.4s, but trace_event_names contain no retry/fallback/timeout events and no status fields indicating whether this was near-budget, retried, or degraded. This leaves runtime health ambiguous rather than verifiably healthy."
+    },
+    {
+      "severity": "medium",
+      "category": "mcp_source_gap",
+      "turns": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14
+      ],
+      "summary": "Trace completeness is insufficient to localize whether lesson-state drift comes from a missing call, failed write, or logging omission.",
+      "evidence": "The trace shows turn_analysis_update_input/output but no explicit state-commit/apply event, no patch-application status, and no persistence ack. Because of that, the stale lesson_state_after cannot be attributed cleanly to the model, orchestrator, or storage layer from the provided source data."
+    }
+  ],
+  "tool_call_failures": [
+    {
+      "turns": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14
+      ],
+      "tool_or_step": "turn_analysis_update_output / lesson_state persistence",
+      "what_went_wrong": "Persisted lesson state does not reflect actual graph progression: active_concept remains n1 and all concepts are marked covered throughout, contradicting graph_state_after.",
+      "wrong_parameter": false,
+      "reasoning_failure": false,
+      "missing_call": false,
+      "evidence": "lesson_state_after is effectively static and inconsistent on every shown turn despite changing graph_state_after.active_node_id and node_status."
+    },
+    {
+      "turns": [
+        4
+      ],
+      "tool_or_step": "graph_state serializer",
+      "what_went_wrong": "The trace emits active_edge_id \"n5->n6\" even though that edge is not present in edge_bridges, so bridge provenance is incomplete.",
+      "wrong_parameter": false,
+      "reasoning_failure": false,
+      "missing_call": false,
+      "evidence": "Turn 4 graph_state_after.active_edge_id is \"n5->n6\", but edge_bridges lists n3->n6 and n6->n8, not n5->n6."
+    },
+    {
+      "turns": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14
+      ],
+      "tool_or_step": "turn_analysis_update / lesson state application",
+      "what_went_wrong": "The persisted lesson_state_after does not reflect analyzer lesson_state_patch or graph_state_after and appears stale/corrupted across the entire section.",
+      "wrong_parameter": false,
+      "reasoning_failure": false,
+      "missing_call": false,
+      "evidence": "lesson_state_after remains fixed at active_concept='n1' with all concepts 'covered' on every turn, even when analyzer patches move active_concept to n2/n5/n6/n7/n8/n9 and graph_state_after changes accordingly."
+    },
+    {
+      "turns": [
+        2,
+        3,
+        12,
+        14
+      ],
+      "tool_or_step": "turn_analyzer -> graph_orchestrator handoff",
+      "what_went_wrong": "Analyzer recommendations sometimes conflicted with their own mastery evidence, so the orchestrator had to override to reach the pedagogically relevant node or assessment mode.",
+      "wrong_parameter": false,
+      "reasoning_failure": true,
+      "missing_call": false,
+      "evidence": "Turn 3 analyzer recommended staying while its own patch marked n2 covered and moved the active issue to n5; turn 12 similarly needed an override to move from media-type classification to adequacy evaluation; turn 14 needed correction to stay on terminal n9 rather than 'advance'."
+    },
+    {
+      "turns": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14
+      ],
+      "tool_or_step": "lesson_state update",
+      "what_went_wrong": "Lesson-state outputs were internally inconsistent and did not track the actual pedagogical progression.",
+      "wrong_parameter": false,
+      "reasoning_failure": true,
+      "missing_call": false,
+      "evidence": "From turn 1 onward, lesson_state_after shows all concepts n1-n9 as 'covered' and active_concept as n1, even while graph state and tutor behavior clearly move through n2, n5, n6, n7, n8, and n9."
+    },
+    {
+      "turns": [
+        2,
+        9,
+        11,
+        12
+      ],
+      "tool_or_step": "MCP WCAG evidence retrieval / citation grounding",
+      "what_went_wrong": "Before emitting strong normative claims, the system did not surface any source packet, citation, or evidence summary tying the claim to WCAG SCs/techniques.",
+      "wrong_parameter": false,
+      "reasoning_failure": true,
+      "missing_call": true,
+      "evidence": "The trace lists analyzer/orchestrator/builder events only; no MCP retrieval or citation step is visible, yet the tutor uses phrases like \"verified way,\" \"WCAG allows,\" and \"baseline is.\""
+    },
+    {
+      "turns": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14
+      ],
+      "tool_or_step": "turn_analysis_update_output -> lesson_state_after application",
+      "what_went_wrong": "The generated lesson-state patches are not reflected in the persisted/logged lesson_state_after, suggesting a missing or ineffective state-apply step.",
+      "wrong_parameter": false,
+      "reasoning_failure": false,
+      "missing_call": true,
+      "evidence": "lesson_state_after stays at active_concept n1 with all concepts covered on every turn despite changing lesson_state_patch and graph_state_after."
+    },
+    {
+      "turns": [
+        2,
+        3,
+        12,
+        14
+      ],
+      "tool_or_step": "turn_analyzer output contract",
+      "what_went_wrong": "Analyzer recommendations conflict with its own state evidence, forcing orchestrator overrides.",
+      "wrong_parameter": false,
+      "reasoning_failure": true,
+      "missing_call": false,
+      "evidence": "accepted_analyzer_recommendation is false on turns 2, 3, 12, and 14, with override_reason explicitly citing inconsistency between analyzer recommendation and analyzer evidence/patches."
+    }
+  ],
+  "overdoing": [
+    {
+      "severity": "medium",
+      "category": "overdoing",
+      "turns": [
+        5,
+        6,
+        7,
+        8,
+        9,
+        10
+      ],
+      "summary": "The tutor lingered too long on complex-chart/live-update boundary cases after mastery was already emerging.",
+      "evidence": "Across turns 5-10, the student repeatedly gave nuanced, mostly correct transfer responses about completeness, exact values, and live updates, yet the tutor kept introducing another closely related chart edge case rather than advancing sooner. The discussion stayed on n6 for six turns."
+    }
+  ],
+  "underdoing": [
+    {
+      "severity": "low",
+      "category": "underdoing",
+      "turns": [
+        8,
+        9,
+        10
+      ],
+      "summary": "The tutor/orchestrator lingered on n6 longer than the evidence suggested was necessary.",
+      "evidence": "By turn 8, the student cleanly applies the pattern-vs-value rule and lesson_state_patch marks n6 covered / n7 in progress, yet graph_decision stays on n6 through turns 8 and 9 and only advances on turn 10."
+    },
+    {
+      "severity": "medium",
+      "category": "underdoing",
+      "turns": [
+        4,
+        5
+      ],
+      "summary": "The lesson under-covered ordinary informative-image evaluation before escalating to complex charts.",
+      "evidence": "After resolving decorative vs functional images, the tutor moved straight to a sales chart case. There was no simple worked example of a standard informative image whose alt should convey key information, even though that is central to the objective."
+    },
+    {
+      "severity": "medium",
+      "category": "underdoing",
+      "turns": [
+        10,
+        11,
+        12
+      ],
+      "summary": "Media instruction emphasized category matching more than breadth of sufficiency practice across media types.",
+      "evidence": "The learner classified prerecorded audio-only, video-only, prerecorded synchronized, and live synchronized media in turn 11, but the only concrete adequacy check that followed was for silent prerecorded video-only (12-13). Audio-only and live synchronized cases were not similarly stress-tested for sufficiency."
+    }
+  ],
+  "orchestrator_behavior": {
+    "score": 7.4,
+    "strengths": [
+      "Orchestrator overrides were often beneficial and improved route adherence relative to analyzer recommendations.",
+      "Terminal-node handling was correct: stage progression continued while graph progression stopped at n9."
+    ],
+    "weaknesses": [
+      "Lesson-state outputs are not trustworthy enough to audit graph progression.",
+      "The trace does not expose route_coverage_mode or a comparable explicit coverage policy, so integrate/skip decisions are hard to evaluate rigorously.",
+      "The route skips n3 too aggressively, then proceeds to n6 without clearly accounting for the skipped informative-image prerequisite.",
+      "The tutor/orchestrator lingered on n6 longer than the evidence suggested was necessary."
+    ],
+    "evidence": "Graph control was mostly adaptive and route-aware, with strong orchestrator overrides and correct terminal-node handling. The main weaknesses were trace reliability gaps: lesson-state persistence was inconsistent with graph state, route_coverage_mode was not surfaced, and one skip/advance sequence (past n3) left prerequisite coverage underexplained."
+  },
+  "tutor_behavior": {
+    "score": 8.1,
+    "strengths": [
+      "Strong direct-then-Socratic teaching supported real learning and repair."
+    ],
+    "weaknesses": [
+      "The tutor lingered too long on complex-chart/live-update boundary cases after mastery was already emerging.",
+      "The lesson under-covered ordinary informative-image evaluation before escalating to complex charts.",
+      "Media instruction emphasized category matching more than breadth of sufficiency practice across media types.",
+      "Workflow-state inconsistencies likely made pacing less crisp, even though the visible tutoring remained coherent."
+    ],
+    "evidence": "Overall teaching was strong: the tutor usually answered the student’s exact question first, used contrastive examples well, and elicited solid transfer across cases. Main weaknesses were pedagogical over-dwelling on complex/live chart edge cases after the learner was already reasoning well, and lighter-than-ideal breadth on simple informative images and some media subtypes. No clear MCP/source-information gaps were evident; the main issues came from tutor pacing and workflow-state coordination."
+  },
+  "analyzer_behavior": {
+    "score": 4.6,
+    "strengths": [
+      "Misconception events were generally scoped to genuine distinctions and resolved when the student demonstrated repair."
+    ],
+    "weaknesses": [
+      "Analyzer recommendations repeatedly contradicted its own evidence about what concept was actually active or closed.",
+      "Bridge/edge-case questions were not cleanly separated from node progression in lesson_state_patch.",
+      "Persisted lesson state is not trustworthy, obscuring whether analyzer patches are actually applied.",
+      "Concept-closure and stage progression semantics are inconsistently applied, especially near transitions and assessment."
+    ],
+    "evidence": "Analyzer outputs were often locally sensible, but consistency across concept_closure, stage_action, lesson_state_patch, and graph progression was weak. The orchestrator had to override multiple analyzer recommendations, bridge-question handling was not cleanly separated from active-node progression, and persisted lesson state appears stale/corrupted, limiting trust in analyzer-state alignment."
+  },
+  "reasoning_quality": {
+    "score": 5.8,
+    "strengths": [
+      "The tutor’s broader purpose-and-equivalence framing stayed close to WCAG’s intent and usually avoided unsupported numeric thresholds or invented rules."
+    ],
+    "weaknesses": [
+      "The tutor made an exact implementation claim for decorative images as if source-verified, without showing evidence.",
+      "No MCP-surfaced WCAG evidence appears for nuanced HTML and time-based media claims that needed stronger grounding.",
+      "The tutor attributed a specific allowance to WCAG without identifying the SC/technique or signaling uncertainty.",
+      "Media guidance compresses multiple WCAG requirements into a single 'baseline' explanation without grounding the level/scope distinctions."
+    ],
+    "evidence": "Conceptual grounding was mostly sound on the core equivalence idea, but several implementation-specific and media-requirement claims were stated with high confidence and no visible WCAG/MCP evidence. The main weakness is not broad hallucination; it is unsupported normative phrasing where stronger source backing or softer wording was needed."
+  },
+  "prompt_or_agent_fixes": [
+    {
+      "priority": "high",
+      "target": "orchestrator-to-state-update contract",
+      "change": "Require one authoritative structured graph snapshot per turn with cross-checked fields for active_node, completed_nodes, skipped_nodes, active_concept, and concept statuses before persistence.",
+      "why_this_matches_agent_best_practices": "Shared structured state reduces planner/worker drift and makes downstream evaluation depend on explicit, reconciled outputs rather than loosely coupled text fields.",
+      "expected_effect": "Eliminates the lesson_state/graph_state contradiction and makes graph progression auditable."
+    },
+    {
+      "priority": "high",
+      "target": "graph decision schema",
+      "change": "Add explicit route coverage fields for each transition: route_coverage_mode plus per-node dispositions such as covered, integrated, deferred, or bypassed, and require a prerequisite-satisfaction note when jumping over nodes.",
+      "why_this_matches_agent_best_practices": "Structured planner outputs make branching and skipping legible without hard-coding backend rules, and improve handoff clarity between analyzer, orchestrator, and tutor.",
+      "expected_effect": "Makes skips like n3 evaluable and prevents ambiguous branch coverage."
+    },
+    {
+      "priority": "medium",
+      "target": "trace evaluator",
+      "change": "Add automatic consistency checks that flag impossible or risky graph states, such as downstream nodes activating while prerequisites remain locked, active_edge values missing from declared edges, or terminal nodes receiving advance actions.",
+      "why_this_matches_agent_best_practices": "Evaluator-side checks are a lightweight way to catch agent state drift and serialization defects without replacing model judgment with rigid lesson logic.",
+      "expected_effect": "Surfaces state/model mismatches early and improves trust in graph traces."
+    },
+    {
+      "priority": "medium",
+      "target": "analyzer-orchestrator handoff",
+      "change": "Add a field that distinguishes 'answer within current node' from 'student question is the entry point to next node,' so the orchestrator can advance without needless stay/repair cycles when the concept has already closed.",
+      "why_this_matches_agent_best_practices": "Clear planner-worker intent reduces unnecessary overrides and helps the system transition cleanly when student questions naturally open the next concept.",
+      "expected_effect": "Reduces over-staying like the late n6 transition while preserving direct answers to student questions."
+    },
+    {
+      "priority": "high",
+      "target": "Analyzer output contract",
+      "change": "Require explicit consistency fields tying together current_node_basis, proposed_active_concept, concept_closure, and graph_recommendation, plus a self-check rule: if a prior node is marked covered or active_concept changes, 'stay on prior node' must include an explicit justification; if the node is terminal, stage advancement must be represented separately from graph advancement.",
+      "why_this_matches_agent_best_practices": "This strengthens the worker's structured output and makes reasoning auditable without hard-coding instructional policy.",
+      "expected_effect": "Fewer orchestrator overrides on turns like 2, 3, 12, and 14."
+    },
+    {
+      "priority": "high",
+      "target": "Bridge-question handling between analyzer and orchestrator",
+      "change": "Split 'answer student’s bridge/edge-case question' from 'advance active node' in the schema, e.g. separate fields for hold_current_node, bridge_question_scope, candidate_next_node_after_answer, and whether the answer is closure-only versus next-node entry.",
+      "why_this_matches_agent_best_practices": "Clear orchestrator-worker contracts reduce state drift and prevent the model from conflating local question answering with route progression.",
+      "expected_effect": "Cleaner handling of turns 8-10, where closure questions can be answered without prematurely shifting active_concept."
+    },
+    {
+      "priority": "high",
+      "target": "State-write pipeline",
+      "change": "Add a trace-level validator that compares lesson_state_patch, graph_state_after, and persisted lesson_state_after, and either blocks stale writes or marks lesson_state_after as non-authoritative when they diverge.",
+      "why_this_matches_agent_best_practices": "Agent systems need reliable shared state and explicit detection of tool/output desynchronization rather than silent corruption.",
+      "expected_effect": "Prevents unusable persisted state from masking analyzer quality and improves downstream decision reliability."
+    },
+    {
+      "priority": "medium",
+      "target": "Analyzer QA/evaluator loop",
+      "change": "Run a lightweight consistency evaluator after analyzer output to flag contradictions such as concept_closure='ready' with recommended_next_step='give_example', or target_stage/graph_action mismatches, then ask the analyzer to repair its structured output before orchestration.",
+      "why_this_matches_agent_best_practices": "Using evaluator-repair loops is preferable to deterministic backend teaching rules and directly addresses model self-consistency failures.",
+      "expected_effect": "More stable stage_action and recommended_next_step behavior near transitions and assessments."
+    },
+    {
+      "priority": "high",
+      "target": "tutor prompt contract",
+      "change": "Add a concise stop-condition for edge-case exploration: after two consecutive strong transfer answers on the same boundary, either advance or switch to a mixed-case check unless the student asks a substantially new question.",
+      "why_this_matches_agent_best_practices": "This is a prompt-level behavioral contract that preserves model flexibility while reducing redundant turns; it relies on model judgment rather than hard-coded backend rules.",
+      "expected_effect": "Less overdoing on one concept family, faster coverage of the full objective, and cleaner pacing."
+    },
+    {
+      "priority": "high",
+      "target": "analyzer/orchestrator structured output",
+      "change": "Require a small shared mastery object each turn: current concept, unresolved distinction, exemplar families already used, closure status, and reason_to_stay_or_advance; have the orchestrator validate consistency before acting.",
+      "why_this_matches_agent_best_practices": "Improves orchestrator-worker communication and reduces hidden state drift without imposing rigid lesson scripts.",
+      "expected_effect": "Fewer stay/advance mismatches, fewer overrides, and more reliable pedagogical transitions."
+    },
+    {
+      "priority": "medium",
+      "target": "tutor message builder prompt",
+      "change": "Ask the tutor to favor one simple canonical example before a harder edge case when introducing a new concept family, unless the learner explicitly requests the harder case.",
+      "why_this_matches_agent_best_practices": "A prompt contract encourages representative examples and clearer scaffolding while keeping the model adaptive to learner initiative.",
+      "expected_effect": "Better coverage of ordinary informative-image evaluation before complex-chart nuance."
+    },
+    {
+      "priority": "medium",
+      "target": "trace evaluator",
+      "change": "Add an evaluator that flags concepts exited after classification-only practice, especially in media sections, and suggests one concrete sufficiency/usability check before closure.",
+      "why_this_matches_agent_best_practices": "Trace-time evaluation is a lightweight governance layer that improves quality without hard-coding instructional paths.",
+      "expected_effect": "Stronger transfer on audio/video alternatives and better alignment with the objective’s emphasis on judging usefulness, not just naming requirements."
+    },
+    {
+      "priority": "high",
+      "target": "tutor prompt contract",
+      "change": "Require each normative accessibility claim to be tagged as either source-backed WCAG fact, technique-level guidance, or model synthesis/example; if no source tag is available, force softer wording and avoid phrases like \"verified\" or \"WCAG allows.\"",
+      "why_this_matches_agent_best_practices": "It improves reliability through explicit uncertainty handling and structured output rather than brittle hardcoded rules.",
+      "expected_effect": "Fewer unsupported high-certainty claims and clearer separation between grounded requirements and explanatory synthesis."
+    },
+    {
+      "priority": "high",
+      "target": "orchestrator-to-source-worker handoff",
+      "change": "When the dialogue enters implementation-specific or media-specific territory, request a compact evidence object containing SC/level, a short quoted rationale, and any technique caveat before the tutor responds.",
+      "why_this_matches_agent_best_practices": "This uses specialized worker coordination so the response model has the right evidence at the moment nuanced claims are needed.",
+      "expected_effect": "Stronger source grounding on exact HTML patterns and time-based media requirements."
+    },
+    {
+      "priority": "medium",
+      "target": "trace evaluator",
+      "change": "Add an automated source-grounding check that flags unsupported phrases such as \"verified,\" \"sufficient pattern,\" \"baseline requirement,\" or \"WCAG allows\" when no attached evidence object is present.",
+      "why_this_matches_agent_best_practices": "Evaluator feedback is a lightweight way to improve agent behavior without over-constraining pedagogy.",
+      "expected_effect": "Earlier detection of overconfident claims and better calibration of tutor language."
+    },
+    {
+      "priority": "medium",
+      "target": "analyzer/builder structured outputs",
+      "change": "Separate \"source-backed facts to preserve verbatim\" from \"teaching paraphrases/examples\" in the builder input so the tutor does not present synthesized paraphrases as if they were directly sourced WCAG language.",
+      "why_this_matches_agent_best_practices": "Structured communication between workers reduces reasoning drift and preserves provenance.",
+      "expected_effect": "Cleaner provenance and less accidental upgrading of heuristics into normative claims."
+    },
+    {
+      "priority": "high",
+      "target": "state update pipeline",
+      "change": "Add an explicit structured state-commit contract: each turn should emit the intended patch, the applied post-state, and a commit-status field that is validated against graph_state_after before the trace is finalized.",
+      "why_this_matches_agent_best_practices": "Agent guidance favors explicit schemas and validation between workers to prevent silent state drift.",
+      "expected_effect": "Makes stale or unapplied lesson-state writes immediately detectable and attributable."
+    },
+    {
+      "priority": "high",
+      "target": "analyzer -> orchestrator handoff",
+      "change": "Tighten the analyzer output schema so recommendation fields must be justified by explicit closure/anchor fields, then run a contradiction checker before orchestration.",
+      "why_this_matches_agent_best_practices": "Structured contracts and lightweight evaluators reduce cross-worker inconsistency without hardcoding pedagogy.",
+      "expected_effect": "Fewer override events and clearer division of responsibility between analysis and orchestration."
+    },
+    {
+      "priority": "medium",
+      "target": "runtime observability",
+      "change": "Log per-step timeout budget, retry count, fallback/degraded status, and final health code in the trace for analyzer/orchestrator calls.",
+      "why_this_matches_agent_best_practices": "Rich execution metadata is preferred over opaque backend behavior because it supports evaluation and recovery prompts.",
+      "expected_effect": "Makes long-latency events like turn 6 diagnosable and enables targeted prompt/orchestration improvements."
+    },
+    {
+      "priority": "medium",
+      "target": "trace evaluator",
+      "change": "Add a post-turn trace-integrity evaluator that flags mismatches among lesson_state_after, lesson_state_patch, graph_state_after, and accepted/overridden recommendations.",
+      "why_this_matches_agent_best_practices": "Evaluation layers are a standard way to catch coordination failures in multi-step agents without imposing deterministic instructional rules.",
+      "expected_effect": "Prevents shipping internally contradictory traces and surfaces failures early."
+    }
+  ],
+  "per_turn_notes": [
+    {
+      "turn": 3,
+      "note": "Largest route-risk turn: n3 is skipped with only blockage-based justification, creating a weakly explained jump from purpose distinctions to functional images."
+    },
+    {
+      "turn": 8,
+      "note": "Student evidence already looks close to n6 closure, but the graph remains on n6 despite lesson_state_patch signaling n7 readiness."
+    },
+    {
+      "turn": 12,
+      "note": "Good override: the system recognizes the student’s question has shifted from media classification (n7) to adequacy evaluation (n8)."
+    },
+    {
+      "turn": 14,
+      "note": "Good terminal handling: the system keeps the graph on n9 and uses assessment mode rather than attempting nonexistent graph advancement."
+    },
+    {
+      "turn": 2,
+      "note": "Analyzer evidence supports leaving n1 and working n2->n4, but recommendation stayed on n1; orchestrator correction was justified."
+    },
+    {
+      "turn": 3,
+      "note": "Analyzer correctly located the open misconception in n5 but still recommended staying on n2/introduction, showing active-concept vs graph-anchor confusion."
+    },
+    {
+      "turn": 8,
+      "note": "lesson_state_patch pre-shifted to n7 while graph_decision correctly held on n6 for a live-chart edge-case closure question."
+    },
+    {
+      "turn": 9,
+      "note": "The analyzer still pre-shifted to n7 despite its own feedback warning against doing so until n6 closure was complete."
+    },
+    {
+      "turn": 12,
+      "note": "Analyzer patch and concept_closure indicate entry into n8, but graph recommendation stayed on n7; orchestrator override again repaired the inconsistency."
+    },
+    {
+      "turn": 14,
+      "note": "Analyzer advanced pedagogical stage appropriately but incorrectly represented that as graph advancement on terminal n9; orchestrator correctly stayed on n9 and treated it as assessment-on-current-node."
+    },
+    {
+      "turn": 4,
+      "note": "Good closure of decorative vs functional handling, but this was also the moment where a simple informative-image example would have improved breadth before moving to complex charts."
+    },
+    {
+      "turn": 7,
+      "note": "By here the student was already articulating the pattern-vs-value boundary well; another live-chart variant risked redundancy more than repair."
+    },
+    {
+      "turn": 10,
+      "note": "Good brief closure of the chart concept and clean bridge into media-type classification."
+    },
+    {
+      "turn": 12,
+      "note": "Strong pedagogical move from identifying the right media category to judging whether the provided alternative is actually equivalent."
+    },
+    {
+      "turn": 14,
+      "note": "The mixed-case mini-assessment was an effective capstone and gave the best evidence of integrated transfer."
+    },
+    {
+      "turn": 2,
+      "note": "Strongest unsupported claim in the section: decorative-image HTML guidance is framed as source-verified without visible evidence."
+    },
+    {
+      "turn": 9,
+      "note": "Technique-like placement guidance for complex-image explanations is attributed to WCAG without a source anchor."
+    },
+    {
+      "turn": 11,
+      "note": "Media-category explanation is plausible but needs explicit source grounding because multiple WCAG requirements/levels are being compressed."
+    },
+    {
+      "turn": 12,
+      "note": "Good transition into adequacy/equivalence judgment, but still no surfaced evidence packet for the media rule just taught."
+    },
+    {
+      "turn": 1,
+      "note": "First clear sign of trace-integrity drift: lesson_state_after already shows all concepts covered despite introductory graph position and in-progress patches."
+    },
+    {
+      "turn": 6,
+      "note": "turn_analyzer latency spikes to 223.4s, but the trace provides no timeout/retry/degradation evidence."
+    },
+    {
+      "turn": 12,
+      "note": "Another analyzer/orchestrator disagreement; override was needed to move from n7 to n8 despite analyzer evidence indicating readiness."
+    },
+    {
+      "turn": 14,
+      "note": "Terminal-node handling required orchestrator correction; analyzer/orchestrator stage-vs-graph semantics are still not cleanly aligned."
+    }
+  ],
+  "residual_risks": [
+    "No malformed structured outputs, wrong-parameter use, or explicit API crashes are visible. The main runtime-health problem is trace integrity: lesson-state persistence appears stale/inconsistent across the whole section, and the analyzer repeatedly emits recommendations that the orchestrator must override. Observability is also incomplete for slow calls, retries, and state-commit steps."
+  ],
+  "sections": [
+    {
+      "section": "graph_behavior",
+      "score": 7.4,
+      "summary": "Graph control was mostly adaptive and route-aware, with strong orchestrator overrides and correct terminal-node handling. The main weaknesses were trace reliability gaps: lesson-state persistence was inconsistent with graph state, route_coverage_mode was not surfaced, and one skip/advance sequence (past n3) left prerequisite coverage underexplained.",
+      "findings": [
+        {
+          "severity": "critical",
+          "category": "mcp_source_gap",
+          "turns": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14
+          ],
+          "summary": "Lesson-state outputs are not trustworthy enough to audit graph progression.",
+          "evidence": "Across all shown turns, lesson_state_after.active_concept stays \"n1\" and every concept is marked \"covered,\" even while graph_state_after.active_node_id progresses from n1 to n9 and node_status shows many nodes still locked/active."
+        },
+        {
+          "severity": "medium",
+          "category": "mcp_source_gap",
+          "turns": [
+            2,
+            3,
+            4,
+            8,
+            9,
+            10
+          ],
+          "summary": "The trace does not expose route_coverage_mode or a comparable explicit coverage policy, so integrate/skip decisions are hard to evaluate rigorously.",
+          "evidence": "The graph uses stay/integrate/advance and explicit skipping, but no route_coverage_mode field is present to distinguish covered vs integrated vs deferred coverage. This matters especially when n4 is integrated at turn 2, n3/n4 are skipped at turn 3, and n6 is later treated as closed."
+        },
+        {
+          "severity": "medium",
+          "category": "model_or_prompt_failure",
+          "turns": [
+            3,
+            4
+          ],
+          "summary": "The route skips n3 too aggressively, then proceeds to n6 without clearly accounting for the skipped informative-image prerequisite.",
+          "evidence": "Turn 3 jumps route_position 2→5 with skipped_node_ids [\"n3\",\"n4\"]. The rationale focuses on the current blockage at n5, not on why n3 is safe to bypass. At turn 4, n6 becomes active while n3 remains locked in graph_state_after.node_status."
+        },
+        {
+          "severity": "low",
+          "category": "underdoing",
+          "turns": [
+            8,
+            9,
+            10
+          ],
+          "summary": "The tutor/orchestrator lingered on n6 longer than the evidence suggested was necessary.",
+          "evidence": "By turn 8, the student cleanly applies the pattern-vs-value rule and lesson_state_patch marks n6 covered / n7 in progress, yet graph_decision stays on n6 through turns 8 and 9 and only advances on turn 10."
+        },
+        {
+          "severity": "medium",
+          "category": "strength",
+          "turns": [
+            2,
+            3,
+            12,
+            14
+          ],
+          "summary": "Orchestrator overrides were often beneficial and improved route adherence relative to analyzer recommendations.",
+          "evidence": "Turn 2 re-anchors from n1 to n2+n4 when the analyzer stayed too early; turn 3 advances to n5 for the actual open misconception; turn 12 moves from n7 to n8 when the student's question shifts to adequacy; turn 14 correctly stays on terminal n9 instead of advancing."
+        },
+        {
+          "severity": "medium",
+          "category": "strength",
+          "turns": [
+            14
+          ],
+          "summary": "Terminal-node handling was correct: stage progression continued while graph progression stopped at n9.",
+          "evidence": "At turn 14, graph_action is \"stay\" on active_node_id \"n9\" with assess_mastery, and the override explicitly notes that assessment should proceed without graph advancement because there is no next node."
+        }
+      ],
+      "tool_call_failures": [
+        {
+          "turns": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14
+          ],
+          "tool_or_step": "turn_analysis_update_output / lesson_state persistence",
+          "what_went_wrong": "Persisted lesson state does not reflect actual graph progression: active_concept remains n1 and all concepts are marked covered throughout, contradicting graph_state_after.",
+          "wrong_parameter": false,
+          "reasoning_failure": false,
+          "missing_call": false,
+          "evidence": "lesson_state_after is effectively static and inconsistent on every shown turn despite changing graph_state_after.active_node_id and node_status."
+        },
+        {
+          "turns": [
+            4
+          ],
+          "tool_or_step": "graph_state serializer",
+          "what_went_wrong": "The trace emits active_edge_id \"n5->n6\" even though that edge is not present in edge_bridges, so bridge provenance is incomplete.",
+          "wrong_parameter": false,
+          "reasoning_failure": false,
+          "missing_call": false,
+          "evidence": "Turn 4 graph_state_after.active_edge_id is \"n5->n6\", but edge_bridges lists n3->n6 and n6->n8, not n5->n6."
+        }
+      ],
+      "recommended_fixes": [
+        {
+          "priority": "high",
+          "target": "orchestrator-to-state-update contract",
+          "change": "Require one authoritative structured graph snapshot per turn with cross-checked fields for active_node, completed_nodes, skipped_nodes, active_concept, and concept statuses before persistence.",
+          "why_this_matches_agent_best_practices": "Shared structured state reduces planner/worker drift and makes downstream evaluation depend on explicit, reconciled outputs rather than loosely coupled text fields.",
+          "expected_effect": "Eliminates the lesson_state/graph_state contradiction and makes graph progression auditable."
+        },
+        {
+          "priority": "high",
+          "target": "graph decision schema",
+          "change": "Add explicit route coverage fields for each transition: route_coverage_mode plus per-node dispositions such as covered, integrated, deferred, or bypassed, and require a prerequisite-satisfaction note when jumping over nodes.",
+          "why_this_matches_agent_best_practices": "Structured planner outputs make branching and skipping legible without hard-coding backend rules, and improve handoff clarity between analyzer, orchestrator, and tutor.",
+          "expected_effect": "Makes skips like n3 evaluable and prevents ambiguous branch coverage."
+        },
+        {
+          "priority": "medium",
+          "target": "trace evaluator",
+          "change": "Add automatic consistency checks that flag impossible or risky graph states, such as downstream nodes activating while prerequisites remain locked, active_edge values missing from declared edges, or terminal nodes receiving advance actions.",
+          "why_this_matches_agent_best_practices": "Evaluator-side checks are a lightweight way to catch agent state drift and serialization defects without replacing model judgment with rigid lesson logic.",
+          "expected_effect": "Surfaces state/model mismatches early and improves trust in graph traces."
+        },
+        {
+          "priority": "medium",
+          "target": "analyzer-orchestrator handoff",
+          "change": "Add a field that distinguishes 'answer within current node' from 'student question is the entry point to next node,' so the orchestrator can advance without needless stay/repair cycles when the concept has already closed.",
+          "why_this_matches_agent_best_practices": "Clear planner-worker intent reduces unnecessary overrides and helps the system transition cleanly when student questions naturally open the next concept.",
+          "expected_effect": "Reduces over-staying like the late n6 transition while preserving direct answers to student questions."
+        }
+      ],
+      "per_turn_notes": [
+        {
+          "turn": 3,
+          "note": "Largest route-risk turn: n3 is skipped with only blockage-based justification, creating a weakly explained jump from purpose distinctions to functional images."
+        },
+        {
+          "turn": 8,
+          "note": "Student evidence already looks close to n6 closure, but the graph remains on n6 despite lesson_state_patch signaling n7 readiness."
+        },
+        {
+          "turn": 12,
+          "note": "Good override: the system recognizes the student’s question has shifted from media classification (n7) to adequacy evaluation (n8)."
+        },
+        {
+          "turn": 14,
+          "note": "Good terminal handling: the system keeps the graph on n9 and uses assessment mode rather than attempting nonexistent graph advancement."
+        }
+      ]
+    },
+    {
+      "section": "analyzer_consistency",
+      "score": 4.6,
+      "summary": "Analyzer outputs were often locally sensible, but consistency across concept_closure, stage_action, lesson_state_patch, and graph progression was weak. The orchestrator had to override multiple analyzer recommendations, bridge-question handling was not cleanly separated from active-node progression, and persisted lesson state appears stale/corrupted, limiting trust in analyzer-state alignment.",
+      "findings": [
+        {
+          "severity": "high",
+          "category": "model_or_prompt_failure",
+          "turns": [
+            2,
+            3,
+            12,
+            14
+          ],
+          "summary": "Analyzer recommendations repeatedly contradicted its own evidence about what concept was actually active or closed.",
+          "evidence": "Turn 2 marks n1 covered and open work in n2/n4, yet analyzer keeps stage_action='stay' on introduction and graph recommendation on n1; orchestrator overrides to integrate n2->n4. Turn 3 marks n2 covered and active_concept n5 with a must-address-now misconception, yet analyzer still recommends staying; orchestrator advances to n5. Turn 12 marks the video-only distinction resolved and shifts active_concept to n8, but analyzer still says stay on n7; orchestrator advances to n8. Turn 14 marks n9 covered/assessment-ready and stage_action='advance' even though n9 is terminal; orchestrator correctly stays on n9."
+        },
+        {
+          "severity": "high",
+          "category": "model_or_prompt_failure",
+          "turns": [
+            8,
+            9
+          ],
+          "summary": "Bridge/edge-case questions were not cleanly separated from node progression in lesson_state_patch.",
+          "evidence": "On turns 8 and 9, graph_decision correctly says stay on n6 until the live-chart boundary is closed, but lesson_state_patch already shifts active_concept to n7 and marks n6 covered/in transition. Turn 9 orchestrator feedback explicitly warns not to mark the current concept covered or shift to n7 while closure is still only almost_ready, showing the analyzer mixed bridge handling with active-node advancement."
+        },
+        {
+          "severity": "high",
+          "category": "mcp_source_gap",
+          "turns": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14
+          ],
+          "summary": "Persisted lesson state is not trustworthy, obscuring whether analyzer patches are actually applied.",
+          "evidence": "Every lesson_state_after keeps active_concept='n1', bridge_back_target='n9', and marks all concepts as covered from turn 1 onward, despite turn_analysis.lesson_state_patch and graph_state_after changing across turns. This makes downstream evaluation of analyzer consistency against source state unreliable."
+        },
+        {
+          "severity": "medium",
+          "category": "model_or_prompt_failure",
+          "turns": [
+            8,
+            9,
+            10,
+            13,
+            14
+          ],
+          "summary": "Concept-closure and stage progression semantics are inconsistently applied, especially near transitions and assessment.",
+          "evidence": "Turn 8 sets concept_closure='ready' but still recommends 'give_example' and stay on n6. Turn 9 drops back to almost_ready while still pre-marking n7. Turn 13 advances target_stage to mini_assessment while stage_after is only readiness_check. Turn 14 again uses stage_action='advance' even though graph advancement is impossible on terminal n9. This suggests weak separation between pedagogical stage changes and graph-node movement."
+        },
+        {
+          "severity": "low",
+          "category": "strength",
+          "turns": [
+            3,
+            4,
+            11,
+            12
+          ],
+          "summary": "Misconception events were generally scoped to genuine distinctions and resolved when the student demonstrated repair.",
+          "evidence": "Turn 3 logs the functional-image naming distinction as must_address_now; turn 4 resolves it after a direct contrast response. Turn 11 logs the video-only vs synchronized-media distinction; turn 12 resolves it after the learner correctly classifies a silent prerecorded animation and selects the proper baseline alternative."
+        }
+      ],
+      "tool_call_failures": [
+        {
+          "turns": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14
+          ],
+          "tool_or_step": "turn_analysis_update / lesson state application",
+          "what_went_wrong": "The persisted lesson_state_after does not reflect analyzer lesson_state_patch or graph_state_after and appears stale/corrupted across the entire section.",
+          "wrong_parameter": false,
+          "reasoning_failure": false,
+          "missing_call": false,
+          "evidence": "lesson_state_after remains fixed at active_concept='n1' with all concepts 'covered' on every turn, even when analyzer patches move active_concept to n2/n5/n6/n7/n8/n9 and graph_state_after changes accordingly."
+        }
+      ],
+      "recommended_fixes": [
+        {
+          "priority": "high",
+          "target": "Analyzer output contract",
+          "change": "Require explicit consistency fields tying together current_node_basis, proposed_active_concept, concept_closure, and graph_recommendation, plus a self-check rule: if a prior node is marked covered or active_concept changes, 'stay on prior node' must include an explicit justification; if the node is terminal, stage advancement must be represented separately from graph advancement.",
+          "why_this_matches_agent_best_practices": "This strengthens the worker's structured output and makes reasoning auditable without hard-coding instructional policy.",
+          "expected_effect": "Fewer orchestrator overrides on turns like 2, 3, 12, and 14."
+        },
+        {
+          "priority": "high",
+          "target": "Bridge-question handling between analyzer and orchestrator",
+          "change": "Split 'answer student’s bridge/edge-case question' from 'advance active node' in the schema, e.g. separate fields for hold_current_node, bridge_question_scope, candidate_next_node_after_answer, and whether the answer is closure-only versus next-node entry.",
+          "why_this_matches_agent_best_practices": "Clear orchestrator-worker contracts reduce state drift and prevent the model from conflating local question answering with route progression.",
+          "expected_effect": "Cleaner handling of turns 8-10, where closure questions can be answered without prematurely shifting active_concept."
+        },
+        {
+          "priority": "high",
+          "target": "State-write pipeline",
+          "change": "Add a trace-level validator that compares lesson_state_patch, graph_state_after, and persisted lesson_state_after, and either blocks stale writes or marks lesson_state_after as non-authoritative when they diverge.",
+          "why_this_matches_agent_best_practices": "Agent systems need reliable shared state and explicit detection of tool/output desynchronization rather than silent corruption.",
+          "expected_effect": "Prevents unusable persisted state from masking analyzer quality and improves downstream decision reliability."
+        },
+        {
+          "priority": "medium",
+          "target": "Analyzer QA/evaluator loop",
+          "change": "Run a lightweight consistency evaluator after analyzer output to flag contradictions such as concept_closure='ready' with recommended_next_step='give_example', or target_stage/graph_action mismatches, then ask the analyzer to repair its structured output before orchestration.",
+          "why_this_matches_agent_best_practices": "Using evaluator-repair loops is preferable to deterministic backend teaching rules and directly addresses model self-consistency failures.",
+          "expected_effect": "More stable stage_action and recommended_next_step behavior near transitions and assessments."
+        }
+      ],
+      "per_turn_notes": [
+        {
+          "turn": 2,
+          "note": "Analyzer evidence supports leaving n1 and working n2->n4, but recommendation stayed on n1; orchestrator correction was justified."
+        },
+        {
+          "turn": 3,
+          "note": "Analyzer correctly located the open misconception in n5 but still recommended staying on n2/introduction, showing active-concept vs graph-anchor confusion."
+        },
+        {
+          "turn": 8,
+          "note": "lesson_state_patch pre-shifted to n7 while graph_decision correctly held on n6 for a live-chart edge-case closure question."
+        },
+        {
+          "turn": 9,
+          "note": "The analyzer still pre-shifted to n7 despite its own feedback warning against doing so until n6 closure was complete."
+        },
+        {
+          "turn": 12,
+          "note": "Analyzer patch and concept_closure indicate entry into n8, but graph recommendation stayed on n7; orchestrator override again repaired the inconsistency."
+        },
+        {
+          "turn": 14,
+          "note": "Analyzer advanced pedagogical stage appropriately but incorrectly represented that as graph advancement on terminal n9; orchestrator correctly stayed on n9 and treated it as assessment-on-current-node."
+        }
+      ]
+    },
+    {
+      "section": "tutor_pedagogy",
+      "score": 8.1,
+      "summary": "Overall teaching was strong: the tutor usually answered the student’s exact question first, used contrastive examples well, and elicited solid transfer across cases. Main weaknesses were pedagogical over-dwelling on complex/live chart edge cases after the learner was already reasoning well, and lighter-than-ideal breadth on simple informative images and some media subtypes. No clear MCP/source-information gaps were evident; the main issues came from tutor pacing and workflow-state coordination.",
+      "findings": [
+        {
+          "severity": "low",
+          "category": "strength",
+          "turns": [
+            1,
+            2,
+            3,
+            4,
+            13,
+            14
+          ],
+          "summary": "Strong direct-then-Socratic teaching supported real learning and repair.",
+          "evidence": "The tutor consistently answered the student’s immediate uncertainty, then asked a focused contrast question: decorative border vs ignored AT handling (1-2), decorative vs image-only Home link (3-4), and later a mixed classify->pattern->sufficiency task (13-14). This produced visible self-correction and transfer."
+        },
+        {
+          "severity": "medium",
+          "category": "overdoing",
+          "turns": [
+            5,
+            6,
+            7,
+            8,
+            9,
+            10
+          ],
+          "summary": "The tutor lingered too long on complex-chart/live-update boundary cases after mastery was already emerging.",
+          "evidence": "Across turns 5-10, the student repeatedly gave nuanced, mostly correct transfer responses about completeness, exact values, and live updates, yet the tutor kept introducing another closely related chart edge case rather than advancing sooner. The discussion stayed on n6 for six turns."
+        },
+        {
+          "severity": "medium",
+          "category": "underdoing",
+          "turns": [
+            4,
+            5
+          ],
+          "summary": "The lesson under-covered ordinary informative-image evaluation before escalating to complex charts.",
+          "evidence": "After resolving decorative vs functional images, the tutor moved straight to a sales chart case. There was no simple worked example of a standard informative image whose alt should convey key information, even though that is central to the objective."
+        },
+        {
+          "severity": "medium",
+          "category": "underdoing",
+          "turns": [
+            10,
+            11,
+            12
+          ],
+          "summary": "Media instruction emphasized category matching more than breadth of sufficiency practice across media types.",
+          "evidence": "The learner classified prerecorded audio-only, video-only, prerecorded synchronized, and live synchronized media in turn 11, but the only concrete adequacy check that followed was for silent prerecorded video-only (12-13). Audio-only and live synchronized cases were not similarly stress-tested for sufficiency."
+        },
+        {
+          "severity": "medium",
+          "category": "model_or_prompt_failure",
+          "turns": [
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            12,
+            14
+          ],
+          "summary": "Workflow-state inconsistencies likely made pacing less crisp, even though the visible tutoring remained coherent.",
+          "evidence": "Analyzer/orchestrator overrides were needed several times to correct stay/advance choices (e.g., 12, 14), and lesson state stayed internally inconsistent throughout, with active_concept stuck at n1 and all concepts marked covered from the start. That kind of drift can encourage redundant questioning or mistimed transitions."
+        }
+      ],
+      "tool_call_failures": [
+        {
+          "turns": [
+            2,
+            3,
+            12,
+            14
+          ],
+          "tool_or_step": "turn_analyzer -> graph_orchestrator handoff",
+          "what_went_wrong": "Analyzer recommendations sometimes conflicted with their own mastery evidence, so the orchestrator had to override to reach the pedagogically relevant node or assessment mode.",
+          "wrong_parameter": false,
+          "reasoning_failure": true,
+          "missing_call": false,
+          "evidence": "Turn 3 analyzer recommended staying while its own patch marked n2 covered and moved the active issue to n5; turn 12 similarly needed an override to move from media-type classification to adequacy evaluation; turn 14 needed correction to stay on terminal n9 rather than 'advance'."
+        },
+        {
+          "turns": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14
+          ],
+          "tool_or_step": "lesson_state update",
+          "what_went_wrong": "Lesson-state outputs were internally inconsistent and did not track the actual pedagogical progression.",
+          "wrong_parameter": false,
+          "reasoning_failure": true,
+          "missing_call": false,
+          "evidence": "From turn 1 onward, lesson_state_after shows all concepts n1-n9 as 'covered' and active_concept as n1, even while graph state and tutor behavior clearly move through n2, n5, n6, n7, n8, and n9."
+        }
+      ],
+      "recommended_fixes": [
+        {
+          "priority": "high",
+          "target": "tutor prompt contract",
+          "change": "Add a concise stop-condition for edge-case exploration: after two consecutive strong transfer answers on the same boundary, either advance or switch to a mixed-case check unless the student asks a substantially new question.",
+          "why_this_matches_agent_best_practices": "This is a prompt-level behavioral contract that preserves model flexibility while reducing redundant turns; it relies on model judgment rather than hard-coded backend rules.",
+          "expected_effect": "Less overdoing on one concept family, faster coverage of the full objective, and cleaner pacing."
+        },
+        {
+          "priority": "high",
+          "target": "analyzer/orchestrator structured output",
+          "change": "Require a small shared mastery object each turn: current concept, unresolved distinction, exemplar families already used, closure status, and reason_to_stay_or_advance; have the orchestrator validate consistency before acting.",
+          "why_this_matches_agent_best_practices": "Improves orchestrator-worker communication and reduces hidden state drift without imposing rigid lesson scripts.",
+          "expected_effect": "Fewer stay/advance mismatches, fewer overrides, and more reliable pedagogical transitions."
+        },
+        {
+          "priority": "medium",
+          "target": "tutor message builder prompt",
+          "change": "Ask the tutor to favor one simple canonical example before a harder edge case when introducing a new concept family, unless the learner explicitly requests the harder case.",
+          "why_this_matches_agent_best_practices": "A prompt contract encourages representative examples and clearer scaffolding while keeping the model adaptive to learner initiative.",
+          "expected_effect": "Better coverage of ordinary informative-image evaluation before complex-chart nuance."
+        },
+        {
+          "priority": "medium",
+          "target": "trace evaluator",
+          "change": "Add an evaluator that flags concepts exited after classification-only practice, especially in media sections, and suggests one concrete sufficiency/usability check before closure.",
+          "why_this_matches_agent_best_practices": "Trace-time evaluation is a lightweight governance layer that improves quality without hard-coding instructional paths.",
+          "expected_effect": "Stronger transfer on audio/video alternatives and better alignment with the objective’s emphasis on judging usefulness, not just naming requirements."
+        }
+      ],
+      "per_turn_notes": [
+        {
+          "turn": 4,
+          "note": "Good closure of decorative vs functional handling, but this was also the moment where a simple informative-image example would have improved breadth before moving to complex charts."
+        },
+        {
+          "turn": 7,
+          "note": "By here the student was already articulating the pattern-vs-value boundary well; another live-chart variant risked redundancy more than repair."
+        },
+        {
+          "turn": 10,
+          "note": "Good brief closure of the chart concept and clean bridge into media-type classification."
+        },
+        {
+          "turn": 12,
+          "note": "Strong pedagogical move from identifying the right media category to judging whether the provided alternative is actually equivalent."
+        },
+        {
+          "turn": 14,
+          "note": "The mixed-case mini-assessment was an effective capstone and gave the best evidence of integrated transfer."
+        }
+      ]
+    },
+    {
+      "section": "source_grounding",
+      "score": 5.8,
+      "summary": "Conceptual grounding was mostly sound on the core equivalence idea, but several implementation-specific and media-requirement claims were stated with high confidence and no visible WCAG/MCP evidence. The main weakness is not broad hallucination; it is unsupported normative phrasing where stronger source backing or softer wording was needed.",
+      "findings": [
+        {
+          "severity": "high",
+          "category": "model_or_prompt_failure",
+          "turns": [
+            2
+          ],
+          "summary": "The tutor made an exact implementation claim for decorative images as if source-verified, without showing evidence.",
+          "evidence": "Turn 2: \"the sufficient HTML pattern to rely on here is alt=\\\"\\\" and no title attribute... That’s the verified way\". This is stronger than the trace’s visible evidence and mixes HTML/AT technique guidance with a certainty claim."
+        },
+        {
+          "severity": "high",
+          "category": "mcp_source_gap",
+          "turns": [
+            2,
+            9,
+            11,
+            12
+          ],
+          "summary": "No MCP-surfaced WCAG evidence appears for nuanced HTML and time-based media claims that needed stronger grounding.",
+          "evidence": "Across these turns, the tutor gives precise baselines such as decorative-image handling, \"WCAG allows\" nearby/adjacent linked explanations, prerecorded video-only baselines, and live synchronized media captions, but the trace shows no source retrieval/citation events or attached evidence objects."
+        },
+        {
+          "severity": "medium",
+          "category": "model_or_prompt_failure",
+          "turns": [
+            9
+          ],
+          "summary": "The tutor attributed a specific allowance to WCAG without identifying the SC/technique or signaling uncertainty.",
+          "evidence": "Turn 9: \"for complex images WCAG allows that longer explanation to be nearby text or in an immediately adjacent linked location.\" This may be technique-level guidance, but it is presented as a direct WCAG allowance with no source anchor."
+        },
+        {
+          "severity": "medium",
+          "category": "model_or_prompt_failure",
+          "turns": [
+            11,
+            12
+          ],
+          "summary": "Media guidance compresses multiple WCAG requirements into a single 'baseline' explanation without grounding the level/scope distinctions.",
+          "evidence": "Turn 11: \"For prerecorded video-only, the baseline is either an alternative for time-based media or an audio track... audio description belongs to prerecorded synchronized media...\" Turn 12 continues with equivalence claims. These are plausible, but the trace does not ground which SC/level is being taught."
+        },
+        {
+          "severity": "low",
+          "category": "strength",
+          "turns": [
+            1,
+            3,
+            5,
+            6,
+            7,
+            8,
+            10,
+            13,
+            14
+          ],
+          "summary": "The tutor’s broader purpose-and-equivalence framing stayed close to WCAG’s intent and usually avoided unsupported numeric thresholds or invented rules.",
+          "evidence": "Examples include the repeated framing that alternatives should provide the same meaningful information/purpose in context, and the consistent distinction between decorative, functional, and informative content."
+        }
+      ],
+      "tool_call_failures": [
+        {
+          "turns": [
+            2,
+            9,
+            11,
+            12
+          ],
+          "tool_or_step": "MCP WCAG evidence retrieval / citation grounding",
+          "what_went_wrong": "Before emitting strong normative claims, the system did not surface any source packet, citation, or evidence summary tying the claim to WCAG SCs/techniques.",
+          "wrong_parameter": false,
+          "reasoning_failure": true,
+          "missing_call": true,
+          "evidence": "The trace lists analyzer/orchestrator/builder events only; no MCP retrieval or citation step is visible, yet the tutor uses phrases like \"verified way,\" \"WCAG allows,\" and \"baseline is.\""
+        }
+      ],
+      "recommended_fixes": [
+        {
+          "priority": "high",
+          "target": "tutor prompt contract",
+          "change": "Require each normative accessibility claim to be tagged as either source-backed WCAG fact, technique-level guidance, or model synthesis/example; if no source tag is available, force softer wording and avoid phrases like \"verified\" or \"WCAG allows.\"",
+          "why_this_matches_agent_best_practices": "It improves reliability through explicit uncertainty handling and structured output rather than brittle hardcoded rules.",
+          "expected_effect": "Fewer unsupported high-certainty claims and clearer separation between grounded requirements and explanatory synthesis."
+        },
+        {
+          "priority": "high",
+          "target": "orchestrator-to-source-worker handoff",
+          "change": "When the dialogue enters implementation-specific or media-specific territory, request a compact evidence object containing SC/level, a short quoted rationale, and any technique caveat before the tutor responds.",
+          "why_this_matches_agent_best_practices": "This uses specialized worker coordination so the response model has the right evidence at the moment nuanced claims are needed.",
+          "expected_effect": "Stronger source grounding on exact HTML patterns and time-based media requirements."
+        },
+        {
+          "priority": "medium",
+          "target": "trace evaluator",
+          "change": "Add an automated source-grounding check that flags unsupported phrases such as \"verified,\" \"sufficient pattern,\" \"baseline requirement,\" or \"WCAG allows\" when no attached evidence object is present.",
+          "why_this_matches_agent_best_practices": "Evaluator feedback is a lightweight way to improve agent behavior without over-constraining pedagogy.",
+          "expected_effect": "Earlier detection of overconfident claims and better calibration of tutor language."
+        },
+        {
+          "priority": "medium",
+          "target": "analyzer/builder structured outputs",
+          "change": "Separate \"source-backed facts to preserve verbatim\" from \"teaching paraphrases/examples\" in the builder input so the tutor does not present synthesized paraphrases as if they were directly sourced WCAG language.",
+          "why_this_matches_agent_best_practices": "Structured communication between workers reduces reasoning drift and preserves provenance.",
+          "expected_effect": "Cleaner provenance and less accidental upgrading of heuristics into normative claims."
+        }
+      ],
+      "per_turn_notes": [
+        {
+          "turn": 2,
+          "note": "Strongest unsupported claim in the section: decorative-image HTML guidance is framed as source-verified without visible evidence."
+        },
+        {
+          "turn": 9,
+          "note": "Technique-like placement guidance for complex-image explanations is attributed to WCAG without a source anchor."
+        },
+        {
+          "turn": 11,
+          "note": "Media-category explanation is plausible but needs explicit source grounding because multiple WCAG requirements/levels are being compressed."
+        },
+        {
+          "turn": 12,
+          "note": "Good transition into adequacy/equivalence judgment, but still no surfaced evidence packet for the media rule just taught."
+        }
+      ]
+    },
+    {
+      "section": "runtime_tool_health",
+      "score": 6.2,
+      "summary": "No malformed structured outputs, wrong-parameter use, or explicit API crashes are visible. The main runtime-health problem is trace integrity: lesson-state persistence appears stale/inconsistent across the whole section, and the analyzer repeatedly emits recommendations that the orchestrator must override. Observability is also incomplete for slow calls, retries, and state-commit steps.",
+      "findings": [
+        {
+          "severity": "low",
+          "category": "strength",
+          "turns": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14
+          ],
+          "summary": "Core worker outputs are structurally complete enough to keep the workflow running.",
+          "evidence": "Every turn includes analyzer/orchestrator outputs, graph_state_after, timings, and tutor output; no malformed JSON, missing required fields, or wrong-parameter incidents are evident in the compact trace."
+        },
+        {
+          "severity": "high",
+          "category": "model_or_prompt_failure",
+          "turns": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14
+          ],
+          "summary": "State persistence/trace materialization is internally inconsistent, making lesson-state logs unreliable.",
+          "evidence": "Across all turns, lesson_state_after remains effectively stale (active_concept stays \"n1\" and all concepts are marked \"covered\") even when graph_state_after advances through n2, n5, n6, n7, n8, and n9 and turn patches mark concepts as in_progress. This indicates the patch output is not being coherently applied or logged."
+        },
+        {
+          "severity": "medium",
+          "category": "model_or_prompt_failure",
+          "turns": [
+            2,
+            3,
+            12,
+            14
+          ],
+          "summary": "Analyzer-to-orchestrator contract is unstable; repeated overrides indicate reasoning inconsistencies between worker outputs.",
+          "evidence": "Turn 2: analyzer recommends stay on n1 while its own evidence says n1 is covered; orchestrator overrides to n2. Turn 3: analyzer stays while lesson-state patch moves to n5; orchestrator overrides. Turn 12: analyzer stay vs orchestrator advance to n8. Turn 14: analyzer evidence supports assessment transition, but orchestrator must reinterpret it to stay on terminal n9."
+        },
+        {
+          "severity": "medium",
+          "category": "mcp_source_gap",
+          "turns": [
+            6
+          ],
+          "summary": "Slow-call health cannot be properly assessed because timeout, retry, and degraded-mode metadata are absent.",
+          "evidence": "Turn 6 shows turn_analyzer latency of 223.4s, but trace_event_names contain no retry/fallback/timeout events and no status fields indicating whether this was near-budget, retried, or degraded. This leaves runtime health ambiguous rather than verifiably healthy."
+        },
+        {
+          "severity": "medium",
+          "category": "mcp_source_gap",
+          "turns": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14
+          ],
+          "summary": "Trace completeness is insufficient to localize whether lesson-state drift comes from a missing call, failed write, or logging omission.",
+          "evidence": "The trace shows turn_analysis_update_input/output but no explicit state-commit/apply event, no patch-application status, and no persistence ack. Because of that, the stale lesson_state_after cannot be attributed cleanly to the model, orchestrator, or storage layer from the provided source data."
+        }
+      ],
+      "tool_call_failures": [
+        {
+          "turns": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14
+          ],
+          "tool_or_step": "turn_analysis_update_output -> lesson_state_after application",
+          "what_went_wrong": "The generated lesson-state patches are not reflected in the persisted/logged lesson_state_after, suggesting a missing or ineffective state-apply step.",
+          "wrong_parameter": false,
+          "reasoning_failure": false,
+          "missing_call": true,
+          "evidence": "lesson_state_after stays at active_concept n1 with all concepts covered on every turn despite changing lesson_state_patch and graph_state_after."
+        },
+        {
+          "turns": [
+            2,
+            3,
+            12,
+            14
+          ],
+          "tool_or_step": "turn_analyzer output contract",
+          "what_went_wrong": "Analyzer recommendations conflict with its own state evidence, forcing orchestrator overrides.",
+          "wrong_parameter": false,
+          "reasoning_failure": true,
+          "missing_call": false,
+          "evidence": "accepted_analyzer_recommendation is false on turns 2, 3, 12, and 14, with override_reason explicitly citing inconsistency between analyzer recommendation and analyzer evidence/patches."
+        }
+      ],
+      "recommended_fixes": [
+        {
+          "priority": "high",
+          "target": "state update pipeline",
+          "change": "Add an explicit structured state-commit contract: each turn should emit the intended patch, the applied post-state, and a commit-status field that is validated against graph_state_after before the trace is finalized.",
+          "why_this_matches_agent_best_practices": "Agent guidance favors explicit schemas and validation between workers to prevent silent state drift.",
+          "expected_effect": "Makes stale or unapplied lesson-state writes immediately detectable and attributable."
+        },
+        {
+          "priority": "high",
+          "target": "analyzer -> orchestrator handoff",
+          "change": "Tighten the analyzer output schema so recommendation fields must be justified by explicit closure/anchor fields, then run a contradiction checker before orchestration.",
+          "why_this_matches_agent_best_practices": "Structured contracts and lightweight evaluators reduce cross-worker inconsistency without hardcoding pedagogy.",
+          "expected_effect": "Fewer override events and clearer division of responsibility between analysis and orchestration."
+        },
+        {
+          "priority": "medium",
+          "target": "runtime observability",
+          "change": "Log per-step timeout budget, retry count, fallback/degraded status, and final health code in the trace for analyzer/orchestrator calls.",
+          "why_this_matches_agent_best_practices": "Rich execution metadata is preferred over opaque backend behavior because it supports evaluation and recovery prompts.",
+          "expected_effect": "Makes long-latency events like turn 6 diagnosable and enables targeted prompt/orchestration improvements."
+        },
+        {
+          "priority": "medium",
+          "target": "trace evaluator",
+          "change": "Add a post-turn trace-integrity evaluator that flags mismatches among lesson_state_after, lesson_state_patch, graph_state_after, and accepted/overridden recommendations.",
+          "why_this_matches_agent_best_practices": "Evaluation layers are a standard way to catch coordination failures in multi-step agents without imposing deterministic instructional rules.",
+          "expected_effect": "Prevents shipping internally contradictory traces and surfaces failures early."
+        }
+      ],
+      "per_turn_notes": [
+        {
+          "turn": 1,
+          "note": "First clear sign of trace-integrity drift: lesson_state_after already shows all concepts covered despite introductory graph position and in-progress patches."
+        },
+        {
+          "turn": 6,
+          "note": "turn_analyzer latency spikes to 223.4s, but the trace provides no timeout/retry/degradation evidence."
+        },
+        {
+          "turn": 12,
+          "note": "Another analyzer/orchestrator disagreement; override was needed to move from n7 to n8 despite analyzer evidence indicating readiness."
+        },
+        {
+          "turn": 14,
+          "note": "Terminal-node handling required orchestrator correction; analyzer/orchestrator stage-vs-graph semantics are still not cleanly aligned."
+        }
+      ]
+    }
+  ],
+  "source_grounding_summary": "Conceptual grounding was mostly sound on the core equivalence idea, but several implementation-specific and media-requirement claims were stated with high confidence and no visible WCAG/MCP evidence. The main weakness is not broad hallucination; it is unsupported normative phrasing where stronger source backing or softer wording was needed.",
+  "trace_file": "results/saved_graph_tutor_conversation_20260428_185500.json",
+  "evaluated_at": "2026-04-28T21:16:15",
+  "evaluator_model": "gpt-5.4"
+}
