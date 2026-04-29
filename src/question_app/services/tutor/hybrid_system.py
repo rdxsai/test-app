@@ -1775,92 +1775,48 @@ class HybridCrewAISocraticSystem:
         if not turn_analysis:
             return ""
 
+        turn_analysis = normalize_analyzer_output(turn_analysis)
         lines = ["TURN ANALYSIS:"]
-        if isinstance(turn_analysis, dict) and "student_turn" in turn_analysis:
-            student_turn = turn_analysis.get("student_turn") or {}
-            tutor = turn_analysis.get("next_tutor_handoff") or {}
-            progression = turn_analysis.get("progression_recommendation") or {}
-            graph = turn_analysis.get("graph_handoff") or {}
-            route = student_turn.get("route", "")
-            if route:
-                lines.append(f"- Route: {route}")
-            answer_first = student_turn.get("answer_first")
-            if answer_first is not None:
-                lines.append(
-                    f"- Answer current question first: {'yes' if answer_first else 'no'}"
-                )
-            if student_turn.get("question_to_answer"):
-                lines.append(
-                    f"- Student question to answer: {student_turn['question_to_answer']}"
-                )
-            if student_turn.get("open_question_type"):
-                lines.append(
-                    f"- Open question type: {student_turn['open_question_type']}"
-                )
-            if tutor.get("move"):
-                lines.append(f"- Tutor move: {tutor['move']}")
-            if tutor.get("one_turn_goal"):
-                lines.append(f"- One-turn goal: {tutor['one_turn_goal']}")
-            if progression:
-                lines.append(
-                    "- Progression: "
-                    f"{progression.get('stage_action', 'stay')} -> "
-                    f"{progression.get('target_stage', '')}; "
-                    f"closure={progression.get('closure_state', '')}; "
-                    f"evidence={progression.get('evidence_quality', '')}; "
-                    f"blocker={progression.get('progression_blocker', '')}"
-                )
-            if graph.get("bridge_mode"):
-                lines.append(
-                    "- Graph handoff: "
-                    f"{graph.get('bridge_mode')} "
-                    f"current={graph.get('current_node_id', '')} "
-                    f"candidate={graph.get('candidate_next_node_id', '')}"
-                )
-            return "\n".join(lines)
-
-        route = turn_analysis.get("turn_route", "")
+        student_turn = turn_analysis.get("student_turn") or {}
+        tutor = turn_analysis.get("next_tutor_handoff") or {}
+        progression = turn_analysis.get("progression_recommendation") or {}
+        graph = turn_analysis.get("graph_handoff") or {}
+        route = student_turn.get("route", "")
         if route:
             lines.append(f"- Route: {route}")
-        answer_first = turn_analysis.get("answer_current_question_first")
+        answer_first = student_turn.get("answer_first")
         if answer_first is not None:
             lines.append(
                 f"- Answer current question first: {'yes' if answer_first else 'no'}"
             )
-        if turn_analysis.get("student_question_to_answer"):
+        if student_turn.get("question_to_answer"):
             lines.append(
-                f"- Student question to answer: {turn_analysis['student_question_to_answer']}"
+                f"- Student question to answer: {student_turn['question_to_answer']}"
             )
-        if turn_analysis.get("teaching_move"):
-            lines.append(f"- Teaching move: {turn_analysis['teaching_move']}")
-        lesson_patch = turn_analysis.get("lesson_state_patch") or {}
-        bridge_target = lesson_patch.get("bridge_back_target", "")
-        if bridge_target:
-            lines.append(f"- Bridge back target: {bridge_target}")
-        target_stage = turn_analysis.get("target_stage", "")
-        if target_stage:
+        if student_turn.get("open_question_type"):
+            lines.append(f"- Open question type: {student_turn['open_question_type']}")
+        if tutor.get("move"):
+            lines.append(f"- Tutor move: {tutor['move']}")
+        if tutor.get("support_level"):
+            lines.append(f"- Support level: {tutor['support_level']}")
+        if tutor.get("one_turn_goal"):
+            lines.append(f"- One-turn goal: {tutor['one_turn_goal']}")
+        if progression:
             lines.append(
-                f"- Stage recommendation: {turn_analysis.get('stage_action', 'stay')} -> {target_stage}"
+                "- Progression: "
+                f"{progression.get('stage_action', 'stay')} -> "
+                f"{progression.get('target_stage', '')}; "
+                f"closure={progression.get('closure_state', '')}; "
+                f"evidence={progression.get('evidence_quality', '')}; "
+                f"blocker={progression.get('progression_blocker', '')}"
             )
-        pacing_signal = turn_analysis.get("pacing_signal") or {}
-        if pacing_signal:
-            parts = []
-            for key in (
-                "grasp_level",
-                "reasoning_mode",
-                "support_needed",
-                "confusion_level",
-                "concept_closure",
-            ):
-                value = pacing_signal.get(key)
-                if value:
-                    parts.append(f"{key}={value}")
-            if parts:
-                lines.append(f"- Pacing signal: {', '.join(parts)}")
-            if pacing_signal.get("recommended_next_step"):
-                lines.append(
-                    f"- Pacing next step: {pacing_signal['recommended_next_step']}"
-                )
+        if graph.get("bridge_mode"):
+            lines.append(
+                "- Graph handoff: "
+                f"{graph.get('bridge_mode')} "
+                f"current={graph.get('current_node_id', '')} "
+                f"candidate={graph.get('candidate_next_node_id', '')}"
+            )
         return "\n".join(lines)
 
     @staticmethod
@@ -2009,294 +1965,117 @@ class HybridCrewAISocraticSystem:
         if not turn_analysis:
             return ""
 
+        turn_analysis = normalize_analyzer_output(turn_analysis)
         sections: List[str] = []
-        if isinstance(turn_analysis, dict) and "student_turn" in turn_analysis:
-            student = turn_analysis.get("student_turn") or {}
-            tutor = turn_analysis.get("next_tutor_handoff") or {}
-            progression = turn_analysis.get("progression_recommendation") or {}
-            graph = turn_analysis.get("graph_handoff") or {}
-            state_patch = turn_analysis.get("state_patch") or {}
-            mastery = turn_analysis.get("mastery_signal") or {}
-            memory = turn_analysis.get("memory_patch") or {}
-            consistency = turn_analysis.get("consistency_check") or {}
+        student = turn_analysis.get("student_turn") or {}
+        tutor = turn_analysis.get("next_tutor_handoff") or {}
+        progression = turn_analysis.get("progression_recommendation") or {}
+        graph = turn_analysis.get("graph_handoff") or {}
+        state_patch = turn_analysis.get("state_patch") or {}
+        mastery = turn_analysis.get("mastery_signal") or {}
+        memory = turn_analysis.get("memory_patch") or {}
+        consistency = turn_analysis.get("consistency_check") or {}
 
-            sections.append(
-                "  \n".join(
+        sections.append(
+            "  \n".join(
+                [
+                    f"**Route:** {cls._ta_format_value(student.get('route'))}",
+                    f"**Answer first:** {cls._ta_format_value(student.get('answer_first'))}",
+                    f"**Open question type:** {cls._ta_format_value(student.get('open_question_type'))}",
+                    f"**Question:** _{cls._ta_format_value(student.get('question_to_answer'), max_chars=180)}_",
+                ]
+            )
+        )
+        sections.append(
+            "**Next tutor handoff**\n"
+            + "\n".join(
+                cls._ta_kv_lines(
+                    tutor,
                     [
-                        f"**Route:** {cls._ta_format_value(student.get('route'))}",
-                        f"**Answer first:** {cls._ta_format_value(student.get('answer_first'))}",
-                        f"**Open question type:** {cls._ta_format_value(student.get('open_question_type'))}",
-                        f"**Question:** _{cls._ta_format_value(student.get('question_to_answer'), max_chars=180)}_",
-                    ]
+                        ("move", "move"),
+                        ("support_level", "support"),
+                        ("one_turn_goal", "one-turn goal"),
+                        ("source_certainty_needed", "source certainty needed"),
+                    ],
                 )
             )
+        )
+        sections.append(
+            "**Progression recommendation**\n"
+            + "\n".join(
+                cls._ta_kv_lines(
+                    progression,
+                    [
+                        ("stage_action", "stage action"),
+                        ("target_stage", "target stage"),
+                        ("closure_state", "closure"),
+                        ("evidence_quality", "evidence quality"),
+                        ("progression_blocker", "blocker"),
+                    ],
+                )
+            )
+        )
+        sections.append(
+            "**Graph handoff**\n"
+            + "\n".join(
+                cls._ta_kv_lines(
+                    graph,
+                    [
+                        ("bridge_mode", "bridge mode"),
+                        ("current_node_id", "current node"),
+                        ("candidate_next_node_id", "candidate next"),
+                        ("return_to_current_node", "return to current"),
+                    ],
+                )
+            )
+        )
+        state_lines = cls._ta_kv_lines(
+            state_patch,
+            [
+                ("active_concept_id", "active concept"),
+                ("pending_check", "pending check"),
+                ("concept_updates", "concept updates"),
+            ],
+        )
+        if state_lines:
+            sections.append("**State patch**\n" + "\n".join(state_lines))
+        misconceptions = turn_analysis.get("misconceptions") or []
+        if misconceptions:
             sections.append(
-                "**Next tutor handoff**\n"
-                + "\n".join(
-                    cls._ta_kv_lines(
-                        tutor,
-                        [
-                            ("move", "move"),
-                            ("support_level", "support"),
-                            ("one_turn_goal", "one-turn goal"),
-                            ("source_certainty_needed", "source certainty needed"),
-                        ],
-                    )
+                f"**Misconceptions** ({len(misconceptions)})\n"
+                + cls._ta_format_value(misconceptions)
+            )
+        sections.append(
+            "**Mastery and memory**\n"
+            + "\n".join(
+                cls._ta_kv_lines(
+                    mastery,
+                    [("update", "mastery update"), ("level", "level")],
+                )
+                + cls._ta_kv_lines(
+                    memory,
+                    [
+                        ("objective_summary", "objective summary"),
+                        ("learner_summary", "learner summary"),
+                        ("next_focus", "next focus"),
+                    ],
                 )
             )
-            sections.append(
-                "**Progression recommendation**\n"
-                + "\n".join(
-                    cls._ta_kv_lines(
-                        progression,
-                        [
-                            ("stage_action", "stage action"),
-                            ("target_stage", "target stage"),
-                            ("closure_state", "closure"),
-                            ("evidence_quality", "evidence quality"),
-                            ("progression_blocker", "blocker"),
-                        ],
-                    )
+        )
+        sections.append(
+            "**Consistency check**\n"
+            + "\n".join(
+                cls._ta_kv_lines(
+                    consistency,
+                    [
+                        ("status", "status"),
+                        ("conflict", "conflict"),
+                        ("repair_instruction", "repair instruction"),
+                    ],
                 )
             )
-            sections.append(
-                "**Graph handoff**\n"
-                + "\n".join(
-                    cls._ta_kv_lines(
-                        graph,
-                        [
-                            ("bridge_mode", "bridge mode"),
-                            ("current_node_id", "current node"),
-                            ("candidate_next_node_id", "candidate next"),
-                            ("return_to_current_node", "return to current"),
-                        ],
-                    )
-                )
-            )
-            state_lines = cls._ta_kv_lines(
-                state_patch,
-                [
-                    ("active_concept_id", "active concept"),
-                    ("pending_check", "pending check"),
-                    ("concept_updates", "concept updates"),
-                ],
-            )
-            if state_lines:
-                sections.append("**State patch**\n" + "\n".join(state_lines))
-            misconceptions = turn_analysis.get("misconceptions") or []
-            if misconceptions:
-                sections.append(
-                    f"**Misconceptions** ({len(misconceptions)})\n"
-                    + cls._ta_format_value(misconceptions)
-                )
-            sections.append(
-                "**Mastery and memory**\n"
-                + "\n".join(
-                    cls._ta_kv_lines(
-                        mastery,
-                        [("update", "mastery update"), ("level", "level")],
-                    )
-                    + cls._ta_kv_lines(
-                        memory,
-                        [
-                            ("objective_summary", "objective summary"),
-                            ("learner_summary", "learner summary"),
-                            ("next_focus", "next focus"),
-                        ],
-                    )
-                )
-            )
-            sections.append(
-                "**Consistency check**\n"
-                + "\n".join(
-                    cls._ta_kv_lines(
-                        consistency,
-                        [
-                            ("status", "status"),
-                            ("conflict", "conflict"),
-                            ("repair_instruction", "repair instruction"),
-                        ],
-                    )
-                )
-            )
-            return "\n\n".join(section for section in sections if section.strip())
-
-        # Routing line: turn_route + answer-question flag + student question
-        route = cls._ta_format_value(turn_analysis.get("turn_route"))
-        ans_first = turn_analysis.get("answer_current_question_first")
-        s_question = turn_analysis.get("student_question_to_answer") or ""
-        head_bits = [f"**Turn route:** {route}"]
-        if ans_first is not None:
-            head_bits.append(
-                f"**Answer student question first:** {cls._ta_format_value(ans_first)}"
-            )
-        if isinstance(s_question, str) and s_question.strip():
-            head_bits.append(
-                f"**Student question:** _{cls._ta_format_value(s_question, max_chars=160)}_"
-            )
-        sections.append("  \n".join(head_bits))
-
-        # Stage line: action → target — reason
-        stage_bits = []
-        if "stage_action" in turn_analysis or "target_stage" in turn_analysis:
-            action = cls._ta_format_value(turn_analysis.get("stage_action"))
-            target = cls._ta_format_value(turn_analysis.get("target_stage"))
-            arrow = f"{action} → **{target}**" if target != "_—_" else action
-            stage_bits.append(f"**Stage:** {arrow}")
-        if turn_analysis.get("stage_reason"):
-            stage_bits.append(
-                f"_{cls._ta_format_value(turn_analysis.get('stage_reason'), max_chars=240)}_"
-            )
-        if stage_bits:
-            sections.append("  \n".join(stage_bits))
-
-        # Teaching move + follow-up policy
-        move_bits = []
-        if "teaching_move" in turn_analysis:
-            move_bits.append(
-                f"**Teaching move:** {cls._ta_format_value(turn_analysis.get('teaching_move'))}"
-            )
-        if "follow_up_question_policy" in turn_analysis:
-            move_bits.append(
-                f"**Follow-up policy:** {cls._ta_format_value(turn_analysis.get('follow_up_question_policy'))}"
-            )
-        if move_bits:
-            sections.append(" · ".join(move_bits))
-
-        # Mastery signal block
-        mastery = turn_analysis.get("mastery_signal")
-        if isinstance(mastery, dict) and mastery:
-            kv = cls._ta_kv_lines(
-                mastery,
-                [
-                    ("should_update", "update"),
-                    ("level", "level"),
-                    ("confidence", "confidence"),
-                    ("evidence_summary", "evidence"),
-                ],
-            )
-            if kv:
-                sections.append("**Mastery signal**\n" + "\n".join(kv))
-
-        # Misconception events
-        misconceptions = turn_analysis.get("misconception_events")
-        if isinstance(misconceptions, list) and misconceptions:
-            entries = []
-            for idx, event in enumerate(misconceptions, 1):
-                if not isinstance(event, dict):
-                    entries.append(f"{idx}. {cls._ta_format_value(event)}")
-                    continue
-                key = event.get("key") or "(unkeyed)"
-                action = event.get("action") or "?"
-                tags = []
-                for fk, label in (
-                    ("repair_priority", "priority"),
-                    ("repair_scope", "scope"),
-                    ("repair_pattern", "pattern"),
-                ):
-                    val = event.get(fk)
-                    if val:
-                        tags.append(f"{label} `{val}`")
-                tag_str = (" · " + " · ".join(tags)) if tags else ""
-                head = f"{idx}. **`{key}`** — `{action}`{tag_str}"
-                text = event.get("text")
-                if text:
-                    head += "  \n   " + cls._ta_format_value(text, max_chars=240)
-                entries.append(head)
-            sections.append(
-                f"**Misconceptions** ({len(misconceptions)})\n" + "\n".join(entries)
-            )
-
-        # Lesson state patch
-        lsp = turn_analysis.get("lesson_state_patch")
-        if isinstance(lsp, dict) and lsp:
-            kv = cls._ta_kv_lines(
-                lsp,
-                [
-                    ("active_concept", "active concept"),
-                    ("pending_check", "pending check"),
-                    ("bridge_back_target", "bridge back"),
-                    ("concept_updates", "concept updates"),
-                ],
-            )
-            if kv:
-                sections.append("**Lesson state patch**\n" + "\n".join(kv))
-
-        # Pacing signal
-        pacing = turn_analysis.get("pacing_signal")
-        if isinstance(pacing, dict) and pacing:
-            inline_bits = []
-            for fk, label in (
-                ("grasp_level", "grasp"),
-                ("reasoning_mode", "reasoning"),
-                ("support_needed", "support"),
-                ("confusion_level", "confusion"),
-            ):
-                if fk in pacing and pacing.get(fk) not in (None, ""):
-                    inline_bits.append(f"{label} `{pacing.get(fk)}`")
-            second_row = []
-            for fk, label in (
-                ("response_pattern", "response pattern"),
-                ("concept_closure", "concept closure"),
-            ):
-                if fk in pacing and pacing.get(fk) not in (None, ""):
-                    second_row.append(f"{label} `{pacing.get(fk)}`")
-            override_row = []
-            if pacing.get("override_pace"):
-                override_row.append(
-                    f"**override pace:** `{pacing.get('override_pace')}`"
-                )
-            if pacing.get("override_reason"):
-                override_row.append(
-                    f"_{cls._ta_format_value(pacing.get('override_reason'), max_chars=200)}_"
-                )
-            next_step = pacing.get("recommended_next_step")
-            pacing_lines = []
-            if inline_bits:
-                pacing_lines.append("- " + " · ".join(inline_bits))
-            if second_row:
-                pacing_lines.append("- " + " · ".join(second_row))
-            if override_row:
-                pacing_lines.append("- " + " — ".join(override_row))
-            if next_step:
-                pacing_lines.append(
-                    f"- **next step:** {cls._ta_format_value(next_step, max_chars=240)}"
-                )
-            if pacing_lines:
-                sections.append("**Pacing signal**\n" + "\n".join(pacing_lines))
-
-        # Objective memory patch
-        obj_mem = turn_analysis.get("objective_memory_patch")
-        if isinstance(obj_mem, dict) and obj_mem:
-            kv = cls._ta_kv_lines(
-                obj_mem,
-                [
-                    ("summary", "summary"),
-                    ("demonstrated_skills_add", "demonstrated (add)"),
-                    ("active_gaps_current", "active gaps"),
-                    ("next_focus", "next focus"),
-                ],
-            )
-            if kv:
-                sections.append("**Objective memory patch**\n" + "\n".join(kv))
-
-        # Learner memory patch
-        lrn_mem = turn_analysis.get("learner_memory_patch")
-        if isinstance(lrn_mem, dict) and lrn_mem:
-            kv = cls._ta_kv_lines(
-                lrn_mem,
-                [
-                    ("summary", "summary"),
-                    ("strengths_add", "strengths (add)"),
-                    ("support_needs_current", "support needs"),
-                    ("tendencies_current", "tendencies"),
-                    ("successful_strategies_add", "strategies (add)"),
-                ],
-            )
-            if kv:
-                sections.append("**Learner memory patch**\n" + "\n".join(kv))
-
-        return "\n\n".join(sections)
+        )
+        return "\n\n".join(section for section in sections if section.strip())
 
     @staticmethod
     def _format_adaptive_pacing_for_tutor(

@@ -47,7 +47,14 @@ class FakeAzureClient:
         self.api_version = api_version
         self.content_filter_policy = content_filter_policy
 
-    def chat(self, messages, temperature=0.7, max_tokens=1000, reasoning_effort=None, response_format=None):
+    def chat(
+        self,
+        messages,
+        temperature=0.7,
+        max_tokens=1000,
+        reasoning_effort=None,
+        response_format=None,
+    ):
         return ""
 
     async def chat_with_tools(
@@ -109,12 +116,20 @@ class FakeStudentService:
         self.runtime_cache_store[session_id] = {}
         return {}
 
-    async def log_misconception(self, student_id: str, objective_id: str, misconception_text: str):
-        self.logged_misconceptions.append((student_id, objective_id, misconception_text))
+    async def log_misconception(
+        self, student_id: str, objective_id: str, misconception_text: str
+    ):
+        self.logged_misconceptions.append(
+            (student_id, objective_id, misconception_text)
+        )
         return {"misconception_text": misconception_text}
 
-    async def resolve_misconception(self, student_id: str, objective_id: str, misconception_text: str):
-        self.resolved_misconceptions.append((student_id, objective_id, misconception_text))
+    async def resolve_misconception(
+        self, student_id: str, objective_id: str, misconception_text: str
+    ):
+        self.resolved_misconceptions.append(
+            (student_id, objective_id, misconception_text)
+        )
         return {"misconception_text": misconception_text, "resolved": True}
 
     async def upsert_objective_memory(
@@ -189,7 +204,9 @@ class FakeWCAGClient:
 
 
 class FakeGeneralChatService:
-    def __init__(self, azure_config, vector_store_service, wcag_mcp_client=None, db_manager=None):
+    def __init__(
+        self, azure_config, vector_store_service, wcag_mcp_client=None, db_manager=None
+    ):
         self.azure_config = azure_config
         self.vector_store_service = vector_store_service
         self.wcag_mcp_client = wcag_mcp_client
@@ -480,17 +497,20 @@ class TestGuidedTutorMessages:
         turn_analysis_block = next(
             message["content"]
             for message in messages
-            if message["role"] == "system" and message["content"].startswith("TURN ANALYSIS:")
+            if message["role"] == "system"
+            and message["content"].startswith("TURN ANALYSIS:")
         )
         pacing_block = next(
             message["content"]
             for message in messages
-            if message["role"] == "system" and message["content"].startswith("ADAPTIVE PACING:")
+            if message["role"] == "system"
+            and message["content"].startswith("ADAPTIVE PACING:")
         )
         constraints_block = next(
             message["content"]
             for message in messages
-            if message["role"] == "system" and message["content"].startswith("RESPONSE CONSTRAINTS:")
+            if message["role"] == "system"
+            and message["content"].startswith("RESPONSE CONSTRAINTS:")
         )
         assert "Route: adjacent_topic" in turn_analysis_block
         assert "Answer current question first: yes" in turn_analysis_block
@@ -604,7 +624,10 @@ class TestGuidedTutorMessages:
         assert "same snippet ordered walkthrough" in constraints_block
         assert "native-first" in constraints_block
         assert "Do not ask for a localized explanation" in misconception_block
-        assert "Required order: native-first -> semantic override -> behavior -> focus -> required state/property." in misconception_block
+        assert (
+            "Required order: native-first -> semantic override -> behavior -> focus -> required state/property."
+            in misconception_block
+        )
 
 
 class TestSessionRuntimeCachePersistence:
@@ -642,9 +665,12 @@ class TestSessionRuntimeCachePersistence:
         assert hybrid_system._session_cache.get_teaching_plan("sess-restore") == (
             "8. dependency_order\n1. Principles vs guidelines\n"
         )
-        assert hybrid_system._session_cache.get_lesson_state("sess-restore")[
-            "active_concept"
-        ] == "principles-vs-guidelines"
+        assert (
+            hybrid_system._session_cache.get_lesson_state("sess-restore")[
+                "active_concept"
+            ]
+            == "principles-vs-guidelines"
+        )
 
     @pytest.mark.asyncio
     async def test_persist_session_cache_writes_runtime_cache(self, hybrid_system):
@@ -929,9 +955,7 @@ class TestResponseGuards:
         assert guarded["stage_action"] == "advance"
         assert guarded["target_stage"] == "exploration"
 
-    def test_enforce_turn_response_controls_normalizes_stage_jumps(
-        self, hybrid_system
-    ):
+    def test_enforce_turn_response_controls_normalizes_stage_jumps(self, hybrid_system):
         guarded = hybrid_system._enforce_turn_response_controls(
             current_stage="exploration",
             analysis={
@@ -1066,8 +1090,13 @@ class TestResponseGuards:
         assert guarded["target_stage"] == "readiness_check"
         assert guarded["pacing_signal"]["recommended_next_step"] == "advance"
         assert guarded["pacing_signal"]["override_pace"] == "steady"
-        assert "resolved with application-level evidence" in guarded["pacing_signal"]["override_reason"]
-        assert "Repeated full-sequence repair now looks stable" in guarded["stage_reason"]
+        assert (
+            "resolved with application-level evidence"
+            in guarded["pacing_signal"]["override_reason"]
+        )
+        assert (
+            "Repeated full-sequence repair now looks stable" in guarded["stage_reason"]
+        )
 
     def test_enforce_turn_response_controls_promotes_fresh_example_after_causal_clarification(
         self, hybrid_system
@@ -1102,7 +1131,9 @@ class TestResponseGuards:
         assert guarded["pacing_signal"]["recommended_next_step"] == "give_example"
         assert guarded["pacing_signal"]["override_pace"] == "steady"
         assert "fresh case" in guarded["pacing_signal"]["override_reason"]
-        assert guarded["follow_up_question_policy"] == "optional_if_explanation_suffices"
+        assert (
+            guarded["follow_up_question_policy"] == "optional_if_explanation_suffices"
+        )
 
     def test_response_constraints_prefer_fresh_example_after_repeated_sequence_repair(
         self, hybrid_system
@@ -1131,7 +1162,10 @@ class TestResponseGuards:
         )
 
         assert "Response shape: example_then_check" in constraints
-        assert "Prefer one fresh transfer example over another paraphrase recheck." in constraints
+        assert (
+            "Prefer one fresh transfer example over another paraphrase recheck."
+            in constraints
+        )
 
     def test_response_constraints_allow_clarify_without_token_recheck(
         self, hybrid_system
@@ -1154,9 +1188,7 @@ class TestResponseGuards:
         assert "Do not ask an answer-echo question" in constraints
         assert "you may end without a follow-up question" in constraints
 
-    def test_response_constraints_require_fresh_case_after_repair(
-        self, hybrid_system
-    ):
+    def test_response_constraints_require_fresh_case_after_repair(self, hybrid_system):
         constraints = hybrid_system._format_response_constraints_for_tutor(
             pacing_state={"current_pace": "steady"},
             turn_analysis={
@@ -1207,53 +1239,70 @@ class TestGuidedTurnOrdering:
     def test_render_turn_analysis_for_display_explains_fields(self, hybrid_system):
         rendered = hybrid_system._render_turn_analysis_for_display(
             {
-                "turn_route": "objective_answer",
-                "answer_current_question_first": True,
-                "student_question_to_answer": "What goes under principles?",
-                "teaching_move": "clarify",
-                "stage_action": "stay",
-                "target_stage": "introduction",
-                "stage_reason": "Student still needs a clean distinction.",
-                "pacing_signal": {
-                    "grasp_level": "fragile",
-                    "reasoning_mode": "paraphrase",
-                    "support_needed": "heavy",
-                    "confusion_level": "high",
-                    "response_pattern": "hedging",
-                    "concept_closure": "not_ready",
-                    "override_pace": "slow",
-                    "override_reason": "Student explicitly needs a slower pace.",
-                    "recommended_next_step": "re-explain",
+                "student_turn": {
+                    "route": "objective_answer",
+                    "answer_first": True,
+                    "question_to_answer": "What goes under principles?",
+                    "open_question_type": "clarification",
                 },
+                "next_tutor_handoff": {
+                    "move": "clarify",
+                    "support_level": "heavy",
+                    "one_turn_goal": "Answer the distinction directly.",
+                    "source_certainty_needed": "low",
+                },
+                "progression_recommendation": {
+                    "stage_action": "stay",
+                    "target_stage": "introduction",
+                    "closure_state": "not_ready",
+                    "evidence_quality": "weak",
+                    "progression_blocker": "open_question",
+                },
+                "graph_handoff": {
+                    "bridge_mode": "answer_within_current_node",
+                    "current_node_id": "c1",
+                    "candidate_next_node_id": "",
+                    "return_to_current_node": True,
+                },
+                "state_patch": {
+                    "active_concept_id": "c1",
+                    "pending_check": "Explain what a guideline does",
+                    "concept_updates": [{"concept_id": "c1", "status": "in_progress"}],
+                },
+                "misconceptions": [],
                 "mastery_signal": {
-                    "should_update": False,
+                    "update": False,
                     "level": "not_attempted",
-                    "confidence": 0.0,
-                    "evidence_summary": "",
+                },
+                "memory_patch": {
+                    "objective_summary": "",
+                    "learner_summary": "",
+                    "next_focus": "",
+                },
+                "consistency_check": {
+                    "status": "needs_repair",
+                    "conflict": "Student still needs a clean distinction.",
+                    "repair_instruction": "Use a conservative clarify move.",
                 },
             }
         )
 
         # New compact markdown format — every input value must still appear.
         # Simple fields are bold-labelled and values render inline.
-        assert "**Turn route:** objective_answer" in rendered
-        assert "**Answer student question first:** **yes**" in rendered
-        assert "What goes under principles?" in rendered  # student_question_to_answer
-        assert "**Teaching move:** clarify" in rendered
-        assert "**Stage:**" in rendered and "introduction" in rendered
-        assert "Student still needs a clean distinction." in rendered  # stage_reason
-
-        # Nested pacing block — all values present
-        assert "**Pacing signal**" in rendered
-        for value in ("fragile", "paraphrase", "heavy", "high", "hedging", "not_ready", "re-explain"):
-            assert value in rendered, f"pacing value missing: {value}"
-        assert "`slow`" in rendered  # override_pace
-        assert "Student explicitly needs a slower pace." in rendered
-
-        # Mastery block present with its values
-        assert "**Mastery signal**" in rendered
+        assert "**Route:** objective_answer" in rendered
+        assert "**Answer first:** **yes**" in rendered
+        assert "What goes under principles?" in rendered
+        assert "**Next tutor handoff**" in rendered
+        assert "**move:** clarify" in rendered
+        assert "**Progression recommendation**" in rendered
+        assert "**target stage:** introduction" in rendered
+        assert "**closure:** not_ready" in rendered
+        assert "**evidence quality:** weak" in rendered
+        assert "**State patch**" in rendered
+        assert "Explain what a guideline does" in rendered
+        assert "Student still needs a clean distinction." in rendered
+        assert "**Mastery and memory**" in rendered
         assert "not_attempted" in rendered
-        assert "`0.0`" in rendered or "`0`" in rendered  # confidence
 
         # Boilerplate meta-prose must NOT appear any more
         assert "TURN ANALYSIS EXPLANATION" not in rendered
@@ -1343,9 +1392,10 @@ class TestGuidedTurnOrdering:
         assert commit["lesson_state_before"]["active_concept"] == "c1"
         assert commit["lesson_state_after"]["active_concept"] == "c2"
         assert commit["lesson_state_after"]["concepts"][0]["status"] == "covered"
-        assert hybrid_system._session_cache.get_lesson_state("sess-1")[
-            "active_concept"
-        ] == "c2"
+        assert (
+            hybrid_system._session_cache.get_lesson_state("sess-1")["active_concept"]
+            == "c2"
+        )
 
     @pytest.mark.asyncio
     async def test_guided_turn_runs_analyzer_before_tutor_and_write(
@@ -1383,64 +1433,65 @@ class TestGuidedTurnOrdering:
         async def fake_turn_analyzer(**kwargs):
             call_order.append("analyzer")
             return {
-                "turn_route": "objective_answer",
-                "answer_current_question_first": True,
-                "student_question_to_answer": "What goes under principles?",
-                "teaching_move": "clarify",
-                "stage_action": "stay",
-                "target_stage": "introduction",
-                "stage_reason": "",
-                "mastery_signal": {
-                    "should_update": False,
-                    "level": "not_attempted",
-                    "confidence": 0.0,
-                    "evidence_summary": "",
+                "student_turn": {
+                    "route": "objective_answer",
+                    "answer_first": True,
+                    "question_to_answer": "What goes under principles?",
+                    "open_question_type": "clarification",
                 },
-                "misconception_events": [
+                "next_tutor_handoff": {
+                    "move": "clarify",
+                    "support_level": "heavy",
+                    "one_turn_goal": "Student explicitly needs a slower pace.",
+                    "source_certainty_needed": "low",
+                },
+                "progression_recommendation": {
+                    "stage_action": "stay",
+                    "target_stage": "introduction",
+                    "closure_state": "not_ready",
+                    "evidence_quality": "weak",
+                    "progression_blocker": "misconception",
+                },
+                "graph_handoff": {
+                    "bridge_mode": "answer_within_current_node",
+                    "current_node_id": "c1",
+                    "candidate_next_node_id": "",
+                    "return_to_current_node": True,
+                },
+                "state_patch": {
+                    "active_concept_id": "c1",
+                    "pending_check": "Explain what a guideline does",
+                    "concept_updates": [{"concept_id": "c1", "status": "in_progress"}],
+                },
+                "misconceptions": [
                     {
                         "key": "principle_vs_guideline_confusion",
-                        "text": "Confuses principles with guidelines.",
+                        "repair_focus": "Confuses principles with guidelines.",
                         "action": "log",
-                        "repair_priority": "must_address_now",
+                        "priority": "must_address_now",
                     }
                 ],
-                "lesson_state_patch": {
-                    "active_concept": "c1",
-                    "pending_check": "Explain what a guideline does",
-                    "bridge_back_target": "c1",
-                    "concept_updates": [
-                        {"concept_id": "c1", "status": "in_progress"}
-                    ],
+                "mastery_signal": {
+                    "update": False,
+                    "level": "not_attempted",
                 },
-                "pacing_signal": {
-                    "grasp_level": "fragile",
-                    "reasoning_mode": "paraphrase",
-                    "support_needed": "heavy",
-                    "confusion_level": "high",
-                    "response_pattern": "hedging",
-                    "concept_closure": "not_ready",
-                    "override_pace": "slow",
-                    "override_reason": "Student explicitly needs a slower pace.",
-                    "recommended_next_step": "re-explain",
-                },
-                "objective_memory_patch": {
-                    "summary": "",
-                    "demonstrated_skills": [],
-                    "active_gaps": [],
+                "memory_patch": {
+                    "objective_summary": "",
+                    "learner_summary": "",
                     "next_focus": "",
                 },
-                "learner_memory_patch": {
-                    "summary": "",
-                    "strengths": [],
-                    "support_needs": [],
-                    "tendencies": [],
-                    "successful_strategies": [],
+                "consistency_check": {
+                    "status": "consistent",
+                    "conflict": "",
+                    "repair_instruction": "",
                 },
             }
 
         def fake_build_messages(**kwargs):
             call_order.append("build_messages")
-            assert kwargs["turn_analysis"]["turn_route"] == "objective_answer"
+            assert (
+                kwargs["turn_analysis"]["student_turn"]["route"] == "objective_answer"
+            )
             assert kwargs["pacing_state"]["current_pace"] == "slow"
             assert kwargs["misconception_state"]["active_misconceptions"][0]["key"] == (
                 "principle_vs_guideline_confusion"
@@ -1480,9 +1531,13 @@ class TestGuidedTurnOrdering:
             )
             return {"stage": "introduction", "stage_advanced": False}
 
-        monkeypatch.setattr(hybrid_system, "_load_student_bundle", fake_load_student_bundle)
+        monkeypatch.setattr(
+            hybrid_system, "_load_student_bundle", fake_load_student_bundle
+        )
         monkeypatch.setattr(hybrid_system, "_run_turn_analyzer", fake_turn_analyzer)
-        monkeypatch.setattr(hybrid_system, "_build_guided_tutor_messages", fake_build_messages)
+        monkeypatch.setattr(
+            hybrid_system, "_build_guided_tutor_messages", fake_build_messages
+        )
         monkeypatch.setattr(hybrid_system, "_stream_response", fake_stream_response)
         monkeypatch.setattr(
             hybrid_system, "_apply_turn_analysis_updates", fake_apply_updates
@@ -1510,13 +1565,15 @@ class TestGuidedTurnOrdering:
             "stage",
             "stream_end",
         ]
-        assert ws_events[2]["analysis"]["turn_route"] == "objective_answer"
-        assert ws_events[2]["analysis"]["pacing_signal"]["override_pace"] == "slow"
+        assert ws_events[2]["analysis"]["student_turn"]["route"] == "objective_answer"
+        assert (
+            ws_events[2]["analysis"]["next_tutor_handoff"]["support_level"] == "heavy"
+        )
         display = ws_events[2]["display_analysis"]
         # New compact markdown format: bold labels with inline values, no boilerplate.
-        assert "**Turn route:** objective_answer" in display
-        assert "**Pacing signal**" in display
-        assert "re-explain" in display
+        assert "**Route:** objective_answer" in display
+        assert "**Next tutor handoff**" in display
+        assert "Student explicitly needs a slower pace." in display
         assert "TURN ANALYSIS EXPLANATION" not in display
 
 
@@ -1562,12 +1619,12 @@ class TestGuidedRetrieval:
     async def test_generate_teaching_plan_raises_on_empty_response(
         self, hybrid_system, monkeypatch
     ):
-        monkeypatch.setattr(hybrid_system.reasoning_client, "chat", lambda *args, **kwargs: "")
+        monkeypatch.setattr(
+            hybrid_system.reasoning_client, "chat", lambda *args, **kwargs: ""
+        )
 
         with pytest.raises(TeachingPlanGenerationError):
-            await hybrid_system._generate_teaching_plan(
-                "Explain the structure of WCAG"
-            )
+            await hybrid_system._generate_teaching_plan("Explain the structure of WCAG")
 
     @pytest.mark.asyncio
     async def test_build_teaching_graph_uses_dedicated_reasoning_budget(
@@ -1597,7 +1654,11 @@ class TestGuidedRetrieval:
                     "nodes": [
                         {"id": "n1", "label": "Principles", "kind": "core_concept"},
                         {"id": "n2", "label": "Guidelines", "kind": "core_concept"},
-                        {"id": "n3", "label": "Integrated structure", "kind": "integration"},
+                        {
+                            "id": "n3",
+                            "label": "Integrated structure",
+                            "kind": "integration",
+                        },
                     ],
                     "edges": [
                         {
@@ -1632,12 +1693,12 @@ class TestGuidedRetrieval:
     async def test_build_teaching_graph_raises_on_invalid_response(
         self, hybrid_system, monkeypatch
     ):
-        monkeypatch.setattr(hybrid_system.reasoning_client, "chat", lambda *args, **kwargs: "{}")
+        monkeypatch.setattr(
+            hybrid_system.reasoning_client, "chat", lambda *args, **kwargs: "{}"
+        )
 
         with pytest.raises(TeachingGraphGenerationError):
-            await hybrid_system._build_teaching_graph(
-                "Explain the structure of WCAG"
-            )
+            await hybrid_system._build_teaching_graph("Explain the structure of WCAG")
 
     @pytest.mark.asyncio
     async def test_build_graph_node_evidence_uses_per_node_retrieval_budget(
@@ -1731,7 +1792,9 @@ class TestGuidedRetrieval:
                 }
             if previous_response_id:
                 return {
-                    "id": "resp_node_2" if previous_response_id == "resp_node_1" else "resp_node_done",
+                    "id": "resp_node_2"
+                    if previous_response_id == "resp_node_1"
+                    else "resp_node_done",
                     "output": [],
                 }
             return {
@@ -1742,7 +1805,9 @@ class TestGuidedRetrieval:
                         "id": "fc_1",
                         "call_id": "call_1",
                         "name": "list_principles",
-                        "arguments": json.dumps({"rationale": "Need top-level structure."}),
+                        "arguments": json.dumps(
+                            {"rationale": "Need top-level structure."}
+                        ),
                     }
                 ],
             }
@@ -1764,7 +1829,9 @@ class TestGuidedRetrieval:
 
         hybrid_system.wcag_mcp = FakeWCAGClient()
         hybrid_system._graph_node_evidence_worker.wcag_mcp = hybrid_system.wcag_mcp
-        monkeypatch.setattr(hybrid_system.wcag_mcp, "execute_planned_tool_calls", fake_execute)
+        monkeypatch.setattr(
+            hybrid_system.wcag_mcp, "execute_planned_tool_calls", fake_execute
+        )
 
         graph = TeachingGraphArtifact.from_dict(
             {
@@ -1775,7 +1842,11 @@ class TestGuidedRetrieval:
                 "primary_route": ["n1", "n2"],
                 "nodes": [
                     {"id": "n1", "label": "Principles", "kind": "core_concept"},
-                    {"id": "n2", "label": "Integrated structure", "kind": "integration"},
+                    {
+                        "id": "n2",
+                        "label": "Integrated structure",
+                        "kind": "integration",
+                    },
                 ],
                 "edges": [
                     {
@@ -1796,10 +1867,16 @@ class TestGuidedRetrieval:
         assert len(artifact.node_evidence) == 2
         assert artifact.node_evidence[0].retrieved_items[0].tool == "list_principles"
         assert captured_calls[0]["text"]["format"]["name"] == "retrieval_plan"
-        assert captured_calls[1]["max_output_tokens"] == TEACHING_GRAPH_NODE_RETRIEVAL_MAX_COMPLETION_TOKENS
+        assert (
+            captured_calls[1]["max_output_tokens"]
+            == TEACHING_GRAPH_NODE_RETRIEVAL_MAX_COMPLETION_TOKENS
+        )
         assert captured_calls[1]["tool_choice"] == "required"
         assert captured_calls[1]["parallel_tool_calls"] is True
-        assert captured_calls[1]["max_tool_calls"] == TEACHING_GRAPH_NODE_RETRIEVAL_MAX_TOOL_CALLS
+        assert (
+            captured_calls[1]["max_tool_calls"]
+            == TEACHING_GRAPH_NODE_RETRIEVAL_MAX_TOOL_CALLS
+        )
         assert captured_calls[1]["store"] is True
         assert captured_calls[3]["text"]["format"]["type"] == "json_schema"
 
@@ -1902,7 +1979,9 @@ class TestGuidedRetrieval:
 
         hybrid_system.wcag_mcp = FakeWCAGClient()
         hybrid_system._graph_node_evidence_worker.wcag_mcp = hybrid_system.wcag_mcp
-        monkeypatch.setattr(hybrid_system.wcag_mcp, "execute_planned_tool_calls", fake_execute)
+        monkeypatch.setattr(
+            hybrid_system.wcag_mcp, "execute_planned_tool_calls", fake_execute
+        )
 
         graph = TeachingGraphArtifact.from_dict(
             {
@@ -1913,7 +1992,11 @@ class TestGuidedRetrieval:
                 "primary_route": ["n1", "n2"],
                 "nodes": [
                     {"id": "n1", "label": "Principles", "kind": "core_concept"},
-                    {"id": "n2", "label": "Integrated structure", "kind": "integration"},
+                    {
+                        "id": "n2",
+                        "label": "Integrated structure",
+                        "kind": "integration",
+                    },
                 ],
                 "edges": [
                     {
@@ -1992,7 +2075,11 @@ class TestGuidedRetrieval:
                 "primary_route": ["n1", "n2"],
                 "nodes": [
                     {"id": "n1", "label": "Principles", "kind": "core_concept"},
-                    {"id": "n2", "label": "Integrated structure", "kind": "integration"},
+                    {
+                        "id": "n2",
+                        "label": "Integrated structure",
+                        "kind": "integration",
+                    },
                 ],
                 "edges": [
                     {
@@ -2064,7 +2151,10 @@ class TestGuidedRetrieval:
 
         assert len(node_content.nodes) == 2
         assert node_content.nodes[0].core_claim
-        assert captured[0]["max_tokens"] == TEACHING_GRAPH_NODE_SYNTHESIS_MAX_COMPLETION_TOKENS
+        assert (
+            captured[0]["max_tokens"]
+            == TEACHING_GRAPH_NODE_SYNTHESIS_MAX_COMPLETION_TOKENS
+        )
         assert captured[0]["response_format"] == {"type": "json_object"}
 
     @pytest.mark.asyncio
@@ -2127,7 +2217,11 @@ class TestGuidedRetrieval:
                 "primary_route": ["n1", "n2"],
                 "nodes": [
                     {"id": "n1", "label": "Principles", "kind": "core_concept"},
-                    {"id": "n2", "label": "Integrated structure", "kind": "integration"},
+                    {
+                        "id": "n2",
+                        "label": "Integrated structure",
+                        "kind": "integration",
+                    },
                 ],
                 "edges": [
                     {
@@ -2222,7 +2316,11 @@ class TestGuidedRetrieval:
                         "primary_route": ["n1", "n2"],
                         "nodes": [
                             {"id": "n1", "label": "Principles", "kind": "core_concept"},
-                            {"id": "n2", "label": "Integrated structure", "kind": "integration"},
+                            {
+                                "id": "n2",
+                                "label": "Integrated structure",
+                                "kind": "integration",
+                            },
                         ],
                         "edges": [
                             {
@@ -2380,7 +2478,9 @@ class TestGuidedRetrieval:
                                 "has_explanatory_support": True,
                                 "has_normative_anchor": True,
                             },
-                            "source_tools_used": [{"tool": "list_principles", "args": {}}],
+                            "source_tools_used": [
+                                {"tool": "list_principles", "args": {}}
+                            ],
                             "retrieved_items": [
                                 {
                                     "item_id": "n1-item-1",
@@ -2400,7 +2500,9 @@ class TestGuidedRetrieval:
                                 "has_explanatory_support": True,
                                 "has_normative_anchor": True,
                             },
-                            "source_tools_used": [{"tool": "list_principles", "args": {}}],
+                            "source_tools_used": [
+                                {"tool": "list_principles", "args": {}}
+                            ],
                             "retrieved_items": [
                                 {
                                     "item_id": "n2-item-1",
@@ -2420,7 +2522,12 @@ class TestGuidedRetrieval:
                                 "has_explanatory_support": True,
                                 "has_contrast_support": True,
                             },
-                            "source_tools_used": [{"tool": "search_wcag", "args": {"query": "WCAG hierarchy"}}],
+                            "source_tools_used": [
+                                {
+                                    "tool": "search_wcag",
+                                    "args": {"query": "WCAG hierarchy"},
+                                }
+                            ],
                             "retrieved_items": [
                                 {
                                     "item_id": "edge-n1-n2-item-1",
@@ -2440,7 +2547,9 @@ class TestGuidedRetrieval:
                                 "has_explanatory_support": True,
                                 "has_risk_support": True,
                             },
-                            "source_tools_used": [{"tool": "list_guidelines", "args": {}}],
+                            "source_tools_used": [
+                                {"tool": "list_guidelines", "args": {}}
+                            ],
                             "retrieved_items": [
                                 {
                                     "item_id": "integration-n2-item-1",
@@ -2503,7 +2612,10 @@ class TestFirstTeachingTurn:
             student_context="ctx",
             current_stage="introduction",
             active_objective="obj",
-            teaching_plan={"recommended_order": ["c1"], "concepts": [{"id": "c1", "name": "C1"}]},
+            teaching_plan={
+                "recommended_order": ["c1"],
+                "concepts": [{"id": "c1", "name": "C1"}],
+            },
             first_turn=True,
         )
 
@@ -2528,7 +2640,10 @@ class TestFirstTeachingTurn:
             student_context="ctx",
             current_stage="introduction",
             active_objective="obj",
-            teaching_plan={"recommended_order": ["c1"], "concepts": [{"id": "c1", "name": "C1"}]},
+            teaching_plan={
+                "recommended_order": ["c1"],
+                "concepts": [{"id": "c1", "name": "C1"}],
+            },
         )
         # No first-turn instruction, real student message at the end.
         assert all(FIRST_TURN_INSTRUCTION not in m["content"] for m in messages)
@@ -2552,7 +2667,11 @@ class TestFirstTeachingTurn:
         teaching_plan = {
             "recommended_order": ["c1"],
             "concepts": [
-                {"id": "c1", "name": "Principles vs guidelines", "status": "not_covered"}
+                {
+                    "id": "c1",
+                    "name": "Principles vs guidelines",
+                    "status": "not_covered",
+                }
             ],
         }
         teaching_content = "evidence pack body"
@@ -2629,22 +2748,25 @@ class TestTurnAnalysisRenderEdgeCases:
     def test_string_values_escape_html_tags(self, hybrid_system):
         rendered = hybrid_system._render_turn_analysis_for_display(
             {
+                "student_turn": {
+                    "route": "objective_answer",
+                    "answer_first": True,
+                    "question_to_answer": "",
+                    "open_question_type": "none",
+                },
                 "mastery_signal": {
-                    "should_update": True,
+                    "update": True,
                     "level": "in_progress",
-                    "confidence": 0.8,
-                    "evidence_summary": (
+                },
+                "memory_patch": {
+                    "objective_summary": (
                         "Correctly identified <button> as a control and <div> "
                         "as a generic container."
                     ),
-                },
-                "objective_memory_patch": {
-                    "summary": "Classified <button> vs <div> correctly.",
-                },
-                "learner_memory_patch": {
-                    "successful_strategies_add": [
+                    "learner_summary": (
                         "Use simple tag contrasts like <button> vs <div>"
-                    ],
+                    ),
+                    "next_focus": "Classified <button> vs <div> correctly.",
                 },
             }
         )
@@ -2664,13 +2786,27 @@ class TestTurnAnalysisRenderEdgeCases:
     def test_concept_updates_list_of_dicts_renders_as_sublist_no_truncation(
         self, hybrid_system
     ):
-        long_label = (
-            "Started learning what semantic means in this context "
-            "(built-in meaning vs styling, not just visual appearance)"
+        long_focus = (
+            "Started learning what semantic means in this context: built-in "
+            "meaning versus styling, not just visual appearance."
         )
         rendered = hybrid_system._render_turn_analysis_for_display(
             {
-                "lesson_state_patch": {
+                "student_turn": {
+                    "route": "objective_answer",
+                    "answer_first": True,
+                    "question_to_answer": "",
+                    "open_question_type": "none",
+                },
+                "misconceptions": [
+                    {
+                        "key": "semantic_meaning_vs_visual_style",
+                        "action": "log",
+                        "priority": "normal",
+                        "repair_focus": long_focus,
+                    }
+                ],
+                "state_patch": {
                     "concept_updates": [
                         {
                             "concept_id": "interactive_purpose_vs_generic_structure",
@@ -2680,16 +2816,15 @@ class TestTurnAnalysisRenderEdgeCases:
                         {
                             "concept_id": "semantic_controls_and_builtin_meaning",
                             "status": "in_progress",
-                            "label": long_label,
                         },
                     ],
                 },
             }
         )
 
-        # No truncation marker: every label must survive in full.
+        # No truncation marker: every canonical value must survive in full.
         assert "…" not in rendered
-        assert long_label in rendered
+        assert long_focus in rendered
         # Both concepts present and rendered as a sublist (not a JSON dump).
         assert "interactive_purpose_vs_generic_structure" in rendered
         assert "semantic_controls_and_builtin_meaning" in rendered
@@ -2700,13 +2835,7 @@ class TestTurnAnalysisRenderEdgeCases:
         assert "[{" not in rendered
 
     def test_list_of_scalars_still_comma_joins(self, hybrid_system):
-        rendered = hybrid_system._render_turn_analysis_for_display(
-            {
-                "objective_memory_patch": {
-                    "demonstrated_skills_add": ["names <button>", "explains semantic"],
-                    "active_gaps_current": ["keyboard support"],
-                },
-            }
+        rendered = hybrid_system._ta_format_value(
+            ["names <button>", "explains semantic"]
         )
         assert "names &lt;button&gt;, explains semantic" in rendered
-        assert "keyboard support" in rendered
