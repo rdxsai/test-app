@@ -78,7 +78,7 @@ def test_synthesize_section_reports_groups_findings_by_category():
         [
             {
                 "section": "tutor_pedagogy",
-                "score": 8,
+                "score": 0.8,
                 "summary": "Enough for teaching.",
                 "findings": [
                     {
@@ -122,6 +122,7 @@ def test_synthesize_section_reports_groups_findings_by_category():
     )
 
     assert report["overall_score"] == 7.5
+    assert report["teaching_sufficiency"]["score"] == 8.0
     assert report["teaching_sufficiency"]["is_enough_for_teaching"] is True
     assert report["overdoing"][0]["summary"] == "Stayed too long."
     assert report["mcp_source_gaps"][0]["summary"] == "Thin live chart evidence."

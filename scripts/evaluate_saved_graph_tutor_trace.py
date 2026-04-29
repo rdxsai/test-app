@@ -611,7 +611,7 @@ async def evaluate_trace(trace_path: Path, *, model: str) -> Dict[str, Any]:
 
 def synthesize_section_reports(sections: List[Dict[str, Any]]) -> Dict[str, Any]:
     scores = [
-        float(section.get("score", 0.0) or 0.0)
+        _normalize_score(section.get("score", 0.0))
         for section in sections
         if isinstance(section, dict)
     ]
@@ -656,8 +656,9 @@ def synthesize_section_reports(sections: List[Dict[str, Any]]) -> Dict[str, Any]
             section.get("summary", "") for section in sections if section.get("summary")
         )[:1200],
         "teaching_sufficiency": {
-            "is_enough_for_teaching": float(teaching_section.get("score", 0) or 0) >= 7,
-            "score": float(teaching_section.get("score", 0) or 0),
+            "is_enough_for_teaching": _normalize_score(teaching_section.get("score", 0))
+            >= 7,
+            "score": _normalize_score(teaching_section.get("score", 0)),
             "rationale": str(teaching_section.get("summary", "") or ""),
         },
         "model_or_prompt_failures": model_failures,
@@ -743,6 +744,16 @@ def build_failed_section_report(
     }
 
 
+def _normalize_score(value: Any) -> float:
+    try:
+        score = float(value or 0.0)
+    except (TypeError, ValueError):
+        return 0.0
+    if 0.0 < score <= 1.0:
+        score *= 10.0
+    return round(min(10.0, max(0.0, score)), 2)
+
+
 def _find_section(sections: List[Dict[str, Any]], section_name: str) -> Dict[str, Any]:
     return next(
         (
@@ -771,7 +782,7 @@ def _component_summary(
         if finding.get("category") != "strength"
     ]
     return {
-        "score": float(section.get("score", 0) or 0),
+        "score": _normalize_score(section.get("score", 0)),
         "strengths": strengths,
         "weaknesses": weaknesses,
         "evidence": str(section.get("summary", "") or ""),
