@@ -137,6 +137,8 @@ def _confusion_from_support(support: str) -> str:
 
 
 def _next_step_from_move(move: str, closure: str) -> str:
+    if closure == "ready" and move in {"continue", "consolidate"}:
+        return "advance"
     if move == "repair":
         return "re-explain"
     if move == "clarify":
@@ -547,8 +549,122 @@ def legacy_to_analyzer_output(
     )
 
 
-def analyzer_output_to_legacy(payload: Optional[Dict[str, Any]]) -> Dict[str, Any]:
-    """Convert canonical analyzer output into the private legacy runtime view."""
+def runtime_misconception_events(
+    payload: Optional[Dict[str, Any]],
+) -> List[Dict[str, str]]:
+    """Map canonical misconception records to the cache/event representation."""
+    canonical = normalize_analyzer_output(payload)
+    return [
+        {
+            "key": item["key"],
+            "text": item["repair_focus"],
+            "action": item["action"],
+            "repair_priority": item["priority"],
+            "repair_scope": "distinction",
+            "repair_pattern": "direct_recheck",
+        }
+        for item in canonical["misconceptions"]
+    ]
+
+
+def runtime_lesson_state_patch(
+    payload: Optional[Dict[str, Any]],
+) -> Dict[str, Any]:
+    """Map canonical state_patch/graph_handoff to lesson-state cache patch."""
+    canonical = normalize_analyzer_output(payload)
+    graph = canonical["graph_handoff"]
+    state = canonical["state_patch"]
+    return {
+        "active_concept": state["active_concept_id"],
+        "pending_check": state["pending_check"],
+        "bridge_back_target": graph["current_node_id"]
+        if graph["return_to_current_node"]
+        else "",
+        "concept_updates": copy.deepcopy(state["concept_updates"]),
+    }
+
+
+def runtime_pacing_signal(payload: Optional[Dict[str, Any]]) -> Dict[str, str]:
+    """Map canonical handoff/progression fields to pacing cache signal."""
+    canonical = normalize_analyzer_output(payload)
+    tutor = canonical["next_tutor_handoff"]
+    progression = canonical["progression_recommendation"]
+    support = tutor["support_level"]
+    evidence = progression["evidence_quality"]
+    closure = progression["closure_state"]
+    move = tutor["move"]
+    return {
+        "grasp_level": _grasp_from_support(support, evidence),
+        "reasoning_mode": _reasoning_from_evidence(evidence),
+        "support_needed": support,
+        "confusion_level": _confusion_from_support(support),
+        "response_pattern": "direct",
+        "concept_closure": closure,
+        "override_pace": "slow"
+        if support == "heavy"
+        else "fast"
+        if support == "none"
+        else "steady",
+        "override_reason": tutor["one_turn_goal"],
+        "recommended_next_step": _next_step_from_move(move, closure),
+    }
+
+
+def runtime_objective_memory_patch(
+    payload: Optional[Dict[str, Any]],
+) -> Dict[str, Any]:
+    """Map canonical memory patch to objective-memory persistence patch."""
+    canonical = normalize_analyzer_output(payload)
+    memory = canonical["memory_patch"]
+    return {
+        "summary": memory["objective_summary"],
+        "demonstrated_skills_add": [],
+        "active_gaps_current": [],
+        "next_focus": memory["next_focus"],
+    }
+
+
+def runtime_learner_memory_patch(
+    payload: Optional[Dict[str, Any]],
+) -> Dict[str, Any]:
+    """Map canonical memory patch to learner-memory persistence patch."""
+    canonical = normalize_analyzer_output(payload)
+    memory = canonical["memory_patch"]
+    return {
+        "summary": memory["learner_summary"],
+        "strengths_add": [],
+        "support_needs_current": [],
+        "tendencies_current": [],
+        "successful_strategies_add": [],
+    }
+
+
+def canonical_progression(payload: Optional[Dict[str, Any]]) -> Dict[str, str]:
+    return normalize_analyzer_output(payload)["progression_recommendation"]
+
+
+def canonical_student_turn(payload: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    return normalize_analyzer_output(payload)["student_turn"]
+
+
+def canonical_tutor_handoff(payload: Optional[Dict[str, Any]]) -> Dict[str, str]:
+    return normalize_analyzer_output(payload)["next_tutor_handoff"]
+
+
+def canonical_consistency_check(payload: Optional[Dict[str, Any]]) -> Dict[str, str]:
+    return normalize_analyzer_output(payload)["consistency_check"]
+
+
+def has_open_must_repair(payload: Optional[Dict[str, Any]]) -> bool:
+    return any(
+        item.get("priority") == "must_address_now"
+        and item.get("action") != "resolve_candidate"
+        for item in normalize_analyzer_output(payload)["misconceptions"]
+    )
+
+
+def canonical_to_trace_legacy(payload: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    """Compatibility view for old trace readers only; not used by live runtime."""
     canonical = normalize_analyzer_output(payload)
     student_turn = canonical["student_turn"]
     tutor = canonical["next_tutor_handoff"]
@@ -559,18 +675,20 @@ def analyzer_output_to_legacy(payload: Optional[Dict[str, Any]]) -> Dict[str, An
     memory = canonical["memory_patch"]
     consistency = canonical["consistency_check"]
 
-    support = tutor["support_level"]
     evidence = progression["evidence_quality"]
-    closure = progression["closure_state"]
     move = tutor["move"]
-    return {
+    pacing = runtime_pacing_signal(canonical)
+    if move == "repair" and consistency["status"] == "needs_repair":
+        pacing["recommended_next_step"] = "ask_narrower"
+
+    trace = {
         "turn_route": student_turn["route"],
         "answer_current_question_first": student_turn["answer_first"],
         "student_question_to_answer": student_turn["question_to_answer"],
         "teaching_move": move,
         "stage_action": progression["stage_action"],
         "target_stage": progression["target_stage"],
-        "stage_reason": progression["progression_blocker"],
+        "stage_reason": consistency["conflict"] or progression["progression_blocker"],
         "bridge_scope": {
             "mode": graph["bridge_mode"],
             "current_node_basis": graph["current_node_id"],
@@ -600,51 +718,12 @@ def analyzer_output_to_legacy(payload: Optional[Dict[str, Any]]) -> Dict[str, An
             "confidence": 0.0,
             "evidence_summary": memory["objective_summary"],
         },
-        "misconception_events": [
-            {
-                "key": item["key"],
-                "text": item["repair_focus"],
-                "action": item["action"],
-                "repair_priority": item["priority"],
-                "repair_scope": "distinction",
-                "repair_pattern": "direct_recheck",
-            }
-            for item in canonical["misconceptions"]
-        ],
-        "lesson_state_patch": {
-            "active_concept": state["active_concept_id"],
-            "pending_check": state["pending_check"],
-            "bridge_back_target": graph["current_node_id"]
-            if graph["return_to_current_node"]
-            else "",
-            "concept_updates": copy.deepcopy(state["concept_updates"]),
-        },
-        "pacing_signal": {
-            "grasp_level": _grasp_from_support(support, evidence),
-            "reasoning_mode": _reasoning_from_evidence(evidence),
-            "support_needed": support,
-            "confusion_level": _confusion_from_support(support),
-            "response_pattern": "direct",
-            "concept_closure": closure,
-            "override_pace": "slow"
-            if support == "heavy"
-            else "fast"
-            if support == "none"
-            else "steady",
-            "override_reason": tutor["one_turn_goal"],
-            "recommended_next_step": _next_step_from_move(move, closure),
-        },
-        "objective_memory_patch": {
-            "summary": memory["objective_summary"],
-            "demonstrated_skills_add": [],
-            "active_gaps_current": [],
-            "next_focus": memory["next_focus"],
-        },
-        "learner_memory_patch": {
-            "summary": memory["learner_summary"],
-            "strengths_add": [],
-            "support_needs_current": [],
-            "tendencies_current": [],
-            "successful_strategies_add": [],
-        },
+        "misconception_events": runtime_misconception_events(canonical),
+        "lesson_state_patch": runtime_lesson_state_patch(canonical),
+        "pacing_signal": pacing,
+        "objective_memory_patch": runtime_objective_memory_patch(canonical),
+        "learner_memory_patch": runtime_learner_memory_patch(canonical),
     }
+    if "optional" in tutor.get("one_turn_goal", "").lower():
+        trace["follow_up_question_policy"] = "optional_if_explanation_suffices"
+    return trace

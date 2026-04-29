@@ -20,7 +20,19 @@ from dotenv import load_dotenv
 
 from ...models.tutor import KnowledgeLevel, SessionPhase, StudentProfile
 from ..general_chat_service import GeneralChatService
-from .analyzer_schema import analyzer_output_to_legacy, normalize_analyzer_output
+from .analyzer_schema import (
+    canonical_progression,
+    canonical_student_turn,
+    canonical_tutor_handoff,
+    canonical_to_trace_legacy,
+    has_open_must_repair,
+    normalize_analyzer_output,
+    runtime_learner_memory_patch,
+    runtime_lesson_state_patch,
+    runtime_misconception_events,
+    runtime_objective_memory_patch,
+    runtime_pacing_signal,
+)
 from .azure_client import AzureAPIMClient
 from .interfaces import VectorStoreInterface
 from .orchestrators import GuidedTurnOrchestrator, TeachingGraphBuildOrchestrator
@@ -1093,9 +1105,10 @@ class HybridCrewAISocraticSystem:
         seen = set()
         payload = payload or {}
         if isinstance(payload, dict) and "student_turn" in payload:
-            payload = analyzer_output_to_legacy(payload)
+            raw_events = runtime_misconception_events(payload)
+        else:
+            raw_events = payload.get("misconception_events", []) or []
 
-        raw_events = payload.get("misconception_events", []) or []
         if isinstance(raw_events, dict):
             raw_events = [raw_events]
 
@@ -1192,11 +1205,11 @@ class HybridCrewAISocraticSystem:
         turn_analysis: Optional[Dict[str, Any]],
         misconception_state: Optional[Dict[str, Any]],
     ) -> str:
-        if isinstance(turn_analysis, dict) and "student_turn" in turn_analysis:
-            turn_analysis = analyzer_output_to_legacy(turn_analysis)
         must_address = [
             item
-            for item in (((turn_analysis or {}).get("misconception_events", []) or []))
+            for item in HybridCrewAISocraticSystem._coerce_misconception_events(
+                turn_analysis
+            )
             if isinstance(item, dict)
             and HybridCrewAISocraticSystem._is_open_must_repair_event(item)
         ]
@@ -1301,11 +1314,6 @@ class HybridCrewAISocraticSystem:
             return False
         repair_scope = str(item.get("repair_scope", "") or "").strip().lower()
         repair_pattern = str(item.get("repair_pattern", "") or "").strip().lower()
-        if (
-            repair_scope != "full_sequence"
-            and repair_pattern != "same_snippet_walkthrough"
-        ):
-            return False
         combined = " ".join(
             str(item.get(field, "") or "").lower() for field in ("key", "text")
         )
@@ -1325,7 +1333,11 @@ class HybridCrewAISocraticSystem:
             "rule sequence",
             "full rule sequence",
         )
-        return any(marker in combined for marker in procedural_markers)
+        return (
+            repair_scope == "full_sequence"
+            or repair_pattern == "same_snippet_walkthrough"
+            or any(marker in combined for marker in procedural_markers)
+        )
 
     @staticmethod
     def _supports_repair_exit(pacing_signal: Optional[Dict[str, Any]]) -> bool:
@@ -1439,54 +1451,56 @@ class HybridCrewAISocraticSystem:
         pacing_state: Optional[Dict[str, Any]],
         misconception_state: Optional[Dict[str, Any]],
     ) -> Dict[str, Any]:
-        canonical_input = (
-            normalize_analyzer_output(analysis, current_stage=current_stage)
-            if isinstance(analysis, dict) and "student_turn" in analysis
-            else None
+        return_legacy_shape = not (
+            isinstance(analysis, dict) and "student_turn" in analysis
         )
-        guarded = (
-            analyzer_output_to_legacy(canonical_input)
-            if canonical_input is not None
-            else copy.deepcopy(analysis or {})
-        )
+        guarded = normalize_analyzer_output(analysis, current_stage=current_stage)
         if not guarded:
             return {}
 
-        pacing_signal = guarded.setdefault("pacing_signal", {})
-        current_pace = (
-            str((pacing_state or {}).get("current_pace", "") or "").strip().lower()
-        )
-        teaching_move = str(guarded.get("teaching_move", "") or "").strip().lower()
-        answer_current_question_first = bool(
-            guarded.get("answer_current_question_first")
-        )
+        tutor = guarded["next_tutor_handoff"]
+        progression = guarded["progression_recommendation"]
+        consistency = guarded["consistency_check"]
+        teaching_move = str(tutor.get("move", "") or "").strip().lower()
         concept_closure = (
-            str(pacing_signal.get("concept_closure", "") or "").strip().lower()
+            str(progression.get("closure_state", "") or "").strip().lower()
         )
-        reasoning_mode = (
-            str(pacing_signal.get("reasoning_mode", "") or "").strip().lower()
+        evidence_quality = (
+            str(progression.get("evidence_quality", "") or "").strip().lower()
         )
         (
-            guarded["stage_action"],
-            guarded["target_stage"],
-            guarded["stage_reason"],
+            progression["stage_action"],
+            progression["target_stage"],
+            progression["progression_blocker"],
         ) = cls._normalize_stage_transition(
             current_stage=current_stage,
-            stage_action=guarded.get("stage_action", ""),
-            target_stage=guarded.get("target_stage", current_stage),
-            stage_reason=guarded.get("stage_reason", ""),
+            stage_action=progression.get("stage_action", ""),
+            target_stage=progression.get("target_stage", current_stage),
+            stage_reason=progression.get("progression_blocker", ""),
         )
-        stage_action_value = str(guarded.get("stage_action", "") or "").strip().lower()
-        target_stage = str(guarded.get("target_stage", "") or "").strip()
+        if progression["progression_blocker"] not in {
+            "none",
+            "open_question",
+            "misconception",
+            "weak_evidence",
+            "coverage_gap",
+            "terminal_node",
+            "source_uncertainty",
+        }:
+            existing_conflict = str(consistency.get("conflict", "") or "").strip()
+            normalization_note = str(progression["progression_blocker"] or "").strip()
+            consistency["conflict"] = (
+                f"{existing_conflict} {normalization_note}".strip()
+                if existing_conflict
+                else normalization_note
+            )
+            progression["progression_blocker"] = "none"
+        stage_action_value = (
+            str(progression.get("stage_action", "") or "").strip().lower()
+        )
+        target_stage = str(progression.get("target_stage", "") or "").strip()
 
-        current_turn_misconceptions = [
-            item
-            for item in ((guarded.get("misconception_events", []) or []))
-            if isinstance(item, dict)
-        ]
-        must_repair_now = any(
-            cls._is_open_must_repair_event(item) for item in current_turn_misconceptions
-        )
+        must_repair_now = has_open_must_repair(guarded)
         repeated_active_sequence = cls._has_repeated_full_sequence_signal(
             misconception_state,
             "active_misconceptions",
@@ -1495,7 +1509,13 @@ class HybridCrewAISocraticSystem:
             misconception_state,
             "recently_resolved",
         )
-        supports_repair_exit = cls._supports_repair_exit(pacing_signal)
+        supports_repair_exit = concept_closure in {
+            "almost_ready",
+            "ready",
+        } and evidence_quality in {
+            "partial",
+            "strong",
+        }
 
         reasons: List[str] = []
         if must_repair_now:
@@ -1508,7 +1528,7 @@ class HybridCrewAISocraticSystem:
             and not cls._allows_intro_exit_with_partial_closure(
                 current_stage=current_stage,
                 target_stage=target_stage,
-                pacing_signal=pacing_signal,
+                pacing_signal=runtime_pacing_signal(guarded),
             )
         ):
             reasons.append("Concept closure is not ready yet.")
@@ -1522,99 +1542,83 @@ class HybridCrewAISocraticSystem:
             reasons.append("Objective coverage is still too low for the next stage.")
 
         if reasons:
-            guarded["stage_action"] = "stay"
-            guarded["target_stage"] = current_stage
-            existing_reason = str(guarded.get("stage_reason", "") or "").strip()
+            progression["stage_action"] = "stay"
+            progression["target_stage"] = current_stage
+            existing_reason = str(consistency.get("conflict", "") or "").strip()
             joined = " ".join(reasons)
-            guarded["stage_reason"] = (
+            consistency["status"] = "needs_repair"
+            consistency["conflict"] = (
                 f"{existing_reason} {joined}".strip() if existing_reason else joined
             )
-            if must_repair_now and str(
-                guarded.get("teaching_move", "") or ""
-            ).strip().lower() not in {"repair", "clarify"}:
-                guarded["teaching_move"] = "repair"
+            consistency[
+                "repair_instruction"
+            ] = "Use the conservative stay/clarify interpretation for this turn."
+            if must_repair_now and teaching_move not in {"repair", "clarify"}:
+                tutor["move"] = "repair"
             if must_repair_now:
-                pacing_signal["override_pace"] = "slow"
-                pacing_signal[
-                    "override_reason"
+                tutor["support_level"] = "heavy"
+                tutor[
+                    "one_turn_goal"
                 ] = "Active misconception requires explicit repair before moving on."
-                if pacing_signal.get("recommended_next_step") == "advance":
-                    pacing_signal["recommended_next_step"] = "ask_narrower"
 
         if (
             not must_repair_now
             and teaching_move in {"repair", "clarify"}
             and not repeated_active_sequence
-            and reasoning_mode in {"application", "transfer"}
-            and str(pacing_signal.get("recommended_next_step", "") or "")
-            .strip()
-            .lower()
-            in {"ask_narrower", "ask_same_level"}
+            and evidence_quality in {"partial", "strong"}
         ):
-            pacing_signal["recommended_next_step"] = "give_example"
-            pacing_signal["override_pace"] = "steady"
-            pacing_signal[
-                "override_reason"
+            tutor["support_level"] = "light"
+            tutor[
+                "one_turn_goal"
             ] = "Learner already shows causal footing; use a fresh case instead of another same-level restatement check."
 
         if (
             not must_repair_now
             and teaching_move == "clarify"
-            and answer_current_question_first
+            and guarded["student_turn"].get("answer_first")
         ):
-            guarded["follow_up_question_policy"] = "optional_if_explanation_suffices"
+            tutor[
+                "one_turn_goal"
+            ] = f"{tutor.get('one_turn_goal', '')} If the explanation fully resolves the question, a follow-up check is optional.".strip()
 
-        if (
-            not must_repair_now
-            and repeated_active_sequence
-            and supports_repair_exit
-            and str(pacing_signal.get("recommended_next_step", "") or "")
-            .strip()
-            .lower()
-            == "ask_narrower"
-        ):
-            pacing_signal["recommended_next_step"] = "give_example"
-            pacing_signal["override_pace"] = "steady"
-            pacing_signal[
-                "override_reason"
+        if not must_repair_now and repeated_active_sequence and supports_repair_exit:
+            tutor["move"] = "clarify"
+            tutor["support_level"] = "light"
+            tutor[
+                "one_turn_goal"
             ] = "Repeated full-sequence repair now has enough evidence for a fresh transfer check."
 
         if (
             not must_repair_now
             and repeated_resolved_sequence
             and supports_repair_exit
-            and str(guarded.get("stage_action", "") or "").strip().lower() != "advance"
+            and str(progression.get("stage_action", "") or "").strip().lower()
+            != "advance"
         ):
             next_stage = cls._suggest_next_stage_after_repair(
                 current_stage=current_stage,
                 coverage_ratio=coverage_ratio,
             )
             if next_stage:
-                guarded["stage_action"] = "advance"
-                guarded["target_stage"] = next_stage
-                existing_reason = str(guarded.get("stage_reason", "") or "").strip()
+                progression["stage_action"] = "advance"
+                progression["target_stage"] = next_stage
+                existing_reason = str(consistency.get("conflict", "") or "").strip()
                 repair_reason = "Repeated full-sequence repair now looks stable after transfer-level reasoning."
-                guarded["stage_reason"] = (
+                consistency["conflict"] = (
                     f"{existing_reason} {repair_reason}".strip()
                     if existing_reason
                     else repair_reason
                 )
-                if str(
-                    pacing_signal.get("recommended_next_step", "") or ""
-                ).strip().lower() in {
-                    "ask_narrower",
-                    "ask_same_level",
-                    "give_example",
-                }:
-                    pacing_signal["recommended_next_step"] = "advance"
-                pacing_signal["override_pace"] = "steady"
-                pacing_signal[
-                    "override_reason"
+                tutor["move"] = "consolidate"
+                tutor["support_level"] = "light"
+                tutor[
+                    "one_turn_goal"
                 ] = "Repeated full-sequence repair was resolved with application-level evidence."
 
-        if canonical_input is None:
-            return guarded
-        return normalize_analyzer_output(guarded, current_stage=current_stage)
+        guarded = normalize_analyzer_output(guarded, current_stage=current_stage)
+        if return_legacy_shape:
+            return canonical_to_trace_legacy(guarded)
+        return guarded
 
     @staticmethod
     def _format_response_constraints_for_tutor(
@@ -1622,22 +1626,22 @@ class HybridCrewAISocraticSystem:
         turn_analysis: Optional[Dict[str, Any]] = None,
         misconception_state: Optional[Dict[str, Any]] = None,
     ) -> str:
-        if isinstance(turn_analysis, dict) and "student_turn" in turn_analysis:
-            turn_analysis = analyzer_output_to_legacy(turn_analysis)
+        canonical_analysis = normalize_analyzer_output(turn_analysis)
         pace = str((pacing_state or {}).get("current_pace", "") or "").strip().lower()
         if pace not in {"slow", "steady", "fast"}:
             pace = "steady"
 
+        misconception_events = runtime_misconception_events(canonical_analysis)
         must_repair = any(
             isinstance(item, dict)
             and HybridCrewAISocraticSystem._is_open_must_repair_event(item)
-            for item in (((turn_analysis or {}).get("misconception_events", []) or []))
+            for item in misconception_events
         )
         requires_procedural_full_sequence_repair = any(
             isinstance(item, dict)
             and HybridCrewAISocraticSystem._is_open_must_repair_event(item)
             and HybridCrewAISocraticSystem._is_procedural_full_sequence_repair(item)
-            for item in (((turn_analysis or {}).get("misconception_events", []) or []))
+            for item in misconception_events
         )
         requires_conceptual_sequence_completion = any(
             isinstance(item, dict)
@@ -1648,17 +1652,15 @@ class HybridCrewAISocraticSystem:
                 or str(item.get("repair_pattern", "") or "")
                 == "same_snippet_walkthrough"
             )
-            for item in (((turn_analysis or {}).get("misconception_events", []) or []))
+            for item in misconception_events
         )
-        pacing_signal = (turn_analysis or {}).get("pacing_signal", {}) or {}
+        pacing_signal = runtime_pacing_signal(canonical_analysis)
         recommended_next_step = (
             str(pacing_signal.get("recommended_next_step", "") or "").strip().lower()
         )
-        teaching_move = (
-            str((turn_analysis or {}).get("teaching_move", "") or "").strip().lower()
-        )
+        teaching_move = canonical_tutor_handoff(canonical_analysis).get("move", "")
         answer_current_question_first = bool(
-            (turn_analysis or {}).get("answer_current_question_first")
+            canonical_student_turn(canonical_analysis).get("answer_first")
         )
         repeated_active_sequence = (
             HybridCrewAISocraticSystem._has_repeated_full_sequence_signal(
@@ -1744,7 +1746,7 @@ class HybridCrewAISocraticSystem:
             )
         if must_repair:
             lines.append("- Advancement lock: open misconception")
-        elif str((turn_analysis or {}).get("stage_action", "") or "") != "advance":
+        elif canonical_progression(canonical_analysis).get("stage_action") != "advance":
             lines.append(
                 "- Advancement lock: stay on the current stage for this response"
             )
@@ -2646,16 +2648,14 @@ class HybridCrewAISocraticSystem:
             analysis,
             current_stage=current_stage,
         )
-        runtime_analysis = analyzer_output_to_legacy(canonical_analysis)
+        tutor_handoff = canonical_tutor_handoff(canonical_analysis)
         preview_misconception_state = self._session_cache.preview_misconception_state(
             session_id,
             self._coerce_misconception_events(
-                runtime_analysis,
+                canonical_analysis,
                 default_priority=(
                     "must_address_now"
-                    if str(runtime_analysis.get("teaching_move", "") or "")
-                    .strip()
-                    .lower()
+                    if str(tutor_handoff.get("move", "") or "").strip().lower()
                     == "repair"
                     else "normal"
                 ),
@@ -2663,11 +2663,11 @@ class HybridCrewAISocraticSystem:
         )
         preview_pacing_state = self._session_cache.preview_pacing_state(
             session_id,
-            runtime_analysis.get("pacing_signal"),
+            runtime_pacing_signal(canonical_analysis),
         )
         preview_objective_memory = self._preview_objective_memory_state(
             (bundle or {}).get("objective_memory") or {},
-            runtime_analysis.get("objective_memory_patch"),
+            runtime_objective_memory_patch(canonical_analysis),
         )
         canonical_analysis = self._enforce_turn_response_controls(
             current_stage=current_stage,
@@ -2676,17 +2676,15 @@ class HybridCrewAISocraticSystem:
             pacing_state=preview_pacing_state,
             misconception_state=preview_misconception_state,
         )
-        runtime_analysis = analyzer_output_to_legacy(canonical_analysis)
+        tutor_handoff = canonical_tutor_handoff(canonical_analysis)
         result["analysis"] = copy.deepcopy(canonical_analysis)
-        result["runtime_analysis"] = copy.deepcopy(runtime_analysis)
 
         await self.student_mcp.increment_turn_count(session_id)
         misconception_events = self._coerce_misconception_events(
-            runtime_analysis,
+            canonical_analysis,
             default_priority=(
                 "must_address_now"
-                if str(runtime_analysis.get("teaching_move", "") or "").strip().lower()
-                == "repair"
+                if str(tutor_handoff.get("move", "") or "").strip().lower() == "repair"
                 else "normal"
             ),
         )
@@ -2698,7 +2696,7 @@ class HybridCrewAISocraticSystem:
         )
 
         lesson_state_before = self._session_cache.get_lesson_state(session_id)
-        lesson_patch = runtime_analysis.get("lesson_state_patch")
+        lesson_patch = runtime_lesson_state_patch(canonical_analysis)
         patched_lesson_state = self._session_cache.apply_lesson_state_patch(
             session_id,
             lesson_patch,
@@ -2723,21 +2721,21 @@ class HybridCrewAISocraticSystem:
         }
         self._session_cache.apply_pacing_signal(
             session_id,
-            runtime_analysis.get("pacing_signal"),
+            runtime_pacing_signal(canonical_analysis),
         )
         await self._persist_session_cache(session_id)
 
         await self._apply_memory_patches(
             student_id,
             objective_id,
-            runtime_analysis.get("objective_memory_patch"),
-            runtime_analysis.get("learner_memory_patch"),
+            runtime_objective_memory_patch(canonical_analysis),
+            runtime_learner_memory_patch(canonical_analysis),
             bundle=bundle,
         )
 
-        mastery_signal = runtime_analysis.get("mastery_signal") or {}
+        mastery_signal = canonical_analysis.get("mastery_signal") or {}
         mastery_level = mastery_signal.get("level", "")
-        if mastery_signal.get("should_update") and mastery_level in (
+        if mastery_signal.get("update") and mastery_level in (
             "not_attempted",
             "misconception",
             "in_progress",
@@ -2746,8 +2744,11 @@ class HybridCrewAISocraticSystem:
                 student_id,
                 objective_id,
                 mastery_level,
-                evidence_summary=mastery_signal.get("evidence_summary", ""),
-                confidence=float(mastery_signal.get("confidence", 0.0) or 0.0),
+                evidence_summary=canonical_analysis.get("memory_patch", {}).get(
+                    "objective_summary",
+                    "",
+                ),
+                confidence=0.0,
             )
             if isinstance(mastery_result, dict):
                 if mastery_result.get("updated"):
@@ -2770,9 +2771,12 @@ class HybridCrewAISocraticSystem:
                         }
                     )
 
-        stage_action = runtime_analysis.get("stage_action", "stay")
-        target_stage = runtime_analysis.get("target_stage", current_stage)
-        stage_reason = runtime_analysis.get("stage_reason", "")
+        progression = canonical_progression(canonical_analysis)
+        stage_action = progression.get("stage_action", "stay")
+        target_stage = progression.get("target_stage", current_stage)
+        stage_reason = canonical_analysis.get("consistency_check", {}).get(
+            "conflict"
+        ) or progression.get("progression_blocker", "")
 
         # Guardrail: block premature assessment if concept coverage is too low.
         # The turn analyzer may recommend assessment after a strong answer on

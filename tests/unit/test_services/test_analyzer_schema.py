@@ -1,7 +1,8 @@
 from question_app.services.tutor.analyzer_schema import (
-    analyzer_output_to_legacy,
     default_analyzer_output,
     normalize_analyzer_output,
+    runtime_lesson_state_patch,
+    runtime_pacing_signal,
 )
 
 
@@ -75,7 +76,7 @@ def test_normalize_analyzer_output_converts_legacy_shape_to_canonical_schema():
     assert output["misconceptions"][0]["priority"] == "normal"
 
 
-def test_analyzer_output_to_legacy_maps_canonical_schema_for_runtime_consumers():
+def test_runtime_boundary_helpers_map_canonical_schema_for_cache_consumers():
     canonical = normalize_analyzer_output(
         {
             "student_turn": {
@@ -123,15 +124,14 @@ def test_analyzer_output_to_legacy_maps_canonical_schema_for_runtime_consumers()
         }
     )
 
-    legacy = analyzer_output_to_legacy(canonical)
+    pacing = runtime_pacing_signal(canonical)
+    lesson_patch = runtime_lesson_state_patch(canonical)
 
-    assert legacy["stage_action"] == "advance"
-    assert legacy["target_stage"] == "readiness_check"
-    assert legacy["teaching_move"] == "consolidate"
-    assert legacy["pacing_signal"]["concept_closure"] == "ready"
-    assert legacy["pacing_signal"]["recommended_next_step"] == "advance"
-    assert legacy["lesson_state_patch"]["active_concept"] == "n7"
-    assert legacy["mastery_signal"]["should_update"] is True
+    assert canonical["progression_recommendation"]["stage_action"] == "advance"
+    assert canonical["next_tutor_handoff"]["move"] == "consolidate"
+    assert pacing["concept_closure"] == "ready"
+    assert pacing["recommended_next_step"] == "advance"
+    assert lesson_patch["active_concept"] == "n7"
 
 
 def test_normalize_flags_overlapping_next_move_and_progression_signals():

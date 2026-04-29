@@ -4,7 +4,13 @@ import copy
 import json
 from typing import Any, Dict, List, Optional
 
-from .analyzer_schema import analyzer_output_to_legacy
+from .analyzer_schema import (
+    canonical_consistency_check,
+    canonical_progression,
+    canonical_student_turn,
+    canonical_tutor_handoff,
+    has_open_must_repair,
+)
 
 GRAPH_ORCHESTRATOR_SCHEMA: Dict[str, Any] = {
     "graph_action": "stay | advance | integrate",
@@ -142,27 +148,18 @@ def _infer_route_coverage_mode(
 
 
 def _has_must_repair(analysis: Dict[str, Any]) -> bool:
-    if isinstance(analysis, dict) and "student_turn" in analysis:
-        analysis = analyzer_output_to_legacy(analysis)
-    for event in analysis.get("misconception_events", []) or []:
-        if not isinstance(event, dict):
-            continue
-        priority = str(event.get("repair_priority", "") or "").strip().lower()
-        action = str(event.get("action", "") or "").strip().lower()
-        if priority == "must_address_now" and action != "resolve_candidate":
-            return True
-    return False
+    return has_open_must_repair(analysis)
 
 
 def _analyzer_wants_advance(analysis: Dict[str, Any]) -> bool:
-    if isinstance(analysis, dict) and "student_turn" in analysis:
-        analysis = analyzer_output_to_legacy(analysis)
-    pacing = analysis.get("pacing_signal") or {}
-    return (
-        str(analysis.get("stage_action", "") or "").strip().lower() == "advance"
-        or str(pacing.get("recommended_next_step", "") or "").strip().lower()
-        == "advance"
-        or str(pacing.get("concept_closure", "") or "").strip().lower() == "ready"
+    progression = canonical_progression(analysis)
+    consistency = canonical_consistency_check(analysis)
+    if consistency.get("status") == "needs_repair":
+        return False
+    return progression.get("stage_action") == "advance" or (
+        progression.get("closure_state") == "ready"
+        and progression.get("evidence_quality") in {"partial", "strong"}
+        and progression.get("progression_blocker") in {"", "none"}
     )
 
 
@@ -177,8 +174,6 @@ def fallback_graph_decision(
 ) -> Dict[str, Any]:
     state = graph_state or {}
     analysis = turn_analysis or {}
-    if isinstance(analysis, dict) and "student_turn" in analysis:
-        analysis = analyzer_output_to_legacy(analysis)
     route = _as_list(state.get("primary_route"))
     index = _active_index(state)
     active = str(state.get("active_node_id", "") or "").strip()
@@ -188,6 +183,7 @@ def fallback_graph_decision(
     position = index + 1 if route else 0
     must_repair = _has_must_repair(analysis)
     wants_advance = _analyzer_wants_advance(analysis)
+    requested_advance = canonical_progression(analysis).get("stage_action") == "advance"
 
     if must_repair:
         reason = "The latest turn contains a must-address misconception."
@@ -206,8 +202,8 @@ def fallback_graph_decision(
             "allowed_teaching_move": "repair_current_node",
             "decision_reason": reason,
             "confidence": 0.9,
-            "accepted_analyzer_recommendation": not wants_advance,
-            "override_reason": reason if wants_advance else "",
+            "accepted_analyzer_recommendation": not requested_advance,
+            "override_reason": reason if requested_advance else "",
             "tutor_directive": (
                 f"Stay on {_node_label(state, active)}. Repair the misconception "
                 "before introducing or assessing another graph node."
@@ -215,7 +211,7 @@ def fallback_graph_decision(
             "analyzer_feedback": (
                 "Do not recommend graph advancement while a must-address "
                 "misconception remains open."
-                if wants_advance
+                if requested_advance
                 else ""
             ),
         }
@@ -271,14 +267,14 @@ def fallback_graph_decision(
             "analyzer_feedback": "",
         }
 
-    teaching_move = str(analysis.get("teaching_move", "") or "").strip().lower()
+    teaching_move = (
+        str(canonical_tutor_handoff(analysis).get("move", "")).strip().lower()
+    )
     if teaching_move == "repair":
         allowed_move = "repair_current_node"
     elif teaching_move == "clarify":
         allowed_move = "clarify_current_node"
-    elif (
-        str(analysis.get("turn_route", "") or "").strip().lower() != "objective_answer"
-    ):
+    elif canonical_student_turn(analysis).get("route") != "objective_answer":
         allowed_move = "answer_student_question_then_return"
     else:
         allowed_move = "practice_current_node"
@@ -609,9 +605,6 @@ def format_graph_orchestrator_input(
         {
             "graph_runtime_state": graph_state or {},
             "turn_analysis": turn_analysis or {},
-            "legacy_runtime_turn_analysis": analyzer_output_to_legacy(turn_analysis)
-            if isinstance(turn_analysis, dict) and "student_turn" in turn_analysis
-            else turn_analysis or {},
             "lesson_state": lesson_state or {},
         },
         ensure_ascii=True,
