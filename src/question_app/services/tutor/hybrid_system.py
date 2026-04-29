@@ -1442,6 +1442,18 @@ class HybridCrewAISocraticSystem:
             return "mini_assessment"
         return None
 
+    @staticmethod
+    def _append_one_turn_goal(goal: str, addition: str) -> str:
+        goal = str(goal or "").strip()
+        addition = str(addition or "").strip()
+        if not addition:
+            return goal
+        if not goal:
+            return addition
+        if addition.lower() in goal.lower():
+            return goal
+        return f"{goal} {addition}".strip()
+
     @classmethod
     def _enforce_turn_response_controls(
         cls,
@@ -1568,25 +1580,28 @@ class HybridCrewAISocraticSystem:
             and evidence_quality in {"partial", "strong"}
         ):
             tutor["support_level"] = "light"
-            tutor[
-                "one_turn_goal"
-            ] = "Learner already shows causal footing; use a fresh case instead of another same-level restatement check."
+            tutor["one_turn_goal"] = cls._append_one_turn_goal(
+                tutor.get("one_turn_goal", ""),
+                "Learner already shows causal footing; use a fresh case instead of another same-level restatement check.",
+            )
 
         if (
             not must_repair_now
             and teaching_move == "clarify"
             and guarded["student_turn"].get("answer_first")
         ):
-            tutor[
-                "one_turn_goal"
-            ] = f"{tutor.get('one_turn_goal', '')} If the explanation fully resolves the question, a follow-up check is optional.".strip()
+            tutor["one_turn_goal"] = cls._append_one_turn_goal(
+                tutor.get("one_turn_goal", ""),
+                "If the explanation fully resolves the question, a follow-up check is optional.",
+            )
 
         if not must_repair_now and repeated_active_sequence and supports_repair_exit:
             tutor["move"] = "clarify"
             tutor["support_level"] = "light"
-            tutor[
-                "one_turn_goal"
-            ] = "Repeated full-sequence repair now has enough evidence for a fresh transfer check."
+            tutor["one_turn_goal"] = cls._append_one_turn_goal(
+                tutor.get("one_turn_goal", ""),
+                "Repeated full-sequence repair now has enough evidence for a fresh transfer check.",
+            )
 
         if (
             not must_repair_now

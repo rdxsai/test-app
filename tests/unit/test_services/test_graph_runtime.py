@@ -245,12 +245,41 @@ def test_analyzer_graph_context_surfaces_orchestrator_feedback():
     assert "do not repeat the rejected recommendation" in context
 
 
-def test_analyzer_graph_context_omits_feedback_block_without_override():
+def test_analyzer_graph_context_surfaces_accepted_orchestrator_feedback():
+    context = format_analyzer_graph_context(
+        {
+            "active_node_id": "n1",
+            "primary_route": ["n1", "n2"],
+            "node_labels": {"n1": "First", "n2": "Second"},
+            "last_orchestrator_decision": {
+                "decision_reason": "Stay because the learner has an open edge case.",
+                "analyzer_feedback": (
+                    "If the learner resolves this edge case next turn, advance "
+                    "into n2 and clarify there."
+                ),
+                "accepted_analyzer_recommendation": True,
+            },
+        },
+        {"graph": {"graph_type": "teaching_graph"}},
+    )
+
+    assert "ORCHESTRATOR FEEDBACK FROM LAST TURN:" in context
+    assert "Stay because the learner has an open edge case." in context
+    assert "advance into n2 and clarify there" in context
+    assert "Use this as calibration for question ownership" in context
+
+
+def test_analyzer_graph_context_omits_feedback_block_without_feedback():
     context = format_analyzer_graph_context(
         {
             "active_node_id": "n1",
             "primary_route": ["n1"],
             "node_labels": {"n1": "First"},
+            "last_orchestrator_decision": {
+                "decision_reason": "Routine stay.",
+                "analyzer_feedback": "",
+                "accepted_analyzer_recommendation": True,
+            },
         },
         None,
     )

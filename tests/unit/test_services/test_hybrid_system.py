@@ -1135,6 +1135,67 @@ class TestResponseGuards:
             guarded["follow_up_question_policy"] == "optional_if_explanation_suffices"
         )
 
+    def test_enforce_turn_response_controls_preserves_specific_clarify_goal(
+        self, hybrid_system
+    ):
+        guarded = hybrid_system._enforce_turn_response_controls(
+            current_stage="exploration",
+            analysis={
+                "student_turn": {
+                    "route": "objective_answer",
+                    "answer_first": True,
+                    "question_to_answer": "Where is the mood-vs-meaning line?",
+                    "open_question_type": "edge_case",
+                },
+                "next_tutor_handoff": {
+                    "move": "clarify",
+                    "support_level": "moderate",
+                    "one_turn_goal": (
+                        "Clarify mood-vs-meaning boundary with one concrete contrast."
+                    ),
+                    "source_certainty_needed": "medium",
+                },
+                "progression_recommendation": {
+                    "stage_action": "stay",
+                    "target_stage": "exploration",
+                    "closure_state": "almost_ready",
+                    "evidence_quality": "partial",
+                    "progression_blocker": "open_question",
+                },
+                "graph_handoff": {
+                    "bridge_mode": "answer_within_current_node",
+                    "current_node_id": "n2",
+                    "candidate_next_node_id": "n3",
+                    "return_to_current_node": True,
+                },
+                "state_patch": {
+                    "active_concept_id": "n2",
+                    "pending_check": "",
+                    "concept_updates": [],
+                },
+                "misconceptions": [],
+                "mastery_signal": {"update": False, "level": "in_progress"},
+                "memory_patch": {
+                    "objective_summary": "",
+                    "learner_summary": "",
+                    "next_focus": "",
+                },
+                "consistency_check": {
+                    "status": "consistent",
+                    "conflict": "",
+                    "repair_instruction": "",
+                },
+            },
+            lesson_state={"concepts": [{"id": "n1", "status": "covered"}]},
+            pacing_state={"current_pace": "steady"},
+            misconception_state={"active_misconceptions": []},
+        )
+
+        goal = guarded["next_tutor_handoff"]["one_turn_goal"]
+        assert "Clarify mood-vs-meaning boundary" in goal
+        assert "fresh case" in goal
+        assert "follow-up check is optional" in goal
+
     def test_response_constraints_prefer_fresh_example_after_repeated_sequence_repair(
         self, hybrid_system
     ):

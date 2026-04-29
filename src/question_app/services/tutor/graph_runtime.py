@@ -522,7 +522,16 @@ def format_analyzer_graph_context(
     base = format_graph_runtime_context(graph_state, retrieval_bundle)
     state = graph_state or {}
     previous_override = state.get("previous_orchestrator_override")
-    if not previous_override:
+    last_decision = state.get("last_orchestrator_decision")
+    last_feedback = ""
+    last_reason = ""
+    accepted = True
+    if isinstance(last_decision, dict):
+        last_feedback = str(last_decision.get("analyzer_feedback", "") or "").strip()
+        last_reason = str(last_decision.get("decision_reason", "") or "").strip()
+        accepted = bool(last_decision.get("accepted_analyzer_recommendation", True))
+
+    if not previous_override and not last_feedback:
         return base
 
     reason = ""
@@ -530,13 +539,22 @@ def format_analyzer_graph_context(
     if isinstance(previous_override, dict):
         reason = str(previous_override.get("reason", "") or "").strip()
         feedback = str(previous_override.get("feedback", "") or "").strip()
+    if not feedback:
+        feedback = last_feedback
+    if not reason:
+        reason = last_reason
+
     lines = [base] if base else []
     lines.extend(
         [
             "ORCHESTRATOR FEEDBACK FROM LAST TURN:",
             f"- override_reason: {reason}",
             f"- analyzer_feedback: {feedback}",
-            "- Adjust this turn's progression_recommendation, graph_handoff, and next_tutor_handoff so they do not repeat the rejected recommendation unless the student has now supplied new evidence.",
+            (
+                "- Adjust this turn's progression_recommendation, graph_handoff, and next_tutor_handoff so they do not repeat the rejected recommendation unless the student has now supplied new evidence."
+                if previous_override or not accepted
+                else "- Use this as calibration for question ownership, graph_handoff, and progression_recommendation on this turn."
+            ),
         ]
     )
     return "\n".join(lines)
