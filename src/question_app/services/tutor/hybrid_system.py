@@ -2517,15 +2517,32 @@ class HybridCrewAISocraticSystem:
             events=misconception_events,
         )
 
-        self._session_cache.apply_lesson_state_patch(
+        lesson_state_before = self._session_cache.get_lesson_state(session_id)
+        lesson_patch = analysis.get("lesson_state_patch")
+        patched_lesson_state = self._session_cache.apply_lesson_state_patch(
             session_id,
-            analysis.get("lesson_state_patch"),
+            lesson_patch,
         )
-        self._session_cache.recompute_lesson_state(
+        recomputed_lesson_state = self._session_cache.recompute_lesson_state(
             session_id,
             objective_memory=preview_objective_memory,
             misconception_state=self._session_cache.get_misconception_state(session_id),
         )
+        lesson_state_after = self._session_cache.get_lesson_state(session_id)
+        result["state_commit"] = {
+            "lesson_state_patch": copy.deepcopy(lesson_patch or {}),
+            "lesson_state_before": copy.deepcopy(lesson_state_before or {}),
+            "lesson_state_after_patch": copy.deepcopy(patched_lesson_state or {}),
+            "lesson_state_after_recompute": copy.deepcopy(
+                recomputed_lesson_state or {}
+            ),
+            "lesson_state_after": copy.deepcopy(lesson_state_after or {}),
+            "commit_status": (
+                "applied"
+                if lesson_state_after is not None
+                else "missing_lesson_state"
+            ),
+        }
         self._session_cache.apply_pacing_signal(
             session_id,
             analysis.get("pacing_signal"),

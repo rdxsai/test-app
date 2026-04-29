@@ -1261,6 +1261,93 @@ class TestGuidedTurnOrdering:
         assert "It is computed" not in rendered
 
     @pytest.mark.asyncio
+    async def test_turn_analysis_updates_emit_lesson_state_commit_snapshot(
+        self, hybrid_system
+    ):
+        hybrid_system._session_cache.store(
+            "sess-1", "obj-1", "Explain WCAG structure", [], "", "Evidence pack"
+        )
+        hybrid_system._session_cache.store_teaching_plan(
+            "sess-1",
+            {
+                "objective": "Explain WCAG structure",
+                "concepts": [
+                    {"id": "c1", "name": "Principles", "status": "not_covered"},
+                    {"id": "c2", "name": "Guidelines", "status": "not_covered"},
+                ],
+                "recommended_order": ["c1", "c2"],
+            },
+        )
+
+        async def fake_increment(session_id):
+            return None
+
+        hybrid_system.student_mcp.increment_turn_count = fake_increment
+
+        async def ws_send(payload):
+            return None
+
+        result = await hybrid_system._apply_turn_analysis_updates(
+            student_id="student-1",
+            session_id="sess-1",
+            objective_id="obj-1",
+            objective_text="Explain WCAG structure",
+            current_stage="introduction",
+            analysis={
+                "teaching_move": "clarify",
+                "stage_action": "stay",
+                "target_stage": "introduction",
+                "stage_reason": "",
+                "mastery_signal": {"should_update": False, "level": "not_attempted"},
+                "misconception_events": [],
+                "lesson_state_patch": {
+                    "active_concept": "c2",
+                    "bridge_back_target": "c2",
+                    "pending_check": "Explain guidelines",
+                    "concept_updates": [
+                        {"concept_id": "c1", "status": "covered"},
+                        {"concept_id": "c2", "status": "in_progress"},
+                    ],
+                },
+                "pacing_signal": {
+                    "grasp_level": "solid",
+                    "reasoning_mode": "application",
+                    "support_needed": "light",
+                    "confusion_level": "low",
+                    "response_pattern": "direct",
+                    "concept_closure": "almost_ready",
+                    "override_pace": "none",
+                    "override_reason": "",
+                    "recommended_next_step": "give_example",
+                },
+                "objective_memory_patch": {
+                    "summary": "",
+                    "demonstrated_skills_add": [],
+                    "active_gaps_current": [],
+                    "next_focus": "Guidelines",
+                },
+                "learner_memory_patch": {
+                    "summary": "",
+                    "strengths_add": [],
+                    "support_needs_current": [],
+                    "tendencies_current": [],
+                    "successful_strategies_add": [],
+                },
+            },
+            bundle={},
+            ws_send=ws_send,
+        )
+
+        commit = result["state_commit"]
+        assert commit["commit_status"] == "applied"
+        assert commit["lesson_state_before"]["active_concept"] == "c1"
+        assert commit["lesson_state_after"]["active_concept"] == "c2"
+        assert commit["lesson_state_after"]["concepts"][0]["status"] == "covered"
+        assert hybrid_system._session_cache.get_lesson_state("sess-1")[
+            "active_concept"
+        ] == "c2"
+
+    @pytest.mark.asyncio
     async def test_guided_turn_runs_analyzer_before_tutor_and_write(
         self, hybrid_system, monkeypatch
     ):

@@ -267,6 +267,33 @@ class TestLessonState:
         assert lesson_state["bridge_back_target"] == "c1"
         assert lesson_state["teaching_order"] == ["c1", "c2"]
 
+    def test_get_lesson_state_returns_snapshot_not_live_reference(self, cache):
+        cache.store("sess-1", "obj-1", "Objective", [], "", "content")
+        cache.store_teaching_plan(
+            "sess-1",
+            {
+                "objective": "Objective",
+                "concepts": [
+                    {"id": "c1", "name": "Hierarchy", "status": "not_covered"},
+                    {"id": "c2", "name": "Conformance", "status": "not_covered"},
+                ],
+                "recommended_order": ["c1", "c2"],
+            },
+        )
+        first_snapshot = cache.get_lesson_state("sess-1")
+
+        cache.apply_lesson_state_patch(
+            "sess-1",
+            {
+                "active_concept": "c2",
+                "concept_updates": [{"concept_id": "c1", "status": "covered"}],
+            },
+        )
+
+        assert first_snapshot["active_concept"] == "c1"
+        assert first_snapshot["concepts"][0]["status"] == "not_covered"
+        assert cache.get_lesson_state("sess-1")["active_concept"] == "c2"
+
     def test_store_text_plan_builds_lesson_state(self, cache):
         cache.store("sess-1", "obj-1", "Objective", [], "", "content")
         cache.store_teaching_plan(

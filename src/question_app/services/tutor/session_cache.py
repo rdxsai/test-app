@@ -1140,7 +1140,7 @@ class SessionContentCache:
                     concept["status"] = status
                     logger.debug(f"Concept {concept_id} → {status}")
                     break
-        lesson_state = self.get_lesson_state(session_id)
+        lesson_state = self._get_lesson_state_ref(session_id)
         if not lesson_state:
             return
         for concept in lesson_state.get("concepts", []):
@@ -1150,6 +1150,10 @@ class SessionContentCache:
         self._sync_active_concept(lesson_state)
 
     def get_lesson_state(self, session_id: str) -> Optional[Dict[str, Any]]:
+        state = self._get_lesson_state_ref(session_id)
+        return copy.deepcopy(state) if state else None
+
+    def _get_lesson_state_ref(self, session_id: str) -> Optional[Dict[str, Any]]:
         entry = self._cache.get(session_id)
         state = entry.get("lesson_state") if entry else None
         return state if state else None
@@ -1223,7 +1227,7 @@ class SessionContentCache:
             lesson_state["pending_check"] = pending
 
         self._sync_active_concept(lesson_state)
-        return lesson_state
+        return copy.deepcopy(lesson_state)
 
     def recompute_lesson_state(
         self,
