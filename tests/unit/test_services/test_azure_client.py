@@ -54,6 +54,11 @@ async def test_chat_with_tools_enables_parallel_tool_calls(monkeypatch):
         reasoning_effort="medium",
     )
 
+    assert client.last_request_metadata["status"] == "success"
+    assert client.last_request_metadata["api"] == "chat_completions"
+    assert client.last_request_metadata["tool_choice"] == "required"
+    assert client.last_request_metadata["parallel_tool_calls"] is True
+    assert client.last_request_metadata["tool_count"] == 0
     assert captured["json"]["parallel_tool_calls"] is True
     assert captured["json"]["tool_choice"] == "required"
     assert captured["json"]["reasoning_effort"] == "medium"
@@ -126,6 +131,69 @@ def test_reasoning_completion_budget_scales_by_effort_with_cap():
     assert client._resolve_reasoning_completion_tokens(6000, "high") == 12000
 
 
+def test_chat_records_llm_request_metadata(monkeypatch):
+    captured = {}
+
+    class FakeChatResponse:
+        status_code = 200
+
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return {
+                "id": "chatcmpl_123",
+                "choices": [
+                    {
+                        "finish_reason": "stop",
+                        "message": {"content": "Tutor reply"},
+                    }
+                ],
+                "usage": {
+                    "prompt_tokens": 12,
+                    "completion_tokens": 5,
+                    "total_tokens": 17,
+                },
+            }
+
+    def fake_post(url, headers=None, params=None, json=None, timeout=None):
+        captured["url"] = url
+        captured["json"] = json
+        return FakeChatResponse()
+
+    monkeypatch.setattr(
+        "question_app.services.tutor.azure_client.requests.post",
+        fake_post,
+    )
+
+    client = AzureAPIMClient(
+        endpoint="https://example.test",
+        deployment="gpt-5.4",
+        api_key="test-key",
+    )
+
+    result = client.chat(
+        messages=[{"role": "user", "content": "hello"}],
+        max_tokens=250,
+        reasoning_effort="high",
+    )
+
+    assert result == "Tutor reply"
+    assert (
+        captured["url"] == "https://example.test/deployments/gpt-5.4/chat/completions"
+    )
+    assert client.last_request_metadata["status"] == "success"
+    assert client.last_request_metadata["api"] == "chat_completions"
+    assert client.last_request_metadata["deployment"] == "gpt-5.4"
+    assert client.last_request_metadata["reasoning_effort"] == "high"
+    assert client.last_request_metadata["attempts"] == 1
+    assert client.last_request_metadata["finish_reason"] == "stop"
+    assert client.last_request_metadata["usage"]["total_tokens"] == 17
+    assert client.last_request_metadata["response_id"] == "chatcmpl_123"
+    assert client.last_request_metadata["content_chars"] == len("Tutor reply")
+    assert "elapsed_seconds" in client.last_request_metadata
+
+
 @pytest.mark.asyncio
 async def test_responses_create_uses_responses_payload_shape(monkeypatch):
     captured = {}
@@ -191,6 +259,16 @@ async def test_responses_create_uses_responses_payload_shape(monkeypatch):
     )
 
     assert payload["id"] == "resp_123"
+    assert client.last_request_metadata["status"] == "success"
+    assert client.last_request_metadata["api"] == "responses"
+    assert client.last_request_metadata["deployment"] == "gpt-5.4"
+    assert (
+        client.last_request_metadata["endpoint"] == "https://example.test/v1/responses"
+    )
+    assert client.last_request_metadata["response_id"] == "resp_123"
+    assert client.last_request_metadata["attempts"] == 1
+    assert client.last_request_metadata["tool_count"] == 1
+    assert client.last_request_metadata["resolved_max_output_tokens"] == 1600
     assert captured["url"] == "https://example.test/v1/responses"
     assert captured["params"] == {"api-version": "2025-01-01-preview"}
     assert "Authorization" not in captured["headers"]

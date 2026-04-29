@@ -290,6 +290,10 @@ class InstrumentedSavedGraphTutor(HybridCrewAISocraticSystem):
             2,
         )
         self._record_trace_event("turn_analyzer_output", result)
+        self._record_trace_event(
+            "turn_analyzer_llm_metadata",
+            getattr(self.reasoning_client, "last_request_metadata", {}),
+        )
         return result
 
     async def _apply_turn_analysis_updates(self, *args, **kwargs):
@@ -313,6 +317,10 @@ class InstrumentedSavedGraphTutor(HybridCrewAISocraticSystem):
             time.perf_counter() - started, 2
         )
         self._record_trace_event("graph_orchestrator_output", result)
+        self._record_trace_event(
+            "graph_orchestrator_llm_metadata",
+            getattr(self.reasoning_client, "last_request_metadata", {}),
+        )
         return result
 
     def _build_guided_tutor_messages(self, *args, **kwargs):
@@ -325,6 +333,19 @@ class InstrumentedSavedGraphTutor(HybridCrewAISocraticSystem):
             },
         )
         return messages
+
+    async def _stream_response(self, messages: List[Dict], ws_send) -> str:
+        started = time.perf_counter()
+        result = await super()._stream_response(messages, ws_send)
+        self.current_turn_trace.setdefault("timings", {})["tutor_response"] = round(
+            time.perf_counter() - started,
+            2,
+        )
+        self._record_trace_event(
+            "tutor_response_llm_metadata",
+            getattr(self.client, "last_request_metadata", {}),
+        )
+        return result
 
 
 def build_azure_config() -> Dict[str, str]:
@@ -450,6 +471,9 @@ async def generate_student_reply(
         "messages": messages,
         "response": response.strip(),
         "elapsed_seconds": round(time.perf_counter() - started, 2),
+        "llm_request_metadata": copy.deepcopy(
+            getattr(client, "last_request_metadata", {})
+        ),
     }
 
 
