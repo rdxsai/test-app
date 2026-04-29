@@ -39,6 +39,13 @@ Decision rules:
 - The analyzer recommends; you decide.
 - Keep the student on the active node if there is an open misconception, fragile grasp, high confusion, or concept_closure is not ready.
 - Advance only when the analyzer evidence says the active concept is ready and no must-repair issue remains.
+- Read analyzer `bridge_scope` and `self_consistency` as advisory handoff
+  signals. If `self_consistency.needs_repair=true`, prefer staying or narrowing
+  the move unless the student response supplies clearer new evidence.
+- Treat `bridge_scope.mode=temporary_bridge` as permission to answer a connected
+  concept briefly while keeping graph progression anchored, not as automatic
+  route advancement. Treat `entry_into_next_node` as a possible transition only
+  when concept_closure is ready and the evidence supports the next node.
 - Use route_coverage_mode to label the instructional shape of the graph move:
   - linear: normal primary-route progress or staying on the current route node.
   - branch_contrast: using a connected contrast/application branch to answer or repair without pretending every intervening primary-route node was linearly taught.

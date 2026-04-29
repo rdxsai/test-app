@@ -1447,6 +1447,17 @@ Important constraints:
   - Only mark an upcoming concept `in_progress` when the next tutor response
     should teach that concept as the main focus, not merely mention it while
     answering the student's current question.
+- Emit explicit handoff signals:
+  - `bridge_scope` says whether the student's current question should be
+    answered within the current node, used as a temporary bridge, treated as
+    entry into the next node, used as integration, or used as assessment.
+  - `self_consistency` must explain why the stage recommendation, graph
+    recommendation, active concept patch, and concept closure agree. If they do
+    not agree, set `needs_repair=true` and choose the conservative stay/clarify
+    recommendation.
+  - Stage progression and graph progression are separate. At a terminal graph
+    node, stage progression to assessment can be appropriate while graph
+    progression should still be represented as staying on the terminal concept.
 - Keep progression signals internally consistent:
   - If `concept_closure=not_ready`, use `stage_action=stay` and do not use
     `recommended_next_step=advance`.
@@ -1474,6 +1485,23 @@ Output ONLY a JSON object with this exact top-level shape:
   "stage_action": "stay|advance|regress",
   "target_stage": "onboarding|introduction|exploration|readiness_check|mini_assessment|final_assessment|transition",
   "stage_reason": "short string",
+  "bridge_scope": {
+    "mode": "none|answer_within_current_node|temporary_bridge|entry_into_next_node|integration|terminal_assessment",
+    "current_node_basis": "short string",
+    "candidate_next_node": "short string",
+    "return_to_current_node": true,
+    "reason": "short string"
+  },
+  "self_consistency": {
+    "current_node_basis": "short string",
+    "proposed_active_concept": "short string",
+    "concept_closure_evidence": "short string",
+    "stage_progression_intent": "stay|advance|regress",
+    "graph_progression_intent": "stay|advance|integrate|terminal_assessment",
+    "fields_agree": true,
+    "needs_repair": false,
+    "repair_note": "short string"
+  },
   "mastery_signal": {
     "should_update": true,
     "level": "not_attempted|misconception|in_progress|assessment_ready|partial|mastered",

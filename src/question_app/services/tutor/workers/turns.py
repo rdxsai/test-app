@@ -169,6 +169,23 @@ class StructuredTurnAnalyzer:
                 "stage_action": "stay",
                 "target_stage": current_stage,
                 "stage_reason": "",
+                "bridge_scope": {
+                    "mode": "answer_within_current_node",
+                    "current_node_basis": "",
+                    "candidate_next_node": "",
+                    "return_to_current_node": True,
+                    "reason": "Fallback analyzer output keeps the tutor anchored.",
+                },
+                "self_consistency": {
+                    "current_node_basis": "",
+                    "proposed_active_concept": "",
+                    "concept_closure_evidence": "Fallback output has no closure evidence.",
+                    "stage_progression_intent": "stay",
+                    "graph_progression_intent": "stay",
+                    "fields_agree": True,
+                    "needs_repair": False,
+                    "repair_note": "",
+                },
                 "mastery_signal": {
                     "should_update": False,
                     "level": "not_attempted",

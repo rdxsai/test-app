@@ -71,6 +71,36 @@ async def test_turn_analyzer_uses_explicit_generous_reasoning_budget():
 
 
 @pytest.mark.asyncio
+async def test_turn_analyzer_fallback_includes_handoff_consistency_fields():
+    client = CapturingClient()
+
+    analyzer = StructuredTurnAnalyzer(
+        reasoning_client=client,
+        turn_prompt_builder=lambda **kwargs: "turn prompt",
+        assessment_prompt_builder=lambda **kwargs: "assessment prompt",
+        lesson_state_formatter=lambda value: "",
+        pacing_state_formatter=lambda value: "",
+        misconception_state_formatter=lambda value: "",
+        transcript_formatter=lambda history, response: response,
+        json_parser=lambda response, fallback: fallback,
+    )
+
+    result = await analyzer.analyze_turn(
+        history=[],
+        student_response="What about the next case?",
+        teaching_content="content",
+        student_context="student",
+        current_stage="exploration",
+        active_objective="objective",
+        teaching_plan={},
+    )
+
+    assert result["bridge_scope"]["mode"] == "answer_within_current_node"
+    assert result["self_consistency"]["graph_progression_intent"] == "stay"
+    assert result["self_consistency"]["fields_agree"] is True
+
+
+@pytest.mark.asyncio
 async def test_assessment_reflector_uses_explicit_generous_reasoning_budget():
     client = CapturingClient()
     analyzer = StructuredTurnAnalyzer(
