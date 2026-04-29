@@ -591,7 +591,15 @@ async def evaluate_trace(trace_path: Path, *, model: str) -> Dict[str, Any]:
             reasoning_effort="medium",
             max_output_tokens=1800,
         )
-        section_report = parse_json_response(response_text(response))
+        raw_text = response_text(response)
+        try:
+            section_report = parse_json_response(raw_text)
+        except json.JSONDecodeError as exc:
+            section_report = build_failed_section_report(
+                section_name=section["name"],
+                error=str(exc),
+                raw_text=raw_text,
+            )
         section_report["section"] = section["name"]
         sections.append(section_report)
     report = synthesize_section_reports(sections)
@@ -675,6 +683,63 @@ def synthesize_section_reports(sections: List[Dict[str, Any]]) -> Dict[str, Any]
         ],
         "sections": sections,
         "source_grounding_summary": grounding_section.get("summary", ""),
+    }
+
+
+def build_failed_section_report(
+    *,
+    section_name: str,
+    error: str,
+    raw_text: str,
+) -> Dict[str, Any]:
+    preview = raw_text.replace("\n", " ").strip()
+    if len(preview) > 500:
+        preview = preview[:500].rstrip() + "... [truncated]"
+    return {
+        "section": section_name,
+        "score": 0.0,
+        "summary": (
+            "Evaluator section failed to produce parseable JSON. "
+            "This is a workflow/tool-health failure, not a tutor trace judgment."
+        ),
+        "findings": [
+            {
+                "severity": "medium",
+                "category": "model_or_prompt_failure",
+                "turns": [],
+                "summary": f"Section evaluator output was malformed for {section_name}.",
+                "evidence": error,
+            }
+        ],
+        "tool_call_failures": [
+            {
+                "turns": [],
+                "tool_or_step": f"section_evaluator:{section_name}",
+                "what_went_wrong": (
+                    "Responses API returned text that could not be parsed as JSON."
+                ),
+                "wrong_parameter": False,
+                "reasoning_failure": True,
+                "missing_call": False,
+                "evidence": preview,
+            }
+        ],
+        "recommended_fixes": [
+            {
+                "priority": "high",
+                "target": "trace_evaluator",
+                "change": (
+                    "Further reduce each evaluator section's output shape or evaluate "
+                    "smaller turn windows before synthesizing."
+                ),
+                "why_this_matches_agent_best_practices": (
+                    "Uses evaluator-optimizer decomposition and preserves trace "
+                    "observability instead of hiding malformed model output."
+                ),
+                "expected_effect": "The evaluator can finish and report partial failures.",
+            }
+        ],
+        "per_turn_notes": [],
     }
 
 

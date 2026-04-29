@@ -128,6 +128,20 @@ def test_synthesize_section_reports_groups_findings_by_category():
     assert report["prompt_or_agent_fixes"][0]["target"] == "analyzer"
 
 
+def test_failed_section_report_records_parse_failure_as_tool_health_issue():
+    report = evaluator.build_failed_section_report(
+        section_name="graph_behavior",
+        error="Unterminated string",
+        raw_text='{"section": "graph_behavior", "summary": "partial',
+    )
+
+    assert report["section"] == "graph_behavior"
+    assert report["score"] == 0.0
+    assert report["tool_call_failures"][0]["reasoning_failure"] is True
+    assert "Unterminated string" in report["findings"][0]["evidence"]
+    assert report["recommended_fixes"][0]["target"] == "trace_evaluator"
+
+
 def test_render_markdown_contains_key_sections(tmp_path):
     report = {
         "overall_score": 7.5,
