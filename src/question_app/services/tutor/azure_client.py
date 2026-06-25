@@ -652,15 +652,6 @@ class AzureAPIMClient:
             "Azure Responses request failed before an HTTP response was returned."
         )
 
-    def make_request(self, prompt: str) -> Dict[str, Any]:
-        """Compatibility helper for code paths expecting raw-like responses."""
-        try:
-            response = self.chat([{"role": "user", "content": prompt}])
-            return {"choices": [{"message": {"content": response}}]}
-        except Exception as exc:
-            logger.error(f"Make request failed: {exc}")
-            return {"choices": [{"message": {"content": f"Error: {exc}"}}]}
-
 
 def build_graph_responses_client(
     *,

@@ -8,7 +8,7 @@ for evaluating AI-generated content quality.
 import math
 import re
 from collections import Counter
-from typing import Any, Dict, List
+from typing import Dict
 
 
 class ComputedMetrics:
@@ -123,87 +123,6 @@ class ComputedMetrics:
         return bp * precision
 
     # ------------------------------------------------------------------
-    # Consistency & Discriminability
-    # ------------------------------------------------------------------
-
-    @staticmethod
-    def cross_reference_consistency(texts: List[str]) -> float:
-        """Average pairwise cosine similarity of TF-IDF vectors.
-
-        Measures how consistent multiple texts are with each other.
-        Score 0-1, where 1 = all texts use identical vocabulary.
-        Useful for checking if feedback texts for the same question
-        don't contradict each other.
-        """
-        if len(texts) < 2:
-            return 1.0
-
-        # Build vocabulary
-        all_words: set = set()
-        tokenized = []
-        for t in texts:
-            words = re.findall(r'\b[a-zA-Z]+\b', t.lower())
-            tokenized.append(words)
-            all_words.update(words)
-
-        if not all_words:
-            return 1.0
-
-        vocab = sorted(all_words)
-        word_to_idx = {w: i for i, w in enumerate(vocab)}
-
-        # TF vectors
-        vectors = []
-        for words in tokenized:
-            vec = [0.0] * len(vocab)
-            counts = Counter(words)
-            for w, c in counts.items():
-                vec[word_to_idx[w]] = c
-            vectors.append(vec)
-
-        # Average pairwise cosine similarity
-        similarities = []
-        for i in range(len(vectors)):
-            for j in range(i + 1, len(vectors)):
-                sim = ComputedMetrics._cosine_sim(vectors[i], vectors[j])
-                similarities.append(sim)
-
-        return sum(similarities) / len(similarities) if similarities else 1.0
-
-    @staticmethod
-    def question_discriminability(answers: List[Dict[str, Any]]) -> float:
-        """Measure how distinct incorrect answers are from each other.
-
-        Lower word overlap between distractors = better discriminability
-        (each distractor tests a different misconception).
-        Returns 0-1 where 1 = maximally discriminating (no overlap).
-        """
-        incorrect = [
-            a.get("text", "") for a in answers
-            if not a.get("is_correct", False) and a.get("text")
-        ]
-
-        if len(incorrect) < 2:
-            return 1.0
-
-        # Pairwise word overlap ratio
-        overlaps = []
-        for i in range(len(incorrect)):
-            for j in range(i + 1, len(incorrect)):
-                words_i = set(re.findall(r'\b[a-zA-Z]+\b', incorrect[i].lower()))
-                words_j = set(re.findall(r'\b[a-zA-Z]+\b', incorrect[j].lower()))
-                if not words_i or not words_j:
-                    continue
-                overlap = len(words_i & words_j) / len(words_i | words_j)
-                overlaps.append(overlap)
-
-        if not overlaps:
-            return 1.0
-
-        avg_overlap = sum(overlaps) / len(overlaps)
-        return 1.0 - avg_overlap  # invert: less overlap = better
-
-    # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
 
@@ -225,12 +144,3 @@ class ComputedMetrics:
                 vowels -= 1
             count += max(vowels, 1)
         return count
-
-    @staticmethod
-    def _cosine_sim(a: List[float], b: List[float]) -> float:
-        dot = sum(x * y for x, y in zip(a, b))
-        norm_a = math.sqrt(sum(x * x for x in a))
-        norm_b = math.sqrt(sum(x * x for x in b))
-        if norm_a == 0 or norm_b == 0:
-            return 0.0
-        return dot / (norm_a * norm_b)

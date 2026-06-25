@@ -7,12 +7,13 @@ with the main application's `prod` schema.
 
 Mirrors the patterns from question_app/services/database.py but is fully
 independent — no imports from the main app. This isolation is intentional:
-the MCP server runs as a separate subprocess.
+the learner-state layer keeps its own connection pool and schema, accessed
+directly at runtime by
+question_app.services.student_service.StudentService.
 """
 
 import json
 import logging
-import sys
 from contextlib import contextmanager
 from typing import Any, Dict, List, Optional
 
@@ -54,7 +55,6 @@ MINI_PASS = 2
 FINAL_QUESTIONS = 5
 FINAL_MASTERY = 4
 FINAL_PARTIAL = 3
-MIN_TURNS = 3
 CONFIDENCE_THRESHOLD = 0.7
 
 
@@ -894,7 +894,7 @@ class StudentDatabase:
     ) -> Dict[str, Any]:
         """Check if a stage transition is valid for the given session.
 
-        Enforces VALID_TRANSITIONS map and minimum turn requirements.
+        Enforces the VALID_TRANSITIONS map.
         Returns {"valid": True} or {"valid": False, "reason": "..."}.
         """
         with self.get_connection() as conn:

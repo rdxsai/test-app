@@ -101,10 +101,6 @@ class InMemoryChatSessionStore:
                 last_seen_at=session.last_seen_at,
             )
 
-    async def get_history(self, session_id: str) -> List[Dict[str, str]]:
-        session = await self.get_session(session_id)
-        return list(session.history)
-
     async def append_message(self, session_id: str, role: str, content: str) -> None:
         async with self._lock:
             session = self._sessions.get(session_id)

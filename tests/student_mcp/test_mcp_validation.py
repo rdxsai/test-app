@@ -14,7 +14,7 @@ import pytest
 from student_mcp.database import (
     StudentDatabase, VALID_TRANSITIONS, STAGE_MASTERY_CAP,
     MASTERY_LEVELS, MINI_QUESTIONS, MINI_PASS, FINAL_QUESTIONS,
-    FINAL_MASTERY, FINAL_PARTIAL, MIN_TURNS, CONFIDENCE_THRESHOLD,
+    FINAL_MASTERY, FINAL_PARTIAL, CONFIDENCE_THRESHOLD,
 )
 
 
@@ -244,5 +244,4 @@ class TestConstants:
         assert FINAL_QUESTIONS == 5
         assert FINAL_MASTERY == 4
         assert FINAL_PARTIAL == 3
-        assert MIN_TURNS == 3
         assert CONFIDENCE_THRESHOLD == 0.7
