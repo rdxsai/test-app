@@ -1,10 +1,8 @@
 """AI-powered content generation and similarity services."""
 import httpx
 import json
-import logging
-from typing import List, Dict, Any
-import numpy as np 
-import asyncio 
+from typing import List, Dict
+import numpy as np
 
 from ..core import config, get_logger
 from fastapi import HTTPException

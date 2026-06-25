@@ -3,7 +3,7 @@ Pydantic Models for Learning Objectives
 """
 
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List
 
 # --- Base Model ---
 # This defines the common fields that are always required.

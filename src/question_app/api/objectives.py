@@ -7,10 +7,9 @@ Learning objectives management API endpoints.
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
-from pydantic import BaseModel, ValidationError # Import ValidationError
-from typing import List 
+from pydantic import ValidationError  # Import ValidationError
 
-from ..core import get_logger, config
+from ..core import get_logger
 from ..services.database import get_database_manager
 from ..services.ai_service import AIGeneratorService
 

@@ -2,7 +2,6 @@
 Evaluation API — endpoints for viewing eval results and RAG samples.
 """
 
-import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Query

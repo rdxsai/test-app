@@ -1,9 +1,10 @@
 """
-Student MCP Server package.
+Student learner-state package.
 
-A Model Context Protocol server that manages student profiles, mastery tracking,
-session state, and misconception logging for the Socratic tutor chatbot.
-
-Runs as a subprocess over stdio. The FastAPI backend connects as a client
-using the same MCP client library used for wcag-guidelines-mcp.
+Direct PostgreSQL access (own connection pool, ``student_mcp`` schema) for
+student profiles, mastery tracking, session state, and misconception logging
+used by the guided Socratic tutor. Accessed at runtime via
+``question_app.services.student_service.StudentService``. The historical MCP
+server / stdio-client layer has been removed; the ``mcp`` name is retained only
+for the schema and package path.
 """

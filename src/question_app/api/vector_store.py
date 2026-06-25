@@ -9,15 +9,10 @@ It uses PostgreSQL + pgvector as the backend and Ollama for embeddings.
 from typing import List, Dict, Any, Tuple
 from fastapi import APIRouter, HTTPException, BackgroundTasks
 
-from ..core import config, get_logger
-from ..models import Question
+from ..core import get_logger
 from ..services.database import get_database_manager
-from ..services.embeddings import get_ollama_embeddings
-from ..services.tutor.interfaces import VectorStoreInterface
 from ..utils import (
     clean_question_text,
-    extract_topic_from_text,
-    load_questions,
     clean_answer_feedback
 )
 

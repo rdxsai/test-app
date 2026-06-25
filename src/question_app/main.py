@@ -45,8 +45,6 @@ Recent Improvements (v0.3.0):
 import uvicorn
 from fastapi import HTTPException, Request
 from fastapi.responses import HTMLResponse
-from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
 
 # Import core modules
 from .core import config, create_app, get_logger, get_templates, register_routers

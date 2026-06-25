@@ -1,16 +1,14 @@
 """API endpoints for managing questions."""
-import logging
 import json
 
-from fastapi import APIRouter, HTTPException, Request, Depends, BackgroundTasks
+from fastapi import APIRouter, HTTPException, Request, BackgroundTasks
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 import httpx
 
 
-from ..core import config, get_logger
+from ..core import get_logger
 from ..services.database import get_database_manager
-from ..models import QuestionUpdate
 from ..services.ai_service import AIGeneratorService
 from ..models import QuestionUpdate, NewQuestion
 from ..utils.rendering import markdown_to_safe_html

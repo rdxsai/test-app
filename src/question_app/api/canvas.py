@@ -9,7 +9,6 @@ This module contains all Canvas LMS integration endpoints including:
 """
 
 import asyncio
-import html
 import json as json_module
 import random
 import re
@@ -20,7 +19,6 @@ import httpx
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
-from bs4 import BeautifulSoup, Comment
 
 from ..core import config, get_logger
 from ..services.database import get_database_manager

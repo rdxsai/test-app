@@ -2,8 +2,6 @@
 Vector Store Service using PostgreSQL + pgvector.
 """
 
-import logging
-import uuid
 from typing import List, Dict, Any
 
 from pgvector.psycopg2 import register_vector

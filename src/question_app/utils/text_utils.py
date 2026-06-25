@@ -7,7 +7,7 @@ including HTML cleaning, text normalization, and feedback processing.
 
 import re
 from typing import List
-from bs4 import BeautifulSoup, Comment, CData, NavigableString
+from bs4 import BeautifulSoup, Comment, NavigableString
 import html
 
 
