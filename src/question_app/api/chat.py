@@ -3,10 +3,7 @@ Chat API module for the Question App.
 WebSocket streaming + POST fallback.
 """
 
-import asyncio
 import json
-import logging
-from typing import Dict
 
 from pydantic import BaseModel
 from fastapi import APIRouter, HTTPException, Request, WebSocket, WebSocketDisconnect
@@ -370,7 +367,7 @@ async def websocket_guided_chat(websocket: WebSocket):
       {"type": "stage_update", "stage": "...", "objective": "...", "summary": "..."}
       {"type": "mastery_update", "objective_id": "...", "new_level": "..."}
       {"type": "assessment_score", "asked": N, "correct": M, "total": T, "passed": bool|null}
-      {"type": "onboarding_complete", "profile": {...}, "first_objective": "..."}
+      {"type": "objective_picker", "options": [{...}, {...}, {...}]}
     """
     await websocket.accept()
 
@@ -457,69 +454,66 @@ async def websocket_guided_chat(websocket: WebSocket):
                         active_objective_id=objective,
                     )
                 else:
-                    # New student — onboarding handled by conduct_guided_session_streaming.
-                    # Don't create a session here (no profile yet → FK would fail).
-                    # Send auth confirmation, then the first onboarding prompt.
+                    # New student — present the objective picker. The session
+                    # row and profile are created when the student picks one.
                     await websocket.send_json(
                         {
                             "type": "authenticated",
                             "student_id": student_id,
                             "instance": "guided",
-                            "stage": "onboarding",
+                            "stage": "selecting_objective",
                             "has_profile": False,
                         }
                     )
-
-                    # Check if this student has partial onboarding progress
-                    history = guided_tutor_system.get_conversation_history(student_id)
-                    assistant_turns = sum(
-                        1 for m in history if m.get("role") == "assistant"
+                    await websocket.send_json(
+                        {
+                            "type": "welcome",
+                            "content": (
+                                "Welcome! Pick a learning objective to get "
+                                "started — your tutor will open the lesson "
+                                "right after you choose."
+                            ),
+                            "student_id": student_id,
+                            "stage": "selecting_objective",
+                        }
+                    )
+                    await websocket.send_json(
+                        guided_tutor_system.get_objective_picker_payload()
                     )
 
-                    if assistant_turns == 0:
-                        # Brand new — send welcome + first question
-                        await websocket.send_json(
-                            {
-                                "type": "welcome",
-                                "content": "Welcome! I'm your web accessibility tutor. Let me learn a bit about you so I can personalize your learning.",
-                                "student_id": student_id,
-                                "stage": "onboarding",
-                            }
-                        )
-                        first_question = guided_tutor_system._ONBOARDING_QUESTIONS[0]
-                        await websocket.send_json(
-                            {
-                                "type": "onboarding_question",
-                                "step": 1,
-                                "total_steps": 3,
-                                **first_question,
-                            }
-                        )
-                        guided_tutor_system.append_to_conversation(
-                            student_id,
-                            "assistant",
-                            guided_tutor_system._ONBOARDING_PROMPTS[0],
-                        )
-                    else:
-                        # Returning mid-onboarding — send the next unanswered question
-                        next_step = min(assistant_turns, 2)
-                        question = guided_tutor_system._ONBOARDING_QUESTIONS[next_step]
-                        await websocket.send_json(
-                            {
-                                "type": "welcome",
-                                "content": "Welcome back! Let's continue where we left off.",
-                                "student_id": student_id,
-                                "stage": "onboarding",
-                            }
-                        )
-                        await websocket.send_json(
-                            {
-                                "type": "onboarding_question",
-                                "step": next_step + 1,
-                                "total_steps": 3,
-                                **question,
-                            }
-                        )
+            # --- OBJECTIVE PICK (new-student session bootstrap) ---
+            elif msg_type == "objective_chosen":
+                objective_id = (msg.get("objective_id") or "").strip()
+                if not objective_id:
+                    await websocket.send_json(
+                        {"type": "error", "message": "objective_id required"}
+                    )
+                    continue
+                if not student_id or not session_id:
+                    await websocket.send_json(
+                        {"type": "error", "message": "Not authenticated"}
+                    )
+                    continue
+                # Idempotent: ignore if a session is already in flight.
+                existing = await guided_tutor_system.student_mcp.get_active_session(
+                    student_id
+                )
+                if existing and existing.get("active_objective_id"):
+                    await websocket.send_json(
+                        {
+                            "type": "error",
+                            "message": (
+                                "Objective already chosen for this session."
+                            ),
+                        }
+                    )
+                    continue
+                await guided_tutor_system.start_guided_session_with_objective(
+                    student_id=student_id,
+                    session_id=session_id,
+                    objective_id=objective_id,
+                    ws_send=ws_send,
+                )
 
             # --- CHAT MESSAGE ---
             elif msg_type == "message":

@@ -11,15 +11,12 @@ import logging
 import os
 import re
 import uuid
-from dataclasses import asdict
 from datetime import datetime
-from enum import Enum
 from typing import Any, Dict, List, Optional
 
 from dotenv import load_dotenv
 
 from ...models.tutor import KnowledgeLevel, SessionPhase, StudentProfile
-from ..general_chat_service import GeneralChatService
 from .analyzer_schema import (
     canonical_progression,
     canonical_student_turn,
@@ -94,165 +91,6 @@ def safe_serialize(obj):
         return [safe_serialize(item) for item in obj]
     else:
         return obj
-
-
-# ============================================================================
-# SIMULATED CREWAI AGENTS
-# ============================================================================
-
-
-class SocraticAgent:
-    # (This class is unchanged)
-    def __init__(self, role: str, goal: str, backstory: str, client: AzureAPIMClient):
-        self.role = role
-        self.goal = goal
-        self.backstory = backstory
-        self.client = client
-        logger.info(f"Initialized {role} agent")
-
-    def execute_task(
-        self,
-        task_description: str,
-        context: str = "",
-        history: Optional[List[Dict[str, str]]] = None,
-        reasoning_effort: Optional[str] = None,
-    ) -> str:
-        context_block = ""
-        if context:
-            context_block = f"""
-KNOWLEDGE BASE CUES:
-{context}
----
-The cues above may contain two sections:
-1. QUIZ KNOWLEDGE BASE: Course-specific quiz data, correct answers, misconceptions.
-2. WCAG GUIDELINES REFERENCE: Authoritative WCAG 2.2 success criteria, techniques, understanding docs.
-
-When both are present:
-- Use the WCAG reference as your primary factual authority.
-- Use the quiz data for course-specific misconceptions and expected answers.
-- Cite specific WCAG criteria when relevant.
-If only one source is present, use it fully.
-Expand on the cues with your expertise. Do not just rephrase them.
-If the cues mention a correct answer or misconception, teach *why* it is correct or incorrect.
-"""
-        system_prompt = f"""You are a {self.role}.
-        Your goal: {self.goal}
-        Background: {self.backstory}
-        {context_block}
-        Task: {task_description}
-        Provide clear, direct and comprehensive responses."""
-        messages = [
-            {"role": "system", "content": system_prompt},
-        ]
-        if history:
-            messages.extend(history[-4:])
-        messages.append({"role": "user", "content": task_description})
-        try:
-            response = self.client.chat(
-                messages, temperature=0.7, reasoning_effort=reasoning_effort
-            )
-            logger.info(f"{self.role} completed task successfully")
-            return response
-        except Exception as e:
-            logger.error(f"{self.role} task failed: {e}")
-            return f"Task processing error in {self.role}: {str(e)}"
-
-
-class CoordinatorAgent(SocraticAgent):
-    def __init__(self, client=AzureAPIMClient) -> None:
-        super().__init__(
-            role="Socratic Session Coordinator",
-            # --- === FIX 1: UPDATE THE GOAL === ---
-            goal="Analyze the user's input to determine its primary intent: 'conceptual_question', 'code_analysis_request', or 'off_topic'.",
-            backstory="""You are the central "brain" of a tutoring system focused *only* on web accessibility.
-            You do not answer the student. Your job is to classify the user's
-            input so it can be routed to the correct specialist agent.""",
-            # --- === END OF FIX 1 === ---
-            client=client,
-        )
-
-    def decide_intent(
-        self, student_response: str, history: Optional[List[Dict[str, str]]] = None
-    ) -> str:
-        # --- === FIX 2: UPDATE THE TASK PROMPT === ---
-        task_description = f"""
-Analyze the following user input in the context of the ongoing conversation. Classify it as one of three intents:
-
-1. 'conceptual_question': For general questions, statements, answers, or follow-up requests about web accessibility concepts. 
-   This includes:
-   - Direct questions (e.g., "what is alt text?")
-   - Follow-up clarifications (e.g., "can you explain more simply?", "give me an example")
-   - Requests to change response style (e.g., "answer directly", "be more detailed")
-   - Statements or partial answers (e.g., "I think it's for screen readers")
-
-2. 'code_analysis_request': If the user has included a code snippet (HTML, CSS, JS) for review or has asked a question directly about a piece of code.
-
-3. 'off_topic': ONLY if the user is asking about something completely unrelated to web accessibility AND it's not a follow-up to the current discussion (e.g., "what is the capital of France?", "tell me about cooking recipes").
-
-IMPORTANT: If this appears to be a follow-up or continuation of the previous conversation, classify it as 'conceptual_question' even if it doesn't explicitly mention web accessibility.
-
-User Input: "{student_response}"
-
-Respond with ONLY a JSON object in this exact format:
-{{"intent": "YOUR_CLASSIFICATION_HERE"}}
-"""
-        # --- === END OF FIX 2 === ---
-        try:
-            repsonse_json = self.execute_task(
-                task_description, context="", history=history, reasoning_effort="low"
-            )
-            intent = json.loads(repsonse_json).get("intent", "conceptual_question")
-
-            # Add the new intent to the valid list
-            if intent not in [
-                "conceptual_question",
-                "code_analysis_request",
-                "off_topic",
-            ]:
-                logger.warning(
-                    f"CoordinatorAgent returned non-standard intent: {intent}"
-                )
-                return "conceptual_question"  # Default to this if confused
-
-            logger.info(f"CoordinatorAgent decided intent : {intent}")
-            return intent
-
-        except Exception as e:
-            logger.error(
-                f"CoordinatorAgent failed : {e} , Defaulting to 'conceptual_question'"
-            )
-            return "conceptual_question"
-
-
-class CodeAnalyzerAgent(SocraticAgent):
-    def __init__(self, client: AzureAPIMClient):
-        super().__init__(
-            role="Expert Web Accessibility Code Analyst",
-            goal="Analyze a snippet of HTML, CSS, or JS and identify potential accessibility issues. Provide your analysis in a structured list.",
-            backstory="""You are an expert on WCAG and web accessibility.
-            You do not talk to the student. You are a tool that provides technical analysis.
-            Your job is to find common errors like missing alt text, non-semantic HTML (e.g., div used as a button), or poor color contrast hints.""",
-            client=client,
-        )
-
-    def analyze_code_snippet(self, code_snippet: str):
-        task_description = f"""
-        Analyze the following code snippet for potential accessibility errors.
-        List 1-3 potential issues you find. Be concise and return your analysis as a simple string.
-        If no errors are found, respond with "No obvious accessibility errors found."
-        Code Snippet:
-        ```
-        {code_snippet}
-        ```
-        Your Analysis:
-        """
-        try:
-            analysis = self.execute_task(task_description, context="")
-            logger.info("CodeAnalyzerAgent completed analysis")
-            return analysis
-        except Exception as e:
-            logger.error(f"CodeAnalyzerAgent fauled : {e}")
-            return "Error during code analysis"
 
 
 # ============================================================================
@@ -335,13 +173,6 @@ class HybridCrewAISocraticSystem:
         self.wcag_mcp = wcag_mcp_client
         self.student_mcp = student_mcp_client
         self.graph_responses_client = graph_responses_client or self.reasoning_client
-        self.instance_a_service = GeneralChatService(
-            azure_config=azure_config,
-            vector_store_service=vector_store_service,
-            wcag_mcp_client=wcag_mcp_client,
-            db_manager=self.db,
-        )
-        self._legacy_instance_a_bootstrapped_sessions: set[str] = set()
         # Session content cache: teaching material cached per objective (zero-latency reuse)
         from .session_cache import SessionContentCache
 
@@ -520,8 +351,6 @@ class HybridCrewAISocraticSystem:
         self.memory_file = "conversation_memory.json"
         self.conversation_memory: Dict[str, List[Dict[str, str]]] = {}
         self._load_conversation_memory()
-        self.coordinator_agent = CoordinatorAgent(self.tutor_client)
-        self.code_analyzer = CodeAnalyzerAgent(self.reasoning_client)
         logger.info("Hybrid CrewAI Socratic System initialized successfully")
 
     # --- (This is the corrected create_student_profile function from last time) ---
@@ -2672,121 +2501,6 @@ class HybridCrewAISocraticSystem:
             "objective_text": new_objective_text,
         }
 
-    # ------------------------------------------------------------------
-    # Legacy Instance A quarantine
-    # ------------------------------------------------------------------
-
-    async def _ensure_instance_a_legacy_session(
-        self, student_id: str
-    ) -> Dict[str, Any]:
-        session = await self.instance_a_service.ensure_session(student_id)
-        session_id = session["session_id"]
-        if session_id not in self._legacy_instance_a_bootstrapped_sessions:
-            session = await self.instance_a_service.start_new_session(session_id)
-            self._legacy_instance_a_bootstrapped_sessions.add(session_id)
-        return session
-
-    def _load_legacy_student_profile(self, student_id: str) -> Optional[Any]:
-        load_profile = getattr(self.db, "load_student_profile", None)
-        if not callable(load_profile):
-            return None
-        profile = load_profile(student_id)
-        if profile is None:
-            raise ValueError(f"Student {student_id} not found")
-        return profile
-
-    def _serialize_legacy_student_profile(
-        self, profile: Optional[Any], student_id: str
-    ) -> Dict[str, Any]:
-        if profile is None:
-            return {"id": student_id}
-        try:
-            return asdict(profile)
-        except TypeError:
-            if isinstance(profile, dict):
-                return dict(profile)
-            return {"id": student_id}
-
-    def _build_legacy_instance_a_response_messages(
-        self,
-        student_response: str,
-        context: str,
-        history: Optional[List[Dict[str, str]]] = None,
-        student_context: str = "",
-    ) -> List[Dict]:
-        """Build the messages list for response generation.
-
-        Uses the research-backed Socratic prompt (Instance A) which includes:
-        - 6 cognitive state detection (SocraticLM)
-        - 4 response modes (SocraticMATH)
-        - Termination rules and anti-patterns
-        - 4 few-shot examples
-        """
-        from .prompts import build_instance_a_prompt
-
-        system_prompt = build_instance_a_prompt(
-            knowledge_context=context,
-            student_context=student_context,
-        )
-
-        messages = [{"role": "system", "content": system_prompt}]
-        if history:
-            messages.extend(history[-6:])
-        messages.append({"role": "user", "content": student_response})
-        return messages
-
-    def _generate_legacy_instance_a_response(
-        self,
-        student_response: str,
-        context: str,
-        history: Optional[List[Dict[str, str]]] = None,
-        student_context: str = "",
-    ) -> str:
-        """
-        Single LLM call: context + history + student query → tutor response.
-        Used by the non-streaming POST endpoint.
-        """
-        messages = self._build_legacy_instance_a_response_messages(
-            student_response, context, history, student_context=student_context
-        )
-        try:
-            return self.client.chat(messages, temperature=0.7, max_tokens=1000)
-        except Exception as e:
-            logger.error(f"Response generation failed: {e}")
-            return "I apologize, but I'm having trouble right now. Could you rephrase your question?"
-
-    async def conduct_socratic_session(
-        self, student_id: str, student_response: str
-    ) -> Dict[str, Any]:
-        profile = self._load_legacy_student_profile(student_id)
-        session = await self._ensure_instance_a_legacy_session(student_id)
-        logger.warning(
-            "Legacy Instance A entrypoint conduct_socratic_session() is delegating to GeneralChatService."
-        )
-
-        try:
-            result = await self.instance_a_service.handle_message(
-                session_id=session["session_id"],
-                user_message=student_response,
-            )
-            return {
-                "tutor_response": result.get("response", ""),
-                "student_profile": self._serialize_legacy_student_profile(
-                    profile,
-                    student_id,
-                ),
-                "session_metadata": result.get("session_metadata", {}),
-                "status": "success",
-            }
-        except Exception as e:
-            logger.error(f"Triage Session execution failed : {e}", exc_info=True)
-            return {
-                "tutor_response": "I apologize, but I'm having a small issue. Could you rephrase that?",
-                "error": str(e),
-                "fallback": True,
-                "status": "error",
-            }
-
     async def _progressive_send(self, text: str, ws_send):
         """
         Send text to the client progressively in small word-chunks.
@@ -2819,36 +2533,6 @@ class HybridCrewAISocraticSystem:
         logger.info(f"Sent non-streamed tutor response ({len(result)} chars)")
         return result
 
-    async def conduct_socratic_session_streaming(
-        self, student_id: str, student_response: str, ws_send
-    ):
-        """
-        Legacy compatibility wrapper for Instance A streaming calls.
-        Active Instance A behavior now lives in GeneralChatService.
-        """
-        self._load_legacy_student_profile(student_id)
-        session = await self._ensure_instance_a_legacy_session(student_id)
-        logger.warning(
-            "Legacy Instance A entrypoint conduct_socratic_session_streaming() is delegating to GeneralChatService."
-        )
-
-        try:
-            return await self.instance_a_service.handle_message_streaming(
-                session_id=session["session_id"],
-                user_message=student_response,
-                ws_send=ws_send,
-            )
-        except ClientConnectionClosedError:
-            logger.info(
-                "Instance A client disconnected during streaming (session_id=%s)",
-                session["session_id"],
-            )
-            return {}
-        except Exception as e:
-            logger.error(f"Streaming session failed: {e}", exc_info=True)
-            await ws_send({"type": "error", "message": str(e)})
-            return {}
-
     # ==================================================================
     # Instance B: Guided Learning Session
     # ==================================================================
@@ -2870,19 +2554,21 @@ class HybridCrewAISocraticSystem:
 
         try:
             session_state = await self.student_mcp.get_active_session(student_id)
-            current_stage = (session_state or {}).get("current_stage", "onboarding")
-            if not session_state or current_stage == "onboarding":
-                return await self._handle_onboarding(
+            current_stage = (session_state or {}).get("current_stage", "")
+            if not session_state or not current_stage or current_stage == "onboarding":
+                # Pre-objective state: re-emit the picker and bail.
+                logger.info(
+                    "Guided session message arrived before objective was chosen "
+                    "(student_id=%s session_id=%s); re-sending picker.",
                     student_id,
-                    student_response,
                     session_id,
-                    ws_send,
-                    history,
                 )
+                await ws_send(self.get_objective_picker_payload())
+                return {"stage": "selecting_objective"}
 
             objective_id = session_state.get("active_objective_id", "")
-            objective_text = ""
-            if objective_id:
+            objective_text = self.resolve_objective_text(objective_id)
+            if not objective_text and objective_id:
                 try:
                     obj = await asyncio.to_thread(
                         self._fetch_objective_by_id, objective_id
@@ -3019,135 +2705,409 @@ class HybridCrewAISocraticSystem:
             return {}
 
     # ------------------------------------------------------------------
-    # Onboarding handler (Instance B — first 2-3 turns)
+    # Objective picker (Instance B session start)
     # ------------------------------------------------------------------
 
-    # Structured onboarding questions — sent as clickable forms, not free text
-    _ONBOARDING_QUESTIONS = [
+    DEMO_SAVED_GRAPH_OBJECTIVE_ID = "demo:non-text-alt"
+    _SAVED_DEMO_ARTIFACT_PATH = (
+        "results/graph_retrieval_demo_20260427_201649/"
+        "0157_artifact_final_graph_content.json"
+    )
+    _SAVED_DEMO_ARTIFACT_CACHE: Optional[Dict[str, Any]] = None
+
+    GUIDED_OBJECTIVE_OPTIONS: List[Dict[str, Any]] = [
         {
-            "question": "What's your technical background?",
-            "description": "This helps us tailor examples and vocabulary to your role.",
-            "field": "role_context",
-            "options": [
-                {"label": "Developer", "value": "developer"},
-                {"label": "Designer", "value": "designer"},
-                {"label": "Content Author", "value": "content_author"},
-                {"label": "QA Tester", "value": "qa_tester"},
-                {"label": "Student", "value": "student"},
-                {"label": "Manager", "value": "manager"},
-            ],
-            "allow_other": True,
+            "id": "I.A.2",
+            "label": "Intro to WCAG (POUR + structure)",
+            "description": (
+                "The big picture: the four POUR principles, guidelines, "
+                "success criteria, and conformance levels."
+            ),
+            "graph_source": "live",
+            "graph_available": False,
+            "objective_text": (
+                "Explain the structure of WCAG 2.2 by identifying the four "
+                "principles (POUR), guidelines, and success criteria levels "
+                "(A, AA, AAA)."
+            ),
         },
         {
-            "question": "How much experience do you have with web accessibility?",
-            "description": "We'll match the starting topic to your level.",
-            "field": "a11y_exposure",
-            "options": [
-                {
-                    "label": "None",
-                    "value": "none",
-                    "description": "I'm just getting started",
-                },
-                {
-                    "label": "Some awareness",
-                    "value": "awareness",
-                    "description": "I've heard of WCAG but haven't applied it",
-                },
-                {
-                    "label": "Working knowledge",
-                    "value": "working_knowledge",
-                    "description": "I've worked on accessible websites",
-                },
-                {
-                    "label": "Professional",
-                    "value": "professional",
-                    "description": "Deep a11y expertise or certification",
-                },
-            ],
-            "allow_other": False,
+            "id": "I.B.4",
+            "label": "Semantic HTML controls vs generic elements",
+            "description": (
+                "Why a real <button> behaves differently from a styled "
+                "<div> for keyboard and assistive-tech users."
+            ),
+            "graph_source": "live",
+            "graph_available": False,
+            "objective_text": (
+                "Distinguish between semantic HTML controls (e.g., "
+                "`<button>`, `<a>`) and generic elements (e.g., `<div>`) "
+                "in terms of built-in accessibility."
+            ),
         },
         {
-            "question": "What's driving your interest in accessibility?",
-            "description": "Last question — helps us focus on what matters to you.",
-            "field": "learning_goal",
-            "options": [
-                {"label": "Certification prep", "value": "certification"},
-                {"label": "Job requirement", "value": "job_requirement"},
-                {"label": "Personal interest", "value": "personal_interest"},
-            ],
-            "allow_other": True,
+            "id": DEMO_SAVED_GRAPH_OBJECTIVE_ID,
+            "label": "Evaluating text alternatives for non-text content",
+            "description": (
+                "Decide when an image, chart, or media item needs a text "
+                "alternative — and judge whether the alternative is any good."
+            ),
+            "graph_source": "saved",
+            "graph_available": True,
+            "objective_text": (
+                "Evaluate web content to determine whether text alternatives "
+                "are provided for images, video, and other non-text content."
+            ),
         },
     ]
 
-    # Legacy text prompts (kept for conversation history readability)
-    _ONBOARDING_PROMPTS = [
-        "Welcome! What's your technical background?",
-        "How much experience do you have with web accessibility?",
-        "What's driving your interest in accessibility?",
-    ]
+    DEFAULT_NEW_STUDENT_PROFILE: Dict[str, str] = {
+        "technical_level": "beginner",
+        "a11y_exposure": "none",
+        "role_context": "student",
+        "learning_goal": "personal_interest",
+    }
 
-    async def _handle_onboarding(
+    @classmethod
+    def _objective_picker_payload(cls) -> Dict[str, Any]:
+        return {
+            "type": "objective_picker",
+            "options": [
+                {
+                    key: value
+                    for key, value in option.items()
+                    if key != "objective_text"
+                }
+                for option in cls.GUIDED_OBJECTIVE_OPTIONS
+            ],
+        }
+
+    @classmethod
+    def get_objective_picker_payload(cls) -> Dict[str, Any]:
+        """Public accessor used by the WS handler to send the picker."""
+        return cls._objective_picker_payload()
+
+    @classmethod
+    def _objective_option(cls, objective_id: str) -> Optional[Dict[str, Any]]:
+        for option in cls.GUIDED_OBJECTIVE_OPTIONS:
+            if option["id"] == objective_id:
+                return option
+        return None
+
+    @classmethod
+    def _load_saved_demo_artifact(cls) -> Dict[str, Any]:
+        """Load and cache the saved teaching-graph artifact from disk."""
+        if cls._SAVED_DEMO_ARTIFACT_CACHE is not None:
+            return cls._SAVED_DEMO_ARTIFACT_CACHE
+        path = os.path.join(os.getcwd(), cls._SAVED_DEMO_ARTIFACT_PATH)
+        if not os.path.exists(path):
+            raise TeachingGraphGenerationError(
+                f"Saved demo artifact not found at {path}. "
+                "Cannot seed the non-text-content objective."
+            )
+        with open(path, "r", encoding="utf-8") as f:
+            cls._SAVED_DEMO_ARTIFACT_CACHE = json.load(f)
+        return cls._SAVED_DEMO_ARTIFACT_CACHE
+
+    async def _run_pipeline_for_graph(
         self,
-        student_id: str,
-        student_response: str,
-        session_id: str,
+        *,
+        objective_text: str,
+        graph_artifact,
         ws_send,
-        history: List[Dict],
-    ) -> Dict[str, Any]:
-        """Handle onboarding (first 2-3 turns before guided learning begins).
+    ):
+        """Run retrieval + content synthesis + validation for a pre-built graph.
 
-        Gathers technical background, a11y experience, and learning goals
-        through a structured conversational flow. After the final turn,
-        creates the student profile and selects the first objective.
+        Emits staged WS events between phases so the frontend can render the
+        graph, retrieval trace, and teaching content as each completes.
+        Returns the assembled :class:`TeachingGraphContentArtifact`.
         """
-        # Count how many assistant messages we've sent (= onboarding turn)
-        assistant_turns = sum(1 for m in history if m.get("role") == "assistant")
-        logger.info(
-            f"[ONBOARDING] student={student_id} assistant_turns={assistant_turns} "
-            f"history_len={len(history)} student_said='{student_response[:80]}'"
+        from .artifacts import TeachingGraphContentArtifact
+
+        await ws_send(
+            {
+                "type": "stage",
+                "stage": "searching",
+                "detail": "Running retrieval over the graph...",
+            }
+        )
+        node_evidence_artifact = await self._build_graph_node_evidence(
+            objective_text=objective_text,
+            graph=graph_artifact,
+        )
+        await ws_send(
+            {
+                "type": "node_evidence",
+                "node_evidence": node_evidence_artifact.to_dict(),
+            }
         )
 
-        if assistant_turns < 3:
-            # Send the next structured onboarding question
-            prompt_idx = min(assistant_turns, 2)
-            question_data = self._ONBOARDING_QUESTIONS[prompt_idx]
-            prompt_text = self._ONBOARDING_PROMPTS[prompt_idx]
-            logger.info(
-                f"[ONBOARDING] Sending question #{prompt_idx + 1} of 3: {question_data['field']}"
+        await ws_send(
+            {
+                "type": "stage",
+                "stage": "composing",
+                "detail": "Synthesizing teaching content from retrieved evidence...",
+            }
+        )
+        node_content_artifact = await self._build_graph_node_content(
+            objective_text=objective_text,
+            graph=graph_artifact,
+            node_evidence=node_evidence_artifact,
+        )
+        edge_integration_artifact = await self._build_graph_edge_integration(
+            objective_text=objective_text,
+            graph=graph_artifact,
+            node_evidence=node_evidence_artifact,
+            node_content=node_content_artifact,
+        )
+        await ws_send(
+            {
+                "type": "teaching_graph_details",
+                "node_content": node_content_artifact.to_dict(),
+                "edge_integration": edge_integration_artifact.to_dict(),
+            }
+        )
+
+        validation_artifact = await self._validate_teaching_graph_content(
+            objective_text=objective_text,
+            graph=graph_artifact,
+            node_evidence=node_evidence_artifact,
+            node_content=node_content_artifact,
+            edge_integration=edge_integration_artifact,
+        )
+        evidence_cards = GraphGroundingProjector.build_evidence_cards(
+            objective_text=objective_text,
+            node_evidence=node_evidence_artifact,
+        )
+        claim_ledger = GraphGroundingProjector.build_claim_ledger(
+            objective_text=objective_text,
+            node_evidence=node_evidence_artifact,
+            node_content=node_content_artifact,
+            edge_integration=edge_integration_artifact,
+            evidence_cards=evidence_cards,
+        )
+        validation_artifact = GraphGroundingProjector.deterministic_validate(
+            validation=validation_artifact,
+            claim_ledger=claim_ledger,
+            evidence_cards=evidence_cards,
+        )
+        if validation_artifact.overall_status == "fail":
+            try:
+                failed_claims = [
+                    c.to_dict()
+                    for c in validation_artifact.claim_checks
+                    if c.status == "fail"
+                ]
+                node_issues = [
+                    n.to_dict()
+                    for n in validation_artifact.node_checks
+                    if n.status == "fail"
+                ]
+            except Exception:
+                failed_claims, node_issues = [], []
+            logger.error(
+                "Graph-grounded content validation hard-failed: failed_claims=%s "
+                "node_issues=%s",
+                failed_claims,
+                node_issues,
+            )
+            raise TeachingGraphGenerationError(
+                "Graph-grounded content failed validation: fail"
+            )
+        if validation_artifact.overall_status != "pass":
+            try:
+                node_revisions = [
+                    {"node_id": n.node_id, "status": n.status, "notes": list(n.notes)}
+                    for n in validation_artifact.node_checks
+                    if n.status != "pass"
+                ]
+                edge_revisions = [
+                    {
+                        "from": e.from_node,
+                        "to": e.to_node,
+                        "status": e.status,
+                        "notes": list(e.notes),
+                    }
+                    for e in validation_artifact.edge_checks
+                    if e.status != "pass"
+                ]
+                integration_revision = (
+                    validation_artifact.integration_check.to_dict()
+                    if validation_artifact.integration_check.status != "pass"
+                    else None
+                )
+            except Exception:
+                node_revisions, edge_revisions, integration_revision = [], [], None
+            logger.warning(
+                "Graph-grounded content returned validator status=%s; proceeding. "
+                "node_revisions=%s edge_revisions=%s integration_revision=%s",
+                validation_artifact.overall_status,
+                node_revisions,
+                edge_revisions,
+                integration_revision,
+            )
+        tutor_facing_content = GraphGroundingProjector.build_tutor_facing_content(
+            objective_text=objective_text,
+            graph=graph_artifact,
+            node_content=node_content_artifact,
+            edge_integration=edge_integration_artifact,
+            evidence_cards=evidence_cards,
+            claim_ledger=claim_ledger,
+            validation=validation_artifact,
+        )
+        return TeachingGraphContentArtifact(
+            objective_text=objective_text,
+            graph=graph_artifact,
+            node_evidence=node_evidence_artifact,
+            node_content=node_content_artifact,
+            edge_integration=edge_integration_artifact,
+            validation=validation_artifact,
+            evidence_cards=evidence_cards,
+            claim_ledger=claim_ledger,
+            tutor_facing_content=tutor_facing_content,
+        )
+
+    async def _seed_session_from_saved_artifact(
+        self,
+        *,
+        session_id: str,
+        objective_id: str,
+        objective_text: str,
+        ws_send,
+    ) -> None:
+        """Seed the session from the saved graph; run retrieval + content live.
+
+        Only the *graph* is taken from the saved artifact — that piece is
+        treated as pre-built. The retrieval pipeline (NodeEvidenceRetriever,
+        synthesizers, validator, projector) all run live so the user can watch
+        the retrieval process and see freshly grounded teaching content.
+        """
+        from .artifacts import TeachingGraphArtifact
+
+        saved_artifact = self._load_saved_demo_artifact()
+        saved_graph = saved_artifact.get("graph") or {}
+        if not saved_graph:
+            raise TeachingGraphGenerationError(
+                "Saved demo artifact is missing the graph payload."
             )
 
-            # Send as structured form question
-            await ws_send(
-                {
-                    "type": "onboarding_question",
-                    "step": assistant_turns + 1,
-                    "total_steps": 3,
-                    **question_data,
-                }
-            )
-            self.append_to_conversation(student_id, "assistant", prompt_text)
+        await ws_send(
+            {
+                "type": "stage",
+                "stage": "composing",
+                "detail": "Loading pre-built teaching graph...",
+            }
+        )
+        await ws_send({"type": "teaching_plan_generating"})
+        display_plan = json.dumps(saved_graph, indent=2)
+        await ws_send(
+            {
+                "type": "teaching_plan",
+                "plan": saved_graph,
+                "display_plan": display_plan,
+            }
+        )
 
-            return {"stage": "onboarding", "step": assistant_turns + 1}
+        graph_artifact = TeachingGraphArtifact.from_dict(saved_graph)
+        artifact = await self._run_pipeline_for_graph(
+            objective_text=objective_text,
+            graph_artifact=graph_artifact,
+            ws_send=ws_send,
+        )
+        teaching_content = GraphGroundingProjector.render_tutor_content(
+            artifact.tutor_facing_content
+        )
 
-        # Final turn — parse structured answers into profile
-        logger.info(f"[ONBOARDING] All 3 prompts answered — creating profile")
-        profile_data = self._extract_onboarding_profile(history, student_response)
+        await ws_send({"type": "teaching_content_generating"})
+        await ws_send(
+            {
+                "type": "teaching_content",
+                "content": teaching_content,
+                "display_content": teaching_content,
+            }
+        )
 
-        # Create profile via MCP
+        extracted_concepts = [
+            {"id": node["id"], "label": node.get("label", node["id"])}
+            for node in saved_graph.get("nodes", [])
+        ]
+        self._session_state_repository.store_pipeline_result(
+            session_id=session_id,
+            objective_id=objective_id,
+            objective_text=objective_text,
+            teaching_content=teaching_content,
+            retrieval_bundle=artifact.to_dict(),
+            teaching_plan=saved_graph,
+            extracted_concepts=extracted_concepts,
+        )
+        await self._session_state_repository.persist(session_id)
+
+    async def ensure_default_profile(self, student_id: str) -> Dict[str, Any]:
+        """Create a baseline profile for a brand-new student if missing."""
+        existing = await self.student_mcp.get_profile(student_id)
+        if existing:
+            return existing
         await self.student_mcp.create_profile(
             student_id=student_id,
-            technical_level=profile_data.get("technical_level", "beginner"),
-            a11y_exposure=profile_data.get("a11y_exposure", "none"),
-            role_context=profile_data.get("role_context", ""),
-            learning_goal=profile_data.get("learning_goal", ""),
+            **self.DEFAULT_NEW_STUDENT_PROFILE,
         )
+        return await self.student_mcp.get_profile(student_id) or {}
 
-        # Select first objective based on student's assessed level
-        objective_id, objective_text = await self._select_starting_objective(
-            student_id, profile_data.get("a11y_exposure", "none")
-        )
+    def resolve_objective_text(self, objective_id: str) -> str:
+        """Resolve an objective id to its display text.
 
-        # Create session and transition to introduction
+        Tries the picker option table first (covers synthetic demo ids and the
+        curriculum codes I.A.2 / I.B.4), then falls back to the live DB.
+        """
+        option = self._objective_option(objective_id)
+        if option:
+            return option["objective_text"]
+        try:
+            obj = self._fetch_objective_by_id(objective_id)
+            if obj and obj.get("text"):
+                return obj["text"]
+        except Exception as exc:
+            logger.warning(
+                "Failed to resolve objective text for %s: %s",
+                objective_id,
+                exc,
+            )
+        return objective_id
+
+    async def start_guided_session_with_objective(
+        self,
+        *,
+        student_id: str,
+        session_id: str,
+        objective_id: str,
+        ws_send,
+    ) -> Dict[str, Any]:
+        """Bootstrap a brand-new guided session around the chosen objective.
+
+        Creates a default profile if needed, opens the session at the
+        introduction stage, seeds the teaching graph (saved artifact when
+        available, otherwise the live build pipeline), and fires the first
+        teaching turn.
+        """
+        if not self.student_mcp:
+            await ws_send(
+                {"type": "error", "message": "Student MCP not available"}
+            )
+            return {}
+
+        option = self._objective_option(objective_id)
+        if option is None:
+            await ws_send(
+                {
+                    "type": "error",
+                    "message": f"Unknown objective: {objective_id}",
+                }
+            )
+            return {}
+
+        objective_text = option["objective_text"]
+        await self.ensure_default_profile(student_id)
         await self.student_mcp.update_session_state(
             session_id,
             student_id=student_id,
@@ -3156,15 +3116,6 @@ class HybridCrewAISocraticSystem:
             turns=0,
         )
 
-        # Notify frontend of onboarding completion and stage change
-        a11y_exposure = profile_data.get("a11y_exposure", "none")
-        await ws_send(
-            {
-                "type": "onboarding_complete",
-                "profile": profile_data,
-                "first_objective": objective_text,
-            }
-        )
         await ws_send(
             {
                 "type": "stage_update",
@@ -3174,204 +3125,67 @@ class HybridCrewAISocraticSystem:
             }
         )
 
-        # Send level-appropriate objective introduction
-        intro_text = self._OBJECTIVE_INTROS.get(
-            a11y_exposure, self._OBJECTIVE_INTROS["none"]
-        )
-        intro_msg = f"{intro_text}\n\nLet's begin!"
-        await ws_send({"type": "stream_start"})
-        await self._progressive_send(intro_msg, ws_send)
-        await ws_send({"type": "stream_end", "metadata": {"stage": "introduction"}})
-        self.append_to_conversation(student_id, "assistant", intro_msg)
+        try:
+            if option["graph_source"] == "saved":
+                await self._seed_session_from_saved_artifact(
+                    session_id=session_id,
+                    objective_id=objective_id,
+                    objective_text=objective_text,
+                    ws_send=ws_send,
+                )
+            await self._start_first_teaching_turn(
+                student_id=student_id,
+                session_id=session_id,
+                objective_id=objective_id,
+                objective_text=objective_text,
+                ws_send=ws_send,
+            )
+        except TeachingPlanGenerationError as exc:
+            logger.error(
+                "Teaching plan generation failed for objective=%s: %s",
+                objective_id,
+                exc,
+                exc_info=True,
+            )
+            await ws_send(
+                {
+                    "type": "error",
+                    "message": (
+                        "Teaching plan generation failed. Please pick another "
+                        "objective or retry."
+                    ),
+                }
+            )
+            return {}
+        except TeachingGraphGenerationError as exc:
+            logger.error(
+                "Teaching graph generation failed for objective=%s: %s",
+                objective_id,
+                exc,
+                exc_info=True,
+            )
+            await ws_send(
+                {
+                    "type": "error",
+                    "message": (
+                        "Teaching graph generation failed. Please pick another "
+                        "objective or retry."
+                    ),
+                }
+            )
+            return {}
 
-        # Start the first teaching turn directly. No synthetic student
-        # message is fabricated — the tutor opens the lesson on its own,
-        # the analyzer is skipped (nothing to interpret yet), and only the
-        # tutor's reply is appended to conversation history.
-        await self._start_first_teaching_turn(
-            student_id=student_id,
-            session_id=session_id,
-            objective_id=objective_id,
-            objective_text=objective_text,
-            ws_send=ws_send,
-        )
-        return {"stage": "introduction", "objective": objective_text}
-
-    def _extract_onboarding_profile(
-        self,
-        history: List[Dict],
-        final_response: str,
-    ) -> Dict[str, str]:
-        """Extract structured profile from onboarding answers.
-
-        Since onboarding uses structured form inputs (clickable options),
-        the user responses are the raw option values. Parse them directly
-        from conversation history — no LLM needed.
-        """
-        # User responses are at indices 1, 3, 5 in history (after each assistant prompt)
-        user_answers = [m["content"] for m in history if m.get("role") == "user"]
-        # Add the final response (3rd answer)
-        user_answers.append(final_response)
-
-        # Map answers to profile fields using the onboarding question definitions
-        profile = {
-            "technical_level": "beginner",
-            "a11y_exposure": "none",
-            "role_context": "student",
-            "learning_goal": "personal_interest",
+        return {
+            "stage": "introduction",
+            "objective_id": objective_id,
+            "objective_text": objective_text,
+            "graph_source": option["graph_source"],
         }
 
-        for i, question in enumerate(self._ONBOARDING_QUESTIONS):
-            if i >= len(user_answers):
-                break
-            answer = user_answers[i].strip().lower()
-            field = question["field"]
-
-            # Check if answer matches any option value
-            matched = False
-            for opt in question["options"]:
-                if answer == opt["value"] or answer == opt["label"].lower():
-                    if field == "role_context":
-                        profile["role_context"] = opt["value"]
-                    elif field == "a11y_exposure":
-                        profile["a11y_exposure"] = opt["value"]
-                    elif field == "learning_goal":
-                        profile["learning_goal"] = opt["value"]
-                    matched = True
-                    break
-
-            if not matched and answer:
-                # "Other" or free-text — use as-is
-                profile[field] = answer
-
-        # Derive technical_level from a11y_exposure
-        exposure = profile.get("a11y_exposure", "none")
-        if exposure in ("none", "awareness"):
-            profile["technical_level"] = "beginner"
-        elif exposure == "working_knowledge":
-            profile["technical_level"] = "intermediate"
-        elif exposure == "professional":
-            profile["technical_level"] = "advanced"
-
-        logger.info(f"[ONBOARDING] Profile extracted: {profile}")
-        return profile
-
-    # ------------------------------------------------------------------
-    # Starting objective selection (level-based)
-    # ------------------------------------------------------------------
-
-    # Maps a11y_exposure from onboarding to a specific starting objective.
-    # IDs match the gold dataset imported via rebuild_db_from_converted_exports.
-    _STARTING_OBJECTIVES = {
-        # Level 0: no prior accessibility knowledge — start with WCAG structure
-        "none": "I.A.2",
-        # "Explain the structure of WCAG 2.2, including the POUR principles,
-        #  guidelines, success criteria, and conformance levels"
-        # Level 1: some awareness — semantic controls vs generic elements
-        "awareness": "I.B.4",
-        "working_knowledge": "I.D.10",
-        # I.B.4: "Distinguish between semantic HTML controls and non-semantic
-        #         elements in terms of built-in accessibility."
-        # I.D.10: "Apply ARIA live regions to communicate dynamic content
-        #          updates without moving keyboard focus."
-        # Level 2: professional — analysis-level challenges
-        "professional": "I.H.2",
-        # "Analyze how design elements such as headings, landmarks, and color
-        #  contrast affect accessibility for diverse user groups"
-    }
-
-    _STARTING_OBJECTIVE_TEXTS = {
-        "none": (
-            "Explain the structure of WCAG 2.2 by identifying the four principles "
-            "(POUR), guidelines, and success criteria levels (A, AA, AAA)."
-        ),
-        "awareness": (
-            "Distinguish between semantic HTML controls (e.g., `<button>`, `<a>`) "
-            "and generic elements (e.g., `<div>`) in terms of built-in accessibility."
-        ),
-    }
-
-    # Level-specific introductions — shown before the first teaching turn
-    _OBJECTIVE_INTROS = {
-        "none": (
-            "Since you're just getting started with accessibility, we'll begin with "
-            "the foundations — **the structure of WCAG 2.2**. This is the international "
-            "standard for web accessibility, and understanding how it's organized will "
-            "give you a framework for everything else you'll learn."
-        ),
-        "awareness": (
-            "You already have some familiarity with accessibility concepts, so we'll "
-            "start with a practical HTML foundation — **semantic controls vs generic "
-            "elements**. This is where accessibility often succeeds or fails before "
-            "ARIA even enters the picture."
-        ),
-        "working_knowledge": (
-            "With your hands-on experience, you're ready for a deeper dive. We'll "
-            "explore **ARIA live regions** — how different properties and values affect "
-            "what assistive technologies announce to users when content changes dynamically."
-        ),
-        "professional": (
-            "Given your expertise, let's go straight to analysis-level work. We'll "
-            "examine **how design elements like headings, landmarks, and color contrast "
-            "impact diverse user groups** — the kind of evaluation you'd do in a "
-            "real audit."
-        ),
-    }
-
-    async def _select_starting_objective(
-        self,
-        student_id: str,
-        a11y_exposure: str,
-    ) -> tuple:
-        """Select the first objective based on the student's assessed level.
-
-        Returns (objective_id, objective_text). Falls back to
-        get_recommended_next_objective if the level-specific objective
-        is not found or already mastered.
-        """
-        target_id = self._STARTING_OBJECTIVES.get(
-            a11y_exposure, self._STARTING_OBJECTIVES["none"]
-        )
-        target_text = self._STARTING_OBJECTIVE_TEXTS.get(a11y_exposure, "")
-
-        # Prefer a direct text match when configured. The runtime DB stores UUID
-        # primary keys, so curriculum codes like I.A.2 do not resolve directly.
-        if target_text:
-            try:
-                obj = await asyncio.to_thread(
-                    self._fetch_objective_by_text, target_text
-                )
-                if obj:
-                    logger.info(
-                        f"[ONBOARDING] Level-based objective selected by text: "
-                        f"exposure={a11y_exposure} → {obj['id']} ({obj['text'][:60]})"
-                    )
-                    return obj["id"], obj["text"]
-            except Exception as e:
-                logger.warning(
-                    f"Failed to fetch starting objective by text for exposure={a11y_exposure}: {e}"
-                )
-
-        # Backward-compatible fallback for environments where IDs happen to be
-        # stored as curriculum codes.
-        try:
-            obj = await asyncio.to_thread(self._fetch_objective_by_id, target_id)
-            if obj:
-                logger.info(
-                    f"[ONBOARDING] Level-based objective selected: "
-                    f"exposure={a11y_exposure} → {target_id} ({obj['text'][:60]})"
-                )
-                return target_id, obj["text"]
-        except Exception as e:
-            logger.warning(f"Failed to fetch starting objective {target_id}: {e}")
-
-        # Fallback to generic recommendation
-        next_obj = await self.student_mcp.get_recommended_next_objective(student_id)
-        if next_obj:
-            return next_obj.get("objective_id", ""), next_obj.get(
-                "objective_text", "web accessibility fundamentals"
-            )
-        return "", "web accessibility fundamentals"
+    # Legacy onboarding constants retained as no-ops so older imports do not
+    # KeyError. The picker flow above replaces these entirely.
+    _ONBOARDING_QUESTIONS: List[Dict[str, Any]] = []
+    _ONBOARDING_PROMPTS: List[str] = []
 
     def _fetch_objective_by_id(self, objective_id: str) -> Optional[Dict]:
         """Fetch a single learning objective by ID from the main DB."""
@@ -3525,10 +3339,10 @@ class HybridCrewAISocraticSystem:
             }
         )
         await ws_send({"type": "teaching_plan_generating"})
-        artifact = await self._build_teaching_graph_content(
+        graph_artifact = await self._build_teaching_graph(
             objective_text=objective_text,
         )
-        teaching_plan = artifact.graph.to_dict()
+        teaching_plan = graph_artifact.to_dict()
         display_plan = json.dumps(teaching_plan, indent=2)
         await ws_send(
             {
@@ -3536,6 +3350,11 @@ class HybridCrewAISocraticSystem:
                 "plan": teaching_plan,
                 "display_plan": display_plan,
             }
+        )
+        artifact = await self._run_pipeline_for_graph(
+            objective_text=objective_text,
+            graph_artifact=graph_artifact,
+            ws_send=ws_send,
         )
         if not artifact.tutor_facing_content:
             raise TeachingGraphGenerationError(
@@ -3553,7 +3372,7 @@ class HybridCrewAISocraticSystem:
             }
         )
         extracted_concepts = [
-            {"id": node.id, "label": node.label} for node in artifact.graph.nodes
+            {"id": node.id, "label": node.label} for node in graph_artifact.nodes
         ]
         return (
             teaching_plan,

@@ -10,6 +10,9 @@
   <link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" rel="stylesheet" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.1/marked.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/cytoscape@3.30.4/dist/cytoscape.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dagre@0.8.5/dist/dagre.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/cytoscape-dagre@2.5.0/cytoscape-dagre.min.js"></script>
   <style>
     body { background-color: #f8f9fa; margin: 0; overflow: hidden; }
 
@@ -267,6 +270,248 @@
     .turn-analysis-history { display: flex; flex-direction: column; gap: 0.5rem; }
     .turn-analysis-entry { border: 1px solid #e9ecef; border-radius: 6px; padding: 0.45rem; background: #fff; }
     .turn-analysis-entry-title { font-size: 0.72rem; font-weight: 600; color: #495057; margin-bottom: 0.35rem; text-transform: uppercase; letter-spacing: 0.02em; }
+
+    /* Teaching graph */
+    .tg-wrap { display: flex; flex-direction: column; gap: 0.5rem; }
+    .tg-toolbar { display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap; }
+    .tg-toolbar .tg-btn {
+      font-size: 0.68rem; padding: 0.2rem 0.45rem; border: 1px solid #ced4da;
+      background: #fff; color: #495057; border-radius: 4px; cursor: pointer;
+    }
+    .tg-toolbar .tg-btn:hover { background: #f1f3f5; }
+    .tg-toolbar .tg-node-select {
+      flex: 1; min-width: 120px; font-size: 0.7rem; padding: 0.2rem 0.35rem;
+      border: 1px solid #ced4da; border-radius: 4px; background: #fff; color: #495057;
+    }
+    .tg-canvas {
+      width: 100%; height: 320px; min-height: 220px;
+      border: 1px solid #dee2e6; border-radius: 6px; background: #fcfcfd;
+    }
+    .tg-empty {
+      font-size: 0.73rem; color: #6c757d; font-style: italic;
+      padding: 0.4rem 0.5rem; background: #f8f9fa; border-radius: 4px;
+    }
+    .tg-detail {
+      border: 1px solid #e9ecef; border-radius: 6px; background: #fff;
+      max-height: 260px; overflow-y: auto; font-size: 0.72rem; line-height: 1.45;
+    }
+    .tg-detail-empty {
+      padding: 0.5rem 0.6rem; color: #6c757d; font-style: italic; font-size: 0.71rem;
+    }
+    .tg-detail-header {
+      display: flex; justify-content: space-between; align-items: flex-start; gap: 0.4rem;
+      padding: 0.45rem 0.55rem; border-bottom: 1px solid #e9ecef; background: #f8f9fa;
+      border-radius: 6px 6px 0 0;
+    }
+    .tg-detail-title {
+      font-weight: 700; color: #212529; font-size: 0.76rem; line-height: 1.3;
+    }
+    .tg-detail-close {
+      background: transparent; border: 0; color: #6c757d; cursor: pointer;
+      font-size: 0.85rem; line-height: 1; padding: 0 0.15rem;
+    }
+    .tg-detail-close:hover { color: #212529; }
+    .tg-chip {
+      display: inline-block; font-size: 0.62rem; font-weight: 600;
+      padding: 0.1rem 0.4rem; border-radius: 999px;
+      letter-spacing: 0.02em; text-transform: uppercase;
+      margin-top: 0.2rem;
+    }
+    .tg-chip.kind-core_concept { background: #e9ecef; color: #495057; }
+    .tg-chip.kind-support_prerequisite { background: #cfe2ff; color: #084298; }
+    .tg-chip.kind-integration { background: #fff3cd; color: #664d03; }
+    .tg-chip.edge-prerequisite { background: #e9ecef; color: #495057; }
+    .tg-chip.edge-applies_to { background: #cfe2ff; color: #084298; }
+    .tg-chip.edge-contrasts_with { background: #ffe5d0; color: #984b1f; }
+    .tg-chip.edge-refines { background: #ead9ff; color: #5e359f; }
+    .tg-chip.edge-supports { background: #cdebe6; color: #0f5d54; }
+    .tg-chip.edge-synthesizes_into { background: #fff3cd; color: #664d03; }
+    .tg-detail-body { padding: 0.5rem 0.6rem; display: flex; flex-direction: column; gap: 0.55rem; }
+    .tg-section h6 {
+      margin: 0 0 0.2rem 0; font-size: 0.68rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.04em; color: #6c757d;
+    }
+    .tg-section p { margin: 0; color: #212529; }
+    .tg-section ul { margin: 0; padding-left: 1.05rem; }
+    .tg-section li { margin-bottom: 0.15rem; color: #212529; }
+    .tg-shift {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 0.45rem;
+    }
+    .tg-shift-col {
+      border: 1px solid #e9ecef; border-radius: 4px; padding: 0.4rem 0.5rem;
+      background: #f8f9fa;
+    }
+    .tg-shift-col h6 { margin-bottom: 0.2rem; }
+    .tg-link-list { display: flex; flex-wrap: wrap; gap: 0.25rem; }
+    .tg-link {
+      font-size: 0.66rem; padding: 0.12rem 0.4rem; border-radius: 999px;
+      background: #f1f3f5; color: #0d6efd; border: 1px solid #dee2e6;
+      cursor: pointer; text-decoration: none;
+    }
+    .tg-link:hover { background: #e9ecef; }
+    .tg-json-fallback summary {
+      cursor: pointer; font-size: 0.68rem; color: #0d6efd;
+      list-style: none; user-select: none; padding: 0.25rem 0;
+    }
+    .tg-json-fallback summary::-webkit-details-marker { display: none; }
+    .tg-json-fallback summary::before { content: "▸ View raw JSON"; }
+    .tg-json-fallback[open] summary::before { content: "▾ View raw JSON"; }
+    .tg-json-fallback pre.tp-json {
+      max-height: 240px; overflow: auto;
+      background: #1e1e1e; color: #d4d4d4;
+      border-radius: 4px; padding: 0.4rem 0.55rem;
+      font-size: 0.66rem; line-height: 1.45; margin: 0.2rem 0 0;
+    }
+
+    /* Retrieval Process panel */
+    .rp-toolbar {
+      display: flex; align-items: center; gap: 0.3rem; flex-wrap: wrap;
+      padding: 0.05rem 0 0.4rem;
+    }
+    .rp-filter-chip {
+      font-size: 0.65rem; padding: 0.15rem 0.45rem; border: 1px solid #ced4da;
+      background: #fff; color: #495057; border-radius: 999px; cursor: pointer;
+      user-select: none;
+    }
+    .rp-filter-chip:hover { background: #f1f3f5; }
+    .rp-filter-chip.active { background: #0d6efd; border-color: #0d6efd; color: #fff; }
+    .rp-toolbar .rp-btn {
+      margin-left: auto; font-size: 0.65rem; padding: 0.15rem 0.45rem;
+      border: 1px solid #ced4da; background: #fff; color: #495057;
+      border-radius: 4px; cursor: pointer;
+    }
+    .rp-toolbar .rp-btn:hover { background: #f1f3f5; }
+    .rp-list { display: flex; flex-direction: column; gap: 0.4rem; }
+    .rp-empty {
+      font-size: 0.7rem; color: #6c757d; font-style: italic;
+      padding: 0.4rem 0.5rem; background: #f8f9fa; border-radius: 4px;
+    }
+    .rp-card {
+      border: 1px solid #e9ecef; border-radius: 6px; background: #fff;
+      overflow: hidden;
+    }
+    .rp-card.rp-active { border-color: #0d6efd; box-shadow: 0 0 0 1px #0d6efd33; }
+    .rp-card-header {
+      display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;
+      padding: 0.4rem 0.55rem; cursor: pointer; user-select: none;
+      background: #f8f9fa;
+    }
+    .rp-card-header:hover { background: #eef1f4; }
+    .rp-target-chip {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.66rem; font-weight: 700; padding: 0.1rem 0.45rem;
+      border-radius: 4px;
+    }
+    .rp-target-chip.kind-node { background: #e7f1ff; color: #0d4a8f; }
+    .rp-target-chip.kind-edge { background: #ffe5d0; color: #984b1f; }
+    .rp-target-chip.kind-integration { background: #fff3cd; color: #664d03; }
+    .rp-target-label {
+      flex: 1; font-size: 0.72rem; font-weight: 600; color: #212529;
+      line-height: 1.3; min-width: 0;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .rp-strength {
+      font-size: 0.6rem; font-weight: 700; padding: 0.08rem 0.4rem;
+      border-radius: 999px; text-transform: uppercase; letter-spacing: 0.04em;
+    }
+    .rp-strength.strong { background: #d1e7dd; color: #0f5132; }
+    .rp-strength.adequate { background: #fff3cd; color: #664d03; }
+    .rp-strength.thin { background: #f8d7da; color: #842029; }
+    .rp-strength.unknown { background: #e9ecef; color: #495057; }
+    .rp-counts { font-size: 0.62rem; color: #6c757d; }
+    .rp-card-body {
+      padding: 0.5rem 0.6rem; display: flex; flex-direction: column; gap: 0.55rem;
+      border-top: 1px solid #e9ecef;
+    }
+    .rp-section h6 {
+      margin: 0 0 0.25rem 0; font-size: 0.66rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.04em; color: #6c757d;
+    }
+    .rp-coverage { display: flex; flex-wrap: wrap; gap: 0.25rem; }
+    .rp-cov {
+      font-size: 0.62rem; padding: 0.08rem 0.4rem; border-radius: 999px;
+      border: 1px solid #dee2e6; color: #495057; background: #f8f9fa;
+    }
+    .rp-cov.has { background: #d1e7dd; border-color: #a4d2b8; color: #0f5132; }
+    .rp-cov.has::before { content: "✓ "; }
+    .rp-cov.miss { color: #6c757d; opacity: 0.6; }
+    .rp-cov.miss::before { content: "○ "; }
+    .rp-tools-list { display: flex; flex-direction: column; gap: 0.25rem; }
+    .rp-tool-row {
+      display: flex; align-items: baseline; gap: 0.35rem; flex-wrap: wrap;
+      font-size: 0.66rem;
+    }
+    .rp-tool-name {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-weight: 700; color: #212529;
+    }
+    .rp-tool-family {
+      font-size: 0.58rem; padding: 0.06rem 0.35rem; border-radius: 3px;
+      text-transform: uppercase; letter-spacing: 0.02em;
+    }
+    .rp-tool-family.criterion { background: #cfe2ff; color: #084298; }
+    .rp-tool-family.technique { background: #ead9ff; color: #5e359f; }
+    .rp-tool-family.glossary { background: #d1e7dd; color: #0f5132; }
+    .rp-tool-family.search { background: #ffe5d0; color: #984b1f; }
+    .rp-tool-family.structural { background: #e9ecef; color: #495057; }
+    .rp-arg-chip {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.6rem; padding: 0.05rem 0.3rem; border-radius: 3px;
+      background: #f1f3f5; color: #212529; border: 1px solid #dee2e6;
+    }
+    .rp-tool-empty-args {
+      font-size: 0.6rem; color: #6c757d; font-style: italic;
+    }
+    .rp-evidence-list { display: flex; flex-direction: column; gap: 0.35rem; }
+    .rp-evidence {
+      border: 1px solid #e9ecef; border-radius: 4px; background: #fbfbfd;
+      padding: 0.35rem 0.45rem;
+    }
+    .rp-evidence-header {
+      display: flex; align-items: baseline; gap: 0.35rem; flex-wrap: wrap;
+      margin-bottom: 0.2rem;
+    }
+    .rp-kind-chip {
+      font-size: 0.58rem; font-weight: 700; padding: 0.06rem 0.35rem;
+      border-radius: 3px; text-transform: uppercase; letter-spacing: 0.02em;
+    }
+    .rp-kind-chip.definition { background: #d1e7dd; color: #0f5132; }
+    .rp-kind-chip.normative_anchor { background: #cfe2ff; color: #084298; }
+    .rp-kind-chip.explanatory_support { background: #e7f1ff; color: #084298; }
+    .rp-kind-chip.contrast_support { background: #ffe5d0; color: #984b1f; }
+    .rp-kind-chip.risk_support { background: #f8d7da; color: #842029; }
+    .rp-kind-chip.structural_support { background: #e9ecef; color: #495057; }
+    .rp-kind-chip.implementation_support { background: #ead9ff; color: #5e359f; }
+    .rp-kind-chip.example_support { background: #cdebe6; color: #0f5d54; }
+    .rp-kind-chip.failure_support { background: #f8d7da; color: #842029; }
+    .rp-evidence-title {
+      font-weight: 600; font-size: 0.7rem; color: #212529; line-height: 1.3;
+    }
+    .rp-evidence-id {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.6rem; color: #6c757d;
+    }
+    .rp-evidence-section {
+      margin-top: 0.25rem; font-size: 0.66rem; line-height: 1.45; color: #212529;
+    }
+    .rp-evidence-section .rp-label {
+      font-weight: 700; color: #495057; margin-right: 0.2rem;
+    }
+    .rp-content-truncated { display: block; }
+    .rp-content-full { display: none; }
+    .rp-evidence.expanded .rp-content-truncated { display: none; }
+    .rp-evidence.expanded .rp-content-full { display: block; }
+    .rp-show-more {
+      font-size: 0.6rem; color: #0d6efd; cursor: pointer;
+      background: none; border: 0; padding: 0; margin-top: 0.15rem;
+    }
+    .rp-show-more:hover { text-decoration: underline; }
+    .rp-gaps { padding-left: 1rem; margin: 0; font-size: 0.66rem; color: #842029; }
+    .rp-gaps li { margin-bottom: 0.15rem; }
+    .rp-skip-note {
+      font-size: 0.66rem; font-style: italic; color: #6c757d;
+      padding: 0.35rem 0.45rem; background: #f8f9fa; border-radius: 4px;
+    }
   </style>
 </head>
 
@@ -366,11 +611,29 @@
 
             <div id="teachingPlanSection" style="display:none;">
               <div class="tp-header" id="tpToggleBtn">
-                <h6><i class="fas fa-book-open text-primary"></i> Teaching Plan</h6>
+                <h6><i class="fas fa-diagram-project text-primary"></i> Teaching Graph</h6>
                 <i class="fas fa-chevron-down" id="tpChevron" style="font-size:0.7rem;color:#6c757d;"></i>
               </div>
               <div id="teachingPlanBody">
-                <div id="teachingPlanContent"></div>
+                <div id="teachingPlanContent">
+                  <div class="tg-wrap">
+                    <div class="tg-toolbar">
+                      <select id="tgNodeSelect" class="tg-node-select" aria-label="Select node">
+                        <option value="">Jump to node…</option>
+                      </select>
+                      <button type="button" class="tg-btn" id="tgFitBtn" title="Fit graph to view">Fit</button>
+                      <button type="button" class="tg-btn" id="tgClearBtn" title="Clear selection">Clear</button>
+                    </div>
+                    <div class="tg-canvas" id="teachingGraphCanvas"></div>
+                    <div class="tg-detail" id="teachingGraphDetail">
+                      <div class="tg-detail-empty">Click any node or edge to see details. Details appear here, beneath the graph.</div>
+                    </div>
+                    <details class="tg-json-fallback" id="tgJsonFallback">
+                      <summary></summary>
+                      <pre class="tp-json" id="tgJsonContent"></pre>
+                    </details>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -381,6 +644,16 @@
               </div>
               <div id="toolActivityBody">
                 <div id="toolActivityContent"></div>
+              </div>
+            </div>
+
+            <div id="retrievalProcessSection" style="display:none;">
+              <div class="tp-header" id="rpToggleBtn">
+                <h6><i class="fas fa-magnifying-glass-chart text-primary"></i> Retrieval Process</h6>
+                <i class="fas fa-chevron-down" id="rpChevron" style="font-size:0.7rem;color:#6c757d;"></i>
+              </div>
+              <div id="retrievalProcessBody">
+                <div id="retrievalProcessContent"></div>
               </div>
             </div>
 
@@ -436,6 +709,15 @@
       let currentStage = "connecting";
       let masteryData = {};
       let teachingPlanData = null;
+      let nodeEvidenceData = null;
+      let rpKindFilter = "all";
+      let rpExpandedTargets = new Set();
+      let teachingGraphCy = null;
+      let teachingGraphContentLookup = { nodes: {}, edges: {} };
+      let teachingGraphPrimaryRoute = [];
+      let teachingGraphEntryNodes = [];
+      let teachingGraphIntegrationNodeId = "";
+      let teachingGraphIntegrationContent = null;
       let teachingContentData = null;
       let turnAnalysisData = [];
       let turnAnalysisGenerating = false;
@@ -484,10 +766,24 @@
         localStorage.setItem(`teaching_content_${studentId}`, JSON.stringify(teachingContentData));
         localStorage.setItem(`turn_analysis_${studentId}`, JSON.stringify(turnAnalysisData));
         localStorage.setItem(`tool_activity_${studentId}`, JSON.stringify(toolActivityData));
+        localStorage.setItem(`node_evidence_${studentId}`, JSON.stringify(nodeEvidenceData));
       }
 
       function clearTeachingSidebar() {
         teachingPlanData = null;
+        nodeEvidenceData = null;
+        rpExpandedTargets = new Set();
+        rpKindFilter = "all";
+        resetRetrievalProcessSection();
+        teachingGraphContentLookup = { nodes: {}, edges: {} };
+        teachingGraphPrimaryRoute = [];
+        teachingGraphEntryNodes = [];
+        teachingGraphIntegrationNodeId = "";
+        teachingGraphIntegrationContent = null;
+        if (teachingGraphCy) {
+          try { teachingGraphCy.destroy(); } catch (_) { /* ignore */ }
+          teachingGraphCy = null;
+        }
         teachingContentData = null;
         turnAnalysisData = [];
         turnAnalysisGenerating = false;
@@ -504,8 +800,11 @@
         const storedContent = loadStoredJSON(`teaching_content_${studentId}`);
         const storedTurnAnalysis = loadStoredJSON(`turn_analysis_${studentId}`);
         const storedToolActivity = loadStoredJSON(`tool_activity_${studentId}`);
+        const storedNodeEvidence = loadStoredJSON(`node_evidence_${studentId}`);
         if (storedPlan !== null) showTeachingPlan(storedPlan, false);
         else resetTeachingPlanSection();
+        if (storedNodeEvidence) showRetrievalProcess(storedNodeEvidence, false);
+        else resetRetrievalProcessSection();
         if (storedContent !== null) showTeachingContent(storedContent, false);
         else resetTeachingContentSection();
         if (storedTurnAnalysis !== null) loadTurnAnalysisHistory(storedTurnAnalysis);
@@ -536,7 +835,7 @@
         saveChatHistory();
         const id = "guided-student-" + Math.random().toString(36).substring(2, 8);
         const num = students.length + 1;
-        students.push({ id, label: `Student ${num}`, level: "", objective: "", stage: "onboarding" });
+        students.push({ id, label: `Student ${num}`, level: "", objective: "", stage: "selecting_objective" });
         activeStudentId = id;
         saveStudents();
         masteryData = {};
@@ -571,9 +870,10 @@
         localStorage.removeItem(`teaching_content_${id}`);
         localStorage.removeItem(`turn_analysis_${id}`);
         localStorage.removeItem(`tool_activity_${id}`);
+        localStorage.removeItem(`node_evidence_${id}`);
         // Reset student meta
         const s = getStudent(id);
-        if (s) { s.stage = "onboarding"; s.objective = ""; saveStudents(); }
+        if (s) { s.stage = "selecting_objective"; s.objective = ""; saveStudents(); }
         // Clear backend conversation memory by sending a reset message
         if (id === activeStudentId) {
           masteryData = {};
@@ -599,6 +899,7 @@
         localStorage.removeItem(`teaching_content_${id}`);
         localStorage.removeItem(`turn_analysis_${id}`);
         localStorage.removeItem(`tool_activity_${id}`);
+        localStorage.removeItem(`node_evidence_${id}`);
         students = students.filter(s => s.id !== id);
         saveStudents();
         if (id === activeStudentId) {
@@ -656,7 +957,9 @@
         classifying: "Understanding your response...",
       };
       const STAGE_DISPLAY = {
-        onboarding: "Onboarding", introduction: "Introduction", exploration: "Exploration",
+        selecting_objective: "Choose objective",
+        onboarding: "Choose objective", // legacy alias for any stale localStorage state
+        introduction: "Introduction", exploration: "Exploration",
         readiness_check: "Readiness Check", mini_assessment: "Mini Assessment",
         final_assessment: "Final Assessment", transition: "Transition",
       };
@@ -730,15 +1033,7 @@
             updateMasteryCard(msg.objective_text || msg.objective_id, msg.new_level);
             break;
           case "assessment_score": updateAssessmentDisplay(msg); break;
-          case "onboarding_question": renderOnboardingQuestion(msg); break;
-          case "onboarding_complete":
-            updateStageDisplay("introduction", msg.first_objective || "");
-            updateStudentMeta(activeStudentId, {
-              level: msg.profile?.a11y_exposure || "", objective: msg.first_objective || "", stage: "introduction"
-            });
-            addSystemNotice(`Profile created! Starting: ${msg.first_objective}`);
-            setProcessingState(false);
-            break;
+          case "objective_picker": renderObjectivePicker(msg); break;
           case "objective_complete":
             updateMasteryCard(msg.objective_id, msg.mastery_level);
             if (msg.next_objective) addSystemNotice(`Objective complete! Next: ${msg.next_objective}`);
@@ -758,8 +1053,40 @@
           case "teaching_plan_generating":
             showTeachingPlanGenerating();
             break;
-          case "teaching_plan":
-            showTeachingPlan(msg.display_plan || msg.plan);
+          case "teaching_plan": {
+            const envelope = (msg.plan && typeof msg.plan === "object")
+              ? {
+                  graph: msg.plan,
+                  node_content: msg.node_content || null,
+                  edge_integration: msg.edge_integration || null,
+                }
+              : (msg.display_plan || msg.plan);
+            showTeachingPlan(envelope);
+            if (msg.node_evidence) showRetrievalProcess(msg.node_evidence);
+            break;
+          }
+          case "node_evidence":
+            showRetrievalProcess(msg.node_evidence);
+            break;
+          case "teaching_graph_details":
+            tgApplyContentDetails(msg.node_content, msg.edge_integration);
+            // Persist alongside the graph data so reloads keep the click metadata.
+            if (teachingPlanData) {
+              if (teachingPlanData && typeof teachingPlanData === "object") {
+                if (teachingPlanData.graph) {
+                  teachingPlanData.node_content = msg.node_content || null;
+                  teachingPlanData.edge_integration = msg.edge_integration || null;
+                } else if (Array.isArray(teachingPlanData.nodes)) {
+                  // Bare graph case — upgrade to envelope shape.
+                  teachingPlanData = {
+                    graph: teachingPlanData,
+                    node_content: msg.node_content || null,
+                    edge_integration: msg.edge_integration || null,
+                  };
+                }
+              }
+              saveTeachingSidebarState(activeStudentId);
+            }
             break;
           case "teaching_content_generating":
             showTeachingContentGenerating();
@@ -834,12 +1161,19 @@
       let tcCollapsed = false;
       let taCollapsed = false;
       let toolActCollapsed = false;
+      let rpCollapsed = false;
 
       document.getElementById("tpToggleBtn").addEventListener("click", function () {
         tpCollapsed = !tpCollapsed;
         document.getElementById("teachingPlanBody").style.display = tpCollapsed ? "none" : "block";
         const ch = document.getElementById("tpChevron");
         ch.className = tpCollapsed ? "fas fa-chevron-right" : "fas fa-chevron-down";
+        if (!tpCollapsed && teachingGraphCy) {
+          requestAnimationFrame(() => {
+            teachingGraphCy.resize();
+            teachingGraphCy.fit(undefined, 30);
+          });
+        }
       });
 
       document.getElementById("tcToggleBtn").addEventListener("click", function () {
@@ -861,6 +1195,13 @@
         document.getElementById("toolActivityBody").style.display = toolActCollapsed ? "none" : "block";
         const ch = document.getElementById("toolActChevron");
         ch.className = toolActCollapsed ? "fas fa-chevron-right" : "fas fa-chevron-down";
+      });
+
+      document.getElementById("rpToggleBtn").addEventListener("click", function () {
+        rpCollapsed = !rpCollapsed;
+        document.getElementById("retrievalProcessBody").style.display = rpCollapsed ? "none" : "block";
+        const ch = document.getElementById("rpChevron");
+        ch.className = rpCollapsed ? "fas fa-chevron-right" : "fas fa-chevron-down";
       });
 
       function renderTeachingPanelValue(value) {
@@ -888,7 +1229,966 @@
         document.getElementById("teachingPlanSection").style.display = "none";
         document.getElementById("teachingPlanBody").style.display = "block";
         document.getElementById("tpChevron").className = "fas fa-chevron-down";
+        if (teachingGraphCy) {
+          try { teachingGraphCy.destroy(); } catch (_) { /* ignore */ }
+          teachingGraphCy = null;
+        }
+        teachingGraphContentLookup = { nodes: {}, edges: {} };
+        teachingGraphPrimaryRoute = [];
+        teachingGraphEntryNodes = [];
+        teachingGraphIntegrationNodeId = "";
+        teachingGraphIntegrationContent = null;
         document.getElementById("teachingPlanContent").innerHTML = "";
+      }
+
+      // ----------------------------------------------------------------
+      // Teaching graph (Cytoscape)
+      // ----------------------------------------------------------------
+
+      const TG_KIND_LABELS = {
+        core_concept: "Core concept",
+        support_prerequisite: "Prerequisite",
+        integration: "Integration",
+      };
+      const TG_EDGE_TYPE_LABELS = {
+        prerequisite: "Prerequisite",
+        applies_to: "Applies to",
+        contrasts_with: "Contrasts with",
+        refines: "Refines",
+        supports: "Supports",
+        synthesizes_into: "Synthesizes into",
+      };
+      const TG_EDGE_TYPE_COLORS = {
+        prerequisite: "#6c757d",
+        applies_to: "#0d6efd",
+        contrasts_with: "#fd7e14",
+        refines: "#7d3cb0",
+        supports: "#0f9d8e",
+        synthesizes_into: "#b88a00",
+      };
+
+      function escapeHtml(text) {
+        if (text === null || text === undefined) return "";
+        return String(text)
+          .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+      }
+
+      function tgIsEnvelope(value) {
+        return value && typeof value === "object"
+          && value.graph && Array.isArray(value.graph.nodes)
+          && Array.isArray(value.graph.edges);
+      }
+
+      function tgNormalizePlan(value) {
+        // Accept several shapes for backward compatibility:
+        //   1. { graph, node_content, edge_integration } — preferred envelope
+        //   2. { nodes, edges, primary_route, ... }      — bare graph dict
+        //   3. anything else                              — raw fallback only
+        if (tgIsEnvelope(value)) {
+          return {
+            graph: value.graph,
+            nodeContent: value.node_content || null,
+            edgeIntegration: value.edge_integration || null,
+            raw: value,
+          };
+        }
+        if (value && typeof value === "object" && Array.isArray(value.nodes) && Array.isArray(value.edges)) {
+          return {
+            graph: value,
+            nodeContent: null,
+            edgeIntegration: null,
+            raw: value,
+          };
+        }
+        return null;
+      }
+
+      function tgMountPanel() {
+        const host = document.getElementById("teachingPlanContent");
+        host.innerHTML = `
+          <div class="tg-wrap">
+            <div class="tg-toolbar">
+              <select id="tgNodeSelect" class="tg-node-select" aria-label="Select node">
+                <option value="">Jump to node…</option>
+              </select>
+              <button type="button" class="tg-btn" id="tgFitBtn" title="Fit graph to view">Fit</button>
+              <button type="button" class="tg-btn" id="tgClearBtn" title="Clear selection">Clear</button>
+            </div>
+            <div class="tg-canvas" id="teachingGraphCanvas"></div>
+            <div class="tg-detail" id="teachingGraphDetail">
+              <div class="tg-detail-empty">Click any node or edge to see details. Details appear here, beneath the graph.</div>
+            </div>
+            <details class="tg-json-fallback" id="tgJsonFallback">
+              <summary></summary>
+              <pre class="tp-json" id="tgJsonContent"></pre>
+            </details>
+          </div>
+        `;
+        document.getElementById("tgFitBtn").addEventListener("click", () => {
+          if (teachingGraphCy) teachingGraphCy.fit(undefined, 30);
+        });
+        document.getElementById("tgClearBtn").addEventListener("click", () => {
+          if (teachingGraphCy) {
+            teachingGraphCy.elements().removeClass("tg-faded");
+            teachingGraphCy.elements().unselect();
+          }
+          const select = document.getElementById("tgNodeSelect");
+          if (select) select.value = "";
+          tgClearDetail();
+        });
+        document.getElementById("tgNodeSelect").addEventListener("change", (e) => {
+          const id = e.target.value;
+          if (!id || !teachingGraphCy) return;
+          const node = teachingGraphCy.getElementById(id);
+          if (node && node.length) {
+            teachingGraphCy.elements().unselect();
+            node.select();
+            teachingGraphCy.center(node);
+            tgShowNodeDetail(id);
+          }
+        });
+      }
+
+      function tgFallbackJsonOnly(value) {
+        const host = document.getElementById("teachingPlanContent");
+        host.innerHTML = "";
+        const wrap = document.createElement("div");
+        wrap.className = "tg-empty";
+        wrap.textContent = "Teaching graph payload is unavailable for this session. Showing raw JSON instead.";
+        host.appendChild(wrap);
+        const pre = document.createElement("pre");
+        pre.className = "tp-json";
+        pre.textContent = JSON.stringify(value, null, 2);
+        host.appendChild(pre);
+      }
+
+      function tgBuildElements(graph) {
+        const elements = [];
+        const integrationId = String(graph.integration_node || "");
+        const entryNodes = new Set((graph.entry_nodes || []).map(String));
+        const primaryRoute = (graph.primary_route || []).map(String);
+        const primarySet = new Set(primaryRoute);
+        for (const node of graph.nodes || []) {
+          const id = String(node.id);
+          elements.push({
+            group: "nodes",
+            data: {
+              id,
+              label: node.label || id,
+              kind: node.kind || "core_concept",
+              isEntry: entryNodes.has(id),
+              isIntegration: id === integrationId,
+              onPrimaryRoute: primarySet.has(id),
+            },
+          });
+        }
+        for (const edge of graph.edges || []) {
+          const from = String(edge.from);
+          const to = String(edge.to);
+          const onRoute = primarySet.has(from) && primarySet.has(to)
+            && primaryRoute.indexOf(to) === primaryRoute.indexOf(from) + 1;
+          elements.push({
+            group: "edges",
+            data: {
+              id: `${from}->${to}`,
+              source: from,
+              target: to,
+              type: edge.type || "supports",
+              bridge_claim: edge.bridge_claim || "",
+              onRoute,
+            },
+          });
+        }
+        return elements;
+      }
+
+      function tgCytoscapeStyle() {
+        return [
+          {
+            selector: "node",
+            style: {
+              "shape": "ellipse",
+              "width": 60,
+              "height": 60,
+              "background-color": "#ffffff",
+              "border-color": "#495057",
+              "border-width": 2,
+              "label": "data(label)",
+              "text-wrap": "wrap",
+              "text-max-width": "120px",
+              "text-valign": "bottom",
+              "text-halign": "center",
+              "text-margin-y": 6,
+              "font-size": 10,
+              "color": "#212529",
+              "transition-property": "background-color, border-color, opacity",
+              "transition-duration": "120ms",
+            },
+          },
+          {
+            selector: 'node[kind = "support_prerequisite"]',
+            style: { "background-color": "#cfe2ff", "border-color": "#0d6efd" },
+          },
+          {
+            selector: 'node[kind = "integration"]',
+            style: {
+              "background-color": "#fff3cd",
+              "border-color": "#b88a00",
+              "border-width": 4,
+              "border-style": "double",
+              "width": 70,
+              "height": 70,
+            },
+          },
+          {
+            selector: "node[?isEntry]",
+            style: { "border-style": "double", "border-width": 3 },
+          },
+          {
+            selector: "node:selected",
+            style: {
+              "border-color": "#198754",
+              "border-width": 4,
+              "background-blacken": -0.05,
+            },
+          },
+          {
+            selector: "edge",
+            style: {
+              "curve-style": "bezier",
+              "width": 1.5,
+              "line-color": "#adb5bd",
+              "target-arrow-color": "#adb5bd",
+              "target-arrow-shape": "triangle",
+              "arrow-scale": 1,
+              "transition-property": "line-color, width, opacity",
+              "transition-duration": "120ms",
+            },
+          },
+          { selector: 'edge[type = "prerequisite"]', style: { "line-color": "#6c757d", "target-arrow-color": "#6c757d" } },
+          { selector: 'edge[type = "applies_to"]', style: { "line-color": "#0d6efd", "target-arrow-color": "#0d6efd" } },
+          { selector: 'edge[type = "contrasts_with"]', style: { "line-color": "#fd7e14", "target-arrow-color": "#fd7e14", "line-style": "dashed" } },
+          { selector: 'edge[type = "refines"]', style: { "line-color": "#7d3cb0", "target-arrow-color": "#7d3cb0" } },
+          { selector: 'edge[type = "supports"]', style: { "line-color": "#0f9d8e", "target-arrow-color": "#0f9d8e" } },
+          { selector: 'edge[type = "synthesizes_into"]', style: { "line-color": "#b88a00", "target-arrow-color": "#b88a00" } },
+          { selector: "edge[?onRoute]", style: { "width": 3 } },
+          {
+            selector: "edge:selected",
+            style: { "width": 4, "line-color": "#198754", "target-arrow-color": "#198754" },
+          },
+          { selector: ".tg-faded", style: { "opacity": 0.25 } },
+        ];
+      }
+
+      function tgPopulateNodeSelect(graph) {
+        const select = document.getElementById("tgNodeSelect");
+        if (!select) return;
+        select.innerHTML = '<option value="">Jump to node…</option>';
+        for (const node of graph.nodes || []) {
+          const opt = document.createElement("option");
+          opt.value = String(node.id);
+          opt.textContent = node.label || String(node.id);
+          select.appendChild(opt);
+        }
+      }
+
+      function tgApplyContentDetails(nodeContent, edgeIntegration) {
+        // Patch the click-detail lookups in place without re-rendering the
+        // Cytoscape canvas. Used when content is delivered after the graph
+        // (e.g. saved-graph path where retrieval and synthesis run live).
+        const lookup = { nodes: {}, edges: {} };
+        if (nodeContent && Array.isArray(nodeContent.nodes)) {
+          for (const item of nodeContent.nodes) {
+            if (item && item.id) lookup.nodes[String(item.id)] = item;
+          }
+        }
+        if (edgeIntegration && Array.isArray(edgeIntegration.edges)) {
+          for (const item of edgeIntegration.edges) {
+            if (item && item.from && item.to) {
+              lookup.edges[`${item.from}->${item.to}`] = item;
+            }
+          }
+        }
+        teachingGraphContentLookup = lookup;
+        teachingGraphIntegrationContent =
+          edgeIntegration && edgeIntegration.integration
+            ? edgeIntegration.integration
+            : null;
+      }
+
+      function tgRebuildContentLookup(envelope) {
+        const lookup = { nodes: {}, edges: {} };
+        if (envelope.nodeContent && Array.isArray(envelope.nodeContent.nodes)) {
+          for (const item of envelope.nodeContent.nodes) {
+            if (item && item.id) lookup.nodes[String(item.id)] = item;
+          }
+        }
+        if (envelope.edgeIntegration && Array.isArray(envelope.edgeIntegration.edges)) {
+          for (const item of envelope.edgeIntegration.edges) {
+            if (item && item.from && item.to) {
+              lookup.edges[`${item.from}->${item.to}`] = item;
+            }
+          }
+        }
+        teachingGraphContentLookup = lookup;
+        teachingGraphIntegrationContent =
+          envelope.edgeIntegration && envelope.edgeIntegration.integration
+            ? envelope.edgeIntegration.integration
+            : null;
+        const graph = envelope.graph;
+        teachingGraphPrimaryRoute = (graph && graph.primary_route) ? graph.primary_route.map(String) : [];
+        teachingGraphEntryNodes = (graph && graph.entry_nodes) ? graph.entry_nodes.map(String) : [];
+        teachingGraphIntegrationNodeId = graph && graph.integration_node ? String(graph.integration_node) : "";
+      }
+
+      function tgRenderGraph(envelope) {
+        tgMountPanel();
+        tgRebuildContentLookup(envelope);
+        const graph = envelope.graph;
+        tgPopulateNodeSelect(graph);
+        document.getElementById("tgJsonContent").textContent = JSON.stringify(envelope.raw, null, 2);
+
+        if (typeof cytoscape === "undefined") {
+          document.getElementById("teachingGraphCanvas").innerHTML =
+            '<div class="tg-empty">Graph library failed to load. Check your network or open the JSON view below.</div>';
+          return;
+        }
+        if (!window._tgDagreRegistered && typeof cytoscapeDagre !== "undefined" && typeof cytoscape.use === "function") {
+          try {
+            cytoscape.use(cytoscapeDagre);
+            window._tgDagreRegistered = true;
+          } catch (_) {
+            window._tgDagreRegistered = true;
+          }
+        }
+        const layoutName = window._tgDagreRegistered ? "dagre" : "breadthfirst";
+
+        if (teachingGraphCy) {
+          try { teachingGraphCy.destroy(); } catch (_) { /* ignore */ }
+          teachingGraphCy = null;
+        }
+
+        const container = document.getElementById("teachingGraphCanvas");
+        const elements = tgBuildElements(graph);
+
+        teachingGraphCy = cytoscape({
+          container,
+          elements,
+          style: tgCytoscapeStyle(),
+          layout: layoutName === "dagre"
+            ? { name: "dagre", rankDir: "LR", nodeSep: 50, rankSep: 90, padding: 20 }
+            : { name: "breadthfirst", directed: true, padding: 20, spacingFactor: 1.2 },
+          wheelSensitivity: 0.2,
+          minZoom: 0.4,
+          maxZoom: 2.5,
+        });
+
+        teachingGraphCy.on("tap", "node", (evt) => {
+          tgFocusOnElement(evt.target, "node");
+          tgShowNodeDetail(evt.target.id());
+        });
+        teachingGraphCy.on("tap", "edge", (evt) => {
+          tgFocusOnElement(evt.target, "edge");
+          tgShowEdgeDetail(evt.target.data("source"), evt.target.data("target"));
+        });
+        teachingGraphCy.on("tap", (evt) => {
+          if (evt.target === teachingGraphCy) {
+            teachingGraphCy.elements().removeClass("tg-faded");
+            teachingGraphCy.elements().unselect();
+            tgClearDetail();
+          }
+        });
+
+        // Defer fit until container has measured dimensions
+        requestAnimationFrame(() => {
+          if (teachingGraphCy) {
+            teachingGraphCy.resize();
+            teachingGraphCy.fit(undefined, 30);
+          }
+        });
+      }
+
+      function tgFocusOnElement(element, kind) {
+        if (!teachingGraphCy) return;
+        const cy = teachingGraphCy;
+        cy.elements().removeClass("tg-faded");
+        cy.elements().unselect();
+        element.select();
+        let related;
+        if (kind === "node") {
+          related = element.union(element.connectedEdges()).union(element.connectedEdges().connectedNodes());
+        } else {
+          related = element.union(element.connectedNodes());
+        }
+        cy.elements().difference(related).addClass("tg-faded");
+      }
+
+      function tgShowNodeDetail(nodeId) {
+        const id = String(nodeId);
+        const cyNode = teachingGraphCy ? teachingGraphCy.getElementById(id) : null;
+        const fallbackLabel = cyNode && cyNode.length ? cyNode.data("label") : id;
+        const fallbackKind = cyNode && cyNode.length ? cyNode.data("kind") : "core_concept";
+        const node = teachingGraphContentLookup.nodes[id] || {
+          id,
+          label: fallbackLabel,
+          kind: fallbackKind,
+          core_claim: "",
+          supporting_claims: [],
+          canonical_example: { text: "" },
+          canonical_contrast: { text: "" },
+        };
+
+        const isIntegration = id === teachingGraphIntegrationNodeId;
+        const integrationBlock = isIntegration && teachingGraphIntegrationContent
+          ? renderIntegrationBlock(teachingGraphIntegrationContent)
+          : "";
+
+        const incoming = [];
+        const outgoing = [];
+        if (teachingGraphCy) {
+          teachingGraphCy.getElementById(id).connectedEdges().forEach((edge) => {
+            const sourceId = edge.data("source");
+            const targetId = edge.data("target");
+            const isOutgoing = sourceId === id;
+            const otherId = isOutgoing ? targetId : sourceId;
+            const otherNode = teachingGraphCy.getElementById(otherId);
+            const otherLabel = otherNode && otherNode.length ? otherNode.data("label") : otherId;
+            (isOutgoing ? outgoing : incoming).push({
+              source: sourceId, target: targetId, otherLabel, type: edge.data("type"),
+            });
+          });
+        }
+
+        const supportingHtml = (node.supporting_claims || []).length
+          ? `<ul>${node.supporting_claims.map(c => `<li>${escapeHtml(c)}</li>`).join("")}</ul>`
+          : '<p class="text-muted"><em>None recorded.</em></p>';
+
+        const exampleText = node.canonical_example && node.canonical_example.text
+          ? escapeHtml(node.canonical_example.text) : "";
+        const contrastText = node.canonical_contrast && node.canonical_contrast.text
+          ? escapeHtml(node.canonical_contrast.text) : "";
+        const linksHtml = renderEdgeLinkChips(incoming, outgoing);
+
+        // Cross-link: scroll the retrieval card for this node (no-op if no data yet).
+        rpScrollToTarget(id);
+        const html = `
+          <div class="tg-detail-header">
+            <div>
+              <div class="tg-detail-title">${escapeHtml(node.label || id)}</div>
+              <span class="tg-chip kind-${escapeHtml(node.kind || "core_concept")}">${escapeHtml(TG_KIND_LABELS[node.kind] || node.kind || "")}</span>
+            </div>
+            <button type="button" class="tg-detail-close" id="tgDetailClose" aria-label="Close">×</button>
+          </div>
+          <div class="tg-detail-body">
+            <div class="tg-section">
+              <h6>What this teaches</h6>
+              <p>${escapeHtml(node.core_claim || "—")}</p>
+            </div>
+            <div class="tg-section">
+              <h6>Supporting points</h6>
+              ${supportingHtml}
+            </div>
+            ${exampleText ? `<div class="tg-section"><h6>Example</h6><p>${exampleText}</p></div>` : ""}
+            ${contrastText ? `<div class="tg-section"><h6>Contrast</h6><p>${contrastText}</p></div>` : ""}
+            ${integrationBlock}
+            ${linksHtml}
+          </div>
+        `;
+        const host = document.getElementById("teachingGraphDetail");
+        host.innerHTML = html;
+        host.scrollTop = 0;
+        tgWireDetailHandlers(host);
+      }
+
+      function tgShowEdgeDetail(fromId, toId) {
+        const id = `${fromId}->${toId}`;
+        // Cross-link: scroll the retrieval card for this edge (no-op if absent).
+        rpScrollToTarget(`edge:${id}`);
+        const edgeContent = teachingGraphContentLookup.edges[id] || null;
+        const cy = teachingGraphCy;
+        const cyEdge = cy ? cy.getElementById(id) : null;
+        const sourceLabel = cy ? (cy.getElementById(fromId).data("label") || fromId) : fromId;
+        const targetLabel = cy ? (cy.getElementById(toId).data("label") || toId) : toId;
+        const edgeType = edgeContent && edgeContent.type
+          ? edgeContent.type
+          : (cyEdge && cyEdge.length ? cyEdge.data("type") : "supports");
+
+        const bridgeClaim = cyEdge && cyEdge.length ? cyEdge.data("bridge_claim") : "";
+        const transitionRationale = edgeContent ? edgeContent.transition_rationale || "" : "";
+        const bridgeText = edgeContent ? edgeContent.bridge_text || "" : "";
+        const sourceRequirement = edgeContent ? edgeContent.source_requirement || "" : "";
+        const targetShift = edgeContent ? edgeContent.target_shift || "" : "";
+        const bridgeExample = edgeContent && edgeContent.bridge_example
+          ? (edgeContent.bridge_example.text || "")
+          : "";
+
+        const html = `
+          <div class="tg-detail-header">
+            <div>
+              <div class="tg-detail-title">
+                <span class="tg-link" data-tg-node="${escapeHtml(String(fromId))}">${escapeHtml(sourceLabel)}</span>
+                &nbsp;→&nbsp;
+                <span class="tg-link" data-tg-node="${escapeHtml(String(toId))}">${escapeHtml(targetLabel)}</span>
+              </div>
+              <span class="tg-chip edge-${escapeHtml(edgeType)}">${escapeHtml(TG_EDGE_TYPE_LABELS[edgeType] || edgeType)}</span>
+            </div>
+            <button type="button" class="tg-detail-close" id="tgDetailClose" aria-label="Close">×</button>
+          </div>
+          <div class="tg-detail-body">
+            ${transitionRationale ? `<div class="tg-section"><h6>Why this transition</h6><p>${escapeHtml(transitionRationale)}</p></div>` : ""}
+            ${(bridgeClaim || bridgeText) ? `
+              <div class="tg-section">
+                <h6>Bridge</h6>
+                ${bridgeClaim ? `<p><strong>Claim:</strong> ${escapeHtml(bridgeClaim)}</p>` : ""}
+                ${bridgeText ? `<p>${escapeHtml(bridgeText)}</p>` : ""}
+              </div>
+            ` : ""}
+            ${(sourceRequirement || targetShift) ? `
+              <div class="tg-shift">
+                <div class="tg-shift-col"><h6>Before</h6><p>${escapeHtml(sourceRequirement || "—")}</p></div>
+                <div class="tg-shift-col"><h6>After</h6><p>${escapeHtml(targetShift || "—")}</p></div>
+              </div>
+            ` : ""}
+            ${bridgeExample ? `<div class="tg-section"><h6>Worked transition</h6><p>${escapeHtml(bridgeExample)}</p></div>` : ""}
+            ${(!edgeContent && !bridgeClaim) ? '<div class="tg-section"><p class="text-muted"><em>No edge details available.</em></p></div>' : ""}
+          </div>
+        `;
+        const host = document.getElementById("teachingGraphDetail");
+        host.innerHTML = html;
+        host.scrollTop = 0;
+        tgWireDetailHandlers(host);
+      }
+
+      function renderIntegrationBlock(integration) {
+        const claim = integration.integration_claim || "";
+        const scenario = integration.integration_scenario && integration.integration_scenario.text
+          ? integration.integration_scenario.text : "";
+        const combined = Array.isArray(integration.what_must_be_combined)
+          ? integration.what_must_be_combined : [];
+        const cy = teachingGraphCy;
+        const combinedHtml = combined.length
+          ? `<div class="tg-link-list">${combined.map((nodeId) => {
+              const label = cy ? (cy.getElementById(nodeId).data("label") || nodeId) : nodeId;
+              return `<span class="tg-link" data-tg-node="${escapeHtml(String(nodeId))}">${escapeHtml(label)}</span>`;
+            }).join("")}</div>`
+          : "";
+        return `
+          <div class="tg-section">
+            <h6>Integration</h6>
+            ${claim ? `<p>${escapeHtml(claim)}</p>` : ""}
+            ${scenario ? `<p><em>${escapeHtml(scenario)}</em></p>` : ""}
+            ${combinedHtml ? `<h6 style="margin-top:0.4rem;">Combines</h6>${combinedHtml}` : ""}
+          </div>
+        `;
+      }
+
+      function renderEdgeLinkChips(incoming, outgoing) {
+        if (!incoming.length && !outgoing.length) return "";
+        const renderEdgeChip = (edge, direction) => {
+          const arrow = direction === "out" ? "→" : "←";
+          return `<span class="tg-link" data-tg-edge-source="${escapeHtml(edge.source)}" data-tg-edge-target="${escapeHtml(edge.target)}">${arrow} ${escapeHtml(edge.otherLabel)}</span>`;
+        };
+        return `
+          <div class="tg-section">
+            <h6>Connections</h6>
+            <div class="tg-link-list">
+              ${incoming.map(e => renderEdgeChip(e, "in")).join("")}
+              ${outgoing.map(e => renderEdgeChip(e, "out")).join("")}
+            </div>
+          </div>
+        `;
+      }
+
+      function tgWireDetailHandlers(host) {
+        const closeBtn = host.querySelector("#tgDetailClose");
+        if (closeBtn) closeBtn.addEventListener("click", () => {
+          if (teachingGraphCy) {
+            teachingGraphCy.elements().removeClass("tg-faded");
+            teachingGraphCy.elements().unselect();
+          }
+          tgClearDetail();
+        });
+        host.querySelectorAll("[data-tg-node]").forEach((el) => {
+          el.addEventListener("click", () => {
+            const id = el.getAttribute("data-tg-node");
+            if (!id || !teachingGraphCy) return;
+            const node = teachingGraphCy.getElementById(id);
+            if (node && node.length) {
+              tgFocusOnElement(node, "node");
+              teachingGraphCy.center(node);
+              tgShowNodeDetail(id);
+            }
+          });
+        });
+        host.querySelectorAll("[data-tg-edge-source]").forEach((el) => {
+          el.addEventListener("click", () => {
+            const source = el.getAttribute("data-tg-edge-source");
+            const target = el.getAttribute("data-tg-edge-target");
+            if (!source || !target || !teachingGraphCy) return;
+            const edge = teachingGraphCy.getElementById(`${source}->${target}`);
+            if (edge && edge.length) {
+              tgFocusOnElement(edge, "edge");
+              tgShowEdgeDetail(source, target);
+            }
+          });
+        });
+      }
+
+      function tgClearDetail() {
+        const host = document.getElementById("teachingGraphDetail");
+        if (host) {
+          host.innerHTML = '<div class="tg-detail-empty">Click any node or edge to see details. Details appear here, beneath the graph.</div>';
+        }
+      }
+
+      // ----------------------------------------------------------------
+      // Retrieval Process panel
+      // ----------------------------------------------------------------
+
+      const RP_TOOL_FAMILY = {
+        get_full_criterion_context: "criterion",
+        get_criterion: "criterion",
+        get_success_criteria_detail: "criterion",
+        get_guideline: "criterion",
+        list_guidelines: "structural",
+        list_principles: "structural",
+        list_success_criteria: "structural",
+        get_techniques_for_criterion: "criterion",
+        get_technique: "technique",
+        search_techniques: "search",
+        search_wcag: "search",
+        search_glossary: "search",
+        get_glossary_term: "glossary",
+        list_glossary_terms: "structural",
+        count_criteria: "structural",
+        get_criteria_by_level: "structural",
+      };
+
+      const RP_KIND_LABELS = {
+        definition: "Definition",
+        normative_anchor: "Normative anchor",
+        explanatory_support: "Explanatory",
+        contrast_support: "Contrast",
+        risk_support: "Risk",
+        structural_support: "Structural",
+        implementation_support: "Implementation",
+        example_support: "Example",
+        failure_support: "Failure",
+      };
+
+      const RP_COVERAGE_LABELS = {
+        has_definition_support: "Definition",
+        has_normative_anchor: "Normative",
+        has_explanatory_support: "Explanatory",
+        has_contrast_support: "Contrast",
+        has_risk_support: "Risk",
+      };
+
+      function rpToolFamily(name) {
+        return RP_TOOL_FAMILY[name] || "criterion";
+      }
+
+      function rpTargetKind(targetId) {
+        const id = String(targetId || "");
+        if (id.startsWith("edge:")) return "edge";
+        if (id.startsWith("integration:")) return "integration";
+        return "node";
+      }
+
+      function rpResolveTargetLabel(targetId) {
+        const id = String(targetId || "");
+        if (id.startsWith("edge:")) {
+          const arrow = id.slice(5);
+          const [from, to] = arrow.split("->");
+          const cy = teachingGraphCy;
+          if (cy && from && to) {
+            const sourceNode = cy.getElementById(from);
+            const targetNode = cy.getElementById(to);
+            const sLabel = sourceNode && sourceNode.length ? sourceNode.data("label") : from;
+            const tLabel = targetNode && targetNode.length ? targetNode.data("label") : to;
+            return `${sLabel} → ${tLabel}`;
+          }
+          return arrow;
+        }
+        if (id.startsWith("integration:")) {
+          const nodeId = id.slice("integration:".length);
+          const cy = teachingGraphCy;
+          const node = cy ? cy.getElementById(nodeId) : null;
+          const label = node && node.length ? node.data("label") : nodeId;
+          return `Integration · ${label}`;
+        }
+        const cy = teachingGraphCy;
+        const node = cy ? cy.getElementById(id) : null;
+        return node && node.length ? node.data("label") : id;
+      }
+
+      function rpStrengthClass(value) {
+        const v = String(value || "").toLowerCase();
+        if (["strong", "adequate", "thin"].includes(v)) return v;
+        return "unknown";
+      }
+
+      function rpFilterMatches(record, kind) {
+        if (kind === "all") return true;
+        return rpTargetKind(record.node_id) === kind;
+      }
+
+      function rpRenderArgs(args) {
+        const obj = args && typeof args === "object" ? args : {};
+        const entries = Object.entries(obj).filter(([_, v]) => v !== null && v !== undefined && v !== "");
+        if (!entries.length) return '<span class="rp-tool-empty-args">(no args persisted)</span>';
+        return entries
+          .map(([k, v]) => `<span class="rp-arg-chip">${escapeHtml(k)}=${escapeHtml(String(v))}</span>`)
+          .join(" ");
+      }
+
+      function rpRenderEvidence(item) {
+        const kind = String(item.kind || "");
+        const kindLabel = RP_KIND_LABELS[kind] || kind || "evidence";
+        const itemId = item.item_id || "";
+        const title = item.title || itemId || "Untitled";
+        const groundingNote = item.grounding_note || "";
+        const content = String(item.content || "");
+        const truncated = content.length > 400 ? content.slice(0, 400) + "…" : content;
+        const needsMore = content.length > 400;
+        return `
+          <div class="rp-evidence">
+            <div class="rp-evidence-header">
+              <span class="rp-kind-chip ${escapeHtml(kind)}">${escapeHtml(kindLabel)}</span>
+              <span class="rp-evidence-title">${escapeHtml(title)}</span>
+              ${itemId ? `<span class="rp-evidence-id">${escapeHtml(itemId)}</span>` : ""}
+            </div>
+            ${groundingNote ? `
+              <div class="rp-evidence-section">
+                <span class="rp-label">Why kept:</span>
+                <span>${escapeHtml(groundingNote)}</span>
+              </div>` : ""}
+            ${content ? `
+              <div class="rp-evidence-section">
+                <span class="rp-label">Retrieved:</span>
+                <span class="rp-content-truncated">${escapeHtml(truncated)}</span>
+                <span class="rp-content-full">${escapeHtml(content)}</span>
+                ${needsMore ? '<button type="button" class="rp-show-more">Show more</button>' : ""}
+              </div>` : ""}
+          </div>
+        `;
+      }
+
+      function rpRenderCardBody(record) {
+        const coverage = record.coverage_summary || {};
+        const coverageHtml = Object.keys(RP_COVERAGE_LABELS)
+          .map(key => {
+            const has = !!coverage[key];
+            const cls = has ? "has" : "miss";
+            return `<span class="rp-cov ${cls}">${escapeHtml(RP_COVERAGE_LABELS[key])}</span>`;
+          })
+          .join("");
+        const tools = Array.isArray(record.source_tools_used) ? record.source_tools_used : [];
+        const toolsHtml = tools.length
+          ? tools.map(t => {
+              const name = String(t.tool || "");
+              const family = rpToolFamily(name);
+              return `
+                <div class="rp-tool-row">
+                  <span class="rp-tool-name">${escapeHtml(name)}</span>
+                  <span class="rp-tool-family ${family}">${family}</span>
+                  ${rpRenderArgs(t.args)}
+                </div>
+              `;
+            }).join("")
+          : '<div class="rp-tool-empty-args">(no tools recorded)</div>';
+        const items = Array.isArray(record.retrieved_items) ? record.retrieved_items : [];
+        const evidenceHtml = items.length
+          ? items.map(rpRenderEvidence).join("")
+          : '<div class="rp-skip-note">No evidence kept for this target.</div>';
+        const gaps = Array.isArray(record.notes_on_gaps) ? record.notes_on_gaps.filter(Boolean) : [];
+        const gapsHtml = gaps.length
+          ? `<div class="rp-section"><h6>Notes on gaps</h6><ul class="rp-gaps">${gaps.map(g => `<li>${escapeHtml(g)}</li>`).join("")}</ul></div>`
+          : "";
+        return `
+          <div class="rp-card-body">
+            <div class="rp-section"><h6>Coverage</h6><div class="rp-coverage">${coverageHtml}</div></div>
+            <div class="rp-section"><h6>Tools called</h6><div class="rp-tools-list">${toolsHtml}</div></div>
+            <div class="rp-section"><h6>Evidence kept</h6><div class="rp-evidence-list">${evidenceHtml}</div></div>
+            ${gapsHtml}
+          </div>
+        `;
+      }
+
+      function rpRenderCard(record) {
+        const targetId = String(record.node_id || "");
+        const kind = rpTargetKind(targetId);
+        const label = rpResolveTargetLabel(targetId);
+        const strength = rpStrengthClass(record.grounding_strength);
+        const tools = Array.isArray(record.source_tools_used) ? record.source_tools_used.length : 0;
+        const items = Array.isArray(record.retrieved_items) ? record.retrieved_items.length : 0;
+        const gaps = Array.isArray(record.notes_on_gaps) ? record.notes_on_gaps.filter(Boolean).length : 0;
+        const expanded = rpExpandedTargets.has(targetId);
+        const bodyHtml = expanded ? rpRenderCardBody(record) : "";
+        return `
+          <div class="rp-card ${expanded ? "expanded" : ""}" data-target-id="${escapeHtml(targetId)}">
+            <div class="rp-card-header">
+              <span class="rp-target-chip kind-${kind}">${escapeHtml(targetId)}</span>
+              <span class="rp-target-label">${escapeHtml(label)}</span>
+              <span class="rp-strength ${strength}">${escapeHtml(record.grounding_strength || "n/a")}</span>
+              <span class="rp-counts">${tools} tools · ${items} items${gaps ? ` · ${gaps} gaps` : ""}</span>
+            </div>
+            ${bodyHtml}
+          </div>
+        `;
+      }
+
+      function rpRenderToolbar(records) {
+        const counts = { all: records.length, node: 0, edge: 0, integration: 0 };
+        for (const r of records) counts[rpTargetKind(r.node_id)] += 1;
+        const allExpanded = records.length > 0
+          && records.every(r => rpExpandedTargets.has(String(r.node_id)));
+        const filterChip = (key, label) => {
+          const active = rpKindFilter === key ? "active" : "";
+          return `<span class="rp-filter-chip ${active}" data-rp-filter="${key}">${label} (${counts[key] || 0})</span>`;
+        };
+        return `
+          <div class="rp-toolbar">
+            ${filterChip("all", "All")}
+            ${filterChip("node", "Nodes")}
+            ${filterChip("edge", "Edges")}
+            ${filterChip("integration", "Integration")}
+            <button type="button" class="rp-btn" id="rpExpandAllBtn">${allExpanded ? "Collapse all" : "Expand all"}</button>
+          </div>
+        `;
+      }
+
+      function rpRender() {
+        const host = document.getElementById("retrievalProcessContent");
+        if (!host) return;
+        const records = Array.isArray(nodeEvidenceData?.node_evidence)
+          ? nodeEvidenceData.node_evidence
+          : [];
+        if (!records.length) {
+          host.innerHTML = '<div class="rp-empty">No retrieval trace was recorded for this objective.</div>';
+          return;
+        }
+        const filtered = records.filter(r => rpFilterMatches(r, rpKindFilter));
+        const cardsHtml = filtered.length
+          ? filtered.map(rpRenderCard).join("")
+          : '<div class="rp-empty">No targets match the current filter.</div>';
+        host.innerHTML = `
+          ${rpRenderToolbar(records)}
+          <div class="rp-list">${cardsHtml}</div>
+        `;
+        rpWireToolbar(host, records);
+        rpWireCards(host);
+      }
+
+      function rpWireToolbar(host, records) {
+        host.querySelectorAll("[data-rp-filter]").forEach(el => {
+          el.addEventListener("click", () => {
+            rpKindFilter = el.getAttribute("data-rp-filter") || "all";
+            rpRender();
+          });
+        });
+        const btn = host.querySelector("#rpExpandAllBtn");
+        if (btn) {
+          btn.addEventListener("click", () => {
+            const allExpanded = records.length > 0
+              && records.every(r => rpExpandedTargets.has(String(r.node_id)));
+            if (allExpanded) {
+              rpExpandedTargets.clear();
+            } else {
+              records.forEach(r => rpExpandedTargets.add(String(r.node_id)));
+            }
+            rpRender();
+          });
+        }
+      }
+
+      function rpWireCards(host) {
+        host.querySelectorAll(".rp-card").forEach(card => {
+          const targetId = card.getAttribute("data-target-id");
+          const header = card.querySelector(".rp-card-header");
+          if (header) {
+            header.addEventListener("click", () => {
+              if (rpExpandedTargets.has(targetId)) {
+                rpExpandedTargets.delete(targetId);
+              } else {
+                rpExpandedTargets.add(targetId);
+              }
+              rpRender();
+              // Cross-link: when a node card opens, focus the matching cytoscape node.
+              if (rpExpandedTargets.has(targetId) && rpTargetKind(targetId) === "node" && teachingGraphCy) {
+                const cyNode = teachingGraphCy.getElementById(targetId);
+                if (cyNode && cyNode.length) {
+                  tgFocusOnElement(cyNode, "node");
+                  teachingGraphCy.center(cyNode);
+                }
+              }
+              if (rpExpandedTargets.has(targetId) && rpTargetKind(targetId) === "edge" && teachingGraphCy) {
+                const arrow = targetId.slice(5);
+                const cyEdge = teachingGraphCy.getElementById(arrow);
+                if (cyEdge && cyEdge.length) {
+                  tgFocusOnElement(cyEdge, "edge");
+                }
+              }
+            });
+          }
+          card.querySelectorAll(".rp-show-more").forEach(btn => {
+            btn.addEventListener("click", (e) => {
+              e.stopPropagation();
+              const ev = btn.closest(".rp-evidence");
+              if (ev) ev.classList.toggle("expanded");
+              btn.textContent = ev && ev.classList.contains("expanded") ? "Show less" : "Show more";
+            });
+          });
+        });
+      }
+
+      function showRetrievalProcess(records, persist = true) {
+        // Accept either the raw artifact ({objective_text, node_evidence:[]}) or just the array.
+        if (Array.isArray(records)) {
+          nodeEvidenceData = { node_evidence: records };
+        } else if (records && Array.isArray(records.node_evidence)) {
+          nodeEvidenceData = records;
+        } else {
+          nodeEvidenceData = null;
+        }
+        if (!nodeEvidenceData || !Array.isArray(nodeEvidenceData.node_evidence) || !nodeEvidenceData.node_evidence.length) {
+          resetRetrievalProcessSection();
+          if (persist) saveTeachingSidebarState(activeStudentId);
+          return;
+        }
+        expandTeachingPanel("retrievalProcessSection", "retrievalProcessBody", "rpChevron");
+        rpRender();
+        if (persist) saveTeachingSidebarState(activeStudentId);
+      }
+
+      function resetRetrievalProcessSection() {
+        rpCollapsed = false;
+        const section = document.getElementById("retrievalProcessSection");
+        const body = document.getElementById("retrievalProcessBody");
+        const chevron = document.getElementById("rpChevron");
+        const content = document.getElementById("retrievalProcessContent");
+        if (section) section.style.display = "none";
+        if (body) body.style.display = "block";
+        if (chevron) chevron.className = "fas fa-chevron-down";
+        if (content) content.innerHTML = "";
+      }
+
+      function rpScrollToTarget(targetId) {
+        const host = document.getElementById("retrievalProcessContent");
+        if (!host || rpCollapsed) return;
+        const card = host.querySelector(`.rp-card[data-target-id="${CSS.escape(targetId)}"]`);
+        if (!card) return;
+        if (!rpExpandedTargets.has(targetId)) {
+          rpExpandedTargets.add(targetId);
+          rpRender();
+        }
+        const refreshed = host.querySelector(`.rp-card[data-target-id="${CSS.escape(targetId)}"]`);
+        if (refreshed) {
+          refreshed.classList.add("rp-active");
+          refreshed.scrollIntoView({ block: "nearest", behavior: "smooth" });
+          setTimeout(() => refreshed.classList.remove("rp-active"), 1500);
+        }
       }
 
       function resetTeachingContentSection() {
@@ -954,14 +2254,23 @@
 
       function showTeachingPlanGenerating() {
         expandTeachingPanel("teachingPlanSection", "teachingPlanBody", "tpChevron");
+        if (teachingGraphCy) {
+          try { teachingGraphCy.destroy(); } catch (_) { /* ignore */ }
+          teachingGraphCy = null;
+        }
         document.getElementById("teachingPlanContent").innerHTML =
-          '<div class="tp-generating"><i class="fas fa-spinner fa-spin me-1"></i> Teaching plan is being generated, you will see it once it is done. Thank you for waiting.</div>';
+          '<div class="tp-generating"><i class="fas fa-spinner fa-spin me-1"></i> Teaching graph is being generated, you will see it once it is done. Thank you for waiting.</div>';
       }
 
       function showTeachingPlan(plan, persist = true) {
         teachingPlanData = plan;
         expandTeachingPanel("teachingPlanSection", "teachingPlanBody", "tpChevron");
-        document.getElementById("teachingPlanContent").innerHTML = renderTeachingPanelValue(plan);
+        const envelope = tgNormalizePlan(plan);
+        if (envelope) {
+          tgRenderGraph(envelope);
+        } else {
+          tgFallbackJsonOnly(plan);
+        }
         if (persist) saveTeachingSidebarState(activeStudentId);
       }
 
@@ -1239,39 +2548,60 @@
       // ONBOARDING FORM
       // ================================================================
 
-      function renderOnboardingQuestion(msg) {
+      function renderObjectivePicker(msg) {
         setProcessingState(false);
-        const card = document.createElement("div"); card.className = "onboarding-card";
-        const step = document.createElement("div"); step.className = "step-badge"; step.textContent = `Step ${msg.step} of ${msg.total_steps}`; card.appendChild(step);
-        const q = document.createElement("div"); q.className = "question-text"; q.textContent = msg.question; card.appendChild(q);
-        if (msg.description) { const desc = document.createElement("div"); desc.className = "question-desc"; desc.textContent = msg.description; card.appendChild(desc); }
-        const optionsDiv = document.createElement("div"); optionsDiv.className = "onboarding-options"; let selectedValue = null;
+        // If a previous picker is still on screen (e.g. reconnect), drop it.
+        chatMessages.querySelectorAll(".onboarding-card.objective-picker-card").forEach(el => el.remove());
+
+        const card = document.createElement("div");
+        card.className = "onboarding-card objective-picker-card";
+
+        const q = document.createElement("div");
+        q.className = "question-text";
+        q.textContent = "Choose your starting objective";
+        card.appendChild(q);
+
+        const desc = document.createElement("div");
+        desc.className = "question-desc";
+        desc.textContent = "Click an objective to start the lesson. The right sidebar will show the teaching graph for that topic.";
+        card.appendChild(desc);
+
+        const optionsDiv = document.createElement("div");
+        optionsDiv.className = "onboarding-options";
+
         (msg.options || []).forEach(opt => {
-          const optEl = document.createElement("div"); optEl.className = "onboarding-option"; optEl.dataset.value = opt.value;
-          let html = `<div><div class="opt-label">${opt.label}</div>`; if (opt.description) html += `<div class="opt-desc">${opt.description}</div>`; html += `</div>`; optEl.innerHTML = html;
-          optEl.addEventListener("click", () => { optionsDiv.querySelectorAll(".onboarding-option").forEach(o => o.classList.remove("selected")); optEl.classList.add("selected"); selectedValue = opt.value; otherDiv.classList.remove("visible"); otherInput.value = ""; submitBtn.disabled = false; });
+          const optEl = document.createElement("div");
+          optEl.className = "onboarding-option";
+          optEl.dataset.objectiveId = opt.id;
+          const badgeText = opt.graph_available
+            ? "Pre-built graph"
+            : "Builds on demand (~30–60s)";
+          const badgeClass = opt.graph_available ? "tg-chip kind-integration" : "tg-chip kind-core_concept";
+          optEl.innerHTML = `
+            <div style="flex:1;">
+              <div class="opt-label">${escapeHtml(opt.label)}</div>
+              ${opt.description ? `<div class="opt-desc">${escapeHtml(opt.description)}</div>` : ""}
+              <span class="${badgeClass}" style="margin-top:0.3rem; display:inline-block;">${badgeText}</span>
+            </div>
+          `;
+          optEl.addEventListener("click", () => {
+            // Lock the card and send the choice.
+            card.querySelectorAll(".onboarding-option").forEach(o => o.classList.remove("selected"));
+            optEl.classList.add("selected");
+            card.style.opacity = "0.6";
+            card.style.pointerEvents = "none";
+            addMessage("user", opt.label);
+            setProcessingState(true);
+            if (ws && ws.readyState === WebSocket.OPEN) {
+              ws.send(JSON.stringify({ type: "objective_chosen", objective_id: opt.id }));
+            }
+          });
           optionsDiv.appendChild(optEl);
         });
+
         card.appendChild(optionsDiv);
-        const otherDiv = document.createElement("div"); otherDiv.className = "onboarding-other";
-        const otherInput = document.createElement("input"); otherInput.type = "text"; otherInput.className = "form-control form-control-sm"; otherInput.placeholder = "Type your answer...";
-        otherInput.addEventListener("input", () => { if (otherInput.value.trim()) { selectedValue = otherInput.value.trim(); submitBtn.disabled = false; } });
-        otherDiv.appendChild(otherInput); card.appendChild(otherDiv);
-        if (msg.allow_other) {
-          const otherBtn = document.createElement("div"); otherBtn.className = "onboarding-option";
-          otherBtn.innerHTML = `<div><div class="opt-label">Other</div><div class="opt-desc">Type your own answer</div></div>`;
-          otherBtn.addEventListener("click", () => { optionsDiv.querySelectorAll(".onboarding-option").forEach(o => o.classList.remove("selected")); otherBtn.classList.add("selected"); selectedValue = null; otherDiv.classList.add("visible"); otherInput.focus(); submitBtn.disabled = true; });
-          optionsDiv.appendChild(otherBtn);
-        }
-        const submitBtn = document.createElement("button"); submitBtn.className = "btn btn-primary onboarding-submit";
-        submitBtn.textContent = msg.step < msg.total_steps ? "Continue" : "Start Learning"; submitBtn.disabled = true;
-        submitBtn.addEventListener("click", () => {
-          if (!selectedValue) return;
-          addMessage("user", selectedValue); card.style.opacity = "0.6"; card.style.pointerEvents = "none"; setProcessingState(true);
-          if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: "message", content: selectedValue }));
-        });
-        card.appendChild(submitBtn);
-        chatMessages.insertBefore(card, typingIndicator); scrollToBottomIfNeeded();
+        chatMessages.insertBefore(card, typingIndicator);
+        scrollToBottomIfNeeded();
       }
 
       // ================================================================
@@ -1314,6 +2644,9 @@
           // growDirection "left"  → dragging left makes column wider
           const delta = growDirection === "right" ? (e.clientX - startX) : (startX - e.clientX);
           column.style.width = `${clamp(startWidth + delta)}px`;
+          if (teachingGraphCy) {
+            teachingGraphCy.resize();
+          }
         });
 
         window.addEventListener("mouseup", () => {
@@ -1332,6 +2665,7 @@
         window.addEventListener("resize", () => {
           const max = getMaxW();
           if (column.getBoundingClientRect().width > max) column.style.width = `${max}px`;
+          if (teachingGraphCy) teachingGraphCy.resize();
         });
       }
 
