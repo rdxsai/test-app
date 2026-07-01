@@ -30,7 +30,7 @@ load_dotenv()
 
 from question_app.core.config import config
 from question_app.services.tutor.azure_client import AzureAPIMClient
-from question_app.services.tutor.hybrid_system import HybridCrewAISocraticSystem
+from question_app.services.tutor.hybrid_system import GuidedTutorSystem
 from question_app.services.tutor.interfaces import VectorStoreInterface
 from question_app.services.wcag_mcp_client import WCAGMCPClient
 
@@ -100,7 +100,7 @@ async def main() -> None:
         else None
     )
 
-    system = HybridCrewAISocraticSystem(
+    system = GuidedTutorSystem(
         azure_config=azure_config,
         vector_store_service=vector_service,
         db_manager=object(),

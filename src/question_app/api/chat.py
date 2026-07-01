@@ -21,7 +21,7 @@ from ..utils import (
 )
 from ..services.tutor.hybrid_system import (
     ClientConnectionClosedError,
-    HybridCrewAISocraticSystem,
+    GuidedTutorSystem,
 )
 from ..services.tutor.azure_client import AzureAPIMClient, build_graph_responses_client
 from ..services.wcag_mcp_client import WCAGMCPClient
@@ -104,14 +104,14 @@ try:
     if student_service:
         logger.info("Chat API: StudentService initialized (direct DB access).")
 
-    guided_tutor_system = HybridCrewAISocraticSystem(
+    guided_tutor_system = GuidedTutorSystem(
         azure_config=azure_config,
         vector_store_service=vector_service,
         wcag_mcp_client=wcag_mcp,
         student_mcp_client=student_service,
         graph_responses_client=graph_responses_client,
     )
-    logger.info("Chat API: HybridCrewAISocraticSystem initialized successfully.")
+    logger.info("Chat API: GuidedTutorSystem initialized successfully.")
 
 except ValueError as e:
     logger.critical(f"Failed to initialize vector store: {e}")

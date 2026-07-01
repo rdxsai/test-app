@@ -29,7 +29,7 @@ from question_app.services.tutor.azure_client import (
     AzureAPIMClient,
     build_graph_responses_client,
 )
-from question_app.services.tutor.hybrid_system import HybridCrewAISocraticSystem
+from question_app.services.tutor.hybrid_system import GuidedTutorSystem
 from question_app.services.tutor.workers.graph import GraphGroundingProjector
 from question_app.services.wcag_mcp_client import WCAGMCPClient
 
@@ -80,7 +80,7 @@ async def main() -> None:
         enabled=config.OPENAI_RESPONSES_ENABLED,
     )
 
-    system = HybridCrewAISocraticSystem(
+    system = GuidedTutorSystem(
         azure_config=azure_config,
         vector_store_service=vector_service,
         wcag_mcp_client=wcag_mcp,

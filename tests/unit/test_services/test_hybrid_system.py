@@ -13,7 +13,7 @@ from question_app.services.tutor.artifacts import (
     TurnAnalysisArtifact,
 )
 from question_app.services.tutor.hybrid_system import (
-    HybridCrewAISocraticSystem,
+    GuidedTutorSystem,
     TEACHING_GRAPH_MAX_COMPLETION_TOKENS,
     TEACHING_GRAPH_NODE_RETRIEVAL_MAX_COMPLETION_TOKENS,
     TEACHING_GRAPH_NODE_RETRIEVAL_MAX_TOOL_CALLS,
@@ -221,16 +221,16 @@ def hybrid_system(monkeypatch):
         FakeAzureClient,
     )
     monkeypatch.setattr(
-        HybridCrewAISocraticSystem,
+        GuidedTutorSystem,
         "_load_conversation_memory",
         lambda self: None,
     )
     monkeypatch.setattr(
-        HybridCrewAISocraticSystem,
+        GuidedTutorSystem,
         "_save_conversation_memory",
         lambda self: None,
     )
-    return HybridCrewAISocraticSystem(
+    return GuidedTutorSystem(
         azure_config=_azure_config(),
         vector_store_service=FakeVectorStore(),
         db_manager=object(),

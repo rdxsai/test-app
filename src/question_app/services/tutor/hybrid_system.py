@@ -116,7 +116,7 @@ GUIDED_TUTOR_RESPONSE_MAX_TOKENS = 3500
 GUIDED_TUTOR_RESPONSE_REASONING_EFFORT = "medium"
 
 
-class HybridCrewAISocraticSystem:
+class GuidedTutorSystem:
     """Compatibility facade over the guided tutor worker/orchestrator stack."""
 
     def __init__(
@@ -1036,11 +1036,11 @@ class HybridCrewAISocraticSystem:
     ) -> str:
         must_address = [
             item
-            for item in HybridCrewAISocraticSystem._coerce_misconception_events(
+            for item in GuidedTutorSystem._coerce_misconception_events(
                 turn_analysis
             )
             if isinstance(item, dict)
-            and HybridCrewAISocraticSystem._is_open_must_repair_event(item)
+            and GuidedTutorSystem._is_open_must_repair_event(item)
         ]
         if not must_address:
             return ""
@@ -1052,7 +1052,7 @@ class HybridCrewAISocraticSystem:
             text = str(item.get("text", "") or item.get("key", "")).strip()
             if text:
                 lines.append(f"- Open misconception: {text}")
-            if HybridCrewAISocraticSystem._is_procedural_full_sequence_repair(item):
+            if GuidedTutorSystem._is_procedural_full_sequence_repair(item):
                 procedural_sequence_repair = True
             else:
                 repair_scope = str(item.get("repair_scope", "") or "").strip().lower()
@@ -1478,19 +1478,19 @@ class HybridCrewAISocraticSystem:
         misconception_events = runtime_misconception_events(canonical_analysis)
         must_repair = any(
             isinstance(item, dict)
-            and HybridCrewAISocraticSystem._is_open_must_repair_event(item)
+            and GuidedTutorSystem._is_open_must_repair_event(item)
             for item in misconception_events
         )
         requires_procedural_full_sequence_repair = any(
             isinstance(item, dict)
-            and HybridCrewAISocraticSystem._is_open_must_repair_event(item)
-            and HybridCrewAISocraticSystem._is_procedural_full_sequence_repair(item)
+            and GuidedTutorSystem._is_open_must_repair_event(item)
+            and GuidedTutorSystem._is_procedural_full_sequence_repair(item)
             for item in misconception_events
         )
         requires_conceptual_sequence_completion = any(
             isinstance(item, dict)
-            and HybridCrewAISocraticSystem._is_open_must_repair_event(item)
-            and not HybridCrewAISocraticSystem._is_procedural_full_sequence_repair(item)
+            and GuidedTutorSystem._is_open_must_repair_event(item)
+            and not GuidedTutorSystem._is_procedural_full_sequence_repair(item)
             and (
                 str(item.get("repair_scope", "") or "") == "full_sequence"
                 or str(item.get("repair_pattern", "") or "")
@@ -1507,7 +1507,7 @@ class HybridCrewAISocraticSystem:
             canonical_student_turn(canonical_analysis).get("answer_first")
         )
         repeated_active_sequence = (
-            HybridCrewAISocraticSystem._has_repeated_full_sequence_signal(
+            GuidedTutorSystem._has_repeated_full_sequence_signal(
                 misconception_state,
                 "active_misconceptions",
             )

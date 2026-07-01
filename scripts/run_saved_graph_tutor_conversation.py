@@ -31,7 +31,7 @@ load_dotenv()
 
 from question_app.core.config import config
 from question_app.services.tutor.azure_client import AzureAPIMClient
-from question_app.services.tutor.hybrid_system import HybridCrewAISocraticSystem
+from question_app.services.tutor.hybrid_system import GuidedTutorSystem
 from question_app.services.tutor.interfaces import VectorStoreInterface
 
 DEFAULT_ARTIFACT = (
@@ -237,7 +237,7 @@ class InMemoryStudentService:
         return None
 
 
-class InstrumentedSavedGraphTutor(HybridCrewAISocraticSystem):
+class InstrumentedSavedGraphTutor(GuidedTutorSystem):
     def __init__(self, *args, objective_text: str, objective_id: str, **kwargs):
         super().__init__(*args, **kwargs)
         self.objective_text = objective_text

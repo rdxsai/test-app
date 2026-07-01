@@ -1626,7 +1626,7 @@ def get_instance_b_prompt_registry() -> List[Dict[str, Any]]:
             source_symbol="CONCEPT_DECOMPOSITION_PROMPT",
             prompt_text=CONCEPT_DECOMPOSITION_PROMPT,
             used_in=[
-                "HybridCrewAISocraticSystem._generate_teaching_plan()",
+                "GuidedTutorSystem._generate_teaching_plan()",
             ],
         ),
         _prompt_registry_entry(
@@ -1643,7 +1643,7 @@ def get_instance_b_prompt_registry() -> List[Dict[str, Any]]:
             base_prompt_symbol="TUTOR_SYSTEM_PROMPT",
             prompt_text=TUTOR_SYSTEM_PROMPT,
             used_in=[
-                "HybridCrewAISocraticSystem._build_guided_tutor_messages()",
+                "GuidedTutorSystem._build_guided_tutor_messages()",
             ],
             runtime_sections=[
                 "Student profile, mastery state, and known misconceptions",
@@ -1673,7 +1673,7 @@ def get_instance_b_prompt_registry() -> List[Dict[str, Any]]:
             base_prompt_symbol="TURN_ANALYZER_PROMPT",
             prompt_text=TURN_ANALYZER_PROMPT,
             used_in=[
-                "HybridCrewAISocraticSystem._run_turn_analyzer()",
+                "GuidedTutorSystem._run_turn_analyzer()",
             ],
             runtime_sections=[
                 "Current stage",
@@ -1704,7 +1704,7 @@ def get_instance_b_prompt_registry() -> List[Dict[str, Any]]:
             base_prompt_symbol="ASSESSMENT_REFLECTOR_PROMPT",
             prompt_text=ASSESSMENT_REFLECTOR_PROMPT,
             used_in=[
-                "HybridCrewAISocraticSystem._run_assessment_reflector()",
+                "GuidedTutorSystem._run_assessment_reflector()",
             ],
             runtime_sections=[
                 "Current stage",

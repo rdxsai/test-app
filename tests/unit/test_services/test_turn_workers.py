@@ -3,7 +3,7 @@ import pytest
 from question_app.services.tutor.hybrid_system import (
     GUIDED_TUTOR_RESPONSE_MAX_TOKENS,
     GUIDED_TUTOR_RESPONSE_REASONING_EFFORT,
-    HybridCrewAISocraticSystem,
+    GuidedTutorSystem,
 )
 from question_app.services.tutor.workers.turns import (
     ASSESSMENT_REFLECTOR_MAX_TOKENS,
@@ -166,7 +166,7 @@ async def test_guided_tutor_response_uses_explicit_generous_reasoning_budget(
         return "Tutor response."
 
     client.chat = capture_tutor_chat
-    system = HybridCrewAISocraticSystem.__new__(HybridCrewAISocraticSystem)
+    system = GuidedTutorSystem.__new__(GuidedTutorSystem)
     system.client = client
 
     async def fake_progressive_send(text, ws_send):

@@ -13,7 +13,7 @@ Lifecycle:
   - Evicted automatically — lives only as long as the process
 
 This is NOT a persistent cache. It's a Python dict on the
-HybridCrewAISocraticSystem instance, scoped to the process lifetime.
+GuidedTutorSystem instance, scoped to the process lifetime.
 """
 
 import copy
