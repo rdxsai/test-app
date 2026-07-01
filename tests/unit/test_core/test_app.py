@@ -44,7 +44,9 @@ class TestAppCreation:
 
         # Test API routes exist (they might return 200 for success or various error states)
         response = client.get("/api/courses")
-        assert response.status_code in [200, 400, 405, 500]  # Various states
+        # Route is registered and responds; 401/403 just mean Canvas isn't
+        # authenticated in the test env (a real network call is made here).
+        assert response.status_code in [200, 400, 401, 403, 405, 500]
 
     def test_app_has_questions_routes(self):
         """Test that the app has questions routes"""

@@ -10,11 +10,12 @@ class FakeAzureClient:
     chat_calls = []
     stream_calls = []
 
-    def __init__(self, endpoint: str, deployment: str, api_key: str, api_version: str = ""):
+    def __init__(self, endpoint: str, deployment: str, api_key: str, api_version: str = "", content_filter_policy: str = ""):
         self.endpoint = endpoint
         self.deployment = deployment
         self.api_key = api_key
         self.api_version = api_version
+        self.content_filter_policy = content_filter_policy
 
     def chat(
         self,
@@ -237,8 +238,10 @@ async def test_get_rag_context_renders_compact_labeled_chunks(service):
     assert len(chunks) == 3
     assert "Quiz Source 1 | topic=images | question_id=q-1 | type=question" in context
     assert "Key point:" in context
-    assert "Quiz Source 2 | topic=content | question_id=q-2 | type=answer" in context
-    assert "Quiz Source 3 | topic=images | question_id=q-3 | type=question" in context
+    # Chunks are reranked by query relevance to "alt text", so the two image
+    # chunks (q-1, q-3) outrank the wording chunk (q-2) in the rendered order.
+    assert "Quiz Source 2 | topic=images | question_id=q-3 | type=question" in context
+    assert "Quiz Source 3 | topic=content | question_id=q-2 | type=answer" in context
     assert "q-4" not in context
 
 

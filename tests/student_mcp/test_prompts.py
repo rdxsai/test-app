@@ -19,35 +19,31 @@ from question_app.services.tutor.prompts.socratic_tutor import (
 class TestInstanceAPrompt:
     """Instance A: General Q&A — teach-first, no stages or tools."""
 
-    def test_contains_role_preamble(self):
+    def test_contains_role(self):
         prompt = build_instance_a_prompt()
-        assert "warm, patient tutor" in prompt
-        assert "TEACHING, not testing" in prompt
+        assert "web accessibility tutor" in prompt
+        assert "Teach first" in prompt
 
-    def test_contains_teach_first_approach(self):
+    def test_contains_teach_first_flow(self):
         prompt = build_instance_a_prompt()
-        assert "HOW TO TEACH (INTRODUCTION PHASE)" in prompt
-        assert "clear, concise explanation" in prompt
-        assert "ONE gentle question" in prompt
-        assert "natural conversation" in prompt
+        assert "INSTANCE A TEACHING FLOW" in prompt
+        assert "Teach before you quiz" in prompt
+        assert "one natural follow-up question" in prompt
 
-    def test_contains_what_to_never_do(self):
+    def test_contains_response_style_constraints(self):
         prompt = build_instance_a_prompt()
-        assert "WHAT TO NEVER DO" in prompt
-        assert "Never ask about a concept you haven't explained yet" in prompt
-        assert "Never ask more than ONE question" in prompt
+        assert "INSTANCE A RESPONSE STYLE" in prompt
+        assert "Ask at most one gentle follow-up question" in prompt
 
     def test_contains_misconception_handling(self):
         prompt = build_instance_a_prompt()
-        assert "WHEN THE STUDENT SAYS SOMETHING WRONG" in prompt
-        assert "log_misconception" in prompt
+        assert "INSTANCE A MISCONCEPTIONS" in prompt
+        assert "correct it clearly" in prompt
 
-    def test_contains_few_shot_examples(self):
+    def test_contains_formatting_rules(self):
         prompt = build_instance_a_prompt()
-        assert "EXAMPLES OF GOOD TUTORING" in prompt
-        assert "blue decorative border" in prompt  # Example 1
-        assert "screen reader is" in prompt  # Example 2
-        assert "volume levels" in prompt  # Example 3
+        assert "FORMATTING RULES" in prompt
+        assert "Markdown" in prompt
 
     def test_contains_scope_boundary(self):
         prompt = build_instance_a_prompt()
@@ -85,12 +81,12 @@ class TestInstanceAPrompt:
             student_context="Level: intermediate | Role: developer"
         )
         assert "Level: intermediate" in prompt
-        assert "Adapt your vocabulary" in prompt
+        assert "Adapt vocabulary" in prompt
 
     def test_empty_contexts_produce_clean_prompt(self):
         prompt = build_instance_a_prompt()
         assert "KNOWLEDGE BASE CONTEXT" not in prompt
-        assert "warm, patient tutor" in prompt
+        assert "web accessibility tutor" in prompt
 
 
 class TestInstanceBPrompt:

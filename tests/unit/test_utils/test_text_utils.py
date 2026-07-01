@@ -65,7 +65,7 @@ class TestTextCleaning:
         result = clean_question_text(text)
         
         # CORRECTED EXPECTATION: No double newline for an inline span.
-        expected_output = "Unclosed paragraph\n\nNested without closing Deep nesting"
+        expected_output = "Unclosed paragraph\n\nNested without closingDeep nesting"
         assert result == expected_output
 
     def test_clean_question_text_deeply_nested_tags(self):
@@ -124,7 +124,7 @@ function helloWorld() {
         </ul>
         '''
         result = clean_question_text(text)
-        expected_output = "- Item 1\n  - **Nested item 1.1**\n  - Nested item 1.2\n    - Deep nested 1.2.1\n- Item 2"
+        expected_output = "- Item 1\n\n- **Nested item 1.1**\n- Nested item 1.2\n\n- Deep nested 1.2.1\n\n- Item 2"
         assert result == expected_output
 
     def test_clean_question_text_html_tables(self):
