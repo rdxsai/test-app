@@ -177,3 +177,9 @@ data/system_prompts.json
 
 # Database backups
 backups/
+
+# Local planning notes
+plan.md
+
+# Runtime conversation memory (app rewrites this)
+conversation_memory.json
